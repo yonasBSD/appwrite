@@ -9,8 +9,8 @@ use Appwrite\Auth\Validator\PasswordDictionary;
 use Appwrite\Auth\Validator\PasswordHistory;
 use Appwrite\Auth\Validator\PersonalData;
 use Appwrite\Auth\Validator\Phone;
-use Appwrite\Detector\Detector;
 use Appwrite\Bus\Events\SessionCreated;
+use Appwrite\Detector\Detector;
 use Appwrite\Event\Delete;
 use Appwrite\Event\Event;
 use Appwrite\Event\Mail;
@@ -42,6 +42,7 @@ use Utopia\Auth\Proofs\Code as ProofsCode;
 use Utopia\Auth\Proofs\Password as ProofsPassword;
 use Utopia\Auth\Proofs\Token as ProofsToken;
 use Utopia\Auth\Store;
+use Utopia\Bus\Bus;
 use Utopia\Config\Config;
 use Utopia\Database\Database;
 use Utopia\Database\DateTime;
@@ -61,7 +62,6 @@ use Utopia\Database\Validator\Query\Offset;
 use Utopia\Database\Validator\UID;
 use Utopia\Emails\Email;
 use Utopia\Emails\Validator\Email as EmailValidator;
-use Utopia\Bus\Bus;
 use Utopia\Http\Http;
 use Utopia\Locale\Locale;
 use Utopia\Storage\Validator\FileName;
@@ -189,16 +189,11 @@ $createSession = function (string $userId, string $secret, Request $request, Res
         throw new Exception(Exception::GENERAL_SERVER_ERROR, 'Failed saving user to DB');
     }
 
-    $isFirstSession = $dbForProject->count('sessions', [
-        Query::equal('userId', [$user->getId()]),
-    ]) === 1;
-
     $bus->dispatch(new SessionCreated(
         user: $user->getArrayCopy(),
         project: $project->getArrayCopy(),
         session: $session->getArrayCopy(),
         locale: $locale->default,
-        isFirstSession: $isFirstSession,
     ));
 
     $queueForEvents
@@ -1006,16 +1001,11 @@ Http::post('/v1/account/sessions/email')
             ->setParam('sessionId', $session->getId())
         ;
 
-        $isFirstSession = $dbForProject->count('sessions', [
-            Query::equal('userId', [$user->getId()]),
-        ]) === 1;
-
         $bus->dispatch(new SessionCreated(
             user: $user->getArrayCopy(),
             project: $project->getArrayCopy(),
             session: $session->getArrayCopy(),
             locale: $locale->default,
-            isFirstSession: $isFirstSession,
         ));
 
         $response->dynamic($session, Response::MODEL_SESSION);
