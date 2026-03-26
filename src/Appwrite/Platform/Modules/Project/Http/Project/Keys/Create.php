@@ -114,7 +114,7 @@ class Create extends Base
             'resourceId' => $project->getId(),
             'resourceType' => 'projects',
             'name' => $name,
-            'scopes' => $scopes,
+            'scopes' => $scopes ?? [],
             'expire' => $expire,
             'sdks' => [],
             'accessedAt' => null,

@@ -111,7 +111,7 @@ class Update extends Base
 
         $updates = new Document([
             'name' => $name,
-            'scopes' => $scopes,
+            'scopes' => $scopes ?? [],
             'expire' => $expire,
         ]);
 
