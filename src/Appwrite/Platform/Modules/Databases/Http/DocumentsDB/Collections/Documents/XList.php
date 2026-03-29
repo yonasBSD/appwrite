@@ -63,7 +63,6 @@ class XList extends DocumentXList
             ->inject('usage')
             ->inject('transactionState')
             ->inject('authorization')
-            ->inject('user')
             ->callback($this->action(...));
     }
 }
