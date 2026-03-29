@@ -390,16 +390,19 @@ Http::setResource('user', function (string $mode, Document $project, Document $c
 
     $user = null;
     if ($mode === APP_MODE_ADMIN) {
-        $user = new User($dbForPlatform->getDocument('users', $store->getProperty('id', ''))->getArrayCopy());
+        /** @var User $user */
+        $user = $dbForPlatform->getDocument('users', $store->getProperty('id', ''));
     } else {
         if ($project->isEmpty()) {
             $user = new User([]);
         } else {
             if (! empty($store->getProperty('id', ''))) {
                 if ($project->getId() === 'console') {
-                    $user = new User($dbForPlatform->getDocument('users', $store->getProperty('id', ''))->getArrayCopy());
+                    /** @var User $user */
+                    $user = $dbForPlatform->getDocument('users', $store->getProperty('id', ''));
                 } else {
-                    $user = new User($dbForProject->getDocument('users', $store->getProperty('id', ''))->getArrayCopy());
+                    /** @var User $user */
+                    $user = $dbForProject->getDocument('users', $store->getProperty('id', ''));
                 }
             }
         }
@@ -429,9 +432,11 @@ Http::setResource('user', function (string $mode, Document $project, Document $c
         $jwtUserId = $payload['userId'] ?? '';
         if (! empty($jwtUserId)) {
             if ($mode === APP_MODE_ADMIN) {
-                $user = new User($dbForPlatform->getDocument('users', $jwtUserId)->getArrayCopy());
+                /** @var User $user */
+                $user = $dbForPlatform->getDocument('users', $jwtUserId);
             } else {
-                $user = new User($dbForProject->getDocument('users', $jwtUserId)->getArrayCopy());
+                /** @var User $user */
+                $user = $dbForProject->getDocument('users', $jwtUserId);
             }
         }
         $jwtSessionId = $payload['sessionId'] ?? '';
@@ -450,9 +455,9 @@ Http::setResource('user', function (string $mode, Document $project, Document $c
             throw new Exception(Exception::USER_API_KEY_AND_SESSION_SET);
         }
 
-        $accountKeyDoc = $dbForPlatform->getAuthorization()->skip(fn () => $dbForPlatform->getDocument('users', $accountKeyUserId));
-        if (! $accountKeyDoc->isEmpty()) {
-            $accountKeyUser = new User($accountKeyDoc->getArrayCopy());
+        /** @var User $accountKeyUser */
+        $accountKeyUser = $dbForPlatform->getAuthorization()->skip(fn () => $dbForPlatform->getDocument('users', $accountKeyUserId));
+        if (! $accountKeyUser->isEmpty()) {
             $key = $accountKeyUser->find(
                 key: 'secret',
                 find: $accountKey,
