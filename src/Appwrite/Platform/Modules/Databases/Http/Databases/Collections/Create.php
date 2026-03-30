@@ -290,13 +290,17 @@ class Create extends Action
         }
 
         if (isset($attribute['min']) || isset($attribute['max'])) {
-            $format = $type === Database::VAR_INTEGER
-                ? APP_DATABASE_ATTRIBUTE_INT_RANGE
-                : APP_DATABASE_ATTRIBUTE_FLOAT_RANGE;
+            if ($type === Database::VAR_INTEGER) {
+                $format = APP_DATABASE_ATTRIBUTE_INT_RANGE;
+            } elseif ($type === Database::VAR_BIGINT) {
+                $format = APP_DATABASE_ATTRIBUTE_BIGINT_RANGE;
+            } else {
+                $format = APP_DATABASE_ATTRIBUTE_FLOAT_RANGE;
+            }
 
             $formatOptions = [
-                'min' => $attribute['min'] ?? ($type === Database::VAR_INTEGER ? \PHP_INT_MIN : -\PHP_FLOAT_MAX),
-                'max' => $attribute['max'] ?? ($type === Database::VAR_INTEGER ? \PHP_INT_MAX : \PHP_FLOAT_MAX),
+                'min' => $attribute['min'] ?? ($type === Database::VAR_INTEGER || $type === Database::VAR_BIGINT ? \PHP_INT_MIN : -\PHP_FLOAT_MAX),
+                'max' => $attribute['max'] ?? ($type === Database::VAR_INTEGER || $type === Database::VAR_BIGINT ? \PHP_INT_MAX : \PHP_FLOAT_MAX),
             ];
         }
 

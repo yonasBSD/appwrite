@@ -544,6 +544,7 @@ abstract class Action extends UtopiaAction
 
         switch ($attribute->getAttribute('format')) {
             case APP_DATABASE_ATTRIBUTE_INT_RANGE:
+            case APP_DATABASE_ATTRIBUTE_BIGINT_RANGE:
             case APP_DATABASE_ATTRIBUTE_FLOAT_RANGE:
                 $min ??= $attribute->getAttribute('formatOptions')['min'];
                 $max ??= $attribute->getAttribute('formatOptions')['max'];
@@ -552,16 +553,19 @@ abstract class Action extends UtopiaAction
                     throw new Exception($this->getInvalidValueException(), 'Minimum value must be lesser than maximum value');
                 }
 
-                if ($attribute->getAttribute('format') === APP_DATABASE_ATTRIBUTE_INT_RANGE) {
-                    // Use bigint validator when updating a bigint attribute/column.
-                    $rangeType = $type === Database::VAR_BIGINT ? Database::VAR_BIGINT : Database::VAR_INTEGER;
-                    $validator = new Range($min, $max, $rangeType);
-                } else {
+                if ($attribute->getAttribute('format') === APP_DATABASE_ATTRIBUTE_FLOAT_RANGE) {
                     $validator = new Range($min, $max, Database::VAR_FLOAT);
 
                     if (!is_null($default)) {
                         $default = \floatval($default);
                     }
+                } else {
+                    // intRange and bigintRange share the same integer range semantics
+                    // but validate against different primitive types.
+                    $rangeType = $attribute->getAttribute('format') === APP_DATABASE_ATTRIBUTE_BIGINT_RANGE
+                        ? Database::VAR_BIGINT
+                        : Database::VAR_INTEGER;
+                    $validator = new Range($min, $max, $rangeType);
                 }
 
                 if (!is_null($default) && !$validator->isValid($default)) {

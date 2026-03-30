@@ -103,7 +103,7 @@ class Create extends Action
             'required' => $required,
             'default' => $default,
             'array' => $array,
-            'format' => APP_DATABASE_ATTRIBUTE_INT_RANGE,
+            'format' => APP_DATABASE_ATTRIBUTE_BIGINT_RANGE,
             'formatOptions' => ['min' => $min, 'max' => $max],
         ]), $response, $dbForProject, $queueForDatabase, $queueForEvents, $authorization);
 

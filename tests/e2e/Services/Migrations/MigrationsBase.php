@@ -1256,7 +1256,6 @@ trait MigrationsBase
             'max' => 65,
             'required' => true,
         ]);
-
         $this->assertEquals(202, $response['headers']['status-code']);
         $this->assertEquals($response['body']['key'], 'age');
         $this->assertEquals($response['body']['type'], 'integer');
