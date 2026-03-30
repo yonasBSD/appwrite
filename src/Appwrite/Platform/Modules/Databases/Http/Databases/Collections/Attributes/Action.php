@@ -241,6 +241,10 @@ abstract class Action extends UtopiaAction
                 ? UtopiaResponse::MODEL_ATTRIBUTE_INTEGER
                 : UtopiaResponse::MODEL_COLUMN_INTEGER,
 
+            Database::VAR_BIGINT => $isCollections
+                ? UtopiaResponse::MODEL_ATTRIBUTE_BIGINT
+                : UtopiaResponse::MODEL_COLUMN_BIGINT,
+
             Database::VAR_FLOAT => $isCollections
                 ? UtopiaResponse::MODEL_ATTRIBUTE_FLOAT
                 : UtopiaResponse::MODEL_COLUMN_FLOAT,
