@@ -351,10 +351,8 @@ class Specs extends Action
         $email = System::getEnv('_APP_SYSTEM_TEAM_EMAIL', APP_EMAIL_TEAM);
         $specsDir = __DIR__ . '/../../../../app/config/specs';
 
-        if (!is_dir($specsDir)) {
-            if (!mkdir($specsDir, 0755, true)) {
-                throw new Exception('Failed to create specs directory: ' . $specsDir);
-            }
+        if (!is_dir($specsDir) && !@mkdir($specsDir, 0755, true) && !is_dir($specsDir)) {
+            throw new Exception('Failed to create specs directory: ' . $specsDir);
         }
 
         foreach ($platforms as $platform) {
@@ -479,7 +477,11 @@ class Specs extends Action
 
                 unset($parsedSpecs);
 
-                if ($encodedSpecs === false || !file_put_contents($path, $encodedSpecs)) {
+                if ($encodedSpecs === false) {
+                    throw new Exception('Failed to encode ' . ($mocks ? 'mocks ' : '') . 'spec file: ' . \json_last_error_msg());
+                }
+
+                if (\file_put_contents($path, $encodedSpecs) === false) {
                     throw new Exception('Failed to save ' . ($mocks ? 'mocks ' : '') . 'spec file: ' . $path);
                 }
 
