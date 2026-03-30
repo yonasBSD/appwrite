@@ -106,6 +106,10 @@ class SDKs extends Action
         $createRelease = ($release === 'yes');
         $commitRelease = ($commit === 'yes');
 
+        if ($createRelease && $examplesOnly) {
+            throw new \Exception('Cannot use --release=yes with --mode=examples');
+        }
+
         if (! $createRelease && ! $examplesOnly) {
             $git ??= Console::confirm('Should we use git push? (yes/no)');
             $git = ($git === 'yes');
