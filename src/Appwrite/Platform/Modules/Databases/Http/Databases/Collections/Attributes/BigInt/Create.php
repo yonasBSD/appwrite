@@ -59,8 +59,9 @@ class Create extends Action
                     )
                 ],
                 deprecated: new Deprecated(
+                deprecated: new Deprecated(
                     since: '1.8.0',
-                    replaceWith: 'tablesDB.createIntegerColumn',
+                    replaceWith: 'tablesDB.createBigIntColumn',
                 ),
             ))
             ->param('databaseId', '', fn (Database $dbForProject) => new UID($dbForProject->getAdapter()->getMaxUIDLength()), 'Database ID.', false, ['dbForProject'])
