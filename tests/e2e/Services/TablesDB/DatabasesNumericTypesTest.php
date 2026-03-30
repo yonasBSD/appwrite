@@ -210,8 +210,7 @@ class DatabasesNumericTypesTest extends Scope
         $this->assertEquals(200, $bigintColumn['headers']['status-code']);
         $this->assertEquals('bigint_field', $bigintColumn['body']['key']);
 
-        // Some implementations may still represent bigint columns as integer internally.
-        $this->assertTrue(\in_array($bigintColumn['body']['type'], ['bigint', 'integer'], true));
+        $this->assertEquals('bigint', $bigintColumn['body']['type']);
         $this->assertEquals(false, $bigintColumn['body']['required']);
         $this->assertEquals(false, $bigintColumn['body']['array']);
         $this->assertEquals(-900719925, $bigintColumn['body']['min']);
@@ -245,7 +244,7 @@ class DatabasesNumericTypesTest extends Scope
         }
 
         $this->assertEquals('integer', $columnTypeByKey['integer_field']);
-        $this->assertTrue(\in_array($columnTypeByKey['bigint_field'], ['bigint', 'integer'], true));
+        $this->assertEquals('bigint', $columnTypeByKey['bigint_field']);
     }
 
     public function testCreateRowWithIntegerAndBigIntTypes(): void

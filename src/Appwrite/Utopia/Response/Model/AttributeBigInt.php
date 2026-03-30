@@ -7,7 +7,7 @@ use Appwrite\Utopia\Response;
 class AttributeBigInt extends AttributeInteger
 {
     public array $conditions = [
-        'type' => self::TYPE_INTEGER,
+        'type' => 'bigint',
         'size' => 8,
     ];
 

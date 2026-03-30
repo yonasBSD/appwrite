@@ -7,7 +7,7 @@ use Appwrite\Utopia\Response;
 class ColumnBigInt extends ColumnInteger
 {
     public array $conditions = [
-        'type' => self::TYPE_INTEGER,
+        'type' => 'bigint',
         'size' => 8,
     ];
 

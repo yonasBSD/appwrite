@@ -85,7 +85,7 @@ class Update extends Action
             dbForProject: $dbForProject,
             queueForEvents: $queueForEvents,
             authorization: $authorization,
-            type: Database::VAR_INTEGER,
+            type: Database::VAR_BIGINT,
             default: $default,
             required: $required,
             min: $min,

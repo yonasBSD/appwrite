@@ -237,6 +237,10 @@ abstract class Action extends UtopiaAction
                 ? UtopiaResponse::MODEL_ATTRIBUTE_BOOLEAN
                 : UtopiaResponse::MODEL_COLUMN_BOOLEAN,
 
+            Database::VAR_BIGINT => $isCollections
+                ? UtopiaResponse::MODEL_ATTRIBUTE_BIGINT
+                : UtopiaResponse::MODEL_COLUMN_BIGINT,
+
             Database::VAR_INTEGER => $isCollections
                 ? UtopiaResponse::MODEL_ATTRIBUTE_INTEGER
                 : UtopiaResponse::MODEL_COLUMN_INTEGER,
@@ -549,7 +553,9 @@ abstract class Action extends UtopiaAction
                 }
 
                 if ($attribute->getAttribute('format') === APP_DATABASE_ATTRIBUTE_INT_RANGE) {
-                    $validator = new Range($min, $max, Database::VAR_INTEGER);
+                    // Use bigint validator when updating a bigint attribute/column.
+                    $rangeType = $type === Database::VAR_BIGINT ? Database::VAR_BIGINT : Database::VAR_INTEGER;
+                    $validator = new Range($min, $max, $rangeType);
                 } else {
                     $validator = new Range($min, $max, Database::VAR_FLOAT);
 

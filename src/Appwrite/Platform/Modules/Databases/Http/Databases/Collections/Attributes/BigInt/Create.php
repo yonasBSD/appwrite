@@ -59,7 +59,6 @@ class Create extends Action
                     )
                 ],
                 deprecated: new Deprecated(
-                deprecated: new Deprecated(
                     since: '1.8.0',
                     replaceWith: 'tablesDB.createBigIntColumn',
                 ),
@@ -89,7 +88,7 @@ class Create extends Action
             throw new Exception($this->getInvalidValueException(), 'Minimum value must be lesser than maximum value');
         }
 
-        $validator = new Range($min, $max, Database::VAR_INTEGER);
+        $validator = new Range($min, $max, Database::VAR_BIGINT);
         if (!\is_null($default) && !$validator->isValid($default)) {
             throw new Exception($this->getInvalidValueException(), $validator->getDescription());
         }
@@ -99,7 +98,7 @@ class Create extends Action
 
         $attribute = $this->createAttribute($databaseId, $collectionId, new Document([
             'key' => $key,
-            'type' => Database::VAR_INTEGER,
+            'type' => Database::VAR_BIGINT,
             'size' => $size,
             'required' => $required,
             'default' => $default,
