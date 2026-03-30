@@ -566,6 +566,10 @@ Http::post('/v1/migrations/csv/exports')
             throw new Exception(Exception::COLLECTION_NOT_FOUND);
         }
 
+        // getting databasetype
+        $resources = explode(':', $resourceId);
+        $databaseId = $resources[0];
+        $database = $authorization->skip(fn () => $dbForProject->getDocument('databases', $databaseId));
         $databaseType = $database->getAttribute('type');
         if (!in_array($databaseType, CSV_ALLOWED_DATABASE_TYPES)) {
             throw new Exception(Exception::MIGRATION_DATABASE_TYPE_UNSUPPORTED, 'Database type not supported for csv');
