@@ -20,6 +20,7 @@ class AttributeList extends Model
                 'type' => [
                     Response::MODEL_ATTRIBUTE_BOOLEAN,
                     Response::MODEL_ATTRIBUTE_INTEGER,
+                    Response::MODEL_ATTRIBUTE_BIGINT,
                     Response::MODEL_ATTRIBUTE_FLOAT,
                     Response::MODEL_ATTRIBUTE_EMAIL,
                     Response::MODEL_ATTRIBUTE_ENUM,

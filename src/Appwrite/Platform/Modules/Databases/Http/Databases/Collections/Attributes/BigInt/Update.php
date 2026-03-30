@@ -28,7 +28,7 @@ class Update extends Action
 
     protected function getResponseModel(): string|array
     {
-        return UtopiaResponse::MODEL_ATTRIBUTE_INTEGER;
+        return UtopiaResponse::MODEL_ATTRIBUTE_BIGINT;
     }
 
     public function __construct()

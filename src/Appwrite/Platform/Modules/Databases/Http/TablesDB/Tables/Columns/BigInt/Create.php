@@ -24,7 +24,7 @@ class Create extends BigIntCreate
 
     protected function getResponseModel(): string|array
     {
-        return UtopiaResponse::MODEL_COLUMN_INTEGER;
+        return UtopiaResponse::MODEL_COLUMN_BIGINT;
     }
 
     public function __construct()
