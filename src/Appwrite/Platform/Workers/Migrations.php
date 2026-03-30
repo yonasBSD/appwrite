@@ -210,7 +210,7 @@ class Migrations extends Action
         $getDatabasesDB = fn (Document $database): Database =>
                 $this->getDatabasesDBForProject($database);
         $queries = [];
-        if ($source === SourceAppwrite::getName() && $destination === DestinationCSV::getName()) {
+        if ($source === SourceAppwrite::getName() && in_array($destination, [DestinationCSV::getName(), DestinationJSON::getName()])) {
             $queries = Query::parseQueries($migrationOptions['queries']);
         }
 

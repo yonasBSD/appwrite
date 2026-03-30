@@ -566,16 +566,6 @@ Http::post('/v1/migrations/csv/exports')
             throw new Exception(Exception::COLLECTION_NOT_FOUND);
         }
 
-        $validator = new Documents(
-            attributes: $collection->getAttribute('attributes', []),
-            indexes: $collection->getAttribute('indexes', []),
-            idAttributeType: $dbForProject->getAdapter()->getIdAttributeType(),
-        );
-
-        if (!$validator->isValid($parsedQueries)) {
-            throw new Exception(Exception::GENERAL_QUERY_INVALID, $validator->getDescription());
-        }
-
         // getting databasetype
         $resources = explode(':', $resourceId);
         $databaseId = $resources[0];
@@ -584,6 +574,20 @@ Http::post('/v1/migrations/csv/exports')
         if (!in_array($databaseType, CSV_ALLOWED_DATABASE_TYPES)) {
             throw new Exception(Exception::MIGRATION_DATABASE_TYPE_UNSUPPORTED, 'Database type not supported for csv');
         }
+
+        $isSchemaless = in_array($databaseType, [DATABASE_TYPE_DOCUMENTSDB, DATABASE_TYPE_VECTORSDB]);
+
+        $validator = new Documents(
+            attributes: $collection->getAttribute('attributes', []),
+            indexes: $collection->getAttribute('indexes', []),
+            idAttributeType: $dbForProject->getAdapter()->getIdAttributeType(),
+            supportForAttributes: !$isSchemaless,
+        );
+
+        if (!$validator->isValid($parsedQueries)) {
+            throw new Exception(Exception::GENERAL_QUERY_INVALID, $validator->getDescription());
+        }
+
         $resources = Transfer::extractServices([getDatabaseTransferResourceServices($databaseType)]);
 
         $migration = $dbForProject->createDocument('migrations', new Document([
@@ -854,17 +858,20 @@ Http::post('/v1/migrations/json/exports')
             throw new Exception(Exception::COLLECTION_NOT_FOUND);
         }
 
+        $databaseType = $database->getAttribute('type');
+        $isSchemaless = in_array($databaseType, [DATABASE_TYPE_DOCUMENTSDB, DATABASE_TYPE_VECTORSDB]);
+
         $validator = new Documents(
             attributes: $collection->getAttribute('attributes', []),
             indexes: $collection->getAttribute('indexes', []),
             idAttributeType: $dbForProject->getAdapter()->getIdAttributeType(),
+            supportForAttributes: !$isSchemaless,
         );
 
         if (!$validator->isValid($parsedQueries)) {
             throw new Exception(Exception::GENERAL_QUERY_INVALID, $validator->getDescription());
         }
 
-        $databaseType = $database->getAttribute('type');
         $resources = Transfer::extractServices([getDatabaseTransferResourceServices($databaseType)]);
 
         $migration = $dbForProject->createDocument('migrations', new Document([
