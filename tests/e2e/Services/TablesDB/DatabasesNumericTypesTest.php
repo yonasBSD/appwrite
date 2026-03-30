@@ -283,7 +283,7 @@ class DatabasesNumericTypesTest extends Scope
         // Update integer column
         $updateInteger = $this->client->call(
             Client::METHOD_PATCH,
-            '/tablesdb/' . $databaseId . '/tables/' . $tableId . '/columns/integer_field',
+            '/tablesdb/' . $databaseId . '/tables/' . $tableId . '/columns/integer/integer_field',
             [
                 'content-type' => 'application/json',
                 'x-appwrite-project' => $this->getProject()['$id'],
@@ -315,7 +315,7 @@ class DatabasesNumericTypesTest extends Scope
         // Update bigint column
         $updateBigint = $this->client->call(
             Client::METHOD_PATCH,
-            '/tablesdb/' . $databaseId . '/tables/' . $tableId . '/columns/bigint_field',
+            '/tablesdb/' . $databaseId . '/tables/' . $tableId . '/columns/bigint/bigint_field',
             [
                 'content-type' => 'application/json',
                 'x-appwrite-project' => $this->getProject()['$id'],
