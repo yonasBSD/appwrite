@@ -88,7 +88,7 @@ class Create extends Action
             throw new Exception($this->getInvalidValueException(), 'Minimum value must be lesser than maximum value');
         }
 
-        $validator = new Range($min, $max, Database::VAR_BIGINT);
+        $validator = new Range($min, $max, Range::TYPE_INTEGER);
         if (!\is_null($default) && !$validator->isValid($default)) {
             throw new Exception($this->getInvalidValueException(), $validator->getDescription());
         }

@@ -237,10 +237,6 @@ abstract class Action extends UtopiaAction
                 ? UtopiaResponse::MODEL_ATTRIBUTE_BOOLEAN
                 : UtopiaResponse::MODEL_COLUMN_BOOLEAN,
 
-            Database::VAR_BIGINT => $isCollections
-                ? UtopiaResponse::MODEL_ATTRIBUTE_BIGINT
-                : UtopiaResponse::MODEL_COLUMN_BIGINT,
-
             Database::VAR_INTEGER => $isCollections
                 ? UtopiaResponse::MODEL_ATTRIBUTE_INTEGER
                 : UtopiaResponse::MODEL_COLUMN_INTEGER,
@@ -561,11 +557,7 @@ abstract class Action extends UtopiaAction
                     }
                 } else {
                     // intRange and bigintRange share the same integer range semantics
-                    // but validate against different primitive types.
-                    $rangeType = $attribute->getAttribute('format') === APP_DATABASE_ATTRIBUTE_BIGINT_RANGE
-                        ? Database::VAR_BIGINT
-                        : Database::VAR_INTEGER;
-                    $validator = new Range($min, $max, $rangeType);
+                    $validator = new Range($min, $max, Range::TYPE_INTEGER);
                 }
 
                 if (!is_null($default) && !$validator->isValid($default)) {
