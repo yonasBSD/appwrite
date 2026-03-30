@@ -1578,8 +1578,8 @@ trait MigrationsBase
             'x-appwrite-key' => $this->getProject()['apiKey']
         ], [
             'key' => 'bigint',
-            'min' => 0,
-            'max' => 100000,
+            'min' => 2147483648,
+            'max' => 9223372036854775807,
             'required' => false,
         ]);
 
@@ -1635,7 +1635,7 @@ trait MigrationsBase
                     'mediumtext' => 'mediumText',
                     'longtext' => 'longText',
                     'varchar' => 'varchar',
-                    'bigint' => $i * 1000,
+                    'bigint' => 2147483648 + $i,
                 ]
             ]);
 
@@ -1725,7 +1725,7 @@ trait MigrationsBase
         $this->assertStringContainsString('longText', $csvData, 'CSV should contain the long text column header');
         $this->assertStringContainsString('varchar', $csvData, 'CSV should contain the varchar column header');
         $this->assertStringContainsString('bigint', $csvData, 'CSV should contain the bigint column header');
-        $this->assertStringContainsString('1000', $csvData, 'CSV should contain bigint test data');
+        $this->assertStringContainsString('2147483649', $csvData, 'CSV should contain bigint test data');
 
         // Cleanup
         $this->client->call(Client::METHOD_DELETE, '/databases/' . $databaseId, [
