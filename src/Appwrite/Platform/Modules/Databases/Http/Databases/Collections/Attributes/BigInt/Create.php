@@ -59,6 +59,7 @@ class Create extends Action
                     )
                 ],
                 deprecated: new Deprecated(
+                deprecated: new Deprecated(
                     since: '1.8.0',
                     replaceWith: 'tablesDB.createBigIntColumn',
                 ),
