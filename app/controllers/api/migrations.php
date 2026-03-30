@@ -774,6 +774,7 @@ Http::post('/v1/migrations/json/imports')
         $queueForMigrations
             ->setMigration($migration)
             ->setProject($project)
+            ->setPlatform($platform)
             ->trigger();
 
         $response
