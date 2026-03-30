@@ -36,6 +36,13 @@ Structure::addFormat(APP_DATABASE_ATTRIBUTE_INT_RANGE, function ($attribute) {
     return new Range($min, $max, Range::TYPE_INTEGER);
 }, Database::VAR_INTEGER);
 
+// BigInt uses the same intRange format, but is stored as a 64-bit integer type.
+Structure::addFormat(APP_DATABASE_ATTRIBUTE_INT_RANGE, function ($attribute) {
+    $min = $attribute['formatOptions']['min'] ?? -INF;
+    $max = $attribute['formatOptions']['max'] ?? INF;
+    return new Range($min, $max, Range::TYPE_INTEGER);
+}, Database::VAR_BIGINT);
+
 Structure::addFormat(APP_DATABASE_ATTRIBUTE_FLOAT_RANGE, function ($attribute) {
     $min = $attribute['formatOptions']['min'] ?? -INF;
     $max = $attribute['formatOptions']['max'] ?? INF;
