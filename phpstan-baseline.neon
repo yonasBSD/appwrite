@@ -1537,13 +1537,13 @@ parameters:
 		-
 			message: '#^Anonymous function has an unused use \$databaseId\.$#'
 			identifier: closure.unusedUse
-			count: 5
+			count: 6
 			path: tests/e2e/Services/Migrations/MigrationsConsoleClientTest.php
 
 		-
 			message: '#^Anonymous function has an unused use \$tableId\.$#'
 			identifier: closure.unusedUse
-			count: 5
+			count: 6
 			path: tests/e2e/Services/Migrations/MigrationsConsoleClientTest.php
 
 		-
