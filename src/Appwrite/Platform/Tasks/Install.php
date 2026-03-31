@@ -7,6 +7,7 @@ use Appwrite\Docker\Env;
 use Appwrite\Platform\Installer\Runtime\State;
 use Appwrite\Platform\Installer\Server as InstallerServer;
 use Appwrite\Utopia\View;
+use Swoole\Coroutine;
 use Utopia\Auth\Proofs\Password;
 use Utopia\Auth\Proofs\Token;
 use Utopia\Config\Config;
@@ -643,7 +644,17 @@ class Install extends Action
                     }
                 }
 
-                $this->trackSelfHostedInstall($input, $isUpgrade, $version, $account);
+                // Run tracking in a coroutine (web installer) so it
+                // doesn't block the worker. Safe because the installer
+                // has no shared mutable state across requests.
+                // CLI runs synchronously.
+                if (!$isCLI && Coroutine::getCid() !== -1) {
+                    go(function () use ($input, $isUpgrade, $version, $account) {
+                        $this->trackSelfHostedInstall($input, $isUpgrade, $version, $account);
+                    });
+                } else {
+                    $this->trackSelfHostedInstall($input, $isUpgrade, $version, $account);
+                }
 
                 if ($isCLI) {
                     Console::success('Appwrite installed successfully');
