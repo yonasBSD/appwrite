@@ -636,7 +636,6 @@ class Install extends Action
 
                 // Signal completion before tracking so the SSE stream
                 // finishes and the frontend can redirect immediately.
-                // Tracking is best-effort and must never block the user.
                 if ($onComplete) {
                     try {
                         $onComplete();
@@ -644,10 +643,7 @@ class Install extends Action
                     }
                 }
 
-                try {
-                    $this->trackSelfHostedInstall($input, $isUpgrade, $version, $account);
-                } catch (\Throwable) {
-                }
+                $this->trackSelfHostedInstall($input, $isUpgrade, $version, $account);
 
                 if ($isCLI) {
                     Console::success('Appwrite installed successfully');
