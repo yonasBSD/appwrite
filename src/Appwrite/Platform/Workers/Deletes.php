@@ -765,11 +765,29 @@ class Deletes extends Action
                     $databasesToClean
                 ));
             } elseif ($sharedTablesV1) {
+                var_dump('================= Delete Shared table v1 ==================');
+                var_dump($projectCollectionIds);
+                $metadataDocuments = $dbForProject->find(Database::METADATA, [
+                    Query::equal('$id', $projectCollectionIds),
+                    Query::limit(PHP_INT_MAX)
+                ]);
+
+                $queries = [
+                    Query::orderAsc()
+                ];
+
+                foreach ($metadataDocuments as $metadataDoc) {
+                    if (empty($metadataDoc->getTenant())) {
+                        var_dump('=== Found null metadata ===');
+                        var_dump($metadataDoc->getId());
+                        var_dump($metadataDoc->getSequence());
+                        $queries[] = Query::notEqual('$sequence', $metadataDoc->getSequence());
+                    }
+                }
+
                 $this->deleteByGroup(
                     Database::METADATA,
-                    [
-                        Query::orderAsc()
-                    ],
+                    $queries,
                     $dbForProject
                 );
             } elseif ($sharedTablesV2) {
