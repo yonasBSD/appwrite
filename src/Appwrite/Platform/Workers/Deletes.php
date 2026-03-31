@@ -766,7 +766,7 @@ class Deletes extends Action
                 ));
             } elseif ($sharedTablesV1) {
                 /**
-                 * Temporary disabling deletes from internal collections
+                 * Temporary disabling deletes for internal collections
                  */
                 $queries = \array_map(
                     fn ($id) => Query::notEqual('$id', $id),
