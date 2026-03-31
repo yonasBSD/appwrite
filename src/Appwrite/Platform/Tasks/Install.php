@@ -787,7 +787,7 @@ class Install extends Action
                 'email' => $email,
                 'domain' => $domain,
                 'database' => $database,
-                'hostIp' => ($hostIp !== false && $hostIp !== $domain) ? $hostIp : null,
+                'ip' => ($hostIp !== false && $hostIp !== $domain) ? $hostIp : null,
                 'os' => php_uname('s') . ' ' . php_uname('r'),
                 'arch' => php_uname('m'),
                 'cpus' => ((int) trim((string) \shell_exec('nproc'))) ?: null,
