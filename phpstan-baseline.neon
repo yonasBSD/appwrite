@@ -187,24 +187,6 @@ parameters:
 			path: app/worker.php
 
 		-
-			message: '#^PHPDoc tag @var above a method has no effect\.$#'
-			identifier: varTag.misplaced
-			count: 1
-			path: src/Appwrite/Docker/Compose.php
-
-		-
-			message: '#^PHPDoc tag @var above a method has no effect\.$#'
-			identifier: varTag.misplaced
-			count: 1
-			path: src/Appwrite/Docker/Compose/Service.php
-
-		-
-			message: '#^PHPDoc tag @var above a method has no effect\.$#'
-			identifier: varTag.misplaced
-			count: 1
-			path: src/Appwrite/Docker/Env.php
-
-		-
 			message: '#^Anonymous function has an unused use \$context\.$#'
 			identifier: closure.unusedUse
 			count: 1
@@ -365,12 +347,6 @@ parameters:
 			identifier: parameterByRef.type
 			count: 1
 			path: src/Appwrite/OpenSSL/OpenSSL.php
-
-		-
-			message: '#^PHPDoc tag @param references unknown parameter\: \$projectId$#'
-			identifier: parameter.notFound
-			count: 1
-			path: src/Appwrite/Platform/Action.php
 
 		-
 			message: '#^Variable \$output in empty\(\) always exists and is not falsy\.$#'
@@ -1069,12 +1045,6 @@ parameters:
 			path: src/Appwrite/SDK/Specification/Format/Swagger2.php
 
 		-
-			message: '#^PHPDoc tag @var above a method has no effect\.$#'
-			identifier: varTag.misplaced
-			count: 2
-			path: src/Appwrite/Template/Template.php
-
-		-
 			message: '#^PHPDoc tag @param has invalid value \(Document \$this\)\: Unexpected token "\$this", expected variable at offset 69 on line 4$#'
 			identifier: phpDoc.parseError
 			count: 1
@@ -1098,23 +1068,6 @@ parameters:
 			count: 1
 			path: src/Appwrite/Utopia/Request/Filters/V17.php
 
-		-
-			message: '#^PHPDoc tag @param has invalid value \(callable The callback to show sensitive information for\)\: Unexpected token "The", expected variable at offset 91 on line 4$#'
-			identifier: phpDoc.parseError
-			count: 1
-			path: src/Appwrite/Utopia/Response.php
-
-		-
-			message: '#^PHPDoc tag @return with type Appwrite\\Utopia\\Response\\Filter is incompatible with native type array\.$#'
-			identifier: return.phpDocType
-			count: 1
-			path: src/Appwrite/Utopia/Response.php
-
-		-
-			message: '#^PHPDoc tag @return with type string is incompatible with native type Utopia\\Database\\Document\.$#'
-			identifier: return.phpDocType
-			count: 1
-			path: src/Appwrite/Utopia/Response/Model/User.php
 		-
 			message: '#^Unsafe access to private property Tests\\E2E\\Services\\Databases\\Legacy\\DatabasesStringTypesTest\:\:\$setupCache through static\:\:\.$#'
 			identifier: staticClassAccess.privateProperty
