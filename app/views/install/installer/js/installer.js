@@ -12,7 +12,7 @@
     const { validateInstallRequest } = window.InstallerStepsProgress || {};
 
     const isUpgrade = document.body?.dataset.upgrade === 'true';
-    const stepFlow = isUpgrade ? [1, 4, 5] : [1, 2, 3, 4, 5];
+    const stepFlow = isUpgrade ? [1, 6, 4, 5] : [1, 2, 3, 4, 5];
     const cardSteps = stepFlow.filter((step) => step !== 5);
 
     const normalizeStep = (step) => {
@@ -53,7 +53,7 @@
     let pendingStep = null;
     let pendingPushState = false;
 
-    const clampStep = (step) => Math.max(1, Math.min(5, step));
+    const clampStep = (step) => Math.max(1, Math.min(6, step));
     const isInstallLocked = () => Boolean(window.InstallerSteps?.isInstallLocked?.());
 
     const scrollToFirstError = (panel) => {
