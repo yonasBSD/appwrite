@@ -217,7 +217,7 @@ class DatabaseClientTest extends Scope
                     'x-appwrite-key' => $this->getProject()['apiKey'],
                 ]));
                 $this->assertEquals('available', $response['body']['status']);
-            }, 240000, 500);
+            }, 30000, 250);
         }
 
         $projectId = $this->getProject()['$id'];
@@ -330,7 +330,7 @@ class DatabaseClientTest extends Scope
                 'x-appwrite-key' => $this->getProject()['apiKey'],
             ]));
             $this->assertEquals('available', $response['body']['status']);
-        }, 240000, 500);
+        }, 30000, 250);
 
         // Step 4: Create rows
         $query = $this->getQuery(self::CREATE_ROWS);
@@ -623,7 +623,7 @@ class DatabaseClientTest extends Scope
                     'x-appwrite-key' => $this->getProject()['apiKey'],
                 ]));
                 $this->assertEquals('available', $response['body']['status']);
-            }, 240000, 500);
+            }, 30000, 250);
         }
 
         $projectId = $this->getProject()['$id'];

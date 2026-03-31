@@ -149,7 +149,7 @@ class AuthTest extends Scope
                 'x-appwrite-key' => $this->getProject()['apiKey'],
             ]);
             $this->assertEquals('available', $response['body']['status']);
-        }, 240000, 500);
+        }, 30000, 250);
     }
 
     public function testInvalidAuth()
