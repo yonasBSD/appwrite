@@ -510,7 +510,8 @@ class Install extends Action
         ?callable $progress = null,
         ?string $resumeFromStep = null,
         bool $isUpgrade = false,
-        array $account = []
+        array $account = [],
+        ?callable $onComplete = null,
     ): void {
         $isLocalInstall = $this->isLocalInstall();
         $this->applyLocalPaths($isLocalInstall, false);
@@ -633,8 +634,20 @@ class Install extends Action
                     $this->createInitialAdminAccount($account, $progress, $apiUrl, $domain);
                 }
 
-                // Track installs
-                $this->trackSelfHostedInstall($input, $isUpgrade, $version, $account);
+                // Signal completion before tracking so the SSE stream
+                // finishes and the frontend can redirect immediately.
+                // Tracking is best-effort and must never block the user.
+                if ($onComplete) {
+                    try {
+                        $onComplete();
+                    } catch (\Throwable) {
+                    }
+                }
+
+                try {
+                    $this->trackSelfHostedInstall($input, $isUpgrade, $version, $account);
+                } catch (\Throwable) {
+                }
 
                 if ($isCLI) {
                     Console::success('Appwrite installed successfully');
@@ -753,7 +766,7 @@ class Install extends Action
         $name = $account['name'] ?? 'Admin';
         $email = $account['email'] ?? 'admin@selfhosted.local';
 
-        $hostIp = gethostbyname($domain);
+        $hostIp = @gethostbyname($domain);
 
         $payload = [
             'action' => $type,
@@ -767,7 +780,7 @@ class Install extends Action
                 'email' => $email,
                 'domain' => $domain,
                 'database' => $database,
-                'hostIp' => $hostIp !== $domain ? $hostIp : null,
+                'hostIp' => ($hostIp !== false && $hostIp !== $domain) ? $hostIp : null,
                 'os' => php_uname('s') . ' ' . php_uname('r'),
                 'arch' => php_uname('m'),
                 'cpus' => ((int) trim((string) \shell_exec('nproc'))) ?: null,
@@ -778,6 +791,8 @@ class Install extends Action
         try {
             $client = new Client();
             $client
+                ->setConnectTimeout(5000)
+                ->setTimeout(5000)
                 ->addHeader('Content-Type', 'application/json')
                 ->fetch(self::GROWTH_API_URL . '/analytics', Client::METHOD_POST, $payload);
         } catch (\Throwable) {
