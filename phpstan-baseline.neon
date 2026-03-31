@@ -187,36 +187,6 @@ parameters:
 			path: app/worker.php
 
 		-
-			message: '#^PHPDoc tag @return with type string is incompatible with native type int\.$#'
-			identifier: return.phpDocType
-			count: 1
-			path: src/Appwrite/Auth/OAuth2.php
-
-		-
-			message: '#^PHPDoc tag @param references unknown parameter\: \$token$#'
-			identifier: parameter.notFound
-			count: 1
-			path: src/Appwrite/Auth/OAuth2/Disqus.php
-
-		-
-			message: '#^PHPDoc tag @param references unknown parameter\: \$value$#'
-			identifier: parameter.notFound
-			count: 1
-			path: src/Appwrite/Auth/Validator/PersonalData.php
-
-		-
-			message: '#^PHPDoc tag @param has invalid value \(DeviceDetector\)\: Unexpected token "\\n     ", expected variable at offset 32 on line 2$#'
-			identifier: phpDoc.parseError
-			count: 1
-			path: src/Appwrite/Detector/Detector.php
-
-		-
-			message: '#^PHPDoc tag @param has invalid value \(string\)\: Unexpected token "\\n     ", expected variable at offset 24 on line 2$#'
-			identifier: phpDoc.parseError
-			count: 1
-			path: src/Appwrite/Detector/Detector.php
-
-		-
 			message: '#^PHPDoc tag @var above a method has no effect\.$#'
 			identifier: varTag.misplaced
 			count: 1
@@ -233,60 +203,6 @@ parameters:
 			identifier: varTag.misplaced
 			count: 1
 			path: src/Appwrite/Docker/Env.php
-
-		-
-			message: '#^PHPDoc tag @param has invalid value \(int port\)\: Unexpected token "port", expected variable at offset 50 on line 4$#'
-			identifier: phpDoc.parseError
-			count: 1
-			path: src/Appwrite/Event/Mail.php
-
-		-
-			message: '#^PHPDoc tag @param references unknown parameter\: \$password$#'
-			identifier: parameter.notFound
-			count: 1
-			path: src/Appwrite/Event/Mail.php
-
-		-
-			message: '#^PHPDoc tag @return with type string is incompatible with native type Appwrite\\Event\\Mail\.$#'
-			identifier: return.phpDocType
-			count: 1
-			path: src/Appwrite/Event/Mail.php
-
-		-
-			message: '#^Method Appwrite\\Event\\Message\\Usage\:\:fromArray\(\) should return static\(Appwrite\\Event\\Message\\Usage\) but returns Appwrite\\Event\\Message\\Usage\.$#'
-			identifier: return.type
-			count: 1
-			path: src/Appwrite/Event/Message/Usage.php
-
-		-
-			message: '#^PHPDoc tag @param references unknown parameter\: \$message$#'
-			identifier: parameter.notFound
-			count: 1
-			path: src/Appwrite/Event/Messaging.php
-
-		-
-			message: '#^PHPDoc tag @return with type string is incompatible with native type Utopia\\Database\\Document\.$#'
-			identifier: return.phpDocType
-			count: 1
-			path: src/Appwrite/Event/Messaging.php
-
-		-
-			message: '#^Method Appwrite\\Functions\\EventProcessor\:\:getFunctionsEvents\(\) should return array\<string, bool\> but returns array\<int\<0, max\>\>\.$#'
-			identifier: return.type
-			count: 1
-			path: src/Appwrite/Functions/EventProcessor.php
-
-		-
-			message: '#^Method Appwrite\\Functions\\EventProcessor\:\:getWebhooksEvents\(\) should return array\<string, bool\> but returns array\<int\<0, max\>\>\.$#'
-			identifier: return.type
-			count: 1
-			path: src/Appwrite/Functions/EventProcessor.php
-
-		-
-			message: '#^Variable \$hostname on left side of \?\? always exists and is not nullable\.$#'
-			identifier: nullCoalesce.variable
-			count: 1
-			path: src/Appwrite/Functions/EventProcessor.php
 
 		-
 			message: '#^Anonymous function has an unused use \$context\.$#'
