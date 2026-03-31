@@ -645,11 +645,9 @@ class Install extends Action
                     }
                 }
 
-                // Run tracking in a coroutine (web installer) so it
-                // doesn't block the worker. Safe because the installer
-                // has no shared mutable state across requests.
-                // CLI runs synchronously.
-                if (!$isCLI && Coroutine::getCid() !== -1) {
+                // Run tracking in a coroutine when inside a Swoole
+                // request so it doesn't block the worker.
+                if (Coroutine::getCid() !== -1) {
                     go(function () use ($input, $isUpgrade, $version, $account) {
                         $this->trackSelfHostedInstall($input, $isUpgrade, $version, $account);
                     });
@@ -788,7 +786,7 @@ class Install extends Action
                 'email' => $email,
                 'domain' => $domain,
                 'database' => $database,
-                'ip' => ($hostIp !== false && $hostIp !== $domain) ? $hostIp : null,
+                'hostIp' => ($hostIp !== false && $hostIp !== $domain) ? $hostIp : null,
                 'os' => php_uname('s') . ' ' . php_uname('r'),
                 'arch' => php_uname('m'),
                 'cpus' => ((int) trim((string) \shell_exec('nproc'))) ?: null,
