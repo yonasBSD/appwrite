@@ -337,14 +337,14 @@
 
         const checkbox = root.querySelector('#run-migration');
         if (checkbox) {
-            if (formState.runMigration !== undefined) {
-                checkbox.checked = formState.runMigration;
+            if (formState.migrate !== undefined) {
+                checkbox.checked = formState.migrate;
             } else {
-                formState.runMigration = checkbox.checked;
+                formState.migrate = checkbox.checked;
             }
             checkbox.addEventListener('change', () => {
-                formState.runMigration = checkbox.checked;
-                dispatchStateChange?.('runMigration');
+                formState.migrate = checkbox.checked;
+                dispatchStateChange?.('migrate');
             });
         }
 

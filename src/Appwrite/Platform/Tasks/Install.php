@@ -36,6 +36,7 @@ class Install extends Action
     private const string GROWTH_API_URL = 'https://growth.appwrite.io/v1';
 
     protected bool $isUpgrade = false;
+    protected bool $migrate = false;
     protected string $hostPath = '';
     protected ?bool $isLocalInstall = null;
     protected ?array $installerConfig = null;
@@ -323,7 +324,7 @@ class Install extends Action
 
         $shouldGenerateSecrets = !$existingInstallation && !$isUpgrade;
         $input = $this->prepareEnvironmentVariables($userInput, $vars, $shouldGenerateSecrets);
-        $this->performInstallation($httpPort, $httpsPort, $organization, $image, $input, $noStart, null, null, $isUpgrade);
+        $this->performInstallation($httpPort, $httpsPort, $organization, $image, $input, $noStart, null, null, $isUpgrade, migrate: $this->migrate);
     }
 
 
@@ -514,7 +515,7 @@ class Install extends Action
         bool $isUpgrade = false,
         array $account = [],
         ?callable $onComplete = null,
-        bool $runMigration = false,
+        bool $migrate = false,
     ): void {
         $isLocalInstall = $this->isLocalInstall();
         $this->applyLocalPaths($isLocalInstall, false);
@@ -637,7 +638,7 @@ class Install extends Action
                     $this->createInitialAdminAccount($account, $progress, $apiUrl, $domain);
                 }
 
-                if ($isUpgrade && $runMigration) {
+                if ($isUpgrade && $migrate) {
                     // Allow the containers-completed SSE event to flush
                     // before blocking on migration exec
                     usleep(200_000);

@@ -374,7 +374,7 @@
             assistantOpenAIKey: normalizedAssistantKey,
             accountEmail: normalizedAccountEmail,
             accountPassword: normalizedAccountPassword,
-            runMigration: formState?.runMigration ?? false
+            migrate: formState?.migrate ?? false
         };
     };
 
