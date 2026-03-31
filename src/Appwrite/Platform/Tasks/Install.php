@@ -219,7 +219,7 @@ class Install extends Action
             Console::info('Press Ctrl+C to cancel installation');
 
             $detectedDb = ($existingInstallation && isset($existingDatabase)) ? $existingDatabase : null;
-            $this->startWebServer($defaultHttpPort, $defaultHttpsPort, $organization, $image, $noStart, $vars, $isUpgrade, $detectedDb);
+            $this->startWebServer($defaultHttpPort, $defaultHttpsPort, $organization, $image, $noStart, $vars, $isUpgrade || $existingInstallation, $detectedDb);
             return;
         }
 
