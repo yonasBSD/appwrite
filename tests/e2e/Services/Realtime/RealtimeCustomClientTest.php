@@ -3054,6 +3054,10 @@ class RealtimeCustomClientTest extends Scope
         }
 
         $this->assertNotNull($event, 'Timed out waiting for the row update event');
+        $this->assertArrayHasKey('type', $event);
+        $this->assertArrayHasKey('data', $event);
+        $this->assertEquals('event', $event['type']);
+        $this->assertNotEmpty($event['data']);
         $this->assertArrayHasKey('timestamp', $event['data']);
 
         $channels = $event['data']['channels'];

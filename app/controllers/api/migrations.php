@@ -53,6 +53,15 @@ function getDatabaseTransferResourceServices(string $databaseType)
     };
 }
 
+function getDatabaseResourceType(string $databaseType): string
+{
+    return match($databaseType) {
+        DATABASE_TYPE_VECTORSDB => Resource::TYPE_DATABASE_VECTORSDB,
+        DATABASE_TYPE_DOCUMENTSDB => Resource::TYPE_DATABASE_DOCUMENTSDB,
+        default => Resource::TYPE_DATABASE,
+    };
+}
+
 Http::post('/v1/migrations/appwrite')
     ->groups(['api', 'migrations'])
     ->desc('Create Appwrite migration')
@@ -447,6 +456,7 @@ Http::post('/v1/migrations/csv/imports')
         }
         $fileSize = $deviceForMigrations->getFileSize($newPath);
         $resources = Transfer::extractServices([getDatabaseTransferResourceServices($databaseType)]);
+        $resourceType = getDatabaseResourceType($databaseType);
 
         $migration = $dbForProject->createDocument('migrations', new Document([
             '$id' => $migrationId,
@@ -456,7 +466,7 @@ Http::post('/v1/migrations/csv/imports')
             'destination' => Appwrite::getName(),
             'resources' => $resources,
             'resourceId' => $resourceId,
-            'resourceType' => Resource::TYPE_DATABASE,
+            'resourceType' => $resourceType,
             'statusCounters' => '{}',
             'resourceData' => '{}',
             'errors' => [],
@@ -584,6 +594,7 @@ Http::post('/v1/migrations/csv/exports')
             throw new Exception(Exception::MIGRATION_DATABASE_TYPE_UNSUPPORTED, 'Database type not supported for csv');
         }
         $resources = Transfer::extractServices([getDatabaseTransferResourceServices($databaseType)]);
+        $resourceType = getDatabaseResourceType($databaseType);
 
         $migration = $dbForProject->createDocument('migrations', new Document([
             '$id' => ID::unique(),
@@ -593,7 +604,7 @@ Http::post('/v1/migrations/csv/exports')
             'destination' => CSV::getName(),
             'resources' => $resources,
             'resourceId' => $resourceId,
-            'resourceType' => Resource::TYPE_DATABASE,
+            'resourceType' => $resourceType,
             'statusCounters' => '{}',
             'resourceData' => '{}',
             'errors' => [],
