@@ -221,9 +221,7 @@ Server::setResource('getLogsDB', function (Group $pools, Cache $cache, Authoriza
 }, ['pools', 'cache', 'authorization']);
 
 Server::setResource('getDatabasesDB', function (Cache $cache, Registry $register, Document $project, Authorization $authorization) {
-    $initializedPools = [];
-
-    return function (Document $database, ?Document $projectDocument = null) use ($cache, $register, $project, $authorization, &$initializedPools): Database {
+    return function (Document $database, ?Document $projectDocument = null) use ($cache, $register, $project, $authorization): Database {
         $projectDocument ??= $project;
         $databaseDSN = $database->getAttribute('database', $project->getAttribute('database', ''));
         $databaseType = $database->getAttribute('type', '');
@@ -248,8 +246,7 @@ Server::setResource('getDatabasesDB', function (Cache $cache, Registry $register
         }
 
         $pools = $register->get('pools');
-        $databaseHost = $databaseDSN->getHost();
-        $pool = $pools->get($databaseHost);
+        $pool = $pools->get($databaseDSN->getHost());
 
         $adapter = new DatabasePool($pool);
         $database = new Database($adapter, $cache);
@@ -258,27 +255,9 @@ Server::setResource('getDatabasesDB', function (Cache $cache, Registry $register
             ->setAuthorization($authorization);
         $database->getAdapter()->setSupportForAttributes($databaseType !== DOCUMENTSDB);
 
-        $sharedTables = \array_filter(\explode(',', System::getEnv('_APP_DATABASE_SHARED_TABLES', '')));
+        $sharedTables = \explode(',', System::getEnv('_APP_DATABASE_SHARED_TABLES', ''));
 
-        // When using a separate pool, always use dedicated mode with namespace isolation.
-        // Shared tables mode can't be used across different engines (e.g. MongoDB UUID
-        // tenants are incompatible with PostgreSQL's integer _tenant column).
-        if ($databaseHost !== $dsn->getHost()) {
-            $database
-                ->setSharedTables(false)
-                ->setTenant(null)
-                ->setNamespace('_' . $projectDocument->getSequence());
-
-            $poolKey = $databaseHost . ':' . $database->getNamespace();
-            if (!isset($initializedPools[$poolKey])) {
-                try {
-                    $database->create();
-                } catch (\Utopia\Database\Exception\Duplicate) {
-                    // Schema already exists
-                }
-                $initializedPools[$poolKey] = true;
-            }
-        } elseif (\in_array($dsn->getHost(), $sharedTables, true)) {
+        if (\in_array($dsn->getHost(), $sharedTables, true)) {
             $database
                 ->setSharedTables(true)
                 ->setTenant($projectDocument->getSequence())
