@@ -514,6 +514,7 @@ class Install extends Action
         bool $isUpgrade = false,
         array $account = [],
         ?callable $onComplete = null,
+        bool $runMigration = false,
     ): void {
         $isLocalInstall = $this->isLocalInstall();
         $this->applyLocalPaths($isLocalInstall, false);
@@ -636,6 +637,16 @@ class Install extends Action
                     $this->createInitialAdminAccount($account, $progress, $apiUrl, $domain);
                 }
 
+                if ($isUpgrade && $runMigration) {
+                    // Allow the containers-completed SSE event to flush
+                    // before blocking on migration exec
+                    usleep(200_000);
+                    $currentStep = InstallerServer::STEP_MIGRATION;
+                    $this->runDatabaseMigration($progress, $isLocalInstall);
+                } elseif ($isUpgrade) {
+                    $this->updateProgress($progress, InstallerServer::STEP_MIGRATION, InstallerServer::STATUS_COMPLETED, messageOverride: 'Migration skipped');
+                }
+
                 // Signal completion before tracking so the SSE stream
                 // finishes and the frontend can redirect immediately.
                 if ($onComplete) {
@@ -743,6 +754,46 @@ class Install extends Action
                 messageOverride: 'Account creation failed: ' . $e->getMessage()
             );
         }
+    }
+
+    private function runDatabaseMigration(?callable $progress, bool $isLocalInstall): void
+    {
+        $this->updateProgress(
+            $progress,
+            InstallerServer::STEP_MIGRATION,
+            InstallerServer::STATUS_IN_PROGRESS,
+            messageOverride: 'Running database migration...'
+        );
+
+        // Allow the SSE chunk to flush before the blocking exec
+        usleep(100_000);
+
+        // Static command — no user input involved
+        $command = $isLocalInstall
+            ? 'docker compose exec appwrite migrate 2>&1'
+            : 'docker exec appwrite migrate 2>&1';
+
+        $output = [];
+        \exec($command, $output, $exit);
+
+        if ($exit !== 0) {
+            $message = trim(implode("\n", $output));
+            $this->updateProgress(
+                $progress,
+                InstallerServer::STEP_MIGRATION,
+                InstallerServer::STATUS_ERROR,
+                details: ['output' => $message],
+                messageOverride: 'Migration failed: ' . ($message ?: 'exit code ' . $exit)
+            );
+            throw new \RuntimeException('Database migration failed', 0, $message !== '' ? new \RuntimeException($message) : null);
+        }
+
+        $this->updateProgress(
+            $progress,
+            InstallerServer::STEP_MIGRATION,
+            InstallerServer::STATUS_COMPLETED,
+            messageOverride: 'Database migration completed'
+        );
     }
 
     private function trackSelfHostedInstall(array $input, bool $isUpgrade, string $version, array $account): void

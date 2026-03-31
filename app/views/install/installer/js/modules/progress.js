@@ -373,7 +373,8 @@
             opensslKey: (formState?.opensslKey || '').trim(),
             assistantOpenAIKey: normalizedAssistantKey,
             accountEmail: normalizedAccountEmail,
-            accountPassword: normalizedAccountPassword
+            accountPassword: normalizedAccountPassword,
+            runMigration: formState?.runMigration ?? false
         };
     };
 
@@ -1069,14 +1070,25 @@
             startInstallStream(newInstallId);
         };
 
+        const recoverToLastStep = () => {
+            clearInstallId?.();
+            clearInstallLock?.();
+            const url = new URL(window.location.href);
+            const lastStep = url.searchParams.get('step');
+            // Stay on the current URL so the user keeps their place;
+            // only navigate away if we're already on step 5 (the
+            // progress screen) since there's nothing to show.
+            if (!lastStep || String(lastStep) === '5') {
+                window.location.href = '/?step=1';
+            }
+        };
+
         const lock = getInstallLock?.();
         const existingInstallId = lock?.installId || getStoredInstallId?.();
         if (existingInstallId) {
             resumeInstall(existingInstallId).then((resumed) => {
                 if (!resumed) {
-                    clearInstallId?.();
-                    clearInstallLock?.();
-                    window.location.href = '/?step=1';
+                    recoverToLastStep();
                 }
             });
         } else {
