@@ -399,11 +399,18 @@
                 }
             }
         }
-        if (action === 'next' && String(target) === '5' && typeof validateInstallRequest === 'function') {
-            const isValid = await validateInstallRequest();
-            if (!isValid) {
-                return;
+        if (action === 'next' && String(target) === '5') {
+            if (typeof validateInstallRequest === 'function') {
+                const isValid = await validateInstallRequest();
+                if (!isValid) {
+                    return;
+                }
             }
+            // Clear stale install data from previous runs so initStep5
+            // starts a fresh install instead of trying to resume.
+            const { clearInstallLock, clearInstallId } = window.InstallerStepsState || {};
+            clearInstallLock?.();
+            clearInstallId?.();
         }
         if (isInstallLocked() && Number(target) !== 5) {
             requestStep(5, true);
