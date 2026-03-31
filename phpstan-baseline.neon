@@ -1169,12 +1169,6 @@ parameters:
 			count: 1
 			path: tests/e2e/Services/TablesDB/Permissions/TablesDBPermissionsTeamTest.php
 		-
-			message: '#^Unsafe access to private property Tests\\E2E\\Services\\Tokens\\TokensCustomClientTest\:\:\$bucketAndFileData through static\:\:\.$#'
-			identifier: staticClassAccess.privateProperty
-			count: 4
-			path: tests/e2e/Services/Tokens/TokensCustomClientTest.php
-
-		-
 			message: '#^Unsafe access to private property Tests\\E2E\\Services\\Users\\UsersCustomServerTest\:\:\$cachedHashedPasswordUsers through static\:\:\.$#'
 			identifier: staticClassAccess.privateProperty
 			count: 2
