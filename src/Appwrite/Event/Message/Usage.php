@@ -36,11 +36,11 @@ class Usage extends Base
 
     /**
      * @param array $data
-     * @return static
+     * @return self
      */
-    public static function fromArray(array $data): static
+    public static function fromArray(array $data): self
     {
-        return new static(
+        return new self(
             project: new Document($data['project'] ?? []),
             metrics: $data['metrics'] ?? [],
             reduce: array_map(fn (array $doc) => new Document($doc), $data['reduce'] ?? []),
