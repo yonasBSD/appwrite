@@ -631,9 +631,9 @@ class Response extends SwooleResponse
     }
 
     /**
-     * Return the currently set filter
+     * Return the currently set filters
      *
-     * @return Filter
+     * @return array<Filter>
      */
     public function getFilters(): array
     {
@@ -663,7 +663,7 @@ class Response extends SwooleResponse
     /**
      * Static wrapper to show sensitive data in response
      *
-     * @param callable The callback to show sensitive information for
+     * @param callable(): array $callback The callback to show sensitive information for
      * @return array
      */
     public static function showSensitive(callable $callback): array
