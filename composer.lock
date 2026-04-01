@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "505d09ff5da7c5199622679ae9e11bc6",
+    "content-hash": "012f943cdfac560cb95ce5703d7588e1",
     "packages": [
         {
             "name": "adhocore/jwt",
@@ -4467,16 +4467,16 @@
         },
         {
             "name": "utopia-php/messaging",
-            "version": "dev-feat-smtp-enhancements",
+            "version": "0.21.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/utopia-php/messaging.git",
-                "reference": "6988c227c08095ad88aad030bf3648f4ea6c88f0"
+                "reference": "b2358fde423e27ff0cfe7846eb9a78b5b295552a"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/utopia-php/messaging/zipball/6988c227c08095ad88aad030bf3648f4ea6c88f0",
-                "reference": "6988c227c08095ad88aad030bf3648f4ea6c88f0",
+                "url": "https://api.github.com/repos/utopia-php/messaging/zipball/b2358fde423e27ff0cfe7846eb9a78b5b295552a",
+                "reference": "b2358fde423e27ff0cfe7846eb9a78b5b295552a",
                 "shasum": ""
             },
             "require": {
@@ -4512,9 +4512,9 @@
             ],
             "support": {
                 "issues": "https://github.com/utopia-php/messaging/issues",
-                "source": "https://github.com/utopia-php/messaging/tree/feat-smtp-enhancements"
+                "source": "https://github.com/utopia-php/messaging/tree/0.21.0"
             },
-            "time": "2026-04-01T10:41:57+00:00"
+            "time": "2026-04-01T10:58:13+00:00"
         },
         {
             "name": "utopia-php/migration",
@@ -8435,9 +8435,7 @@
     ],
     "aliases": [],
     "minimum-stability": "dev",
-    "stability-flags": {
-        "utopia-php/messaging": 20
-    },
+    "stability-flags": {},
     "prefer-stable": true,
     "prefer-lowest": false,
     "platform": {
