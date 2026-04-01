@@ -550,6 +550,8 @@ class Migrations extends Action
                     $destination?->error();
                 }
 
+                $aggregatedResources = [];
+
                 if ($migration->getAttribute('status', '') === 'completed') {
                     foreach ($aggregatedResources as $resource) {
                         $this->processMigrationResourceStats(

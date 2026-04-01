@@ -37,6 +37,7 @@ use Utopia\Platform\Scope\HTTP;
 use Utopia\System\System;
 use Utopia\Validator\ArrayList;
 use Utopia\Validator\Text;
+use Throwable;
 
 class Create extends Action
 {
@@ -102,6 +103,8 @@ class Create extends Action
     {
         $isAppUser = $user->isApp($authorization->getRoles());
         $isPrivilegedUser = $user->isPrivileged($authorization->getRoles());
+        $invitee = new Document();
+        $hash = '';
 
         if (empty($url)) {
             if (! $isAppUser && ! $isPrivilegedUser) {
@@ -145,9 +148,6 @@ class Create extends Action
             }
         } elseif (! empty($phone)) {
             $invitee = $dbForProject->findOne('users', [Query::equal('phone', [$phone])]);
-            if (! $invitee->isEmpty() && ! empty($email) && $invitee->getAttribute('email', '') !== $email) {
-                throw new Exception(Exception::USER_ALREADY_EXISTS, 'Given phone and email doesn\'t match', 409);
-            }
         }
 
         if ($invitee->isEmpty()) { // Create new user if no user with same email found

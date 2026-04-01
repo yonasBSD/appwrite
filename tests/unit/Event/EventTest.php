@@ -13,7 +13,7 @@ class EventTest extends TestCase
 {
     protected ?Event $object = null;
     protected string $queue = '';
-    protected Publisher $publisher;
+    protected MockPublisher $publisher;
 
     public function setUp(): void
     {

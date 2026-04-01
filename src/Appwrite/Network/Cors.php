@@ -57,7 +57,7 @@ final class Cors
             self::HEADER_ALLOW_HEADERS     => implode(', ', $this->allowedHeaders),
             self::HEADER_EXPOSE_HEADERS    => implode(', ', $this->exposedHeaders),
             self::HEADER_ALLOW_CREDENTIALS => $this->allowCredentials ? 'true' : 'false',
-            self::HEADER_MAX_AGE           => $this->maxAge,
+            self::HEADER_MAX_AGE           => (string) $this->maxAge,
         ];
 
         // Wildcard allow-all
