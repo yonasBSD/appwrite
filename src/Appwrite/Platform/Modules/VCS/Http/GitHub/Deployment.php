@@ -70,7 +70,7 @@ trait Deployment
                     throw new Exception(Exception::PROJECT_NOT_FOUND, 'Repository references non-existent project');
                 }
 
-                $this->validateGitDeployment($project, $repository, $dbForPlatform, $authorization);
+                $this->beforeCreateGitDeployment($project, $repository, $dbForPlatform, $authorization);
 
                 try {
                     $dsn = new DSN($project->getAttribute('database'));
@@ -568,7 +568,7 @@ trait Deployment
      *
      * No-op in OSS — overridden in Cloud to enforce billing/block checks.
      */
-    protected function validateGitDeployment(Document $project, Document $repository, Database $dbForPlatform, Authorization $authorization): void
+    protected function beforeCreateGitDeployment(Document $project, Document $repository, Database $dbForPlatform, Authorization $authorization): void
     {
     }
 
