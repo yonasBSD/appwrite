@@ -748,7 +748,9 @@ function router(Http $utopia, Database $dbForPlatform, callable $getProjectDB, S
             }
 
             if (\is_array($values)) {
-                $response->addHeader($name, \implode(', ', $values));
+                foreach ($values as $value) {
+                    $response->addHeader($name, $value);
+                }
             } else {
                 $response->addHeader($name, $values);
             }
