@@ -4,7 +4,7 @@ namespace Appwrite\Event\Message;
 
 use Utopia\Database\Document;
 
-final class Usage extends Base
+class Usage extends Base
 {
     /**
      * @param Document $project
@@ -40,6 +40,7 @@ final class Usage extends Base
      */
     public static function fromArray(array $data): static
     {
+        /** @phpstan-ignore new.static */
         return new static(
             project: new Document($data['project'] ?? []),
             metrics: $data['metrics'] ?? [],
