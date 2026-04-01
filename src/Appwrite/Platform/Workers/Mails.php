@@ -160,11 +160,6 @@ class Mails extends Action
         $replyTo = $defaultFromEmail;
         $replyToName = $defaultFromName;
 
-        if (!empty($smtp)) {
-            $replyTo = !empty($smtp['replyTo']) ? $smtp['replyTo'] : ($smtp['senderEmail'] ?? $replyTo);
-            $replyToName = $smtp['senderName'] ?? $replyToName;
-        }
-
         $customMailOptions = $payload['customMailOptions'] ?? [];
 
         if (!empty($customMailOptions['senderEmail'])) {
@@ -173,11 +168,13 @@ class Mails extends Action
         if (!empty($customMailOptions['senderName'])) {
             $fromName = $customMailOptions['senderName'];
         }
-        if (!empty($customMailOptions['replyToEmail'])) {
-            $replyTo = $customMailOptions['replyToEmail'];
-        }
-        if (!empty($customMailOptions['replyToName'])) {
-            $replyToName = $customMailOptions['replyToName'];
+
+        if (!empty($customMailOptions['replyToEmail']) || !empty($customMailOptions['replyToName'])) {
+            $replyTo = $customMailOptions['replyToEmail'] ?? $replyTo;
+            $replyToName = $customMailOptions['replyToName'] ?? $replyToName;
+        } elseif (!empty($smtp)) {
+            $replyTo = !empty($smtp['replyTo']) ? $smtp['replyTo'] : ($smtp['senderEmail'] ?? $replyTo);
+            $replyToName = $smtp['senderName'] ?? $replyToName;
         }
 
         $attachments = null;
