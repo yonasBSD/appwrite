@@ -4467,16 +4467,16 @@
         },
         {
             "name": "utopia-php/messaging",
-            "version": "0.21.0",
+            "version": "0.21.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/utopia-php/messaging.git",
-                "reference": "b2358fde423e27ff0cfe7846eb9a78b5b295552a"
+                "reference": "de068654476a673921ea9df03692d2940b7941ee"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/utopia-php/messaging/zipball/b2358fde423e27ff0cfe7846eb9a78b5b295552a",
-                "reference": "b2358fde423e27ff0cfe7846eb9a78b5b295552a",
+                "url": "https://api.github.com/repos/utopia-php/messaging/zipball/de068654476a673921ea9df03692d2940b7941ee",
+                "reference": "de068654476a673921ea9df03692d2940b7941ee",
                 "shasum": ""
             },
             "require": {
@@ -4512,9 +4512,9 @@
             ],
             "support": {
                 "issues": "https://github.com/utopia-php/messaging/issues",
-                "source": "https://github.com/utopia-php/messaging/tree/0.21.0"
+                "source": "https://github.com/utopia-php/messaging/tree/0.21.1"
             },
-            "time": "2026-04-01T10:58:13+00:00"
+            "time": "2026-04-01T11:34:20+00:00"
         },
         {
             "name": "utopia-php/migration",
