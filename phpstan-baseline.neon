@@ -499,20 +499,8 @@ parameters:
 			path: src/Appwrite/Platform/Modules/Storage/Http/Buckets/Files/Create.php
 
 		-
-			message: '#^Caught class Appwrite\\Platform\\Modules\\Teams\\Http\\Memberships\\Throwable not found\.$#'
-			identifier: class.notFound
-			count: 1
-			path: src/Appwrite/Platform/Modules/Teams/Http/Memberships/Create.php
-
-		-
 			message: '#^Variable \$email in empty\(\) always exists and is always falsy\.$#'
 			identifier: empty.variable
-			count: 1
-			path: src/Appwrite/Platform/Modules/Teams/Http/Memberships/Create.php
-
-		-
-			message: '#^Variable \$hash might not be defined\.$#'
-			identifier: variable.undefined
 			count: 1
 			path: src/Appwrite/Platform/Modules/Teams/Http/Memberships/Create.php
 
