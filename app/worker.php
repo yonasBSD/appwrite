@@ -64,7 +64,7 @@ $container->set('certificates', function () {
 }, []);
 
 $platform = new Appwrite();
-$args = $platform->getEnv('argv');
+$args = $_SERVER['argv'] ?? [];
 
 if (! isset($args[1])) {
     Console::error('Missing worker name');

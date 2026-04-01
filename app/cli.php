@@ -46,7 +46,7 @@ require_once __DIR__ . '/controllers/general.php';
 global $register;
 
 $platform = new Appwrite();
-$args = $platform->getEnv('argv');
+$args = $_SERVER['argv'] ?? [];
 
 \array_shift($args);
 if (! isset($args[0])) {
@@ -200,7 +200,7 @@ $cli->setResource('getProjectDB', function (Group $pools, Database $dbForPlatfor
 $cli->setResource('getLogsDB', function (Group $pools, Cache $cache, Authorization $authorization) {
     $database = null;
 
-    return function (?Document $project = null) use ($pools, $cache, $database, $authorization) {
+    return function (?Document $project = null) use ($pools, $cache, &$database, $authorization) {
         if ($database !== null && $project !== null && !$project->isEmpty() && $project->getId() !== 'console') {
             $database->setTenant($project->getSequence());
             return $database;
