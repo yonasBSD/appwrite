@@ -3,6 +3,8 @@
 namespace Appwrite\Auth\OAuth2;
 
 use Appwrite\Auth\OAuth2;
+use Appwrite\OpenSSL\OpenSSL;
+use Utopia\System\System;
 
 // Reference Material
 // https://docs.x.com/fundamentals/authentication/oauth-2-0/authorization-code
@@ -10,6 +12,8 @@ use Appwrite\Auth\OAuth2;
 
 class X extends OAuth2
 {
+    private const PKCE_STATE_KEY = '_pkce';
+
     /**
      * @var array
      */
@@ -31,6 +35,11 @@ class X extends OAuth2
     ];
 
     /**
+     * @var string
+     */
+    private string $pkceVerifier = '';
+
+    /**
      * @return string
      */
     public function getName(): string
@@ -40,12 +49,17 @@ class X extends OAuth2
 
     public function getLoginURL(): string
     {
+        $state = $this->state;
+        $state[self::PKCE_STATE_KEY] = $this->encryptPKCEVerifier($this->getPKCEVerifier());
+
         return 'https://x.com/i/oauth2/authorize?' . \http_build_query([
             'response_type' => 'code',
             'client_id' => $this->appID,
             'redirect_uri' => $this->callback,
             'scope' => \implode(' ', $this->getScopes()),
-            'state' => \json_encode($this->state),
+            'state' => $this->base64UrlEncode(\json_encode($state, JSON_THROW_ON_ERROR)),
+            'code_challenge' => $this->getPKCEChallenge(),
+            'code_challenge_method' => 'S256',
         ]);
     }
 
@@ -71,6 +85,7 @@ class X extends OAuth2
                     'client_id' => $this->appID,
                     'grant_type' => 'authorization_code',
                     'redirect_uri' => $this->callback,
+                    'code_verifier' => $this->getPKCEVerifier(),
                 ])
             ), true);
         }
@@ -175,6 +190,107 @@ class X extends OAuth2
         }
 
         return $this->user;
+    }
+
+    public function parseState(string $state)
+    {
+        $decoded = $this->base64UrlDecode($state);
+        if ($decoded === false) {
+            return null;
+        }
+
+        $state = \json_decode($decoded, true);
+
+        if (!\is_array($state)) {
+            return $state;
+        }
+
+        $pkce = $state[self::PKCE_STATE_KEY] ?? null;
+
+        if (\is_array($pkce)) {
+            $this->pkceVerifier = $this->decryptPKCEVerifier($pkce);
+        }
+
+        unset($state[self::PKCE_STATE_KEY]);
+
+        return $state;
+    }
+
+    private function getPKCEVerifier(): string
+    {
+        if ($this->pkceVerifier === '') {
+            $this->pkceVerifier = $this->base64UrlEncode(\random_bytes(64));
+        }
+
+        return $this->pkceVerifier;
+    }
+
+    private function getPKCEChallenge(): string
+    {
+        return $this->base64UrlEncode(\hash('sha256', $this->getPKCEVerifier(), true));
+    }
+
+    private function encryptPKCEVerifier(string $verifier): array
+    {
+        $iv = OpenSSL::randomPseudoBytes(OpenSSL::cipherIVLength(OpenSSL::CIPHER_AES_128_GCM));
+        $key = $this->getPKCEStateKey();
+        $tag = null;
+
+        $data = OpenSSL::encrypt($verifier, OpenSSL::CIPHER_AES_128_GCM, $key, OPENSSL_RAW_DATA, $iv, $tag);
+
+        return [
+            'data' => $this->base64UrlEncode($data),
+            'iv' => \bin2hex($iv),
+            'tag' => \bin2hex($tag),
+        ];
+    }
+
+    private function decryptPKCEVerifier(array $payload): string
+    {
+        $data = $payload['data'] ?? '';
+        $iv = $payload['iv'] ?? '';
+        $tag = $payload['tag'] ?? '';
+
+        if ($data === '' || $iv === '' || $tag === '') {
+            return '';
+        }
+
+        $decodedData = $this->base64UrlDecode($data);
+        $decodedIv = \hex2bin($iv);
+        $decodedTag = \hex2bin($tag);
+
+        if ($decodedData === false || $decodedIv === false || $decodedTag === false) {
+            return '';
+        }
+
+        return OpenSSL::decrypt(
+            $decodedData,
+            OpenSSL::CIPHER_AES_128_GCM,
+            $this->getPKCEStateKey(),
+            OPENSSL_RAW_DATA,
+            $decodedIv,
+            $decodedTag
+        ) ?: '';
+    }
+
+    private function getPKCEStateKey(): string
+    {
+        return System::getEnv('_APP_OPENSSL_KEY_V1');
+    }
+
+    private function base64UrlEncode(string $value): string
+    {
+        return \rtrim(\strtr(\base64_encode($value), '+/', '-_'), '=');
+    }
+
+    private function base64UrlDecode(string $value): string|false
+    {
+        $padding = \strlen($value) % 4;
+        if ($padding > 0) {
+            $value .= \str_repeat('=', 4 - $padding);
+        }
+
+        return \base64_decode(\strtr($value, '-_', '+/'), true);
     }
 
 }
