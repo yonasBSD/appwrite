@@ -515,8 +515,9 @@ class Response extends SwooleResponse
 
             if ($rule['sensitive']) {
                 $roles = $this->authorization->getRoles();
-                $isPrivilegedUser = DBUser::isPrivileged($roles);
-                $isAppUser = DBUser::isApp($roles);
+                $user = $this->user ?? new DBUser();
+                $isPrivilegedUser = $user->isPrivileged($roles);
+                $isAppUser = $user->isApp($roles);
 
                 if ((!$isPrivilegedUser && !$isAppUser) && !self::$showSensitive) {
                     $data->setAttribute($key, '');
@@ -638,9 +639,9 @@ class Response extends SwooleResponse
     }
 
     /**
-     * Return the currently set filter
+     * Return the currently set filters
      *
-     * @return Filter
+     * @return array<Filter>
      */
     public function getFilters(): array
     {
@@ -670,7 +671,7 @@ class Response extends SwooleResponse
     /**
      * Static wrapper to show sensitive data in response
      *
-     * @param callable The callback to show sensitive information for
+     * @param callable(): array $callback The callback to show sensitive information for
      * @return array
      */
     public static function showSensitive(callable $callback): array
@@ -684,9 +685,15 @@ class Response extends SwooleResponse
     }
 
     private ?Authorization $authorization = null;
+    private ?DBUser $user = null;
 
     public function setAuthorization(Authorization $authorization): void
     {
         $this->authorization = $authorization;
+    }
+
+    public function setUser(DBUser $user): void
+    {
+        $this->user = $user;
     }
 }
