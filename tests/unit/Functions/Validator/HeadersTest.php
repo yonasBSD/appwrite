@@ -77,7 +77,7 @@ class HeadersTest extends TestCase
         $this->assertFalse($this->object->isValid($headers));
 
         $headers = [
-            null => 'value',
+            (string) null => 'value',
         ];
         $this->assertFalse($this->object->isValid($headers));
 
