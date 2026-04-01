@@ -563,11 +563,6 @@ trait Deployment
         }
     }
 
-    /**
-     * Validate a git deployment before processing.
-     *
-     * No-op in OSS — overridden in Cloud to enforce billing/block checks.
-     */
     protected function beforeCreateGitDeployment(Document $project, Document $repository, Database $dbForPlatform, Authorization $authorization): void
     {
     }
