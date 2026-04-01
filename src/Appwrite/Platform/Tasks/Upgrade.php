@@ -30,7 +30,7 @@ class Upgrade extends Install
             ->param('interactive', 'Y', new Text(1), 'Run an interactive session', true)
             ->param('no-start', false, new Boolean(true), 'Run an interactive session', true)
             ->param('database', 'mongodb', new Text(length: 0), 'Database to use (mongodb|mariadb|postgresql)', true)
-            ->param('migrate', true, new Boolean(true), 'Run database migration after upgrade', true)
+            ->param('migrate', false, new Boolean(true), 'Run database migration after upgrade', true)
             ->callback($this->action(...));
     }
 
