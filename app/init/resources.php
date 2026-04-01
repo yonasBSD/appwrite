@@ -888,7 +888,6 @@ Http::setResource('dbForPlatform', function (Group $pools, Cache $cache, Authori
 }, ['pools', 'cache', 'authorization']);
 
 Http::setResource('getDatabasesDB', function (Group $pools, Cache $cache, Document $project, Request $request, UsageContext $usage, Authorization $authorization) {
-
     return function (Document $database) use ($pools, $cache, $project, $request, $usage, $authorization): Database {
         $databaseDSN = $database->getAttribute('database', $project->getAttribute('database', ''));
         $databaseType = $database->getAttribute('type', '');
@@ -907,11 +906,12 @@ Http::setResource('getDatabasesDB', function (Group $pools, Cache $cache, Docume
             $dsn = new DSN('mysql://' . $project->getAttribute('database'));
         }
 
-        $pool = $pools->get($databaseDSN->getHost());
+        $databaseHost = $databaseDSN->getHost();
+        $pool = $pools->get($databaseHost);
 
         $adapter = new DatabasePool($pool);
         $database = new Database($adapter, $cache);
-        $sharedTables = \explode(',', System::getEnv('_APP_DATABASE_SHARED_TABLES', ''));
+        $sharedTables = \array_filter(\explode(',', System::getEnv('_APP_DATABASE_SHARED_TABLES', '')));
 
         $database
             ->setDatabase(APP_DATABASE)
@@ -922,7 +922,32 @@ Http::setResource('getDatabasesDB', function (Group $pools, Cache $cache, Docume
             ->setMaxQueryValues(APP_DATABASE_QUERY_MAX_VALUES);
         // inside pools authorization needs to be set first
         $database->getAdapter()->setSupportForAttributes($databaseType !== DOCUMENTSDB);
-        if (\in_array($dsn->getHost(), $sharedTables)) {
+
+        // For separate pools (documentsdb/vectorsdb), check their own shared tables config
+        if ($databaseHost !== $dsn->getHost()) {
+            $dbTypeSharedTables = match ($databaseType) {
+                DOCUMENTSDB => \array_filter(\explode(',', System::getEnv('_APP_DATABASE_DOCUMENTSDB_SHARED_TABLES', ''))),
+                VECTORSDB => \array_filter(\explode(',', System::getEnv('_APP_DATABASE_VECTORSDB_SHARED_TABLES', ''))),
+                default => [],
+            };
+
+            if (\in_array($databaseHost, $dbTypeSharedTables)) {
+                $database
+                    ->setSharedTables(true)
+                    ->setTenant($project->getSequence())
+                    ->setNamespace($dsn->getParam('namespace'));
+            } else {
+                $database
+                    ->setSharedTables(false)
+                    ->setTenant(null)
+                    ->setNamespace('_' . $project->getSequence());
+            }
+
+            try {
+                $database->create();
+            } catch (\Utopia\Database\Exception\Duplicate) {
+            }
+        } elseif (\in_array($dsn->getHost(), $sharedTables)) {
             $database
                 ->setSharedTables(true)
                 ->setTenant($project->getSequence())
