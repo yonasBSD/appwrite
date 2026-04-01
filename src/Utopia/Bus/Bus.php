@@ -2,6 +2,7 @@
 
 namespace Utopia\Bus;
 
+use Utopia\Console;
 use Utopia\Span\Span;
 
 class Bus
@@ -43,6 +44,7 @@ class Bus
                 ($listener->getCallback())($event, ...$deps);
             } catch (\Throwable $e) {
                 Span::error($e);
+                Console::error('[Bus] Listener ' . $listener::getName() . ' failed: ' . $e->getMessage());
             } finally {
                 Span::current()?->finish();
             }

@@ -322,7 +322,7 @@ $container->set('gitHub', function (Cache $cache) {
     return new VcsGitHub($cache);
 }, ['cache']);
 
-$container->set('plan', function (array $plan = []) {
+$container->set('plan', function () {
     return [];
 });
 
