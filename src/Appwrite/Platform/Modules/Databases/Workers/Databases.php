@@ -671,8 +671,6 @@ class Databases extends Action
                     ->setPayload($index->getArrayCopy());
             }
             $queueForRealtime->trigger();
-        } catch (\Throwable $th) {
-            throw $th;
         } finally {
             $queueForRealtime->reset();
         }
