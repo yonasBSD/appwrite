@@ -90,6 +90,412 @@ $container->set('platform', function () {
     return Config::getParam('platform', []);
 }, []);
 
+/**
+ * List of allowed request hostnames for the request.
+ */
+Http::setResource('allowedHostnames', function (array $platform, Document $project, Document $rule, Document $devKey, Request $request) {
+    $allowed = [...($platform['hostnames'] ?? [])];
+
+    /* Add platform configured hostnames */
+    if (! $project->isEmpty() && $project->getId() !== 'console') {
+        $platforms = $project->getAttribute('platforms', []);
+        $hostnames = Platform::getHostnames($platforms);
+        $allowed = [...$allowed, ...$hostnames];
+    }
+
+    /* Add the request hostname if a dev key is found */
+    if (! $devKey->isEmpty()) {
+        $allowed[] = $request->getHostname();
+    }
+
+    $originHostname = parse_url($request->getOrigin(), PHP_URL_HOST);
+    $refererHostname = parse_url($request->getReferer(), PHP_URL_HOST);
+
+    $hostname = $originHostname;
+    if (empty($hostname)) {
+        $hostname = $refererHostname;
+    }
+
+    /* Add request hostname for preflight requests */
+    if ($request->getMethod() === 'OPTIONS') {
+        $allowed[] = $hostname;
+    }
+
+    /* Allow the request origin of rule */
+    if (! $rule->isEmpty() && ! empty($rule->getAttribute('domain', ''))) {
+        $allowed[] = $rule->getAttribute('domain', '');
+    }
+
+    /* Allow the request origin if a dev key is found */
+    if (! $devKey->isEmpty() && ! empty($hostname)) {
+        $allowed[] = $hostname;
+    }
+
+    return array_unique($allowed);
+}, ['platform', 'project', 'rule', 'devKey', 'request']);
+
+/**
+ * List of allowed request schemes for the request.
+ */
+Http::setResource('allowedSchemes', function (array $platform, Document $project) {
+    $allowed = [...($platform['schemas'] ?? [])];
+
+    if (! $project->isEmpty() && $project->getId() !== 'console') {
+        /* Add hardcoded schemes */
+        $allowed[] = 'exp';
+        $allowed[] = 'appwrite-callback-' . $project->getId();
+
+        /* Add platform configured schemes */
+        $platforms = $project->getAttribute('platforms', []);
+        $schemes = Platform::getSchemes($platforms);
+        $allowed = [...$allowed, ...$schemes];
+    }
+
+    return array_unique($allowed);
+}, ['platform', 'project']);
+
+/**
+ * Rule associated with a request origin.
+ */
+Http::setResource('rule', function (Request $request, Database $dbForPlatform, Document $project, Authorization $authorization) {
+    $domain = \parse_url($request->getOrigin(), PHP_URL_HOST);
+
+    if (empty($domain)) {
+        $domain = \parse_url($request->getReferer(), PHP_URL_HOST);
+    }
+
+    if (empty($domain)) {
+        return new Document();
+    }
+
+    // TODO: (@Meldiron) Remove after 1.7.x migration
+    $isMd5 = System::getEnv('_APP_RULES_FORMAT') === 'md5';
+    $rule = $authorization->skip(function () use ($dbForPlatform, $domain, $isMd5) {
+        if ($isMd5) {
+            return $dbForPlatform->getDocument('rules', md5($domain));
+        }
+
+        return $dbForPlatform->findOne('rules', [
+            Query::equal('domain', [$domain]),
+        ]) ?? new Document();
+    });
+
+    $permitsCurrentProject = $rule->getAttribute('projectInternalId', '') === $project->getSequence();
+
+    // Temporary implementation until custom wildcard domains are an official feature
+    // Allow trusted projects; Used for Console (website) previews
+    if (! $permitsCurrentProject && ! $rule->isEmpty() && ! empty($rule->getAttribute('projectId', ''))) {
+        $trustedProjects = [];
+        foreach (\explode(',', System::getEnv('_APP_CONSOLE_TRUSTED_PROJECTS', '')) as $trustedProject) {
+            if (empty($trustedProject)) {
+                continue;
+            }
+            $trustedProjects[] = $trustedProject;
+        }
+        if (\in_array($rule->getAttribute('projectId', ''), $trustedProjects)) {
+            $permitsCurrentProject = true;
+        }
+    }
+
+    if (! $permitsCurrentProject) {
+        return new Document();
+    }
+
+    return $rule;
+}, ['request', 'dbForPlatform', 'project', 'authorization']);
+
+/**
+ * CORS service
+ */
+Http::setResource('cors', function (array $allowedHostnames) {
+    $corsConfig = Config::getParam('cors');
+
+    return new Cors(
+        $allowedHostnames,
+        allowedMethods: $corsConfig['allowedMethods'],
+        allowedHeaders: $corsConfig['allowedHeaders'],
+        allowCredentials: true,
+        exposedHeaders: $corsConfig['exposedHeaders'],
+    );
+}, ['allowedHostnames']);
+
+Http::setResource('originValidator', function (Document $devKey, array $allowedHostnames, array $allowedSchemes) {
+    if (! $devKey->isEmpty()) {
+        return new URL();
+    }
+
+    return new Origin($allowedHostnames, $allowedSchemes);
+}, ['devKey', 'allowedHostnames', 'allowedSchemes']);
+
+Http::setResource('redirectValidator', function (Document $devKey, array $allowedHostnames, array $allowedSchemes) {
+    if (! $devKey->isEmpty()) {
+        return new URL();
+    }
+
+    return new Redirect($allowedHostnames, $allowedSchemes);
+}, ['devKey', 'allowedHostnames', 'allowedSchemes']);
+
+Http::setResource('user', function (string $mode, Document $project, Document $console, Request $request, Response $response, Database $dbForProject, Database $dbForPlatform, Store $store, Token $proofForToken, $authorization) {
+    /**
+     * Handles user authentication and session validation.
+     *
+     * This function follows a series of steps to determine the appropriate user session
+     * based on cookies, headers, and JWT tokens.
+     *
+     * Process:
+     * 1. Checks the cookie based on mode:
+     *    - If in admin mode, uses console project id for key.
+     *    - Otherwise, sets the key using the project ID
+     * 2. If no cookie is found, attempts to retrieve the fallback header `x-fallback-cookies`.
+     *    - If this method is used, returns the header: `X-Debug-Fallback: true`.
+     * 3. Fetches the user document from the appropriate database based on the mode.
+     * 4. If the user document is empty or the session key cannot be verified, sets an empty user document.
+     * 5. Regardless of the results from steps 1-4, attempts to fetch the JWT token.
+     * 6. If the JWT user has a valid session ID, updates the user variable with the user from `projectDB`,
+     *    overwriting the previous value.
+     * 7. If account API key is passed, use user of the account API key as long as user ID header matches too
+     */
+    $authorization->setDefaultStatus(true);
+
+    $store->setKey('a_session_' . $project->getId());
+
+    if ($mode === APP_MODE_ADMIN) {
+        $store->setKey('a_session_' . $console->getId());
+    }
+
+    $store->decode(
+        $request->getCookie(
+            $store->getKey(), // Get sessions
+            $request->getCookie($store->getKey() . '_legacy', '')
+        )
+    );
+
+    // Get session from header for SSR clients
+    if (empty($store->getProperty('id', '')) && empty($store->getProperty('secret', ''))) {
+        $sessionHeader = $request->getHeader('x-appwrite-session', '');
+
+        if (! empty($sessionHeader)) {
+            $store->decode($sessionHeader);
+        }
+    }
+
+    // Get fallback session from old clients (no SameSite support) or clients who block 3rd-party cookies
+    if ($response) { // if in http context - add debug header
+        $response->addHeader('X-Debug-Fallback', 'false');
+    }
+
+    if (empty($store->getProperty('id', '')) && empty($store->getProperty('secret', ''))) {
+        if ($response) {
+            $response->addHeader('X-Debug-Fallback', 'true');
+        }
+        $fallback = $request->getHeader('x-fallback-cookies', '');
+        $fallback = \json_decode($fallback, true);
+        $store->decode(((is_array($fallback) && isset($fallback[$store->getKey()])) ? $fallback[$store->getKey()] : ''));
+    }
+
+    $user = null;
+    if ($mode === APP_MODE_ADMIN) {
+        /** @var User $user */
+        $user = $dbForPlatform->getDocument('users', $store->getProperty('id', ''));
+    } else {
+        if ($project->isEmpty()) {
+            $user = new User([]);
+        } else {
+            if (! empty($store->getProperty('id', ''))) {
+                if ($project->getId() === 'console') {
+                    /** @var User $user */
+                    $user = $dbForPlatform->getDocument('users', $store->getProperty('id', ''));
+                } else {
+                    /** @var User $user */
+                    $user = $dbForProject->getDocument('users', $store->getProperty('id', ''));
+                }
+            }
+        }
+    }
+
+    if (
+        ! $user ||
+        $user->isEmpty() // Check a document has been found in the DB
+        || ! $user->sessionVerify($store->getProperty('secret', ''), $proofForToken)
+    ) { // Validate user has valid login token
+        $user = new User([]);
+    }
+
+    $authJWT = $request->getHeader('x-appwrite-jwt', '');
+    if (! empty($authJWT) && ! $project->isEmpty()) { // JWT authentication
+        if (! $user->isEmpty()) {
+            throw new Exception(Exception::USER_JWT_AND_COOKIE_SET);
+        }
+
+        $jwt = new JWT(System::getEnv('_APP_OPENSSL_KEY_V1'), 'HS256', 3600, 0);
+        try {
+            $payload = $jwt->decode($authJWT);
+        } catch (JWTException $error) {
+            throw new Exception(Exception::USER_JWT_INVALID, 'Failed to verify JWT. ' . $error->getMessage());
+        }
+
+        $jwtUserId = $payload['userId'] ?? '';
+        if (! empty($jwtUserId)) {
+            if ($mode === APP_MODE_ADMIN) {
+                /** @var User $user */
+                $user = $dbForPlatform->getDocument('users', $jwtUserId);
+            } else {
+                /** @var User $user */
+                $user = $dbForProject->getDocument('users', $jwtUserId);
+            }
+        }
+        $jwtSessionId = $payload['sessionId'] ?? '';
+        if (! empty($jwtSessionId)) {
+            if (empty($user->find('$id', $jwtSessionId, 'sessions'))) { // Match JWT to active token
+                $user = new User([]);
+            }
+        }
+    }
+
+    // Account based on account API key
+    $accountKey = $request->getHeader('x-appwrite-key', '');
+    $accountKeyUserId = $request->getHeader('x-appwrite-user', '');
+    if (! empty($accountKeyUserId) && ! empty($accountKey)) {
+        if (! $user->isEmpty()) {
+            throw new Exception(Exception::USER_API_KEY_AND_SESSION_SET);
+        }
+
+        /** @var User $accountKeyUser */
+        $accountKeyUser = $dbForPlatform->getAuthorization()->skip(fn () => $dbForPlatform->getDocument('users', $accountKeyUserId));
+        if (! $accountKeyUser->isEmpty()) {
+            $key = $accountKeyUser->find(
+                key: 'secret',
+                find: $accountKey,
+                subject: 'keys'
+            );
+
+            if (! empty($key)) {
+                $expire = $key->getAttribute('expire');
+                if (! empty($expire) && $expire < DatabaseDateTime::formatTz(DatabaseDateTime::now())) {
+                    throw new Exception(Exception::ACCOUNT_KEY_EXPIRED);
+                }
+
+                $user = $accountKeyUser;
+            }
+        }
+    }
+
+    // Impersonation: if current user has impersonator capability and headers are set, act as another user
+    $impersonateUserId = $request->getHeader('x-appwrite-impersonate-user-id', '');
+    $impersonateEmail = $request->getHeader('x-appwrite-impersonate-user-email', '');
+    $impersonatePhone = $request->getHeader('x-appwrite-impersonate-user-phone', '');
+    if (!$user->isEmpty() && $user->getAttribute('impersonator', false)) {
+        $userDb = (APP_MODE_ADMIN === $mode || $project->getId() === 'console') ? $dbForPlatform : $dbForProject;
+        $targetUser = null;
+        if (!empty($impersonateUserId)) {
+            $targetUser = $userDb->getAuthorization()->skip(fn () => $userDb->getDocument('users', $impersonateUserId));
+        } elseif (!empty($impersonateEmail)) {
+            $targetUser = $userDb->getAuthorization()->skip(fn () => $userDb->findOne('users', [Query::equal('email', [\strtolower($impersonateEmail)])]));
+        } elseif (!empty($impersonatePhone)) {
+            $targetUser = $userDb->getAuthorization()->skip(fn () => $userDb->findOne('users', [Query::equal('phone', [$impersonatePhone])]));
+        }
+        if ($targetUser !== null && !$targetUser->isEmpty()) {
+            $impersonator = clone $user;
+            $user = clone $targetUser;
+            $user->setAttribute('impersonatorUserId', $impersonator->getId());
+            $user->setAttribute('impersonatorUserInternalId', $impersonator->getSequence());
+            $user->setAttribute('impersonatorUserName', $impersonator->getAttribute('name', ''));
+            $user->setAttribute('impersonatorUserEmail', $impersonator->getAttribute('email', ''));
+            $user->setAttribute('impersonatorAccessedAt', $impersonator->getAttribute('accessedAt', 0));
+        }
+    }
+
+    $dbForProject->setMetadata('user', $user->getId());
+    $dbForPlatform->setMetadata('user', $user->getId());
+
+    return $user;
+}, ['mode', 'project', 'console', 'request', 'response', 'dbForProject', 'dbForPlatform', 'store', 'proofForToken', 'authorization']);
+
+Http::setResource('project', function ($dbForPlatform, $request, $console, $authorization, Http $utopia) {
+    /** @var Appwrite\Utopia\Request $request */
+    /** @var Utopia\Database\Database $dbForPlatform */
+    /** @var Utopia\Database\Document $console */
+    $projectId = $request->getParam('project', $request->getHeader('x-appwrite-project', ''));
+    // Realtime channel "project" can send project=Query array
+    if (! \is_string($projectId)) {
+        $projectId = $request->getHeader('x-appwrite-project', '');
+    }
+
+    // Backwards compatibility for new services, originally project resources
+    // These endpoints moved from /v1/projects/:projectId/<resource> to /v1/<resource>
+    // When accessed via the old alias path, extract projectId from the URI
+    $deprecatedProjectPathPrefix = '/v1/projects/';
+    $route = $utopia->match($request);
+    if (!empty($route)) {
+        $isDeprecatedAlias = \str_starts_with($request->getURI(), $deprecatedProjectPathPrefix) &&
+            !\str_starts_with($route->getPath(), $deprecatedProjectPathPrefix);
+
+        if ($isDeprecatedAlias) {
+            $projectId = \explode('/', $request->getURI(), 5)[3] ?? '';
+        }
+    }
+
+    if (empty($projectId) || $projectId === 'console') {
+        return $console;
+    }
+
+    $project = $authorization->skip(fn () => $dbForPlatform->getDocument('projects', $projectId));
+
+    return $project;
+}, ['dbForPlatform', 'request', 'console', 'authorization', 'utopia']);
+
+Http::setResource('session', function (User $user, Store $store, Token $proofForToken) {
+    if ($user->isEmpty()) {
+        return;
+    }
+
+    $sessions = $user->getAttribute('sessions', []);
+    $sessionId = $user->sessionVerify($store->getProperty('secret', ''), $proofForToken);
+
+    if (! $sessionId) {
+        return;
+    }
+    foreach ($sessions as $session) {
+        /** @var Document $session */
+        if ($sessionId === $session->getId()) {
+            return $session;
+        }
+    }
+
+}, ['user', 'store', 'proofForToken']);
+
+Http::setResource('store', function (): Store {
+    return new Store();
+});
+
+Http::setResource('proofForPassword', function (): Password {
+    $hash = new Argon2();
+    $hash
+        ->setMemoryCost(7168)
+        ->setTimeCost(5)
+        ->setThreads(1);
+
+    $password = new Password();
+    $password
+        ->setHash($hash);
+
+    return $password;
+});
+
+Http::setResource('proofForToken', function (): Token {
+    $token = new Token();
+    $token->setHash(new Sha());
+
+    return $token;
+});
+
+Http::setResource('proofForCode', function (): Code {
+    $code = new Code();
+    $code->setHash(new Sha());
+
+    return $code;
+});
+
 $container->set('console', function () {
     return new Document(Config::getParam('console'));
 }, []);
