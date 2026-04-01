@@ -165,7 +165,7 @@ class OpenAPI3 extends Format
                 ];
             }
 
-            if ($additionalMethods !== null) {
+            if (\is_array($additionalMethods) && \count($additionalMethods) > 0) {
                 $temp['x-appwrite']['methods'] = [];
                 foreach ($additionalMethods as $methodObj) {
                     /** @var Method $methodObj */

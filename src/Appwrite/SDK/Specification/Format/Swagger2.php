@@ -172,7 +172,7 @@ class Swagger2 extends Format
                 $temp['produces'][] = $produces;
             }
 
-            if ($additionalMethods !== null) {
+            if (\is_array($additionalMethods) && \count($additionalMethods) > 0) {
                 $temp['x-appwrite']['methods'] = [];
                 foreach ($additionalMethods as $methodObj) {
                     /** @var Method $methodObj */

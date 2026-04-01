@@ -66,7 +66,6 @@ class Get extends Action
 
         $state = \json_decode($state, true);
         $redirectFailure = $state['failure'] ?? '';
-        $redirectSuccess = $state['success'] ?? '';
         $projectId = $state['projectId'] ?? '';
 
         $project = $dbForPlatform->getDocument('projects', $projectId);
@@ -97,6 +96,7 @@ class Get extends Action
 
         $state = \array_merge($defaultState, $state ?? []);
 
+        $redirectSuccess = $state['success'] ?? '';
         $redirectFailure = $state['failure'] ?? '';
 
         // Create / Update installation
