@@ -139,12 +139,6 @@ parameters:
 			path: app/init/registers.php
 
 		-
-			message: '#^Property PHPMailer\\PHPMailer\\PHPMailer\:\:\$Port \(int\) does not accept string\.$#'
-			identifier: assign.propertyType
-			count: 1
-			path: app/init/registers.php
-
-		-
 			message: '#^Variable \$providerConfig in empty\(\) always exists and is not falsy\.$#'
 			identifier: empty.variable
 			count: 2
