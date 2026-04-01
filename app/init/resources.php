@@ -923,7 +923,8 @@ Http::setResource('getDatabasesDB', function (Group $pools, Cache $cache, Docume
         // inside pools authorization needs to be set first
         $database->getAdapter()->setSupportForAttributes($databaseType !== DOCUMENTSDB);
 
-        // For separate pools (documentsdb/vectorsdb), check their own shared tables config
+        // For separate pools (documentsdb/vectorsdb), check their own shared tables config.
+        // If not configured, fall back to project's shared tables mode.
         if ($databaseHost !== $dsn->getHost()) {
             $dbTypeSharedTables = match ($databaseType) {
                 DOCUMENTSDB => \array_filter(\explode(',', System::getEnv('_APP_DATABASE_DOCUMENTSDB_SHARED_TABLES', ''))),
@@ -932,6 +933,12 @@ Http::setResource('getDatabasesDB', function (Group $pools, Cache $cache, Docume
             };
 
             if (\in_array($databaseHost, $dbTypeSharedTables)) {
+                $database
+                    ->setSharedTables(true)
+                    ->setTenant($project->getSequence())
+                    ->setNamespace($dsn->getParam('namespace'));
+            } elseif (\in_array($dsn->getHost(), $sharedTables)) {
+                // No dedicated config — inherit project's shared tables mode
                 $database
                     ->setSharedTables(true)
                     ->setTenant($project->getSequence())

@@ -17,6 +17,12 @@ class VectorsDBConsoleClientTest extends Scope
     use ProjectCustom;
     use SideConsole;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->requireAdapter('postgresql');
+    }
+
     public function testCreateCollection(): array
     {
         $database = $this->client->call(Client::METHOD_POST, '/vectorsdb', array_merge([

@@ -258,7 +258,8 @@ Server::setResource('getDatabasesDB', function (Cache $cache, Registry $register
 
         $sharedTables = \array_filter(\explode(',', System::getEnv('_APP_DATABASE_SHARED_TABLES', '')));
 
-        // For separate pools (documentsdb/vectorsdb), check their own shared tables config
+        // For separate pools (documentsdb/vectorsdb), check their own shared tables config.
+        // If not configured, fall back to project's shared tables mode.
         if ($databaseHost !== $dsn->getHost()) {
             $dbTypeSharedTables = match ($databaseType) {
                 DOCUMENTSDB => \array_filter(\explode(',', System::getEnv('_APP_DATABASE_DOCUMENTSDB_SHARED_TABLES', ''))),
@@ -267,6 +268,12 @@ Server::setResource('getDatabasesDB', function (Cache $cache, Registry $register
             };
 
             if (\in_array($databaseHost, $dbTypeSharedTables)) {
+                $database
+                    ->setSharedTables(true)
+                    ->setTenant($projectDocument->getSequence())
+                    ->setNamespace($dsn->getParam('namespace'));
+            } elseif (\in_array($dsn->getHost(), $sharedTables, true)) {
+                // No dedicated config — inherit project's shared tables mode
                 $database
                     ->setSharedTables(true)
                     ->setTenant($projectDocument->getSequence())

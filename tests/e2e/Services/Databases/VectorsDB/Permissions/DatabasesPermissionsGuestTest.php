@@ -16,6 +16,12 @@ class DatabasesPermissionsGuestTest extends Scope
 {
     use ProjectCustom;
     use SideClient;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->requireAdapter('postgresql');
+    }
     use DatabasesPermissionsScope;
 
     private $authorization;

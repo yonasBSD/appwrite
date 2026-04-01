@@ -3045,11 +3045,7 @@ class RealtimeCustomClientTest extends Scope
         $event = null;
         $deadline = \time() + 10;
         while (\time() < $deadline) {
-            try {
-                $raw = $client->receive();
-            } catch (\WebSocket\ConnectionException) {
-                break;
-            }
+            $raw = $client->receive();
             $msg = json_decode($raw, true);
             if (($msg['type'] ?? '') === 'event' && \in_array($updateEvent, $msg['data']['events'] ?? [])) {
                 $event = $msg;

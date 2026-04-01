@@ -11,4 +11,10 @@ class TransactionsConsoleClientTest extends Scope
     use TransactionsBase;
     use ProjectCustom;
     use SideConsole;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->requireAdapter('postgresql');
+    }
 }

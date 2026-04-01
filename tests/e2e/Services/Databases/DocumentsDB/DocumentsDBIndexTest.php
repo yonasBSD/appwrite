@@ -13,6 +13,12 @@ class DocumentsDBIndexTest extends Scope
     use ProjectCustom;
     use SideServer;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->requireAdapter('mongodb');
+    }
+
     public function testCreateIndexes(): void
     {
         $database = $this->client->call(

@@ -2561,6 +2561,8 @@ trait MigrationsBase
      */
     public function testImportVectordbCSV(): void
     {
+        $this->requireAdapter('postgresql');
+
         $databaseId = null;
         $collectionId = null;
         $bucketId = null;
@@ -2685,6 +2687,8 @@ trait MigrationsBase
     #[Retry(count: 1)]
     public function testExportVectordbCSV(): void
     {
+        $this->requireAdapter('postgresql');
+
         $databaseId = null;
 
         try {
@@ -2817,6 +2821,8 @@ trait MigrationsBase
     */
     public function testAppwriteMigrationDocumentsDBDatabase(): array
     {
+        $this->requireAdapter('mongodb');
+
         $response = $this->client->call(Client::METHOD_POST, '/documentsdb', [
             'content-type' => 'application/json',
             'x-appwrite-project' => $this->getProject()['$id'],
@@ -2879,6 +2885,8 @@ trait MigrationsBase
      */
     public function testAppwriteMigrationVectorsDBDatabase(): array
     {
+        $this->requireAdapter('postgresql');
+
         $response = $this->client->call(Client::METHOD_POST, '/vectorsdb', [
             'content-type' => 'application/json',
             'x-appwrite-project' => $this->getProject()['$id'],
@@ -3199,6 +3207,8 @@ trait MigrationsBase
      */
     public function testAppwriteMigrationMixedDatabases(): void
     {
+        $this->requireAdapter('mongodb');
+
         // Create a fresh isolated source project for this test
         $sourceProject = $this->getProject(true);
 
@@ -4250,6 +4260,8 @@ trait MigrationsBase
 
     public function testCreateVectorsDBJSONExport(): void
     {
+        $this->requireAdapter('postgresql');
+
         $headers = [
             'content-type' => 'application/json',
             'x-appwrite-project' => $this->getProject()['$id'],
@@ -4314,6 +4326,8 @@ trait MigrationsBase
 
     public function testCreateVectorsDBJSONImport(): void
     {
+        $this->requireAdapter('postgresql');
+
         $headers = [
             'content-type' => 'application/json',
             'x-appwrite-project' => $this->getProject()['$id'],
@@ -4394,6 +4408,8 @@ trait MigrationsBase
 
     public function testCreateDocumentsDBJSONExport(): void
     {
+        $this->requireAdapter('mongodb');
+
         $headers = [
             'content-type' => 'application/json',
             'x-appwrite-project' => $this->getProject()['$id'],
@@ -4458,6 +4474,8 @@ trait MigrationsBase
 
     public function testCreateDocumentsDBJSONImport(): void
     {
+        $this->requireAdapter('mongodb');
+
         $headers = [
             'content-type' => 'application/json',
             'x-appwrite-project' => $this->getProject()['$id'],

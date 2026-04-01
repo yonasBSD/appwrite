@@ -17,6 +17,12 @@ class VectorsDBCustomClientTest extends Scope
     use ProjectCustom;
     use SideClient;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->requireAdapter('postgresql');
+    }
+
     public function testAllowedPermissions(): void
     {
         /**
