@@ -42,7 +42,7 @@ class Upgrade extends Install
         string $interactive,
         bool $noStart,
         string $database,
-        bool $migrate = true,
+        bool $migrate = false,
     ): void {
         $this->isUpgrade = true;
         $this->migrate = $migrate;
