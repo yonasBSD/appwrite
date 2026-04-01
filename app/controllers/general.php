@@ -748,8 +748,11 @@ function router(Http $utopia, Database $dbForPlatform, callable $getProjectDB, S
             }
 
             if (\is_array($values)) {
+                $count = 0;
                 foreach ($values as $value) {
-                    $response->addHeader($name, $value);
+                    $override = $count === 0;
+                    $response->addHeader($name, $value, override: $override);
+                    $count++;
                 }
             } else {
                 $response->addHeader($name, $values);
