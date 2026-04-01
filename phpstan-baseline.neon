@@ -121,12 +121,6 @@ parameters:
 			path: app/controllers/shared/api.php
 
 		-
-			message: '#^Variable \$register might not be defined\.$#'
-			identifier: variable.undefined
-			count: 3
-			path: app/http.php
-
-		-
 			message: '#^Variable \$tag on left side of \?\? always exists and is always null\.$#'
 			identifier: nullCoalesce.variable
 			count: 1
@@ -281,12 +275,6 @@ parameters:
 			identifier: nullCoalesce.variable
 			count: 1
 			path: src/Appwrite/Functions/EventProcessor.php
-
-		-
-			message: '#^Binary operation "\*" between \-1 and string results in an error\.$#'
-			identifier: binaryOp.invalid
-			count: 3
-			path: app/worker.php
 
 		-
 			message: '#^Anonymous function has an unused use \$context\.$#'
