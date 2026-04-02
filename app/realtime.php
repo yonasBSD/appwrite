@@ -797,16 +797,14 @@ $server->onOpen(function (int $connection, SwooleRequest $request) use ($server,
     }
 });
 
-$server->onMessage(function (int $connection, string $message) use ($server, $realtime, $containerId, $app) {
+$server->onMessage(function (int $connection, string $message) use ($server, $realtime, $containerId) {
     $project = null;
     $authorization = null;
-
+    $app = new Http('UTC');
     try {
         $rawSize = \strlen($message);
         $response = new Response(new SwooleResponse());
         $projectId = $realtime->connections[$connection]['projectId'] ?? null;
-        // TODO: shall it be null or fine to have a guest role?
-        $roles = $realtime->connections[$connection]['roles'] ?? [Role::guests()->toString()];
 
         // Get authorization from connection (stored during onOpen)
         $authorization = $realtime->connections[$connection]['authorization'] ?? null;
@@ -973,8 +971,18 @@ $server->onMessage(function (int $connection, string $message) use ($server, $re
                     throw new Exception(Exception::REALTIME_MESSAGE_FORMAT_INVALID, 'Payload is not valid.');
                 }
 
+                // TODO: change this to a clean userId fetching solution
+                $roles = $realtime->connections[$connection]['roles'] ?? [Role::guests()->toString()];
+                $userId = '';
+                foreach ($roles as $role) {
+                    if (\str_starts_with($role, 'user:')) {
+                        $userId = \substr($role, 5);
+                        break;
+                    }
+                }
+
                 // bulk validation + parsing before subscribing
-                foreach ($message['data'] as $payload) {
+                foreach ($message['data'] as &$payload) {
                     if (!array_key_exists('subscriptionId', $payload)) {
                         throw new Exception(Exception::REALTIME_MESSAGE_FORMAT_INVALID, 'subscriptionId is not present in payload.');
                     }
@@ -989,12 +997,12 @@ $server->onMessage(function (int $connection, string $message) use ($server, $re
                     }
 
                     $subscriptionId = $payload['subscriptionId'];
-                    $channels = $payload['channels'];
+                    $payload['channels'] = \array_keys(Realtime::convertChannels($payload['channels'], $userId));
                     // TODO: catch error here
                     $payload['queries'] = Query::parseQueries($payload['queries']);
                 }
 
-                foreach ($message['data'] as $paylod) {
+                foreach ($message['data'] as $payload) {
                     $subscriptionId = $payload['subscriptionId'];
                     $channels = $payload['channels'];
                     $queries = $payload['queries'];

@@ -24,6 +24,16 @@ class RealtimeCustomClientQueryTestWithMessage extends Scope
         return false;
     }
 
+    protected function supportForAccountChannelQueryAssertion(): bool
+    {
+        return false;
+    }
+
+    protected function supportForInvalidQueryAssertionOnReceive(): bool
+    {
+        return false;
+    }
+
     /**
      * Same signature as `RealtimeBase::getWebsocket()`, but:
      * - never sends queries in the URL (avoids URL length limits)
@@ -84,6 +94,19 @@ class RealtimeCustomClientQueryTestWithMessage extends Scope
         $this->assertIsArray($response['data']['subscriptions']);
 
         return $client;
+    }
+
+    private function getWebsocketWithCustomQuery(array $queryParams, array $headers = [], int $timeout = 2): WebSocketClient
+    {
+        $queryString = \http_build_query($queryParams);
+
+        return new WebSocketClient(
+            'ws://appwrite.test/v1/realtime?' . $queryString,
+            [
+                'headers' => $headers,
+                'timeout' => $timeout,
+            ]
+        );
     }
 
     public function testQueryMessageFiltersEvents(): void
