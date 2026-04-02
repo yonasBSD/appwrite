@@ -84,6 +84,7 @@ class Increment extends Action
             ->inject('dbForProject')
             ->inject('getDatabasesDB')
             ->inject('queueForEvents')
+            ->inject('queueForRealtime')
             ->inject('usage')
             ->inject('plan')
             ->inject('authorization')
@@ -91,7 +92,7 @@ class Increment extends Action
             ->callback($this->action(...));
     }
 
-    public function action(string $databaseId, string $collectionId, string $documentId, string $attribute, int|float $value, int|float|null $max, ?string $transactionId, UtopiaResponse $response, Database $dbForProject, callable $getDatabasesDB, Event $queueForEvents, Context $usage, array $plan, Authorization $authorization, User $user): void
+    public function action(string $databaseId, string $collectionId, string $documentId, string $attribute, int|float $value, int|float|null $max, ?string $transactionId, UtopiaResponse $response, Database $dbForProject, callable $getDatabasesDB, Event $queueForEvents, Event $queueForRealtime, Context $usage, array $plan, Authorization $authorization, User $user): void
     {
         $isAPIKey = $user->isApp($authorization->getRoles());
         $isPrivilegedUser = $user->isPrivileged($authorization->getRoles());
@@ -207,6 +208,8 @@ class Increment extends Action
             ->addMetric($this->getDatabasesOperationWriteMetric(), 1)
             ->addMetric(str_replace('{databaseInternalId}', $database->getSequence(), $this->getDatabasesIdOperationWriteMetric()), 1);
 
+        $response->dynamic($document, $this->getResponseModel());
+
         $queueForEvents
             ->setParam('databaseId', $databaseId)
             ->setParam('collectionId', $collectionId)
@@ -217,6 +220,6 @@ class Increment extends Action
             ->setContext($this->getCollectionsEventsContext(), $collection)
             ->setPayload($response->getPayload(), sensitive: $relationships);
 
-        $response->dynamic($document, $this->getResponseModel());
+        $queueForRealtime->from($queueForEvents)->trigger();
     }
 }
