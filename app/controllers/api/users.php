@@ -2402,9 +2402,8 @@ Http::post('/v1/users/:userId/sessions')
             ->setParam('sessionId', $session->getId())
             ->setPayload($response->output($session, Response::MODEL_SESSION));
 
-        return $response
-            ->setStatusCode(Response::STATUS_CODE_CREATED)
-            ->dynamic($session, Response::MODEL_SESSION);
+        $response->setStatusCode(Response::STATUS_CODE_CREATED);
+        $response->dynamic($session, Response::MODEL_SESSION);
     });
 
 Http::post('/v1/users/:userId/tokens')
@@ -2467,9 +2466,8 @@ Http::post('/v1/users/:userId/tokens')
             ->setParam('tokenId', $token->getId())
             ->setPayload($response->output($token, Response::MODEL_TOKEN));
 
-        return $response
-            ->setStatusCode(Response::STATUS_CODE_CREATED)
-            ->dynamic($token, Response::MODEL_TOKEN);
+        $response->setStatusCode(Response::STATUS_CODE_CREATED);
+        $response->dynamic($token, Response::MODEL_TOKEN);
     });
 
 Http::delete('/v1/users/:userId/sessions/:sessionId')
@@ -2723,7 +2721,7 @@ Http::delete('/v1/users/identities/:identityId')
             ->setParam('identityId', $identity->getId())
             ->setPayload($response->output($identity, Response::MODEL_IDENTITY));
 
-        return $response->noContent();
+        $response->noContent();
     });
 
 Http::post('/v1/users/:userId/jwts')

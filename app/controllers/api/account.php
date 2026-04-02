@@ -723,6 +723,7 @@ Http::delete('/v1/account/sessions')
 
         $protocol = $request->getProtocol();
         $sessions = $user->getAttribute('sessions', []);
+        $currentSession = null;
 
         foreach ($sessions as $session) {/** @var Document $session */
             $dbForProject->deleteDocument('sessions', $session->getId());
@@ -744,6 +745,7 @@ Http::delete('/v1/account/sessions')
                     ->addCookie($store->getKey(), '', \time() - 3600, '/', Config::getParam('cookieDomain'), ('https' == $protocol), true, Config::getParam('cookieSamesite'));
 
                 // Use current session for events.
+                $currentSession = $session;
                 $queueForEvents
                     ->setPayload($response->output($session, Response::MODEL_SESSION));
 
@@ -756,9 +758,11 @@ Http::delete('/v1/account/sessions')
 
         $dbForProject->purgeCachedDocument('users', $user->getId());
 
-        $queueForEvents
-            ->setParam('userId', $user->getId())
-            ->setParam('sessionId', $session->getId());
+        if ($currentSession instanceof Document) {
+            $queueForEvents
+                ->setParam('userId', $user->getId())
+                ->setParam('sessionId', $currentSession->getId());
+        }
 
         $response->noContent();
     });
@@ -804,7 +808,8 @@ Http::get('/v1/account/sessions/:sessionId')
                     ->setAttribute('secret', $session->getAttribute('secret', ''))
                 ;
 
-                return $response->dynamic($session, Response::MODEL_SESSION);
+                $response->dynamic($session, Response::MODEL_SESSION);
+                return;
             }
         }
 
@@ -984,7 +989,7 @@ Http::patch('/v1/account/sessions/:sessionId')
             ->setPayload($response->output($session, Response::MODEL_SESSION))
         ;
 
-        return $response->dynamic($session, Response::MODEL_SESSION);
+        $response->dynamic($session, Response::MODEL_SESSION);
     });
 
 Http::post('/v1/account/sessions/email')
@@ -2073,7 +2078,7 @@ Http::get('/v1/account/sessions/oauth2/:provider/redirect')
                 ->addCookie($store->getKey(), $encoded, (new \DateTime($expire))->getTimestamp(), '/', Config::getParam('cookieDomain'), ('https' == $protocol), true, Config::getParam('cookieSamesite'));
         }
 
-        if (isset($sessionUpgrade) && $sessionUpgrade) {
+        if (isset($sessionUpgrade) && $sessionUpgrade && isset($session)) {
             foreach ($user->getAttribute('targets', []) as $target) {
                 if ($target->getAttribute('providerType') !== MESSAGE_TYPE_PUSH) {
                     continue;
@@ -4887,5 +4892,5 @@ Http::delete('/v1/account/identities/:identityId')
             ->setParam('identityId', $identity->getId())
             ->setPayload($response->output($identity, Response::MODEL_IDENTITY));
 
-        return $response->noContent();
+        $response->noContent();
     });
