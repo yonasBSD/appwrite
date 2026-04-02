@@ -190,7 +190,7 @@ class Mails extends Action
         }
 
         $emailMessage = new EmailMessage(
-            to: [$recipient],
+            to: [['email' => $recipient, 'name' => $name]],
             subject: $subject,
             content: $body,
             fromName: $fromName,
