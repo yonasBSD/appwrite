@@ -20,6 +20,7 @@ use Utopia\Database\Exception\Limit as LimitException;
 use Utopia\Database\Exception\NotFound as NotFoundException;
 use Utopia\Database\Helpers\ID;
 use Utopia\Database\Helpers\Permission;
+use Utopia\Database\Query;
 use Utopia\Database\Validator\Authorization;
 use Utopia\Database\Validator\Permissions;
 use Utopia\Database\Validator\UID;
@@ -116,6 +117,30 @@ class Create extends CollectionAction
         }
         /** @var Database $dbForDatabases */
         $dbForDatabases = $getDatabasesDB($database);
+        $cleanupCollection = function () use ($authorization, $dbForProject, $database, $collection): void {
+            try {
+                $authorization->skip(fn () => $dbForProject->deleteDocument(
+                    'database_' . $database->getSequence(),
+                    $collection->getId()
+                ));
+            } catch (\Throwable) {
+            }
+
+            $queries = [
+                Query::equal('databaseInternalId', [$database->getSequence()]),
+                Query::equal('collectionInternalId', [$collection->getSequence()]),
+            ];
+
+            try {
+                $authorization->skip(fn () => $dbForProject->deleteDocuments('attributes', $queries));
+            } catch (\Throwable) {
+            }
+
+            try {
+                $authorization->skip(fn () => $dbForProject->deleteDocuments('indexes', $queries));
+            } catch (\Throwable) {
+            }
+        };
 
         $attributes = [];
         $indexes = [];
@@ -134,6 +159,10 @@ class Create extends CollectionAction
                 try {
                     $dbForDatabases->create();
                 } catch (DuplicateException) {
+                } catch (\Throwable $e) {
+                    if (!$dbForDatabases->exists(null, Database::METADATA)) {
+                        throw $e;
+                    }
                 }
             }
             $dbForDatabases->createCollection(
@@ -191,11 +220,17 @@ class Create extends CollectionAction
                 $dbForProject->createDocuments('indexes', $indexDocs);
             }
         } catch (DuplicateException) {
+            $cleanupCollection();
             throw new Exception($this->getDuplicateException());
         } catch (IndexException) {
+            $cleanupCollection();
             throw new Exception($this->getInvalidIndexException());
         } catch (LimitException) {
+            $cleanupCollection();
             throw new Exception($this->getLimitException());
+        } catch (\Throwable $e) {
+            $cleanupCollection();
+            throw $e;
         }
 
         $queueForEvents
