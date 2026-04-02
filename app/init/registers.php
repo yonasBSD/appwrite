@@ -56,7 +56,7 @@ $register->set('logger', function () {
     }
 
     try {
-        $loggingProvider = new DSN($providerConfig ?? '');
+        $loggingProvider = new DSN($providerConfig);
 
         $providerName = $loggingProvider->getScheme();
         $providerConfig = match ($providerName) {
@@ -76,7 +76,7 @@ $register->set('logger', function () {
         };
     }
 
-    if (empty($providerName) || empty($providerConfig)) {
+    if (empty($providerName)) {
         return;
     }
 
@@ -121,7 +121,7 @@ $register->set('realtimeLogger', function () {
         default => ['key' => $loggingProvider->getHost()],
     };
 
-    if (empty($providerName) || empty($providerConfig)) {
+    if (empty($providerName)) {
         return;
     }
 
@@ -242,8 +242,8 @@ $register->set('pools', function () {
         ],
     ];
 
-    $maxConnections = System::getEnv('_APP_CONNECTIONS_MAX', 151);
-    $instanceConnections = $maxConnections / System::getEnv('_APP_POOL_CLIENTS', 14);
+    $maxConnections = (int) System::getEnv('_APP_CONNECTIONS_MAX', 151);
+    $instanceConnections = $maxConnections / (int) System::getEnv('_APP_POOL_CLIENTS', 14);
 
     $multiprocessing = System::getEnv('_APP_SERVER_MULTIPROCESS', 'disabled') === 'enabled';
 
@@ -308,7 +308,7 @@ $register->set('pools', function () {
                         ]);
                     });
                 },
-                'mongodb' => function () use ($dsnHost, $dsnPort, $dsnUser, $dsnPass, $dsnDatabase, $dsn) {
+                'mongodb' => function () use ($dsnHost, $dsnPort, $dsnUser, $dsnPass, $dsnDatabase) {
                     try {
                         $mongo = new MongoClient($dsnDatabase, $dsnHost, (int)$dsnPort, $dsnUser, $dsnPass, false);
                         @$mongo->connect();
@@ -435,7 +435,6 @@ $register->set('db', function () {
 $register->set('smtp', function () {
     $username = System::getEnv('_APP_SMTP_USERNAME', '');
     $password = System::getEnv('_APP_SMTP_PASSWORD', '');
-
     return new SMTP(
         host: System::getEnv('_APP_SMTP_HOST', 'smtp'),
         port: (int) System::getEnv('_APP_SMTP_PORT', 25),
