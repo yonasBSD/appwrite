@@ -12,11 +12,11 @@ class DocumentsDBCustomServerTest extends Scope
     use DatabasesBase;
     use ProjectCustom;
     use SideServer;
+    use ApiDocumentsDB;
 
     protected function setUp(): void
     {
         parent::setUp();
         $this->requireAdapter('mongodb');
     }
-    use ApiDocumentsDB;
 }

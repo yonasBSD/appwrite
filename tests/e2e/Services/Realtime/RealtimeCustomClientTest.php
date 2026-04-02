@@ -4598,6 +4598,8 @@ class RealtimeCustomClientTest extends Scope
     }
     public function testChannelDocumentsdb()
     {
+        $this->requireAdapter('mongodb');
+
         $user = $this->getUser();
         $session = $user['session'] ?? '';
         $projectId = $this->getProject()['$id'];
@@ -5076,6 +5078,8 @@ class RealtimeCustomClientTest extends Scope
 
     public function testChannelVectorsDB()
     {
+        $this->requireAdapter('postgresql');
+
         $user = $this->getUser();
         $session = $user['session'] ?? '';
         $projectId = $this->getProject()['$id'];

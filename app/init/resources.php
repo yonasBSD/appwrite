@@ -924,7 +924,7 @@ Http::setResource('getDatabasesDB', function (Group $pools, Cache $cache, Docume
         $database->getAdapter()->setSupportForAttributes($databaseType !== DOCUMENTSDB);
 
         // For separate pools (documentsdb/vectorsdb), check their own shared tables config.
-        // If not configured, fall back to project's shared tables mode.
+        // If not configured, use dedicated mode to avoid cross-engine tenant type mismatches.
         if ($databaseHost !== $dsn->getHost()) {
             $dbTypeSharedTables = match ($databaseType) {
                 DOCUMENTSDB => \array_filter(\explode(',', System::getEnv('_APP_DATABASE_DOCUMENTSDB_SHARED_TABLES', ''))),
@@ -937,22 +937,11 @@ Http::setResource('getDatabasesDB', function (Group $pools, Cache $cache, Docume
                     ->setSharedTables(true)
                     ->setTenant($project->getSequence())
                     ->setNamespace($dsn->getParam('namespace'));
-            } elseif (\in_array($dsn->getHost(), $sharedTables)) {
-                // No dedicated config — inherit project's shared tables mode
-                $database
-                    ->setSharedTables(true)
-                    ->setTenant($project->getSequence())
-                    ->setNamespace($dsn->getParam('namespace'));
             } else {
                 $database
                     ->setSharedTables(false)
                     ->setTenant(null)
                     ->setNamespace('_' . $project->getSequence());
-            }
-
-            try {
-                $database->create();
-            } catch (\Utopia\Database\Exception\Duplicate) {
             }
         } elseif (\in_array($dsn->getHost(), $sharedTables)) {
             $database

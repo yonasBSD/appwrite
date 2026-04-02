@@ -16,13 +16,13 @@ class DatabasesPermissionsMemberTest extends Scope
 {
     use ProjectCustom;
     use SideClient;
+    use DatabasesPermissionsScope;
 
     protected function setUp(): void
     {
         parent::setUp();
         $this->requireAdapter('postgresql');
     }
-    use DatabasesPermissionsScope;
 
     public array $collections = [];
 

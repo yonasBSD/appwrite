@@ -12,11 +12,11 @@ class DocumentsDBCustomClientTest extends Scope
     use DatabasesBase;
     use ProjectCustom;
     use SideClient;
+    use ApiDocumentsDB;
 
     protected function setUp(): void
     {
         parent::setUp();
         $this->requireAdapter('mongodb');
     }
-    use ApiDocumentsDB;
 }
