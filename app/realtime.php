@@ -805,6 +805,8 @@ $server->onMessage(function (int $connection, string $message) use ($server, $re
         $rawSize = \strlen($message);
         $response = new Response(new SwooleResponse());
         $projectId = $realtime->connections[$connection]['projectId'] ?? null;
+        // TODO: shall it be null or fine to have a guest role?
+        $roles = $realtime->connections[$connection]['roles'] ?? [Role::guests()->toString()];
 
         // Get authorization from connection (stored during onOpen)
         $authorization = $realtime->connections[$connection]['authorization'] ?? null;
@@ -971,38 +973,34 @@ $server->onMessage(function (int $connection, string $message) use ($server, $re
                     throw new Exception(Exception::REALTIME_MESSAGE_FORMAT_INVALID, 'Payload is not valid.');
                 }
 
-                $user = $app->getResource('user'); /** @var User $user */
-                $roles = $user->getRoles($authorization);
-
                 // bulk validation + parsing before subscribing
                 foreach ($message['data'] as $payload) {
-                    $payload = $message['data'];
-                    if (!array_key_exists('subscriptionId', $payload['subscriptionId'])) {
+                    if (!array_key_exists('subscriptionId', $payload)) {
                         throw new Exception(Exception::REALTIME_MESSAGE_FORMAT_INVALID, 'subscriptionId is not present in payload.');
                     }
                     if (!array_key_exists('channels', $payload)) {
                         throw new Exception(Exception::REALTIME_MESSAGE_FORMAT_INVALID, 'channels is not present in payload.');
                     }
-                    if(!is_array($payload['channels']) || !array_is_list($payload['channels'])){
+                    if (!is_array($payload['channels']) || !array_is_list($payload['channels'])) {
                         throw new Exception(Exception::REALTIME_MESSAGE_FORMAT_INVALID, 'channels is not a valid array.');
                     }
                     if (!array_key_exists('queries', $payload)) {
                         throw new Exception(Exception::REALTIME_MESSAGE_FORMAT_INVALID, 'queries is not present in payload.');
                     }
-                    
+
                     $subscriptionId = $payload['subscriptionId'];
                     $channels = $payload['channels'];
                     // TODO: catch error here
                     $payload['queries'] = Query::parseQueries($payload['queries']);
                 }
 
-                foreach($message['data'] as $paylod){
+                foreach ($message['data'] as $paylod) {
                     $subscriptionId = $payload['subscriptionId'];
                     $channels = $payload['channels'];
                     $queries = $payload['queries'];
                     $realtime->subscribe($projectId, $connection, $subscriptionId, $roles, $channels, $queries);
                 }
-                
+
                 $responsePayload = json_encode([
                     'type' => 'response',
                     'data' => [
