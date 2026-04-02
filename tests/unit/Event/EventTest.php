@@ -5,7 +5,6 @@ namespace Tests\Unit\Event;
 use Appwrite\Event\Event;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
-use Utopia\Queue\Publisher;
 
 require_once __DIR__ . '/../../../app/init.php';
 

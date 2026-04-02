@@ -33,7 +33,6 @@ use Utopia\Http\Files;
 use Utopia\Http\Http;
 use Utopia\Logger\Log;
 use Utopia\Logger\Log\User;
-use Utopia\Pools\Group;
 use Utopia\Span\Span;
 use Utopia\System\System;
 
