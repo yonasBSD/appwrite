@@ -130,9 +130,11 @@ class Create extends CollectionAction
             $indexes[] = new Document($index);
         }
         try {
-            try {
-                $dbForDatabases->create();
-            } catch (DuplicateException) {
+            if (!$dbForDatabases->exists(null, Database::METADATA)) {
+                try {
+                    $dbForDatabases->create();
+                } catch (DuplicateException) {
+                }
             }
             $dbForDatabases->createCollection(
                 id: 'database_' . $database->getSequence() . '_collection_' . $collection->getSequence(),

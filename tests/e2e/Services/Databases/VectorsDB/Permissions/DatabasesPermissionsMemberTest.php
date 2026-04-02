@@ -18,12 +18,6 @@ class DatabasesPermissionsMemberTest extends Scope
     use SideClient;
     use DatabasesPermissionsScope;
 
-    protected function setUp(): void
-    {
-        parent::setUp();
-        $this->requireAdapter('postgresql');
-    }
-
     public array $collections = [];
 
     public function createUsers(): array

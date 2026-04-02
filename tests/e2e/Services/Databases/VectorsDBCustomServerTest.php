@@ -19,12 +19,6 @@ class VectorsDBCustomServerTest extends Scope
     use ProjectCustom;
     use SideServer;
 
-    protected function setUp(): void
-    {
-        parent::setUp();
-        $this->requireAdapter('postgresql');
-    }
-
     public function testListDatabases(): array
     {
         $db1 = $this->client->call(Client::METHOD_POST, '/vectorsdb', [

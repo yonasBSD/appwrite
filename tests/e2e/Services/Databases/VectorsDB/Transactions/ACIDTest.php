@@ -15,12 +15,6 @@ class ACIDTest extends Scope
     use ProjectCustom;
     use SideClient;
 
-    protected function setUp(): void
-    {
-        parent::setUp();
-        $this->requireAdapter('postgresql');
-    }
-
     private function generateEmbeddings(int $dimensions = 3, float $value = 0.1): array
     {
         $vector = array_fill(0, $dimensions, $value);

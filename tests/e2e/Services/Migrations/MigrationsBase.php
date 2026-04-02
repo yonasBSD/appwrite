@@ -2561,8 +2561,6 @@ trait MigrationsBase
      */
     public function testImportVectordbCSV(): void
     {
-        $this->requireAdapter('postgresql');
-
         $databaseId = null;
         $collectionId = null;
         $bucketId = null;
@@ -2687,8 +2685,6 @@ trait MigrationsBase
     #[Retry(count: 1)]
     public function testExportVectordbCSV(): void
     {
-        $this->requireAdapter('postgresql');
-
         $databaseId = null;
 
         try {
@@ -2821,8 +2817,6 @@ trait MigrationsBase
     */
     public function testAppwriteMigrationDocumentsDBDatabase(): array
     {
-        $this->requireAdapter('mongodb');
-
         $response = $this->client->call(Client::METHOD_POST, '/documentsdb', [
             'content-type' => 'application/json',
             'x-appwrite-project' => $this->getProject()['$id'],
@@ -2885,8 +2879,6 @@ trait MigrationsBase
      */
     public function testAppwriteMigrationVectorsDBDatabase(): array
     {
-        $this->requireAdapter('postgresql');
-
         $response = $this->client->call(Client::METHOD_POST, '/vectorsdb', [
             'content-type' => 'application/json',
             'x-appwrite-project' => $this->getProject()['$id'],
@@ -3207,8 +3199,6 @@ trait MigrationsBase
      */
     public function testAppwriteMigrationMixedDatabases(): void
     {
-        $this->requireAdapter('mongodb');
-
         // Create a fresh isolated source project for this test
         $sourceProject = $this->getProject(true);
 
@@ -4217,10 +4207,9 @@ trait MigrationsBase
         }, 30_000, 500);
 
         // Check that email was sent with download link
-        $lastEmail = $this->getLastEmail(probe: function ($email) {
-            $this->assertEquals('Your JSON export is ready', $email['subject']);
-        });
+        $lastEmail = $this->getLastEmail();
         $this->assertNotEmpty($lastEmail);
+        $this->assertEquals('Your JSON export is ready', $lastEmail['subject']);
         $this->assertStringContainsStringIgnoringCase('Your data export has been completed successfully', $lastEmail['text']);
 
         // Extract download URL from email HTML
@@ -4261,8 +4250,6 @@ trait MigrationsBase
 
     public function testCreateVectorsDBJSONExport(): void
     {
-        $this->requireAdapter('postgresql');
-
         $headers = [
             'content-type' => 'application/json',
             'x-appwrite-project' => $this->getProject()['$id'],
@@ -4327,8 +4314,6 @@ trait MigrationsBase
 
     public function testCreateVectorsDBJSONImport(): void
     {
-        $this->requireAdapter('postgresql');
-
         $headers = [
             'content-type' => 'application/json',
             'x-appwrite-project' => $this->getProject()['$id'],
@@ -4409,8 +4394,6 @@ trait MigrationsBase
 
     public function testCreateDocumentsDBJSONExport(): void
     {
-        $this->requireAdapter('mongodb');
-
         $headers = [
             'content-type' => 'application/json',
             'x-appwrite-project' => $this->getProject()['$id'],
@@ -4475,8 +4458,6 @@ trait MigrationsBase
 
     public function testCreateDocumentsDBJSONImport(): void
     {
-        $this->requireAdapter('mongodb');
-
         $headers = [
             'content-type' => 'application/json',
             'x-appwrite-project' => $this->getProject()['$id'],

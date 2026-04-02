@@ -18,12 +18,6 @@ class DatabasesPermissionsTeamTest extends Scope
     use SideClient;
     use DatabasesPermissionsScope;
 
-    protected function setUp(): void
-    {
-        parent::setUp();
-        $this->requireAdapter('postgresql');
-    }
-
     public array $collections = [];
     public string $databaseId = 'testpermissiondb';
 

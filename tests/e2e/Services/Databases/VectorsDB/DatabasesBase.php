@@ -14,8 +14,6 @@ trait DatabasesBase
 {
     public function testCreateDatabase(): array
     {
-        $this->requireAdapter('postgresql');
-
         /**
          * Test for SUCCESS
          */

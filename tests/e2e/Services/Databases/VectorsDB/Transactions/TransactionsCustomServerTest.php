@@ -11,10 +11,4 @@ class TransactionsCustomServerTest extends Scope
     use TransactionsBase;
     use ProjectCustom;
     use SideServer;
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-        $this->requireAdapter('postgresql');
-    }
 }

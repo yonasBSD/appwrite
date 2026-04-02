@@ -44,16 +44,6 @@ abstract class Scope extends TestCase
     }
 
     /**
-     * Skip test if the current database adapter doesn't match the required one.
-     */
-    protected function requireAdapter(string $adapter): void
-    {
-        if (\getenv('_APP_DB_ADAPTER') !== $adapter) {
-            $this->markTestSkipped("Requires {$adapter} adapter");
-        }
-    }
-
-    /**
      * @var array|null Cached console variables
      */
     protected static ?array $consoleVariables = null;

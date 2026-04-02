@@ -218,9 +218,8 @@ jobs:
             const decode = (content) => JSON.parse(Buffer.from(content, 'base64').toString());
             const databaseChanged = getDbVersion(decode(base.content)) !== getDbVersion(decode(head.content));
 
-            // TEMP: Only run failing combinations for debugging
-            core.setOutput('databases', JSON.stringify(allDatabases));
-            core.setOutput('modes', JSON.stringify(allModes));
+            core.setOutput('databases', JSON.stringify(databaseChanged ? allDatabases : defaultDatabases));
+            core.setOutput('modes', JSON.stringify(databaseChanged ? allModes : defaultModes));
 
   build:
     name: Build
@@ -380,7 +379,32 @@ jobs:
       matrix:
         database: ${{ fromJSON(needs.matrix.outputs.databases) }}
         mode: ${{ fromJSON(needs.matrix.outputs.modes) }}
-        service: [Realtime, Migrations, Projects, Databases, TablesDB]
+        service: [
+          Account,
+          Avatars,
+          Console,
+          Databases,
+          TablesDB,
+          Functions,
+          FunctionsSchedule,
+          GraphQL,
+          Health,
+          Locale,
+          Projects,
+          Realtime,
+          Sites,
+          Proxy,
+          Storage,
+          Tokens,
+          Teams,
+          Users,
+          ProjectWebhooks,
+          Webhooks,
+          VCS,
+          Messaging,
+          Migrations,
+          Project
+        ]
         include:
           - service: Databases
             runner: blacksmith-4vcpu-ubuntu-2404
