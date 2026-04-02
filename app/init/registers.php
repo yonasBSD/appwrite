@@ -245,23 +245,7 @@ $register->set('pools', function () {
     $maxConnections = (int) System::getEnv('_APP_CONNECTIONS_MAX', 151);
     $instanceConnections = $maxConnections / (int) System::getEnv('_APP_POOL_CLIENTS', 14);
 
-    $entrypoint = \basename($_SERVER['SCRIPT_NAME'] ?? $_SERVER['argv'][0] ?? '');
-    $workerCount = match ($entrypoint) {
-        'http.php',
-        'realtime.php' => intval(System::getEnv('_APP_CPU_NUM', swoole_cpu_num())) * intval(System::getEnv('_APP_WORKER_PER_CORE', 6)),
-        'worker.php' => max(1, (int) System::getEnv('_APP_WORKERS_NUM', 1)),
-        default => 1,
-    };
-
-    if ($workerCount > $instanceConnections) {
-        Console::warning(
-            'Pool size is too small for ' . $entrypoint .
-            '. Falling back to a minimum size of 1. ' .
-            'Increase _APP_CONNECTIONS_MAX or decrease _APP_WORKER_PER_CORE ' .
-            '(and _APP_WORKERS_NUM for worker.php) to avoid connection contention.'
-        );
-    }
-
+    $workerCount = intval(System::getEnv('_APP_CPU_NUM', swoole_cpu_num())) * intval(System::getEnv('_APP_WORKER_PER_CORE', 6));
     $poolSize = max(1, (int)($instanceConnections / $workerCount));
 
     foreach ($connections as $key => $connection) {
