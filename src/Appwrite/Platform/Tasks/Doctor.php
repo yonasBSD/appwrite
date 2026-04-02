@@ -124,7 +124,7 @@ class Doctor extends Action
         $providerConfig = System::getEnv('_APP_LOGGING_CONFIG', '');
 
         try {
-            $loggingProvider = new DSN($providerConfig ?? '');
+            $loggingProvider = new DSN($providerConfig);
 
             $providerName = $loggingProvider->getScheme();
 
