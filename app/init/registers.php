@@ -56,7 +56,7 @@ $register->set('logger', function () {
     }
 
     try {
-        $loggingProvider = new DSN($providerConfig ?? '');
+        $loggingProvider = new DSN($providerConfig);
 
         $providerName = $loggingProvider->getScheme();
         $providerConfig = match ($providerName) {
@@ -76,7 +76,7 @@ $register->set('logger', function () {
         };
     }
 
-    if (empty($providerName) || empty($providerConfig)) {
+    if (empty($providerName)) {
         return;
     }
 
@@ -121,7 +121,7 @@ $register->set('realtimeLogger', function () {
         default => ['key' => $loggingProvider->getHost()],
     };
 
-    if (empty($providerName) || empty($providerConfig)) {
+    if (empty($providerName)) {
         return;
     }
 
@@ -242,8 +242,8 @@ $register->set('pools', function () {
         ],
     ];
 
-    $maxConnections = System::getEnv('_APP_CONNECTIONS_MAX', 151);
-    $instanceConnections = $maxConnections / System::getEnv('_APP_POOL_CLIENTS', 14);
+    $maxConnections = (int) System::getEnv('_APP_CONNECTIONS_MAX', 151);
+    $instanceConnections = $maxConnections / (int) System::getEnv('_APP_POOL_CLIENTS', 14);
 
     $workerCount = intval(System::getEnv('_APP_CPU_NUM', swoole_cpu_num())) * intval(System::getEnv('_APP_WORKER_PER_CORE', 6));
 
@@ -302,7 +302,7 @@ $register->set('pools', function () {
                         ]);
                     });
                 },
-                'mongodb' => function () use ($dsnHost, $dsnPort, $dsnUser, $dsnPass, $dsnDatabase, $dsn) {
+                'mongodb' => function () use ($dsnHost, $dsnPort, $dsnUser, $dsnPass, $dsnDatabase) {
                     try {
                         $mongo = new MongoClient($dsnDatabase, $dsnHost, (int)$dsnPort, $dsnUser, $dsnPass, false);
                         @$mongo->connect();
@@ -436,7 +436,7 @@ $register->set('smtp', function () {
 
     $mail->XMailer = 'Appwrite Mailer';
     $mail->Host = System::getEnv('_APP_SMTP_HOST', 'smtp');
-    $mail->Port = System::getEnv('_APP_SMTP_PORT', 25);
+    $mail->Port = (int) System::getEnv('_APP_SMTP_PORT', 25);
     $mail->SMTPAuth = !empty($username) && !empty($password);
     $mail->Username = $username;
     $mail->Password = $password;
