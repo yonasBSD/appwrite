@@ -48,7 +48,7 @@ final class Cors
     /**
      * Build CORS headers for a given request origin.
      *
-     * @return array<string,string>
+     * @return array<string, int|string>
      */
     public function headers(string $origin): array
     {
@@ -57,7 +57,7 @@ final class Cors
             self::HEADER_ALLOW_HEADERS     => implode(', ', $this->allowedHeaders),
             self::HEADER_EXPOSE_HEADERS    => implode(', ', $this->exposedHeaders),
             self::HEADER_ALLOW_CREDENTIALS => $this->allowCredentials ? 'true' : 'false',
-            self::HEADER_MAX_AGE           => (string) $this->maxAge,
+            self::HEADER_MAX_AGE           => $this->maxAge,
         ];
 
         // Wildcard allow-all
