@@ -6,7 +6,6 @@ use Appwrite\Hooks\Hooks;
 use Appwrite\PubSub\Adapter\Redis as PubSub;
 use Appwrite\URL\URL as AppwriteURL;
 use MaxMind\Db\Reader;
-use PHPMailer\PHPMailer\PHPMailer;
 use Swoole\Database\PDOProxy;
 use Utopia\Cache\Adapter\Redis as RedisCache;
 use Utopia\Config\Config;
@@ -25,6 +24,7 @@ use Utopia\Logger\Adapter\LogOwl;
 use Utopia\Logger\Adapter\Raygun;
 use Utopia\Logger\Adapter\Sentry;
 use Utopia\Logger\Logger;
+use Utopia\Messaging\Adapter\Email\SMTP;
 use Utopia\Mongo\Client as MongoClient;
 use Utopia\Pools\Adapter\Stack as StackPool;
 use Utopia\Pools\Adapter\Swoole as SwoolePool;
@@ -422,35 +422,20 @@ $register->set('db', function () {
 });
 
 $register->set('smtp', function () {
-    $mail = new PHPMailer(true);
-
-    $mail->isSMTP();
-
-    $username = System::getEnv('_APP_SMTP_USERNAME');
-    $password = System::getEnv('_APP_SMTP_PASSWORD');
-
-    $mail->XMailer = 'Appwrite Mailer';
-    $mail->Host = System::getEnv('_APP_SMTP_HOST', 'smtp');
-    $mail->Port = (int) System::getEnv('_APP_SMTP_PORT', 25);
-    $mail->SMTPAuth = !empty($username) && !empty($password);
-    $mail->Username = $username;
-    $mail->Password = $password;
-    $mail->SMTPSecure = System::getEnv('_APP_SMTP_SECURE', '');
-    $mail->SMTPAutoTLS = false;
-    $mail->SMTPKeepAlive = true;
-    $mail->CharSet = 'UTF-8';
-    $mail->Timeout = 10; /* Connection timeout */
-    $mail->getSMTPInstance()->Timelimit = 30; /* Timeout for each individual SMTP command (e.g. HELO, EHLO, etc.) */
-
-    $from = \urldecode(System::getEnv('_APP_SYSTEM_EMAIL_NAME', APP_NAME . ' Server'));
-    $email = System::getEnv('_APP_SYSTEM_EMAIL_ADDRESS', APP_EMAIL_TEAM);
-
-    $mail->setFrom($email, $from);
-    $mail->addReplyTo($email, $from);
-
-    $mail->isHTML(true);
-
-    return $mail;
+    $username = System::getEnv('_APP_SMTP_USERNAME', '');
+    $password = System::getEnv('_APP_SMTP_PASSWORD', '');
+    return new SMTP(
+        host: System::getEnv('_APP_SMTP_HOST', 'smtp'),
+        port: (int) System::getEnv('_APP_SMTP_PORT', 25),
+        username: $username,
+        password: $password,
+        smtpSecure: System::getEnv('_APP_SMTP_SECURE', ''),
+        smtpAutoTLS: false,
+        xMailer: 'Appwrite Mailer',
+        timeout: 10,
+        keepAlive: true,
+        timelimit: 30,
+    );
 });
 $register->set('geodb', function () {
     return new Reader(__DIR__ . '/../assets/dbip/dbip-country-lite-2025-12.mmdb');
