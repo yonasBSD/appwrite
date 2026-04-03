@@ -62,7 +62,7 @@ class Create extends CollectionAction
                     new SDKResponse(
                         code: SwooleResponse::STATUS_CODE_CREATED,
                         model: $this->getResponseModel(),
-                    )
+                    ),
                 ],
                 contentType: ContentType::JSON
             ))
@@ -72,7 +72,7 @@ class Create extends CollectionAction
             ->param('dimension', null, new Range(MIN_VECTOR_DIMENSION, MAX_VECTOR_DIMENSION), 'Embedding dimension.')
             ->param('permissions', null, new Permissions(APP_LIMIT_ARRAY_PARAMS_SIZE), 'An array of permissions strings. By default, no user is granted with any permissions. [Learn more about permissions](https://appwrite.io/docs/permissions).', true)
             ->param('documentSecurity', false, new Boolean(true), 'Enables configuring permissions for individual documents. A user needs one of document or collection level permissions to access a document. [Learn more about permissions](https://appwrite.io/docs/permissions).', true)
-            ->param('enabled', true, new Boolean(), 'Is collection enabled? When set to \'disabled\', users cannot access the collection but Server SDKs with and API key can still read and write to the collection. No data is lost when this is toggled.', true)
+            ->param('enabled', true, new Boolean, 'Is collection enabled? When set to \'disabled\', users cannot access the collection but Server SDKs with and API key can still read and write to the collection. No data is lost when this is toggled.', true)
             ->inject('response')
             ->inject('dbForProject')
             ->inject('getDatabasesDB')
@@ -95,7 +95,7 @@ class Create extends CollectionAction
         $permissions = Permission::aggregate($permissions) ?? [];
 
         try {
-            $collection = $dbForProject->createDocument('database_' . $database->getSequence(), new Document([
+            $collection = $dbForProject->createDocument('database_'.$database->getSequence(), new Document([
                 '$id' => $collectionId,
                 'databaseInternalId' => $database->getSequence(),
                 'databaseId' => $databaseId,
@@ -130,25 +130,27 @@ class Create extends CollectionAction
             $indexes[] = new Document($index);
         }
         try {
-            if (!$dbForDatabases->exists(null, Database::METADATA)) {
-                try {
-                    $dbForDatabases->create();
-                } catch (DuplicateException) {
-                }
+            // Bootstrap the database metadata without a separate existence
+            // check to avoid races when multiple first collections are created
+            // concurrently for the same VectorsDB database.
+            try {
+                $dbForDatabases->create();
+            } catch (DuplicateException) {
             }
             $dbForDatabases->createCollection(
-                id: 'database_' . $database->getSequence() . '_collection_' . $collection->getSequence(),
+                id: 'database_'.$database->getSequence().'_collection_'.$collection->getSequence(),
                 permissions: $permissions,
                 documentSecurity: $documentSecurity,
-                attributes:$attributes,
-                indexes:$indexes
+                attributes: $attributes,
+                indexes: $indexes
             );
             // Create attribute and indexes metadata documents in the attributes and indexes collections
             // needed for the get and list calls
             $attributeDocs = array_map(function ($attributeConfig) use ($database, $collection, $databaseId, $collectionId, $dimension) {
                 $key = \is_string($attributeConfig['$id']) ? $attributeConfig['$id'] : (string) $attributeConfig['$id'];
+
                 return new Document([
-                    '$id' => ID::custom($database->getSequence() . '_' . $collection->getSequence() . '_' . $key),
+                    '$id' => ID::custom($database->getSequence().'_'.$collection->getSequence().'_'.$key),
                     'key' => $key,
                     'databaseInternalId' => $database->getSequence(),
                     'databaseId' => $databaseId,
@@ -173,7 +175,7 @@ class Create extends CollectionAction
                 $key = \is_string($indexConfig['$id']) ? $indexConfig['$id'] : (string) $indexConfig['$id'];
 
                 return new Document([
-                    '$id' => ID::custom($database->getSequence() . '_' . $collection->getSequence() . '_' . $key),
+                    '$id' => ID::custom($database->getSequence().'_'.$collection->getSequence().'_'.$key),
                     'key' => $key,
                     'status' => 'available',
                     'databaseInternalId' => $database->getSequence(),
@@ -187,7 +189,7 @@ class Create extends CollectionAction
                 ]);
             }, $collections['defaultIndexes']);
 
-            if (!empty($indexDocs)) {
+            if (! empty($indexDocs)) {
                 $dbForProject->createDocuments('indexes', $indexDocs);
             }
         } catch (DuplicateException) {
