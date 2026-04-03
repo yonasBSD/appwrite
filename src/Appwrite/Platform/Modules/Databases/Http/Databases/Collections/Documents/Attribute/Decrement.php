@@ -84,7 +84,6 @@ class Decrement extends Action
             ->inject('dbForProject')
             ->inject('getDatabasesDB')
             ->inject('queueForEvents')
-            ->inject('queueForRealtime')
             ->inject('usage')
             ->inject('plan')
             ->inject('authorization')
@@ -92,7 +91,7 @@ class Decrement extends Action
             ->callback($this->action(...));
     }
 
-    public function action(string $databaseId, string $collectionId, string $documentId, string $attribute, int|float $value, int|float|null $min, ?string $transactionId, UtopiaResponse $response, Database $dbForProject, callable $getDatabasesDB, Event $queueForEvents, Event $queueForRealtime, Context $usage, array $plan, Authorization $authorization, User $user): void
+    public function action(string $databaseId, string $collectionId, string $documentId, string $attribute, int|float $value, int|float|null $min, ?string $transactionId, UtopiaResponse $response, Database $dbForProject, callable $getDatabasesDB, Event $queueForEvents, Context $usage, array $plan, Authorization $authorization, User $user): void
     {
         $isAPIKey = $user->isApp($authorization->getRoles());
         $isPrivilegedUser = $user->isPrivileged($authorization->getRoles());
@@ -219,7 +218,5 @@ class Decrement extends Action
             ->setContext('database', $database)
             ->setContext($this->getCollectionsEventsContext(), $collection)
             ->setPayload($response->getPayload(), sensitive: $relationships);
-
-        $queueForRealtime->from($queueForEvents)->trigger();
     }
 }
