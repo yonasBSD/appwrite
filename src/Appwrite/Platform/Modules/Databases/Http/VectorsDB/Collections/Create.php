@@ -72,7 +72,7 @@ class Create extends CollectionAction
             ->param('dimension', null, new Range(MIN_VECTOR_DIMENSION, MAX_VECTOR_DIMENSION), 'Embedding dimension.')
             ->param('permissions', null, new Permissions(APP_LIMIT_ARRAY_PARAMS_SIZE), 'An array of permissions strings. By default, no user is granted with any permissions. [Learn more about permissions](https://appwrite.io/docs/permissions).', true)
             ->param('documentSecurity', false, new Boolean(true), 'Enables configuring permissions for individual documents. A user needs one of document or collection level permissions to access a document. [Learn more about permissions](https://appwrite.io/docs/permissions).', true)
-            ->param('enabled', true, new Boolean, 'Is collection enabled? When set to \'disabled\', users cannot access the collection but Server SDKs with and API key can still read and write to the collection. No data is lost when this is toggled.', true)
+            ->param('enabled', true, new Boolean(), 'Is collection enabled? When set to \'disabled\', users cannot access the collection but Server SDKs with and API key can still read and write to the collection. No data is lost when this is toggled.', true)
             ->inject('response')
             ->inject('dbForProject')
             ->inject('getDatabasesDB')
@@ -133,9 +133,23 @@ class Create extends CollectionAction
             // Bootstrap the database metadata without a separate existence
             // check to avoid races when multiple first collections are created
             // concurrently for the same VectorsDB database.
-            try {
-                $dbForDatabases->create();
-            } catch (DuplicateException) {
+            for ($attempt = 0; $attempt < 5; $attempt++) {
+                try {
+                    $dbForDatabases->create();
+                    break;
+                } catch (DuplicateException) {
+                    break;
+                } catch (\Throwable $e) {
+                    if ($dbForDatabases->exists(null, Database::METADATA)) {
+                        break;
+                    }
+
+                    if ($attempt === 4) {
+                        throw $e;
+                    }
+
+                    \usleep(100_000);
+                }
             }
             $dbForDatabases->createCollection(
                 id: 'database_'.$database->getSequence().'_collection_'.$collection->getSequence(),
