@@ -162,7 +162,6 @@ class Create extends CollectionAction
             // needed for the get and list calls
             $attributeDocs = array_map(function ($attributeConfig) use ($database, $collection, $databaseId, $collectionId, $dimension) {
                 $key = \is_string($attributeConfig['$id']) ? $attributeConfig['$id'] : (string) $attributeConfig['$id'];
-
                 return new Document([
                     '$id' => ID::custom($database->getSequence() . '_' . $collection->getSequence() . '_' . $key),
                     'key' => $key,
