@@ -5263,9 +5263,8 @@ class RealtimeCustomClientTest extends Scope
         $response = json_decode($client->receive(), true);
         $this->assertEquals('connected', $response['type']);
 
-        /**
-         * Test Database Create
-         */
+        // Test Database Create
+
         $database = $this->client->call(Client::METHOD_POST, '/databases', array_merge([
             'content-type' => 'application/json',
             'x-appwrite-project' => $this->getProject()['$id'],
@@ -5276,9 +5275,8 @@ class RealtimeCustomClientTest extends Scope
         ]);
         $databaseId = $database['body']['$id'];
 
-        /**
-         * Test Collection Create
-         */
+        //Test Collection Create
+
         $actors = $this->client->call(Client::METHOD_POST, '/databases/' . $databaseId . '/collections', array_merge([
             'content-type' => 'application/json',
             'x-appwrite-project' => $this->getProject()['$id'],
@@ -5293,9 +5291,8 @@ class RealtimeCustomClientTest extends Scope
         ]);
         $actorsId = $actors['body']['$id'];
 
-        /**
-         * Test Attribute Create
-         */
+        //Test Attribute Create
+        
         $scoreAttr = $this->client->call(Client::METHOD_POST, '/databases/' . $databaseId . '/collections/' . $actorsId . '/attributes/integer', array_merge([
             'content-type' => 'application/json',
             'x-appwrite-project' => $this->getProject()['$id'],
@@ -5314,9 +5311,7 @@ class RealtimeCustomClientTest extends Scope
             $this->assertEquals('available', $response['body']['status']);
         }, 30000, 250);
 
-        /**
-         * Test Document Create
-         */
+        //Test Document Create
         $document = $this->client->call(Client::METHOD_POST, '/databases/' . $databaseId . '/collections/' . $actorsId . '/documents', array_merge([
             'content-type' => 'application/json',
             'x-appwrite-project' => $this->getProject()['$id'],
@@ -5333,12 +5328,9 @@ class RealtimeCustomClientTest extends Scope
         ]);
         $documentId = $document['body']['$id'];
 
-        // Receive document create event
         $client->receive();
 
-        /**
-         * Test Document Increment
-         */
+        // Test Document Increment
         $increment = $this->client->call(Client::METHOD_PATCH, '/databases/' . $databaseId . '/collections/' . $actorsId . '/documents/' . $documentId . '/score/increment', array_merge([
             'content-type' => 'application/json',
             'x-appwrite-project' => $this->getProject()['$id'],
@@ -5362,20 +5354,16 @@ class RealtimeCustomClientTest extends Scope
         $this->assertArrayHasKey('$id', $response['data']['payload']);
         $this->assertEquals(15, $response['data']['payload']['score']);
 
-        // Wait a bit to ensure no event is received
         sleep(1);
 
         try {
             $client->receive();
             $this->fail('Should not receive duplicate event');
         } catch (TimeoutException $e) {
-            // Expected - no event should be triggered
             $this->assertTrue(true);
         }
 
-        /**
-         * Test Document Decrement
-         */
+        // Test Document Decrement
         $decrement = $this->client->call(Client::METHOD_PATCH, '/databases/' . $databaseId . '/collections/' . $actorsId . '/documents/' . $documentId . '/score/decrement', array_merge([
             'content-type' => 'application/json',
             'x-appwrite-project' => $this->getProject()['$id'],
@@ -5399,14 +5387,12 @@ class RealtimeCustomClientTest extends Scope
         $this->assertArrayHasKey('$id', $response['data']['payload']);
         $this->assertEquals(12, $response['data']['payload']['score']);
 
-        // Wait a bit to ensure no event is received
         sleep(1);
 
         try {
             $client->receive();
             $this->fail('Should not receive duplicate event');
         } catch (TimeoutException $e) {
-            // Expected - no event should be triggered
             $this->assertTrue(true);
         }
 
