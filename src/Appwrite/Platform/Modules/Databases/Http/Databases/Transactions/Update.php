@@ -180,35 +180,21 @@ class Update extends Action
             }
 
             $dbForDatabases = $getDatabasesDB($databaseDoc);
-            $collections = [];
 
             try {
-                $transaction = $authorization->skip(fn () => $dbForProject->updateDocument(
-                    'transactions',
-                    $transactionId,
-                    new Document(['status' => 'committing'])
-                ));
+                $dbForDatabases->withTransaction(function () use ($dbForDatabases, $dbForProject, $transactionState, $queueForDeletes, $transactionId, &$transaction, &$operations, &$totalOperations, &$databaseOperations, &$currentDocumentId, $authorization) {
+                    $authorization->skip(fn () => $dbForProject->updateDocument('transactions', $transactionId, new Document([
+                        'status' => 'committing',
+                    ])));
 
-                $operations = $authorization->skip(fn () => $dbForProject->find('transactionLogs', [
-                    Query::equal('transactionInternalId', [$transaction->getSequence()]),
-                    Query::orderAsc(),
-                    Query::limit(PHP_INT_MAX),
-                ]));
+                    $operations = $authorization->skip(fn () => $dbForProject->find('transactionLogs', [
+                        Query::equal('transactionInternalId', [$transaction->getSequence()]),
+                        Query::orderAsc(),
+                        Query::limit(PHP_INT_MAX),
+                    ]));
 
-                foreach ($operations as $operation) {
-                    $databaseInternalId = $operation['databaseInternalId'];
-                    $collectionInternalId = $operation['collectionInternalId'];
-                    $collectionId = "database_{$databaseInternalId}_collection_{$collectionInternalId}";
-
-                    if (!isset($collections[$collectionId])) {
-                        $collections[$collectionId] = $authorization->skip(
-                            fn () => $dbForProject->getCollection($collectionId)
-                        );
-                    }
-                }
-
-                $dbForDatabases->withTransaction(function () use ($dbForDatabases, $transactionState, $operations, $collections, &$totalOperations, &$databaseOperations, &$currentDocumentId) {
                     $state = [];
+                    $collections = [];
 
                     foreach ($operations as $operation) {
                         $databaseInternalId = $operation['databaseInternalId'];
@@ -224,6 +210,11 @@ class Update extends Action
                             $data = $data->getArrayCopy();
                         }
 
+                        if (!isset($collections[$collectionId])) {
+                            $collections[$collectionId] = $authorization->skip(
+                                fn () => $dbForProject->getCollection($collectionId)
+                            );
+                        }
                         $collection = $collections[$collectionId];
 
                         if (\is_array($data) && !empty($data)) {
@@ -284,17 +275,17 @@ class Update extends Action
                                 break;
                         }
                     }
+
+                    $transaction = $authorization->skip(fn () => $dbForProject->updateDocument(
+                        'transactions',
+                        $transactionId,
+                        new Document(['status' => 'committed'])
+                    ));
+
+                    $queueForDeletes
+                        ->setType(DELETE_TYPE_DOCUMENT)
+                        ->setDocument($transaction);
                 });
-
-                $transaction = $authorization->skip(fn () => $dbForProject->updateDocument(
-                    'transactions',
-                    $transactionId,
-                    new Document(['status' => 'committed'])
-                ));
-
-                $queueForDeletes
-                    ->setType(DELETE_TYPE_DOCUMENT)
-                    ->setDocument($transaction);
             } catch (NotFoundException $e) {
                 $authorization->skip(fn () => $dbForProject->updateDocument('transactions', $transactionId, new Document([
                     'status' => 'failed',

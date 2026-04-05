@@ -519,6 +519,7 @@ class Event
      * @param string $pattern
      * @param array $params
      * @param ?Document $database
+     * @param ?Document $database
      * @return array
      * @throws \InvalidArgumentException
      */

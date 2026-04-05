@@ -1028,107 +1028,107 @@ Http::init()
  * Automatic certificate generation
  */
 Http::init()
-    ->groups(['api', 'web'])
-    ->inject('request')
-    ->inject('console')
-    ->inject('dbForPlatform')
-    ->inject('queueForCertificates')
-    ->inject('platform')
+   ->groups(['api', 'web'])
+   ->inject('request')
+   ->inject('console')
+   ->inject('dbForPlatform')
+   ->inject('queueForCertificates')
+   ->inject('platform')
     ->inject('authorization')
     ->inject('certifiedDomains')
-    ->action(function (Request $request, Document $console, Database $dbForPlatform, Certificate $queueForCertificates, array $platform, Authorization $authorization, Table $certifiedDomains) {
-        $hostname = $request->getHostname();
-        $platformHostnames = $platform['hostnames'] ?? [];
+   ->action(function (Request $request, Document $console, Database $dbForPlatform, Certificate $queueForCertificates, array $platform, Authorization $authorization, Table $certifiedDomains) {
+       $hostname = $request->getHostname();
+       $platformHostnames = $platform['hostnames'] ?? [];
 
-        // 1. Cache hit
-        if ($certifiedDomains->exists(md5($hostname))) {
-            return;
-        }
+       // 1. Cache hit
+       if ($certifiedDomains->exists(md5($hostname))) {
+           return;
+       }
 
-        // 2. Domain validation
-        $domain = new Domain(!empty($hostname) ? $hostname : '');
-        if (empty($domain->get()) || !$domain->isKnown() || $domain->isTest()) {
-            $certifiedDomains->set(md5($domain->get()), ['value' => 0]);
-            return;
-        }
+       // 2. Domain validation
+       $domain = new Domain(!empty($hostname) ? $hostname : '');
+       if (empty($domain->get()) || !$domain->isKnown() || $domain->isTest()) {
+           $certifiedDomains->set(md5($domain->get()), ['value' => 0]);
+           return;
+       }
 
-        if (str_starts_with($request->getURI(), '/.well-known/acme-challenge')) {
-            return;
-        }
+       if (str_starts_with($request->getURI(), '/.well-known/acme-challenge')) {
+           return;
+       }
 
-        // 3. Check if domain is a main domain
-        if (!in_array($domain->get(), $platformHostnames)) {
-            return;
-        }
+       // 3. Check if domain is a main domain
+       if (!in_array($domain->get(), $platformHostnames)) {
+           return;
+       }
 
-        // 4. Check/create rule (requires DB access)
-        $authorization->skip(function () use ($dbForPlatform, $domain, $console, $queueForCertificates, $certifiedDomains) {
-            try {
-                // TODO: (@Meldiron) Remove after 1.7.x migration
-                $isMd5 = System::getEnv('_APP_RULES_FORMAT') === 'md5';
-                $document = $isMd5
-                    ? $dbForPlatform->getDocument('rules', md5($domain->get()))
-                    : $dbForPlatform->findOne('rules', [
-                        Query::equal('domain', [$domain->get()]),
-                    ]);
+       // 4. Check/create rule (requires DB access)
+       $authorization->skip(function () use ($dbForPlatform, $domain, $console, $queueForCertificates, $certifiedDomains) {
+           try {
+               // TODO: (@Meldiron) Remove after 1.7.x migration
+               $isMd5 = System::getEnv('_APP_RULES_FORMAT') === 'md5';
+               $document = $isMd5
+                   ? $dbForPlatform->getDocument('rules', md5($domain->get()))
+                   : $dbForPlatform->findOne('rules', [
+                       Query::equal('domain', [$domain->get()]),
+                   ]);
 
-                if (!$document->isEmpty()) {
-                    return;
-                }
+               if (!$document->isEmpty()) {
+                   return;
+               }
 
-                // 5. Create new rule
-                $owner = '';
+               // 5. Create new rule
+               $owner = '';
 
-                // Mark owner as Appwrite if its appwrite-owned domain
-                $appwriteDomains = [];
-                $appwriteDomainEnvs = [
-                    System::getEnv('_APP_DOMAIN_FUNCTIONS_FALLBACK', ''),
-                    System::getEnv('_APP_DOMAIN_FUNCTIONS', ''),
-                    System::getEnv('_APP_DOMAIN_SITES', ''),
-                ];
-                foreach ($appwriteDomainEnvs as $appwriteDomainEnv) {
-                    foreach (\explode(',', $appwriteDomainEnv) as $appwriteDomain) {
-                        if (empty($appwriteDomain)) {
-                            continue;
-                        }
-                        $appwriteDomains[] = $appwriteDomain;
-                    }
-                }
+               // Mark owner as Appwrite if its appwrite-owned domain
+               $appwriteDomains = [];
+               $appwriteDomainEnvs = [
+                   System::getEnv('_APP_DOMAIN_FUNCTIONS_FALLBACK', ''),
+                   System::getEnv('_APP_DOMAIN_FUNCTIONS', ''),
+                   System::getEnv('_APP_DOMAIN_SITES', ''),
+               ];
+               foreach ($appwriteDomainEnvs as $appwriteDomainEnv) {
+                   foreach (\explode(',', $appwriteDomainEnv) as $appwriteDomain) {
+                       if (empty($appwriteDomain)) {
+                           continue;
+                       }
+                       $appwriteDomains[] = $appwriteDomain;
+                   }
+               }
 
-                foreach ($appwriteDomains as $appwriteDomain) {
-                    if (\str_ends_with($domain->get(), $appwriteDomain)) {
-                        $owner = 'Appwrite';
-                        break;
-                    }
-                }
+               foreach ($appwriteDomains as $appwriteDomain) {
+                   if (\str_ends_with($domain->get(), $appwriteDomain)) {
+                       $owner = 'Appwrite';
+                       break;
+                   }
+               }
 
-                $ruleId = $isMd5 ? md5($domain->get()) : ID::unique();
-                $document = new Document([
-                    '$id' => $ruleId,
-                    'domain' => $domain->get(),
-                    'type' => 'api',
-                    'status' => 'verifying',
-                    'projectId' => $console->getId(),
-                    'projectInternalId' => $console->getSequence(),
-                    'search' => implode(' ', [$ruleId, $domain->get()]),
-                    'owner' => $owner,
-                    'region' => $console->getAttribute('region')
-                ]);
+               $ruleId = $isMd5 ? md5($domain->get()) : ID::unique();
+               $document = new Document([
+                   '$id' => $ruleId,
+                   'domain' => $domain->get(),
+                   'type' => 'api',
+                   'status' => 'verifying',
+                   'projectId' => $console->getId(),
+                   'projectInternalId' => $console->getSequence(),
+                   'search' => implode(' ', [$ruleId, $domain->get()]),
+                   'owner' => $owner,
+                   'region' => $console->getAttribute('region')
+               ]);
 
-                $dbForPlatform->createDocument('rules', $document);
+               $dbForPlatform->createDocument('rules', $document);
 
-                Console::info('Issuing a TLS certificate for the main domain (' . $domain->get() . ') in a few seconds...');
-                $queueForCertificates
-                    ->setDomain($document)
-                    ->setSkipRenewCheck(true)
-                    ->trigger();
-            } catch (Duplicate $e) {
-                Console::info('Certificate already exists');
-            } finally {
-                $certifiedDomains->set(md5($domain->get()), ['value' => 1]);
-            }
-        });
-    });
+               Console::info('Issuing a TLS certificate for the main domain (' . $domain->get() . ') in a few seconds...');
+               $queueForCertificates
+                   ->setDomain($document)
+                   ->setSkipRenewCheck(true)
+                   ->trigger();
+           } catch (Duplicate $e) {
+               Console::info('Certificate already exists');
+           } finally {
+               $certifiedDomains->set(md5($domain->get()), ['value' => 1]);
+           }
+       });
+   });
 
 Http::options()
     ->inject('utopia')
