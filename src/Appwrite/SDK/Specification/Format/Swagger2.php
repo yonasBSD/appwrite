@@ -126,9 +126,6 @@ class Swagger2 extends Format
             $sdkPlatforms = array_values(array_unique($sdkPlatforms));
             $namespace = $sdk->getNamespace() ?? 'default';
 
-            if ($desc === null) {
-                $desc = '';
-            }
             $descContents = $this->getDescriptionContents($desc);
 
             $temp = [

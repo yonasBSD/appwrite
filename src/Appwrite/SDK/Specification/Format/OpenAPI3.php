@@ -125,9 +125,6 @@ class OpenAPI3 extends Format
 
             $namespace = $sdk->getNamespace() ?? 'default';
 
-            if ($desc === null) {
-                $desc = '';
-            }
             $descContents = $this->getDescriptionContents($desc);
 
             $temp = [
