@@ -638,7 +638,8 @@ Http::delete('/v1/account')
                         collection: 'memberships',
                         queries: [
                             Query::contains('roles', ['owner']),
-                            Query::equal('teamInternalId', [$team->getSequence()])
+                            Query::equal('teamInternalId', [$team->getSequence()]),
+                            Query::equal('confirm', [true]),
                         ],
                         max: 2
                     );
@@ -653,6 +654,7 @@ Http::delete('/v1/account')
                     $nextMember = $dbForProject->findOne('memberships', [
                         Query::equal('teamInternalId', [$team->getSequence()]),
                         Query::notEqual('userInternalId', $user->getSequence()),
+                        Query::equal('confirm', [true]),
                         Query::orderAsc('$createdAt'),
                         Query::limit(1),
                     ]);
