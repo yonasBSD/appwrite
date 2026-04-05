@@ -845,7 +845,7 @@ class Deletes extends Action
         $this->deleteByGroup('memberships', [
             Query::equal('userInternalId', [$userInternalId]),
             Query::orderAsc()
-        ], $dbForProject, function (Document $document) use ($dbForProject, $userInternalId) {
+        ], $dbForProject, function (Document $document) use ($dbForProject) {
             if ($document->getAttribute('confirm')) { // Count only confirmed members
                 $teamId = $document->getAttribute('teamId');
                 $team = $dbForProject->getDocument('teams', $teamId);
