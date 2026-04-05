@@ -632,44 +632,8 @@ Http::delete('/v1/account')
                     continue;
                 }
 
-                $isSoleOwner = false;
-                if (in_array('owner', $membership->getAttribute('roles', []))) {
-                    $ownersCount = $dbForProject->count(
-                        collection: 'memberships',
-                        queries: [
-                            Query::contains('roles', ['owner']),
-                            Query::equal('teamInternalId', [$team->getSequence()]),
-                            Query::equal('confirm', [true]),
-                        ],
-                        max: 2
-                    );
-                    $isSoleOwner = ($ownersCount === 1);
-                }
-
-                $totalMembers = $team->getAttribute('total', 0);
-
-                if ($isSoleOwner && $totalMembers > 1) {
-                    // User is the sole owner but other members exist — transfer ownership
-                    // to the next member before removing this user's membership.
-                    $nextMember = $dbForProject->findOne('memberships', [
-                        Query::equal('teamInternalId', [$team->getSequence()]),
-                        Query::notEqual('userInternalId', $user->getSequence()),
-                        Query::equal('confirm', [true]),
-                        Query::orderAsc('$createdAt'),
-                        Query::limit(1),
-                    ]);
-
-                    if (!$nextMember->isEmpty()) {
-                        $roles = $nextMember->getAttribute('roles', []);
-                        if (!in_array('owner', $roles)) {
-                            $roles[] = 'owner';
-                            $authorization->skip(fn () => $dbForProject->updateDocument('memberships', $nextMember->getId(), new Document([
-                                'roles' => $roles,
-                            ])));
-                            $dbForProject->purgeCachedDocument('users', $nextMember->getAttribute('userId'));
-                        }
-                    }
-                }
+                // Team is left as-is — we don't promote non-owner members to owner.
+                // Orphan teams are cleaned up later by Cloud's inactive project cleanup.
             }
         }
 
