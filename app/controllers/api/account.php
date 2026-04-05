@@ -667,6 +667,7 @@ Http::delete('/v1/account')
                     $nextMember = $dbForProject->findOne('memberships', [
                         Query::equal('teamInternalId', [$team->getSequence()]),
                         Query::notEqual('userInternalId', $user->getSequence()),
+                        Query::equal('confirm', [true]),
                     ]);
 
                     if (!$nextMember->isEmpty()) {
