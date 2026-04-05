@@ -851,21 +851,6 @@ class Deletes extends Action
                 $team = $dbForProject->getDocument('teams', $teamId);
                 if (!$team->isEmpty()) {
                     $dbForProject->decreaseDocumentAttribute('teams', $teamId, 'total', 1, 0);
-
-                    // If this user was the team's primary user, transfer to the next member
-                    if ($team->getAttribute('userInternalId') === $userInternalId) {
-                        $nextMembership = $dbForProject->findOne('memberships', [
-                            Query::equal('teamInternalId', [$team->getSequence()]),
-                            Query::equal('confirm', [true]),
-                        ]);
-
-                        if ($nextMembership !== false && !$nextMembership->isEmpty()) {
-                            $dbForProject->updateDocument('teams', $team->getId(), new Document([
-                                'userId' => $nextMembership->getAttribute('userId'),
-                                'userInternalId' => $nextMembership->getAttribute('userInternalId'),
-                            ]));
-                        }
-                    }
                 }
             }
         });

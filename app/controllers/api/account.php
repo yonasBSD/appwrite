@@ -647,27 +647,14 @@ Http::delete('/v1/account')
 
                 $totalMembers = $team->getAttribute('total', 0);
 
-                if ($isSoleOwner && $totalMembers <= 1) {
-                    // User is the only owner and the only member — delete the team.
-                    // The team deletion worker will clean up associated projects and resources.
-                    $dbForProject->deleteDocument('teams', $team->getId());
-
-                    $queueForDeletes
-                        ->setType(DELETE_TYPE_TEAM_PROJECTS)
-                        ->setDocument($team)
-                        ->trigger();
-
-                    $queueForDeletes
-                        ->setType(DELETE_TYPE_DOCUMENT)
-                        ->setDocument($team)
-                        ->trigger();
-                } elseif ($isSoleOwner) {
+                if ($isSoleOwner && $totalMembers > 1) {
                     // User is the sole owner but other members exist — transfer ownership
                     // to the next member before removing this user's membership.
                     $nextMember = $dbForProject->findOne('memberships', [
                         Query::equal('teamInternalId', [$team->getSequence()]),
                         Query::notEqual('userInternalId', $user->getSequence()),
-                        Query::equal('confirm', [true]),
+                        Query::orderAsc('$createdAt'),
+                        Query::limit(1),
                     ]);
 
                     if (!$nextMember->isEmpty()) {
