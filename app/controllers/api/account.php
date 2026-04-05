@@ -614,18 +614,71 @@ Http::delete('/v1/account')
     ->inject('dbForProject')
     ->inject('queueForEvents')
     ->inject('queueForDeletes')
-    ->action(function (Document $user, Document $project, Response $response, Database $dbForProject, Event $queueForEvents, Delete $queueForDeletes) {
+    ->inject('authorization')
+    ->action(function (Document $user, Document $project, Response $response, Database $dbForProject, Event $queueForEvents, Delete $queueForDeletes, Authorization $authorization) {
         if ($user->isEmpty()) {
             throw new Exception(Exception::USER_NOT_FOUND);
         }
 
         if ($project->getId() === 'console') {
-            // get all memberships
             $memberships = $user->getAttribute('memberships', []);
             foreach ($memberships as $membership) {
-                // prevent deletion if at least one active membership
-                if ($membership->getAttribute('confirm', false)) {
-                    throw new Exception(Exception::USER_DELETION_PROHIBITED);
+                if (!$membership->getAttribute('confirm', false)) {
+                    continue;
+                }
+
+                $team = $dbForProject->getDocument('teams', $membership->getAttribute('teamId'));
+                if ($team->isEmpty()) {
+                    continue;
+                }
+
+                $isSoleOwner = false;
+                if (in_array('owner', $membership->getAttribute('roles', []))) {
+                    $ownersCount = $dbForProject->count(
+                        collection: 'memberships',
+                        queries: [
+                            Query::contains('roles', ['owner']),
+                            Query::equal('teamInternalId', [$team->getSequence()])
+                        ],
+                        max: 2
+                    );
+                    $isSoleOwner = ($ownersCount === 1);
+                }
+
+                $totalMembers = $team->getAttribute('total', 0);
+
+                if ($isSoleOwner && $totalMembers <= 1) {
+                    // User is the only owner and the only member — delete the team.
+                    // The team deletion worker will clean up associated projects and resources.
+                    $dbForProject->deleteDocument('teams', $team->getId());
+
+                    $queueForDeletes
+                        ->setType(DELETE_TYPE_TEAM_PROJECTS)
+                        ->setDocument($team)
+                        ->trigger();
+
+                    $queueForDeletes
+                        ->setType(DELETE_TYPE_DOCUMENT)
+                        ->setDocument($team)
+                        ->trigger();
+                } elseif ($isSoleOwner) {
+                    // User is the sole owner but other members exist — transfer ownership
+                    // to the next member before removing this user's membership.
+                    $nextMember = $dbForProject->findOne('memberships', [
+                        Query::equal('teamInternalId', [$team->getSequence()]),
+                        Query::notEqual('userInternalId', $user->getSequence()),
+                    ]);
+
+                    if (!$nextMember->isEmpty()) {
+                        $roles = $nextMember->getAttribute('roles', []);
+                        if (!in_array('owner', $roles)) {
+                            $roles[] = 'owner';
+                            $authorization->skip(fn () => $dbForProject->updateDocument('memberships', $nextMember->getId(), new Document([
+                                'roles' => $roles,
+                            ])));
+                            $dbForProject->purgeCachedDocument('users', $nextMember->getAttribute('userId'));
+                        }
+                    }
                 }
             }
         }
