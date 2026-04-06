@@ -960,7 +960,6 @@ $server->onMessage(function (int $connection, string $message) use ($server, $re
                 break;
 
             case 'subscribe':
-                // TODO: record stats
                 /**
                  * Message based upsertion of a subscription
                  * If subscriptionId is given then it will match subId of the connection and update the subscription with channels and queries
@@ -1042,6 +1041,17 @@ $server->onMessage(function (int $connection, string $message) use ($server, $re
                 ]);
 
                 $server->send([$connection], $responsePayload);
+
+                if ($project !== null && !$project->isEmpty()) {
+                    $subscribeOutboundBytes = \strlen($responsePayload);
+
+                    if ($subscribeOutboundBytes > 0) {
+                        triggerStats([
+                            METRIC_REALTIME_OUTBOUND => $subscribeOutboundBytes,
+                        ], $project->getId());
+                    }
+                }
+
                 break;
 
             default:
