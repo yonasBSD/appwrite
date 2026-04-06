@@ -1196,7 +1196,8 @@ Http::error()
     ->inject('bus')
     ->inject('devKey')
     ->inject('authorization')
-    ->action(function (Throwable $error, Http $utopia, Request $request, Response $response, Document $project, ?Logger $logger, Log $log, Bus $bus, Document $devKey, Authorization $authorization) {
+    ->inject('cors')
+    ->action(function (Throwable $error, Http $utopia, Request $request, Response $response, Document $project, ?Logger $logger, Log $log, Bus $bus, Document $devKey, Authorization $authorization, Cors $cors) {
         $trace = $error->getTrace();
 
         foreach (array_slice($trace, 0, 100) as $index => $traceEntry) {
@@ -1492,6 +1493,10 @@ Http::error()
             'version' => APP_VERSION_STABLE,
             'type' => $type,
         ];
+
+        foreach ($cors->headers($request->getOrigin()) as $name => $value) {
+            $response->addHeader($name, $value);
+        }
 
         $response
             ->addHeader('Cache-Control', 'no-cache, no-store, must-revalidate')
