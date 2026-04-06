@@ -906,6 +906,8 @@ Http::init()
 
         $migrationHost = System::getEnv('_APP_MIGRATION_HOST');
         if (!empty($migrationHost)) {
+            // Treat the migration host like localhost because internal migration and
+            // CI traffic may use it before a public domain is configured.
             $localHosts[] = $migrationHost;
             $localHosts[] = $migrationHost.':'.$request->getPort();
         }
