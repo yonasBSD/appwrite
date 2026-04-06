@@ -1020,7 +1020,6 @@ $server->onMessage(function (int $connection, string $message) use ($server, $re
                     $subscriptionId = $parsedPayload['subscriptionId'];
                     $channels = \array_keys(Realtime::convertChannels($parsedPayload['channels'], $userId));
                     $queries = $parsedPayload['queries'];
-                    $realtime->removeSubscriptionForConnection($projectId, $connection, $subscriptionId);
                     $realtime->subscribe($projectId, $connection, $subscriptionId, $roles, $channels, $queries);
                 }
 
