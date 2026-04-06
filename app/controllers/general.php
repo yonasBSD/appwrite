@@ -921,9 +921,6 @@ Http::init()
             $localHosts[] = $migrationHost.':'.$request->getPort();
         }
 
-        $isLocalHost = in_array($request->getHostname(), $localHosts);
-        $isIpAddress = filter_var($request->getHostname(), FILTER_VALIDATE_IP) !== false;
-
         $warnings = [];
 
         /*
