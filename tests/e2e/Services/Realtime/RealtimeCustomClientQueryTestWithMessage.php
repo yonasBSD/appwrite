@@ -78,7 +78,7 @@ class RealtimeCustomClientQueryTestWithMessage extends Scope
         }
 
         $client->send(\json_encode([
-            'type' => 'query',
+            'type' => 'subscribe',
             'data' => [[
                 'subscriptionId' => $subscriptionId,
                 'channels' => $channels,
@@ -88,12 +88,59 @@ class RealtimeCustomClientQueryTestWithMessage extends Scope
 
         $response = \json_decode($client->receive(), true);
         $this->assertEquals('response', $response['type'] ?? null);
-        $this->assertEquals('query', $response['data']['to'] ?? null);
+        $this->assertEquals('subscribe', $response['data']['to'] ?? null);
         $this->assertTrue($response['data']['success'] ?? false);
         $this->assertArrayHasKey('subscriptions', $response['data']);
         $this->assertIsArray($response['data']['subscriptions']);
 
         return $client;
+    }
+
+    /**
+     * Connects (URL has no per-channel queries), then sends a subscribe message with the given query strings.
+     * Used to assert server rejects unsupported query methods the same way as URL-based subscriptions.
+     *
+     * @param  array<int, string>  $queryStrings
+     * @return array<string, mixed>
+     */
+    private function receiveSubscribeMessageResponse(
+        array $channels,
+        array $headers,
+        array $queryStrings
+    ): array {
+        $projectId = $this->getProject()['$id'];
+        $queryString = \http_build_query([
+            'project' => $projectId,
+            'channels' => $channels,
+        ]);
+
+        $client = new WebSocketClient(
+            'ws://appwrite.test/v1/realtime?' . $queryString,
+            [
+                'headers' => $headers,
+                'timeout' => 2,
+            ]
+        );
+        $connected = \json_decode($client->receive(), true);
+        $this->assertEquals('connected', $connected['type'] ?? null);
+
+        $subscriptions = $connected['data']['subscriptions'] ?? [];
+        $this->assertNotEmpty($subscriptions);
+        $subscriptionId = $subscriptions[\array_key_first($subscriptions)];
+
+        $client->send(\json_encode([
+            'type' => 'subscribe',
+            'data' => [[
+                'subscriptionId' => $subscriptionId,
+                'channels' => $channels,
+                'queries' => $queryStrings,
+            ]],
+        ]));
+
+        $response = \json_decode($client->receive(), true);
+        $client->close();
+
+        return $response;
     }
 
     private function getWebsocketWithCustomQuery(array $queryParams, array $headers = [], int $timeout = 2): WebSocketClient
@@ -107,6 +154,131 @@ class RealtimeCustomClientQueryTestWithMessage extends Scope
                 'timeout' => $timeout,
             ]
         );
+    }
+
+    public function testInvalidQueryShouldNotSubscribe(): void
+    {
+        $user = $this->getUser();
+        $session = $user['session'] ?? '';
+        $projectId = $this->getProject()['$id'];
+        $headers = [
+            'origin' => 'http://localhost',
+            'cookie' => 'a_session_' . $projectId . '=' . $session,
+        ];
+
+        // Test 1: Simple invalid query method (contains is not allowed)
+        $response = $this->receiveSubscribeMessageResponse(['documents'], $headers, [
+            Query::contains('status', ['active'])->toString(),
+        ]);
+        $this->assertEquals('error', $response['type']);
+        $this->assertStringContainsString('not supported in Realtime queries', $response['data']['message']);
+        $this->assertStringContainsString('contains', $response['data']['message']);
+
+        // Test 2: Invalid query method in nested AND query
+        $response = $this->receiveSubscribeMessageResponse(['documents'], $headers, [
+            Query::and([
+                Query::equal('status', ['active']),
+                Query::search('name', 'test'),
+            ])->toString(),
+        ]);
+        $this->assertEquals('error', $response['type']);
+        $this->assertStringContainsString('not supported in Realtime queries', $response['data']['message']);
+        $this->assertStringContainsString('search', $response['data']['message']);
+
+        // Test 3: Invalid query method in nested OR query
+        $response = $this->receiveSubscribeMessageResponse(['documents'], $headers, [
+            Query::or([
+                Query::equal('status', ['active']),
+                Query::between('score', 0, 100),
+            ])->toString(),
+        ]);
+        $this->assertEquals('error', $response['type']);
+        $this->assertStringContainsString('not supported in Realtime queries', $response['data']['message']);
+        $this->assertStringContainsString('between', $response['data']['message']);
+
+        // Test 4: Deeply nested invalid query (AND -> OR -> invalid)
+        $response = $this->receiveSubscribeMessageResponse(['documents'], $headers, [
+            Query::and([
+                Query::equal('status', ['active']),
+                Query::or([
+                    Query::greaterThan('score', 50),
+                    Query::startsWith('name', 'test'),
+                ]),
+            ])->toString(),
+        ]);
+        $this->assertEquals('error', $response['type']);
+        $this->assertStringContainsString('not supported in Realtime queries', $response['data']['message']);
+        $this->assertStringContainsString('startsWith', $response['data']['message']);
+
+        // Test 5: Multiple invalid 'queries' in nested structure
+        $response = $this->receiveSubscribeMessageResponse(['documents'], $headers, [
+            Query::and([
+                Query::contains('tags', ['important']),
+                Query::or([
+                    Query::endsWith('email', '@example.com'),
+                    Query::equal('status', ['active']),
+                ]),
+            ])->toString(),
+        ]);
+        $this->assertEquals('error', $response['type']);
+        $this->assertStringContainsString('not supported in Realtime queries', $response['data']['message']);
+        $this->assertTrue(
+            \str_contains($response['data']['message'], 'contains') ||
+            \str_contains($response['data']['message'], 'endsWith')
+        );
+    }
+
+    public function testProjectChannelWithHeaderOnly(): void
+    {
+        $user = $this->getUser();
+        $session = $user['session'] ?? '';
+        $projectId = $this->getProject()['$id'];
+
+        $client = $this->getWebsocketWithCustomQuery(
+            [
+                'channels' => ['project'],
+            ],
+            [
+                'origin' => 'http://localhost',
+                'cookie' => 'a_session_' . $projectId . '=' . $session,
+                'x-appwrite-project' => $projectId,
+            ]
+        );
+
+        $response = \json_decode($client->receive(), true);
+        $this->assertSame('connected', $response['type']);
+        $this->assertContains('project', $response['data']['channels']);
+        $this->assertArrayHasKey('subscriptions', $response['data']);
+        $this->assertIsArray($response['data']['subscriptions']);
+        $this->assertNotEmpty($response['data']['subscriptions']);
+
+        $client->close();
+
+        $queryArray = [Query::select(['*'])->toString()];
+        $clientWithQuery = $this->getWebsocketWithCustomQuery(
+            [
+                'channels' => ['project'],
+                'project' => [
+                    0 => [
+                        0 => $queryArray[0],
+                    ],
+                ],
+            ],
+            [
+                'origin' => 'http://localhost',
+                'cookie' => 'a_session_' . $projectId . '=' . $session,
+                'x-appwrite-project' => $projectId,
+            ]
+        );
+
+        $response = \json_decode($clientWithQuery->receive(), true);
+        $this->assertSame('connected', $response['type']);
+        $this->assertContains('project', $response['data']['channels']);
+        $this->assertArrayHasKey('subscriptions', $response['data']);
+        $this->assertIsArray($response['data']['subscriptions']);
+        $this->assertNotEmpty($response['data']['subscriptions']);
+
+        $clientWithQuery->close();
     }
 
     public function testQueryMessageFiltersEvents(): void

@@ -800,7 +800,6 @@ $server->onOpen(function (int $connection, SwooleRequest $request) use ($server,
 $server->onMessage(function (int $connection, string $message) use ($server, $realtime, $containerId) {
     $project = null;
     $authorization = null;
-    $app = new Http('UTC');
     try {
         $rawSize = \strlen($message);
         $response = new Response(new SwooleResponse());
@@ -960,9 +959,10 @@ $server->onMessage(function (int $connection, string $message) use ($server, $re
 
                 break;
 
-            case 'query':
+            case 'subscribe':
                 // TODO: record stats
                 /**
+                 * Message based subscription
                  * to update a query of an existing subscription for channels
                  * structure of the payload -> array of maps
                  * 'data' : [subscriptionId:"" , channels:[] , queries:[]]
@@ -983,9 +983,6 @@ $server->onMessage(function (int $connection, string $message) use ($server, $re
 
                 // bulk validation + parsing before subscribing
                 foreach ($message['data'] as &$payload) {
-                    if (!array_key_exists('subscriptionId', $payload)) {
-                        throw new Exception(Exception::REALTIME_MESSAGE_FORMAT_INVALID, 'subscriptionId is not present in payload.');
-                    }
                     if (!array_key_exists('channels', $payload)) {
                         throw new Exception(Exception::REALTIME_MESSAGE_FORMAT_INVALID, 'channels is not present in payload.');
                     }
@@ -995,32 +992,48 @@ $server->onMessage(function (int $connection, string $message) use ($server, $re
                     if (!array_key_exists('queries', $payload)) {
                         throw new Exception(Exception::REALTIME_MESSAGE_FORMAT_INVALID, 'queries is not present in payload.');
                     }
+                    if (!array_key_exists('subscriptionId', $payload)) {
+                        $payload['subscriptionId'] = ID::unique();
+                    }
 
-                    $subscriptionId = $payload['subscriptionId'];
-                    $payload['channels'] = \array_keys(Realtime::convertChannels($payload['channels'], $userId));
-                    // TODO: catch error here
-                    $payload['queries'] = Query::parseQueries($payload['queries']);
+                    if (!array_key_exists('queries', $payload)) {
+                        throw new Exception(Exception::REALTIME_MESSAGE_FORMAT_INVALID, 'queries is not present in payload.');
+                    }
+                    if (!is_array($payload['queries']) || !array_is_list($payload['queries'])) {
+                        throw new Exception(Exception::REALTIME_MESSAGE_FORMAT_INVALID, 'queries is not a valid array.');
+                    }
+
+                    try {
+                        $payload['queries'] = Realtime::convertQueries($payload['queries']);
+                    } catch (QueryException $e) {
+                        throw new Exception(Exception::REALTIME_MESSAGE_FORMAT_INVALID, 'Invalid query: ' . $e->getMessage());
+                    }
                 }
+                unset($payload);
 
                 foreach ($message['data'] as $payload) {
                     $subscriptionId = $payload['subscriptionId'];
-                    $channels = $payload['channels'];
+                    $channels =  \array_keys(Realtime::convertChannels($payload['channels'], $userId));
                     $queries = $payload['queries'];
                     $realtime->subscribe($projectId, $connection, $subscriptionId, $roles, $channels, $queries);
                 }
 
+                // TODO: find a better way to store the queries and no reconversion
                 $responsePayload = json_encode([
                     'type' => 'response',
                     'data' => [
-                        'to' => 'query',
+                        'to' => 'subscribe',
                         'success' => true,
-                        'subscriptions' => $message['data']
+                        'subscriptions' => array_map(function ($payload) {
+                            return array_merge($payload, [
+                                'queries' => array_map(fn ($q) => $q->toString(), $payload['queries']),
+                            ]);
+                        }, $message['data'])
                     ]
                 ]);
 
                 $server->send([$connection], $responsePayload);
                 break;
-
 
             default:
                 throw new Exception(Exception::REALTIME_MESSAGE_FORMAT_INVALID, 'Message type is not valid.');

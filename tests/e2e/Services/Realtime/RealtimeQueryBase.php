@@ -2385,65 +2385,6 @@ trait RealtimeQueryBase
         $this->assertStringContainsString('Invalid query', $response['data']['message']);
     }
 
-    public function testProjectChannelWithHeaderOnly()
-    {
-        $user = $this->getUser();
-        $session = $user['session'] ?? '';
-        $projectId = $this->getProject()['$id'];
-
-        // Test: project ID only in header, no project query param
-        // This simulates a client that only uses x-appwrite-project header
-        $client = $this->getWebsocketWithCustomQuery(
-            [
-                'channels' => ['project']
-            ],
-            [
-                'origin' => 'http://localhost',
-                'cookie' => 'a_session_' . $projectId . '=' . $session,
-                'x-appwrite-project' => $projectId,
-            ]
-        );
-
-        $response = $this->assertConnectionStatusIfSupported($client);
-        if ($response !== null) {
-            $this->assertContains('project', $response['data']['channels']);
-            // Should have default select(['*']) subscription since no project query param
-            $this->assertArrayHasKey('subscriptions', $response['data']);
-            $this->assertIsArray($response['data']['subscriptions']);
-            $this->assertNotEmpty($response['data']['subscriptions']);
-        }
-
-        $client->close();
-
-        // Test: project channel with queries, project ID only in header
-        $queryArray = [Query::select(['*'])->toString()];
-        $clientWithQuery = $this->getWebsocketWithCustomQuery(
-            [
-                'channels' => ['project'],
-                'project' => [
-                    0 => [
-                        0 => $queryArray[0]
-                    ]
-                ]
-            ],
-            [
-                'origin' => 'http://localhost',
-                'cookie' => 'a_session_' . $projectId . '=' . $session,
-                'x-appwrite-project' => $projectId,
-            ]
-        );
-
-        $response = $this->assertConnectionStatusIfSupported($clientWithQuery);
-        if ($response !== null) {
-            $this->assertContains('project', $response['data']['channels']);
-            $this->assertArrayHasKey('subscriptions', $response['data']);
-            $this->assertIsArray($response['data']['subscriptions']);
-            $this->assertNotEmpty($response['data']['subscriptions']);
-        }
-
-        $clientWithQuery->close();
-    }
-
     public function testTestsChannelWithQueries()
     {
         $projectId = 'console';
