@@ -251,6 +251,18 @@ Http::setResource('allowedSchemes', function (array $platform, Document $project
 }, ['platform', 'project']);
 
 /**
+ * Whether the request origin is verified against the request hostname.
+ */
+Http::setResource('domainVerification', function (Request $request) {
+    $origin = \parse_url($request->getOrigin($request->getReferer('')), PHP_URL_HOST);
+    $selfDomain = new Domain($request->getHostname());
+    $endDomain = new Domain((string) $origin);
+
+    return ($selfDomain->getRegisterable() === $endDomain->getRegisterable())
+        && $endDomain->getRegisterable() !== '';
+}, ['request']);
+
+/**
  * Cookie domain for the current request.
  */
 Http::setResource('cookieDomain', function (Request $request, Document $project) {
