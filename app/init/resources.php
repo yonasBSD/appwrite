@@ -53,6 +53,7 @@ use Utopia\Database\DateTime as DatabaseDateTime;
 use Utopia\Database\Document;
 use Utopia\Database\Query;
 use Utopia\Database\Validator\Authorization;
+use Utopia\Domains\Domain;
 use Utopia\DSN\DSN;
 use Utopia\Http\Http;
 use Utopia\Locale\Locale;
@@ -248,6 +249,38 @@ Http::setResource('allowedSchemes', function (array $platform, Document $project
 
     return array_unique($allowed);
 }, ['platform', 'project']);
+
+/**
+ * Cookie domain for the current request.
+ */
+Http::setResource('cookieDomain', function (Request $request, Document $project) {
+    $localHosts = ['localhost', 'localhost:' . $request->getPort()];
+
+    $migrationHost = System::getEnv('_APP_MIGRATION_HOST');
+    if (!empty($migrationHost)) {
+        $localHosts[] = $migrationHost;
+        $localHosts[] = $migrationHost . ':' . $request->getPort();
+    }
+
+    $hostname = $request->getHostname();
+    $isLocalHost = \in_array($hostname, $localHosts, true);
+    $isIpAddress = \filter_var($hostname, FILTER_VALIDATE_IP) !== false;
+
+    if ($isLocalHost || $isIpAddress) {
+        return;
+    }
+
+    $isConsoleProject = $project->getAttribute('$id', '') === 'console';
+    $isConsoleRootSession = System::getEnv('_APP_CONSOLE_ROOT_SESSION', 'disabled') === 'enabled';
+
+    if ($isConsoleProject && $isConsoleRootSession) {
+        $domain = new Domain($hostname);
+
+        return '.' . $domain->getRegisterable();
+    }
+
+    return '.' . $hostname;
+}, ['request', 'project']);
 
 /**
  * Rule associated with a request origin.

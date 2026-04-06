@@ -924,20 +924,6 @@ Http::init()
         $isLocalHost = in_array($request->getHostname(), $localHosts);
         $isIpAddress = filter_var($request->getHostname(), FILTER_VALIDATE_IP) !== false;
 
-        $isConsoleProject = $project->getAttribute('$id', '') === 'console';
-        $isConsoleRootSession = System::getEnv('_APP_CONSOLE_ROOT_SESSION', 'disabled') === 'enabled';
-
-        Config::setParam(
-            'cookieDomain',
-            $isLocalHost || $isIpAddress
-                ? null
-                : (
-                    $isConsoleProject && $isConsoleRootSession
-                    ? '.' . $selfDomain->getRegisterable()
-                    : '.' . $request->getHostname()
-                )
-        );
-
         $warnings = [];
 
         /*
