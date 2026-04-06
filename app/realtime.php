@@ -986,6 +986,9 @@ $server->onMessage(function (int $connection, string $message) use ($server, $re
                 // bulk validation + parsing before subscribing
                 $parsedPayloads = [];
                 foreach ($message['data'] as $payload) {
+                    if (!\is_array($payload)) {
+                        throw new Exception(Exception::REALTIME_MESSAGE_FORMAT_INVALID, 'Each subscribe payload must be an object.');
+                    }
                     if (!array_key_exists('channels', $payload)) {
                         throw new Exception(Exception::REALTIME_MESSAGE_FORMAT_INVALID, 'channels is not present in payload.');
                     }
