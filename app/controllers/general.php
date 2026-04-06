@@ -1196,8 +1196,7 @@ Http::error()
     ->inject('bus')
     ->inject('devKey')
     ->inject('authorization')
-    ->inject('cors')
-    ->action(function (Throwable $error, Http $utopia, Request $request, Response $response, Document $project, ?Logger $logger, Log $log, Bus $bus, Document $devKey, Authorization $authorization, Cors $cors) {
+    ->action(function (Throwable $error, Http $utopia, Request $request, Response $response, Document $project, ?Logger $logger, Log $log, Bus $bus, Document $devKey, Authorization $authorization) {
         $trace = $error->getTrace();
 
         foreach (array_slice($trace, 0, 100) as $index => $traceEntry) {
@@ -1494,8 +1493,17 @@ Http::error()
             'type' => $type,
         ];
 
-        foreach ($cors->headers($request->getOrigin()) as $name => $value) {
-            $response->addHeader($name, $value);
+        // Add CORS headers to error responses so browsers can read the error.
+        // Wrapped in try-catch: if the error itself is a DB failure, resolving
+        // the cors resource (which depends on rule -> DB) would cascade.
+        // Uses override:true to avoid duplicate headers if init() already set them.
+        try {
+            $cors = $utopia->getResource('cors');
+            foreach ($cors->headers($request->getOrigin()) as $name => $value) {
+                $response->addHeader($name, $value, override: true);
+            }
+        } catch (Throwable) {
+            // Degrade gracefully - error response without CORS is no worse than before.
         }
 
         $response
