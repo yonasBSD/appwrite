@@ -868,7 +868,7 @@ Http::init()
         * Request format
         */
         $route = $utopia->getRoute();
-        Request::setRoute($route);
+        $request->setRoute($route);
 
         if ($route === null) {
             $response->setStatusCode(404);
@@ -1019,7 +1019,7 @@ Http::init()
             return;
         }
         $route = $request->getRoute();
-        if ($route->getLabel('origin', false) === '*') {
+        if ($route?->getLabel('origin', false) === '*') {
             return;
         }
         if (!$originValidator->isValid($origin)) {
