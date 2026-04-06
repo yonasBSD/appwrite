@@ -962,8 +962,11 @@ $server->onMessage(function (int $connection, string $message) use ($server, $re
             case 'subscribe':
                 // TODO: record stats
                 /**
-                 * Message based subscription
-                 * to update a query of an existing subscription for channels
+                 * Message based upsertion of a subscription
+                 * If subscriptionId is given then it will match subId of the connection and update the subscription with channels and queries
+                 * If non-existing subid is given or not given a new subid will be generated
+                 * Similar to what we have now -> two subscribe() block with same channels and queries still two different subscriptions
+                 *
                  * structure of the payload -> array of maps
                  * 'data' : [subscriptionId:"" , channels:[] , queries:[]]
                  */
