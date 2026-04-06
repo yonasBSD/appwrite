@@ -1673,7 +1673,7 @@ trait RealtimeQueryBase
 
         // Create document matching NEITHER query - should not receive event
         // keeping it here as below are the documents created with status=>active
-        // so it will also receive it but the querykey can be used to distinction
+        // so it will also be received, but the query key can be used to distinguish it
         $anotherDocId = ID::unique();
         $this->client->call(Client::METHOD_POST, '/databases/' . $databaseId . '/collections/' . $collectionId . '/documents', array_merge([
             'content-type' => 'application/json',

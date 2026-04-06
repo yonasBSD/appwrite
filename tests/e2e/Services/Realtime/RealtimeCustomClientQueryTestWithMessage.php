@@ -24,16 +24,6 @@ class RealtimeCustomClientQueryTestWithMessage extends Scope
         return false;
     }
 
-    protected function supportForAccountChannelQueryAssertion(): bool
-    {
-        return false;
-    }
-
-    protected function supportForInvalidQueryAssertionOnReceive(): bool
-    {
-        return false;
-    }
-
     /**
      * Same signature as `RealtimeBase::getWebsocket()`, but:
      * - never sends queries in the URL (avoids URL length limits)
