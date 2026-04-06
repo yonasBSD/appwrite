@@ -441,7 +441,7 @@ $server->onWorkerStart(function (int $workerId) use ($server, $register, $stats,
                         ]
                     ];
 
-                    $server->send($realtime->getSubscribers($event), json_encode([
+                    $server->send(array_keys($realtime->getSubscribers($event)), json_encode([
                         'type' => 'event',
                         'data' => $event['data']
                     ]));

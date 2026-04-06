@@ -146,6 +146,153 @@ class RealtimeCustomClientQueryTestWithMessage extends Scope
         );
     }
 
+    /**
+     * @param  array<int, array<string, mixed>>  $payloadEntries
+     * @return array<string, mixed>
+     */
+    private function sendSubscribeMessage(WebSocketClient $client, array $payloadEntries): array
+    {
+        $client->send(\json_encode([
+            'type' => 'subscribe',
+            'data' => $payloadEntries,
+        ]));
+        $response = \json_decode($client->receive(), true);
+        $this->assertEquals('response', $response['type'] ?? null);
+        $this->assertEquals('subscribe', $response['data']['to'] ?? null);
+        $this->assertTrue($response['data']['success'] ?? false);
+        $this->assertArrayHasKey('subscriptions', $response['data']);
+        $this->assertIsArray($response['data']['subscriptions']);
+
+        return $response;
+    }
+
+    /**
+     * subscriptionId: update with id from connected, create by omitting id, explicit new id,
+     * duplicate id in one bulk (last wins), mixed bulk, idempotent repeat, empty queries → select-all.
+     */
+    public function testSubscribeMessageUpsertCreateAndEdgeCases(): void
+    {
+        $user = $this->getUser();
+        $session = $user['session'] ?? '';
+        $projectId = $this->getProject()['$id'];
+        $headers = [
+            'origin' => 'http://localhost',
+            'cookie' => 'a_session_' . $projectId . '=' . $session,
+        ];
+
+        $queryString = \http_build_query([
+            'project' => $projectId,
+            'channels' => ['documents'],
+        ]);
+        $client = new WebSocketClient(
+            'ws://appwrite.test/v1/realtime?' . $queryString,
+            [
+                'headers' => $headers,
+                'timeout' => 30,
+            ]
+        );
+        $connected = \json_decode($client->receive(), true);
+        $this->assertEquals('connected', $connected['type'] ?? null);
+        $mapping = $connected['data']['subscriptions'] ?? [];
+        $this->assertNotEmpty($mapping);
+        $initialSubscriptionId = $mapping[\array_key_first($mapping)];
+
+        $q1 = [Query::equal('status', ['q1'])->toString()];
+        $r1 = $this->sendSubscribeMessage($client, [[
+            'subscriptionId' => $initialSubscriptionId,
+            'channels' => ['documents'],
+            'queries' => $q1,
+        ]]);
+        $this->assertCount(1, $r1['data']['subscriptions']);
+        $this->assertSame($initialSubscriptionId, $r1['data']['subscriptions'][0]['subscriptionId']);
+        $this->assertSame($q1, $r1['data']['subscriptions'][0]['queries']);
+
+        $q2 = [Query::equal('status', ['q2'])->toString()];
+        $r2 = $this->sendSubscribeMessage($client, [[
+            'subscriptionId' => $initialSubscriptionId,
+            'channels' => ['documents'],
+            'queries' => $q2,
+        ]]);
+        $this->assertSame($initialSubscriptionId, $r2['data']['subscriptions'][0]['subscriptionId']);
+        $this->assertSame($q2, $r2['data']['subscriptions'][0]['queries']);
+
+        $rOmit = $this->sendSubscribeMessage($client, [[
+            'channels' => ['documents'],
+            'queries' => [Query::equal('status', ['omitted-slot'])->toString()],
+        ]]);
+        $mintedId = $rOmit['data']['subscriptions'][0]['subscriptionId'];
+        $this->assertNotSame($initialSubscriptionId, $mintedId);
+        $this->assertNotEmpty($mintedId);
+
+        $explicitNewId = ID::unique();
+        $qExplicit = [Query::equal('status', ['explicit'])->toString()];
+        $rExplicit = $this->sendSubscribeMessage($client, [[
+            'subscriptionId' => $explicitNewId,
+            'channels' => ['documents'],
+            'queries' => $qExplicit,
+        ]]);
+        $this->assertSame($explicitNewId, $rExplicit['data']['subscriptions'][0]['subscriptionId']);
+        $this->assertSame($qExplicit, $rExplicit['data']['subscriptions'][0]['queries']);
+
+        $qFirst = [Query::equal('status', ['dup-a'])->toString()];
+        $qSecond = [Query::equal('status', ['dup-b'])->toString()];
+        $rDup = $this->sendSubscribeMessage($client, [
+            [
+                'subscriptionId' => $initialSubscriptionId,
+                'channels' => ['documents'],
+                'queries' => $qFirst,
+            ],
+            [
+                'subscriptionId' => $initialSubscriptionId,
+                'channels' => ['documents'],
+                'queries' => $qSecond,
+            ],
+        ]);
+        $this->assertCount(2, $rDup['data']['subscriptions']);
+        $this->assertSame($initialSubscriptionId, $rDup['data']['subscriptions'][0]['subscriptionId']);
+        $this->assertSame($initialSubscriptionId, $rDup['data']['subscriptions'][1]['subscriptionId']);
+        $this->assertSame($qSecond, $rDup['data']['subscriptions'][1]['queries']);
+
+        $rMixed = $this->sendSubscribeMessage($client, [
+            [
+                'subscriptionId' => $initialSubscriptionId,
+                'channels' => ['documents'],
+                'queries' => [Query::equal('status', ['mixed-update'])->toString()],
+            ],
+            [
+                'channels' => ['documents'],
+                'queries' => [Query::equal('status', ['mixed-new'])->toString()],
+            ],
+        ]);
+        $this->assertCount(2, $rMixed['data']['subscriptions']);
+        $this->assertSame($initialSubscriptionId, $rMixed['data']['subscriptions'][0]['subscriptionId']);
+        $mixedSecondId = $rMixed['data']['subscriptions'][1]['subscriptionId'];
+        $this->assertNotSame($initialSubscriptionId, $mixedSecondId);
+        $this->assertNotEmpty($mixedSecondId);
+
+        $rSame = $this->sendSubscribeMessage($client, [[
+            'subscriptionId' => $initialSubscriptionId,
+            'channels' => ['documents'],
+            'queries' => [Query::equal('status', ['idempotent'])->toString()],
+        ]]);
+        $rSameAgain = $this->sendSubscribeMessage($client, [[
+            'subscriptionId' => $initialSubscriptionId,
+            'channels' => ['documents'],
+            'queries' => [Query::equal('status', ['idempotent'])->toString()],
+        ]]);
+        $this->assertSame($rSame['data']['subscriptions'][0]['queries'], $rSameAgain['data']['subscriptions'][0]['queries']);
+
+        $rEmpty = $this->sendSubscribeMessage($client, [[
+            'subscriptionId' => $initialSubscriptionId,
+            'channels' => ['documents'],
+            'queries' => [],
+        ]]);
+        $this->assertCount(1, $rEmpty['data']['subscriptions']);
+        $this->assertSame($initialSubscriptionId, $rEmpty['data']['subscriptions'][0]['subscriptionId']);
+
+        $client->close();
+    }
+
     public function testInvalidQueryShouldNotSubscribe(): void
     {
         $user = $this->getUser();
