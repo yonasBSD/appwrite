@@ -1497,7 +1497,9 @@ Http::error()
         try {
             $cors = $utopia->getResource('cors');
             foreach ($cors->headers($request->getOrigin()) as $name => $value) {
-                $response->addHeader($name, $value, override: true);
+                $response
+                    ->removeHeader($name)
+                    ->addHeader($name, $value);
             }
         } catch (Throwable) {
             // Degrade gracefully - error response without CORS is no worse than before.
