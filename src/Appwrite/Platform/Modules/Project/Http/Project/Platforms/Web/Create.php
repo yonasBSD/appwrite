@@ -65,8 +65,9 @@ class Create extends Base
             ))
             ->param('platformId', '', fn (Database $dbForPlatform) => new CustomId(false, $dbForPlatform->getAdapter()->getMaxUIDLength()), 'Platform ID. Choose a custom ID or generate a random ID with `ID.unique()`. Valid chars are a-z, A-Z, 0-9, period, hyphen, and underscore. Can\'t start with a special char. Max length is 36 chars.', false, ['dbForPlatform'])
             ->param('name', null, new Text(128), 'Platform name. Max length: 128 chars.')
-            ->param('hostname', '', new Hostname(), 'Platform web hostname. Max length: 256 chars.', true) // Optional for backwards compatibility
-            ->param('key', '', new Text(256), 'Package name for Android or bundle ID for iOS or macOS. Max length: 256 chars.', true) // Exists for backwards compatibility
+            ->param('hostname', '', new Hostname(), 'Platform web hostname. Max length: 256 chars.', optional: true) // Optional for backwards compatibility
+            ->param('key', '', new Text(256), 'Deprecated: Package name for Android or bundle ID for iOS or macOS. Max length: 256 chars.', optional: true, deprecated: true) // Exists for backwards compatibility
+            ->param('type', '', new Text(256), 'Deprecated: Platform type. Max length: 256 chars.', optional: true, deprecated: true) // Exists for backwards compatibility
             ->inject('request')
             ->inject('response')
             ->inject('queueForEvents')
@@ -80,6 +81,8 @@ class Create extends Base
         string $platformId,
         string $name,
         string $hostname,
+        ?string $key, // For backwards compatibility
+        ?string $type, // For backwards compatibility
         Request $request,
         Response $response,
         QueueEvent $queueForEvents,
@@ -87,12 +90,13 @@ class Create extends Base
         Database $dbForPlatform,
         Authorization $authorization,
     ) {
-        $type = Platform::TYPE_WEB;
-        $key = ''; // App platform attribute
+        $key = $key ?? ''; // App platform attribute, backwards compatibility
+        $type = $type ?? ''; // App platform attribute, backwards compatibility
 
         // Backwards compatibility
         // Used to have: type, name, key, hostname
-        if (!empty($request->getParam('type', ''))) {
+        if (!empty($type)) {
+
             // Validate deprecated type, and rename to new type
             $deprecatedtypeMapping = [
                 // Web
@@ -122,17 +126,18 @@ class Create extends Base
                 throw new Exception(Exception::GENERAL_BAD_REQUEST, 'Param "type" is invalid: ' . $typeValidator->getDescription());
             }
 
-            $type = $deprecatedtypeMapping[$request->getParam('type', '')] ?? Platform::TYPE_WEB;
+            $type = $deprecatedtypeMapping[$request->getParam('type', '')] ?? '';
+        }
 
+        if (!empty($key)) {
             // Validate deprecated app id (key)
-            if (!empty($request->getParam('key', ''))) {
-                $keyValidator = new Text(256);
-                if (!$keyValidator->isValid($request->getParam('key', ''))) {
-                    throw new Exception(Exception::GENERAL_BAD_REQUEST, 'Param "key" is invalid: ' . $keyValidator->getDescription());
-                }
-                $key = $request->getParam('key', '');
+            $keyValidator = new Text(256);
+            if (!$keyValidator->isValid($key)) {
+                throw new Exception(Exception::GENERAL_BAD_REQUEST, 'Param "key" is invalid: ' . $keyValidator->getDescription());
             }
-        } else {
+        }
+
+        if (empty($key) && empty($type)) {
             // Modern request, validate hostname
             if (empty($hostname)) {
                 throw new Exception(Exception::GENERAL_BAD_REQUEST, 'Param "hostname" is not optional.');
@@ -146,7 +151,7 @@ class Create extends Base
             '$permissions' => [],
             'projectInternalId' => $project->getSequence(),
             'projectId' => $project->getId(),
-            'type' => $type,
+            'type' => $type ?: Platform::TYPE_WEB, // Preserve type for backwards compatibility
             'name' => $name,
             'key' => $key,
             'hostname' => $hostname

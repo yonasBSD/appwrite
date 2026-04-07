@@ -3783,7 +3783,7 @@ class ProjectsConsoleClientTest extends Scope
 
         $this->assertEquals(201, $response['headers']['status-code']);
         $this->assertNotEmpty($response['body']['$id']);
-        $this->assertEquals('flutter-ios', $response['body']['type']);
+        $this->assertEquals('apple', $response['body']['type']); // Origianlly flutter-ios, but new version renames
         $this->assertEquals('Flutter App (iOS)', $response['body']['name']);
         $this->assertEquals('com.example.ios', $response['body']['key']);
         $this->assertEquals('', $response['body']['store']);
@@ -3803,7 +3803,7 @@ class ProjectsConsoleClientTest extends Scope
 
         $this->assertEquals(201, $response['headers']['status-code']);
         $this->assertNotEmpty($response['body']['$id']);
-        $this->assertEquals('flutter-android', $response['body']['type']);
+        $this->assertEquals('android', $response['body']['type']); // Origianlly flutter-android, but new version renames
         $this->assertEquals('Flutter App (Android)', $response['body']['name']);
         $this->assertEquals('com.example.android', $response['body']['key']);
         $this->assertEquals('', $response['body']['store']);
@@ -3823,7 +3823,7 @@ class ProjectsConsoleClientTest extends Scope
 
         $this->assertEquals(201, $response['headers']['status-code']);
         $this->assertNotEmpty($response['body']['$id']);
-        $this->assertEquals('flutter-web', $response['body']['type']);
+        $this->assertEquals('web', $response['body']['type']); // Origianlly flutter-web, but new version renames
         $this->assertEquals('Flutter App (Web)', $response['body']['name']);
         $this->assertEquals('', $response['body']['key']);
         $this->assertEquals('', $response['body']['store']);
@@ -3843,7 +3843,7 @@ class ProjectsConsoleClientTest extends Scope
 
         $this->assertEquals(201, $response['headers']['status-code']);
         $this->assertNotEmpty($response['body']['$id']);
-        $this->assertEquals('apple-ios', $response['body']['type']);
+        $this->assertEquals('apple', $response['body']['type']); // Origianlly apple-ios, but new version renames
         $this->assertEquals('iOS App', $response['body']['name']);
         $this->assertEquals('com.example.ios', $response['body']['key']);
         $this->assertEquals('', $response['body']['store']);
@@ -3863,7 +3863,7 @@ class ProjectsConsoleClientTest extends Scope
 
         $this->assertEquals(201, $response['headers']['status-code']);
         $this->assertNotEmpty($response['body']['$id']);
-        $this->assertEquals('apple-macos', $response['body']['type']);
+        $this->assertEquals('apple', $response['body']['type']); // Origianlly apple-macos, but new version renames
         $this->assertEquals('macOS App', $response['body']['name']);
         $this->assertEquals('com.example.macos', $response['body']['key']);
         $this->assertEquals('', $response['body']['store']);
@@ -3883,7 +3883,7 @@ class ProjectsConsoleClientTest extends Scope
 
         $this->assertEquals(201, $response['headers']['status-code']);
         $this->assertNotEmpty($response['body']['$id']);
-        $this->assertEquals('apple-watchos', $response['body']['type']);
+        $this->assertEquals('apple', $response['body']['type']); // Origianlly apple-watchos, but new version renames
         $this->assertEquals('watchOS App', $response['body']['name']);
         $this->assertEquals('com.example.watchos', $response['body']['key']);
         $this->assertEquals('', $response['body']['store']);
@@ -3903,7 +3903,7 @@ class ProjectsConsoleClientTest extends Scope
 
         $this->assertEquals(201, $response['headers']['status-code']);
         $this->assertNotEmpty($response['body']['$id']);
-        $this->assertEquals('apple-tvos', $response['body']['type']);
+        $this->assertEquals('apple', $response['body']['type']); // Origianlly apple-tvos, but new version renames
         $this->assertEquals('tvOS App', $response['body']['name']);
         $this->assertEquals('com.example.tvos', $response['body']['key']);
         $this->assertEquals('', $response['body']['store']);
@@ -4142,7 +4142,7 @@ class ProjectsConsoleClientTest extends Scope
         $this->assertEquals(200, $response['headers']['status-code']);
         $this->assertNotEmpty($response['body']['$id']);
         $this->assertEquals($platformFultteriOSId, $response['body']['$id']);
-        $this->assertEquals('flutter-ios', $response['body']['type']);
+        $this->assertEquals('apple', $response['body']['type']); // Origianlly flutter-ios, but new version renames
         $this->assertEquals('Flutter App (iOS) 2', $response['body']['name']);
         $this->assertEquals('com.example.ios2', $response['body']['key']);
         $this->assertEquals('', $response['body']['store']);
@@ -4162,7 +4162,7 @@ class ProjectsConsoleClientTest extends Scope
         $this->assertEquals(200, $response['headers']['status-code']);
         $this->assertNotEmpty($response['body']['$id']);
         $this->assertEquals($platformFultterAndroidId, $response['body']['$id']);
-        $this->assertEquals('flutter-android', $response['body']['type']);
+        $this->assertEquals('android', $response['body']['type']); // Origianlly flutter-android, but new version renames
         $this->assertEquals('Flutter App (Android) 2', $response['body']['name']);
         $this->assertEquals('com.example.android2', $response['body']['key']);
         $this->assertEquals('', $response['body']['store']);
@@ -4182,7 +4182,7 @@ class ProjectsConsoleClientTest extends Scope
         $this->assertEquals(200, $response['headers']['status-code']);
         $this->assertNotEmpty($response['body']['$id']);
         $this->assertEquals($platformFultterWebId, $response['body']['$id']);
-        $this->assertEquals('flutter-web', $response['body']['type']);
+        $this->assertEquals('web', $response['body']['type']); // Originally flutter-web, but new version renames
         $this->assertEquals('Flutter App (Web) 2', $response['body']['name']);
         $this->assertEquals('', $response['body']['key']);
         $this->assertEquals('', $response['body']['store']);
@@ -4202,7 +4202,7 @@ class ProjectsConsoleClientTest extends Scope
         $this->assertEquals(200, $response['headers']['status-code']);
         $this->assertNotEmpty($response['body']['$id']);
         $this->assertEquals($platformAppleIosId, $response['body']['$id']);
-        $this->assertEquals('apple-ios', $response['body']['type']);
+        $this->assertEquals('apple', $response['body']['type']); // Originally apple-ios, but new version renames
         $this->assertEquals('iOS App 2', $response['body']['name']);
         $this->assertEquals('com.example.ios2', $response['body']['key']);
         $this->assertEquals('', $response['body']['store']);
@@ -4222,7 +4222,7 @@ class ProjectsConsoleClientTest extends Scope
         $this->assertEquals(200, $response['headers']['status-code']);
         $this->assertNotEmpty($response['body']['$id']);
         $this->assertEquals($platformAppleMacOsId, $response['body']['$id']);
-        $this->assertEquals('apple-macos', $response['body']['type']);
+        $this->assertEquals('apple', $response['body']['type']); // Originally apple-macos, but new version renames
         $this->assertEquals('macOS App 2', $response['body']['name']);
         $this->assertEquals('com.example.macos2', $response['body']['key']);
         $this->assertEquals('', $response['body']['store']);
@@ -4242,7 +4242,7 @@ class ProjectsConsoleClientTest extends Scope
         $this->assertEquals(200, $response['headers']['status-code']);
         $this->assertNotEmpty($response['body']['$id']);
         $this->assertEquals($platformAppleWatchOsId, $response['body']['$id']);
-        $this->assertEquals('apple-watchos', $response['body']['type']);
+        $this->assertEquals('apple', $response['body']['type']); // Originally apple-watchos, but new version renames
         $this->assertEquals('watchOS App 2', $response['body']['name']);
         $this->assertEquals('com.example.watchos2', $response['body']['key']);
         $this->assertEquals('', $response['body']['store']);
@@ -4262,7 +4262,7 @@ class ProjectsConsoleClientTest extends Scope
         $this->assertEquals(200, $response['headers']['status-code']);
         $this->assertNotEmpty($response['body']['$id']);
         $this->assertEquals($platformAppleTvOsId, $response['body']['$id']);
-        $this->assertEquals('apple-tvos', $response['body']['type']);
+        $this->assertEquals('apple', $response['body']['type']); // Originally apple-tvos, but new version renames
         $this->assertEquals('tvOS App 2', $response['body']['name']);
         $this->assertEquals('com.example.tvos2', $response['body']['key']);
         $this->assertEquals('', $response['body']['store']);

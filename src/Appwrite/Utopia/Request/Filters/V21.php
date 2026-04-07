@@ -11,62 +11,6 @@ class V21 extends Filter
     public function parse(array $content, string $model): array
     {
         switch ($model) {
-            case 'project.createWebPlatform':
-                $content = $this->fillPlatformId($content);
-                $content = $this->removePlatformStore($content);
-                unset($content['key']); // Key unsupported
-                break;
-            case 'project.updateWebPlatform':
-                $content = $this->removePlatformStore($content);
-                unset($content['key']); // Key unsupported
-                break;
-            case 'project.createApplePlatform':
-                $content = $this->fillPlatformId($content);
-                $content = $this->removePlatformStore($content);
-                $content = $this->replacePlatformKey($content, 'bundleIdentifier');
-                unset($content['hostname']); // Hostname unsupported
-                break;
-            case 'project.updateApplePlatform':
-                $content = $this->removePlatformStore($content);
-                $content = $this->replacePlatformKey($content, 'bundleIdentifier');
-                unset($content['hostname']); // Hostname unsupported
-                break;
-            case 'project.createAndroidPlatform':
-                $content = $this->fillPlatformId($content);
-                $content = $this->removePlatformStore($content);
-                $content = $this->replacePlatformKey($content, 'applicationId');
-                unset($content['hostname']); // Hostname unsupported
-                break;
-            case 'project.updateAndroidPlatform':
-                $content = $this->removePlatformStore($content);
-                $content = $this->replacePlatformKey($content, 'applicationId');
-                unset($content['hostname']); // Hostname unsupported
-                break;
-            case 'project.createWindowsPlatform':
-                $content = $this->fillPlatformId($content);
-                $content = $this->removePlatformStore($content);
-                $content = $this->replacePlatformKey($content, 'packageIdentifierName');
-                unset($content['hostname']); // Hostname unsupported
-                break;
-            case 'project.updateWindowsPlatform':
-                $content = $this->removePlatformStore($content);
-                $content = $this->replacePlatformKey($content, 'packageIdentifierName');
-                unset($content['hostname']); // Hostname unsupported
-                break;
-            case 'project.createLinuxPlatform':
-                $content = $this->fillPlatformId($content);
-                $content = $this->removePlatformStore($content);
-                $content = $this->replacePlatformKey($content, 'packageName');
-                unset($content['hostname']); // Hostname unsupported
-                break;
-            case 'project.updateLinuxPlatform':
-                $content = $this->removePlatformStore($content);
-                $content = $this->replacePlatformKey($content, 'packageName');
-                unset($content['hostname']); // Hostname unsupported
-                break;
-            case 'project.listPlatforms':
-                $content = $this->preservePlatformsQueries($content);
-                break;
             case 'webhooks.create':
                 $content = $this->fillWebhookid($content);
                 break;

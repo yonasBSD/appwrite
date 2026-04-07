@@ -22,6 +22,13 @@ class PlatformWeb extends PlatformBase
                 'default' => '',
                 'example' => 'app.example.com',
             ])
+            // Backwards compatibility
+            ->addRule('key', [
+                'type' => self::TYPE_STRING,
+                'description' => 'Deprecated for old versions using alias endpoint to create universal platform.',
+                'default' => '',
+                'example' => 'com.company.appname',
+            ])
         ;
     }
 

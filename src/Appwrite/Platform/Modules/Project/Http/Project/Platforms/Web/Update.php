@@ -33,6 +33,7 @@ class Update extends Base
     {
         $this->setHttpMethod(Action::HTTP_REQUEST_METHOD_PUT)
             ->setHttpPath('/v1/project/platforms/web/:platformId')
+            ->httpAlias('/v1/projects/:projectId/platforms/:platformId')
             ->desc('Update project web platform')
             ->groups(['api', 'project'])
             ->label('scope', 'project.write')
@@ -56,7 +57,8 @@ class Update extends Base
             ))
             ->param('platformId', '', fn (Database $dbForPlatform) => new UID($dbForPlatform->getAdapter()->getMaxUIDLength()), 'Platform ID.', false, ['dbForPlatform'])
             ->param('name', null, new Text(128), 'Platform name. Max length: 128 chars.')
-            ->param('hostname', '', new Hostname(), 'Platform client hostname. Max length: 256 chars.')
+            ->param('hostname', '', new Hostname(), 'Platform web hostname. Max length: 256 chars.', optional: true) // Optional for backwards compatibility
+            ->param('key', '', new Text(256), 'Package name for Android or bundle ID for iOS or macOS. Max length: 256 chars.', optional: true, deprecated: true) // Exists for backwards compatibility
             ->inject('response')
             ->inject('queueForEvents')
             ->inject('dbForPlatform')
@@ -69,26 +71,54 @@ class Update extends Base
         string $platformId,
         string $name,
         string $hostname,
+        ?string $key, // For backwards compatibility
         Response $response,
         QueueEvent $queueForEvents,
         Database $dbForPlatform,
         Authorization $authorization,
         Document $project,
     ) {
+        $key = $key ?? ''; // App platform attribute, backwards compatibility
+
+        // Backwards compatibility
+        // Used to have: type, name, key, hostname
+        if (!empty($key)) {
+            // Validate deprecated app id (key)
+            $keyValidator = new Text(256);
+            if (!$keyValidator->isValid($key)) {
+                throw new Exception(Exception::GENERAL_BAD_REQUEST, 'Param "key" is invalid: ' . $keyValidator->getDescription());
+            }
+        }
+
+        // One day, ideally, we ensure hostname is not empty
+        // But for backwards compatibility backend must threat it as optional for now
+
         $platform = $authorization->skip(fn () => $dbForPlatform->getDocument('platforms', $platformId));
 
         if ($platform->isEmpty() || $platform->getAttribute('projectInternalId', '') !== $project->getSequence()) {
             throw new Exception(Exception::PLATFORM_NOT_FOUND);
         }
 
-        if ($platform->getAttribute('type', '') !== Platform::TYPE_WEB) {
-            throw new Exception(Exception::PLATFORM_METHOD_UNSUPPORTED);
+        // Wrapped in if, for backwards compatibility
+        if (!empty($hostname)) {
+            if ($platform->getAttribute('type', '') !== Platform::TYPE_WEB) {
+                throw new Exception(Exception::PLATFORM_METHOD_UNSUPPORTED);
+            }
         }
 
         $updates = new Document([
             'name' => $name,
-            'hostname' => $hostname,
         ]);
+
+        // Wrapped in if, for backwards compatibility
+        if (!empty($hostname)) {
+            $updates->setAttribute('hostname', $hostname);
+        }
+
+        // Backwards compatibility
+        if (!empty($key)) {
+            $updates->setAttribute('key', $key);
+        }
 
         try {
             $platform = $authorization->skip(fn () => $dbForPlatform->updateDocument('platforms', $platform->getId(), $updates));
