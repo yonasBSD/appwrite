@@ -98,6 +98,9 @@ Http::init()
     ->inject('authorization')
     ->action(function (Http $utopia, Request $request, Database $dbForPlatform, Database $dbForProject, Audit $queueForAudits, Document $project, User $user, ?Document $session, array $servers, string $mode, Document $team, ?Key $apiKey, Authorization $authorization) {
         $route = $utopia->getRoute();
+        if ($route === null) {
+            throw new AppwriteException(AppwriteException::GENERAL_ROUTE_NOT_FOUND);
+        }
 
         /**
          * Handle user authentication and session validation.
@@ -399,10 +402,6 @@ Http::init()
                     ])));
                 }
             }
-        }
-
-        if ($route === null) {
-            throw new AppwriteException(AppwriteException::GENERAL_ROUTE_NOT_FOUND);
         }
 
         // Steps 7-9: Access Control - Method, Namespace and Scope Validation
