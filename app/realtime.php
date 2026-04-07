@@ -711,7 +711,7 @@ $server->onOpen(function (int $connection, SwooleRequest $request) use ($server,
                 ]
             ]);
 
-            $realtime->subscribe($project->getId(), $connection, '', $roles, [], []);
+            $realtime->subscribe($project->getId(), $connection, '', $roles, [], [], $user->getId());
             $server->send([$connection], $connectedPayloadJson);
             return;
         }
@@ -737,7 +737,8 @@ $server->onOpen(function (int $connection, SwooleRequest $request) use ($server,
                 $subscriptionId,
                 $roles,
                 $subscription['channels'],
-                $subscription['queries']
+                $subscription['queries'],
+                $user->getId()
             );
 
             $mapping[$index] = $subscriptionId;
@@ -937,7 +938,8 @@ $server->onMessage(function (int $connection, string $message) use ($server, $re
                             $subscriptionId,
                             $roles,
                             $subscription['channels'] ?? [],
-                            $queries
+                            $queries,
+                            $user->getId()
                         );
                     }
                 }
@@ -985,15 +987,8 @@ $server->onMessage(function (int $connection, string $message) use ($server, $re
                     throw new Exception(Exception::REALTIME_MESSAGE_FORMAT_INVALID, 'Payload is not valid.');
                 }
 
-                // TODO: change this to a clean userId fetching solution
                 $roles = $realtime->connections[$connection]['roles'] ?? [Role::guests()->toString()];
-                $userId = '';
-                foreach ($roles as $role) {
-                    if (\str_starts_with($role, 'user:')) {
-                        $userId = \substr($role, 5);
-                        break;
-                    }
-                }
+                $userId = $realtime->connections[$connection]['userId'] ?? '';
 
                 // bulk validation + parsing before subscribing
                 $parsedPayloads = [];
@@ -1039,7 +1034,6 @@ $server->onMessage(function (int $connection, string $message) use ($server, $re
                     $realtime->subscribe($projectId, $connection, $subscriptionId, $roles, $channels, $queries);
                 }
 
-                // TODO: find a better way to store the queries and no reconversion
                 $responsePayload = json_encode([
                     'type' => 'response',
                     'data' => [
