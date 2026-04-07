@@ -685,7 +685,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
                 return true;
             }
 
-            $repo->execute('push', '-u', 'origin', $gitBranch, '--quiet');
+            $repo->execute('push', '--force-with-lease', '-u', 'origin', $gitBranch, '--quiet');
         } catch (\Throwable $e) {
             Console::warning("  Git push failed: " . $e->getMessage());
             return false;
