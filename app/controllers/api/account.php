@@ -207,7 +207,7 @@ function sendSessionAlert(Locale $locale, Document $user, Document $project, arr
 }
 
 
-$createSession = function (string $userId, string $secret, Request $request, Response $response, User $user, Database $dbForProject, Document $project, array $platform, Locale $locale, Reader $geodb, Event $queueForEvents, Mail $queueForMails, Store $store, ProofsToken $proofForToken, ProofsCode $proofForCode, Authorization $authorization) {
+$createSession = function (string $userId, string $secret, Request $request, Response $response, User $user, Database $dbForProject, Document $project, array $platform, Locale $locale, Reader $geodb, Event $queueForEvents, Mail $queueForMails, Store $store, ProofsToken $proofForToken, ProofsCode $proofForCode, bool $domainVerification, ?string $cookieDomain, Authorization $authorization) {
 
     // Attempt to decode secret as a JWT (used by OAuth2 token flow to carry provider info)
     $oauthProvider = null;
@@ -345,7 +345,7 @@ $createSession = function (string $userId, string $secret, Request $request, Res
         ->setProperty('secret', $sessionSecret)
         ->encode();
 
-    if (!Config::getParam('domainVerification')) {
+    if (!$domainVerification) {
         $response->addHeader('X-Fallback-Cookies', \json_encode([$store->getKey() => $encoded]));
     }
 
@@ -353,8 +353,8 @@ $createSession = function (string $userId, string $secret, Request $request, Res
     $protocol = $request->getProtocol();
 
     $response
-        ->addCookie($store->getKey() . '_legacy', $encoded, (new \DateTime($expire))->getTimestamp(), '/', Config::getParam('cookieDomain'), ('https' == $protocol), true, null)
-        ->addCookie($store->getKey(), $encoded, (new \DateTime($expire))->getTimestamp(), '/', Config::getParam('cookieDomain'), ('https' == $protocol), true, Config::getParam('cookieSamesite'))
+        ->addCookie($store->getKey() . '_legacy', $encoded, (new \DateTime($expire))->getTimestamp(), '/', $cookieDomain, ('https' == $protocol), true, null)
+        ->addCookie($store->getKey(), $encoded, (new \DateTime($expire))->getTimestamp(), '/', $cookieDomain, ('https' == $protocol), true, Config::getParam('cookieSamesite'))
         ->setStatusCode(Response::STATUS_CODE_CREATED);
 
     $countryName = $locale->getText('countries.' . strtolower($session->getAttribute('countryCode')), $locale->getText('locale.country.unknown'));
@@ -726,7 +726,9 @@ Http::delete('/v1/account/sessions')
     ->inject('queueForDeletes')
     ->inject('store')
     ->inject('proofForToken')
-    ->action(function (Request $request, Response $response, User $user, Database $dbForProject, Locale $locale, Event $queueForEvents, Delete $queueForDeletes, Store $store, ProofsToken $proofForToken) {
+    ->inject('domainVerification')
+    ->inject('cookieDomain')
+    ->action(function (Request $request, Response $response, User $user, Database $dbForProject, Locale $locale, Event $queueForEvents, Delete $queueForDeletes, Store $store, ProofsToken $proofForToken, bool $domainVerification, ?string $cookieDomain) {
 
         $protocol = $request->getProtocol();
         $sessions = $user->getAttribute('sessions', []);
@@ -735,7 +737,7 @@ Http::delete('/v1/account/sessions')
         foreach ($sessions as $session) {/** @var Document $session */
             $dbForProject->deleteDocument('sessions', $session->getId());
 
-            if (!Config::getParam('domainVerification')) {
+            if (!$domainVerification) {
                 $response->addHeader('X-Fallback-Cookies', \json_encode([]));
             }
 
@@ -748,8 +750,8 @@ Http::delete('/v1/account/sessions')
 
                 // If current session delete the cookies too
                 $response
-                    ->addCookie($store->getKey() . '_legacy', '', \time() - 3600, '/', Config::getParam('cookieDomain'), ('https' == $protocol), true, null)
-                    ->addCookie($store->getKey(), '', \time() - 3600, '/', Config::getParam('cookieDomain'), ('https' == $protocol), true, Config::getParam('cookieSamesite'));
+                    ->addCookie($store->getKey() . '_legacy', '', \time() - 3600, '/', $cookieDomain, ('https' == $protocol), true, null)
+                    ->addCookie($store->getKey(), '', \time() - 3600, '/', $cookieDomain, ('https' == $protocol), true, Config::getParam('cookieSamesite'));
 
                 // Use current session for events.
                 $currentSession = $session;
@@ -856,7 +858,9 @@ Http::delete('/v1/account/sessions/:sessionId')
     ->inject('queueForDeletes')
     ->inject('store')
     ->inject('proofForToken')
-    ->action(function (?string $sessionId, ?\DateTime $requestTimestamp, Request $request, Response $response, User $user, Database $dbForProject, Locale $locale, Event $queueForEvents, Delete $queueForDeletes, Store $store, ProofsToken $proofForToken) {
+    ->inject('domainVerification')
+    ->inject('cookieDomain')
+    ->action(function (?string $sessionId, ?\DateTime $requestTimestamp, Request $request, Response $response, User $user, Database $dbForProject, Locale $locale, Event $queueForEvents, Delete $queueForDeletes, Store $store, ProofsToken $proofForToken, bool $domainVerification, ?string $cookieDomain) {
 
         $protocol = $request->getProtocol();
         $sessionId = ($sessionId === 'current')
@@ -882,13 +886,13 @@ Http::delete('/v1/account/sessions/:sessionId')
                     ->setAttribute('current', true)
                     ->setAttribute('countryName', $locale->getText('countries.' . strtolower($session->getAttribute('countryCode')), $locale->getText('locale.country.unknown')));
 
-                if (!Config::getParam('domainVerification')) {
+                if (!$domainVerification) {
                     $response->addHeader('X-Fallback-Cookies', \json_encode([]));
                 }
 
                 $response
-                    ->addCookie($store->getKey() . '_legacy', '', \time() - 3600, '/', Config::getParam('cookieDomain'), ('https' == $protocol), true, null)
-                    ->addCookie($store->getKey(), '', \time() - 3600, '/', Config::getParam('cookieDomain'), ('https' == $protocol), true, Config::getParam('cookieSamesite'));
+                    ->addCookie($store->getKey() . '_legacy', '', \time() - 3600, '/', $cookieDomain, ('https' == $protocol), true, null)
+                    ->addCookie($store->getKey(), '', \time() - 3600, '/', $cookieDomain, ('https' == $protocol), true, Config::getParam('cookieSamesite'));
             }
 
             $dbForProject->purgeCachedDocument('users', $user->getId());
@@ -1042,8 +1046,10 @@ Http::post('/v1/account/sessions/email')
     ->inject('store')
     ->inject('proofForPassword')
     ->inject('proofForToken')
+    ->inject('domainVerification')
+    ->inject('cookieDomain')
     ->inject('authorization')
-    ->action(function (string $email, string $password, Request $request, Response $response, User $user, Database $dbForProject, Document $project, array $platform, Locale $locale, Reader $geodb, Event $queueForEvents, Mail $queueForMails, Hooks $hooks, Store $store, ProofsPassword $proofForPassword, ProofsToken $proofForToken, Authorization $authorization) {
+    ->action(function (string $email, string $password, Request $request, Response $response, User $user, Database $dbForProject, Document $project, array $platform, Locale $locale, Reader $geodb, Event $queueForEvents, Mail $queueForMails, Hooks $hooks, Store $store, ProofsPassword $proofForPassword, ProofsToken $proofForToken, bool $domainVerification, ?string $cookieDomain, Authorization $authorization) {
         $email = \strtolower($email);
         $protocol = $request->getProtocol();
 
@@ -1117,15 +1123,15 @@ Http::post('/v1/account/sessions/email')
             ->setProperty('secret', $secret)
             ->encode();
 
-        if (!Config::getParam('domainVerification')) {
+        if (!$domainVerification) {
             $response->addHeader('X-Fallback-Cookies', \json_encode([$store->getKey() => $encoded]));
         }
 
         $expire = DateTime::formatTz(DateTime::addSeconds(new \DateTime(), $duration));
 
         $response
-            ->addCookie($store->getKey() . '_legacy', $encoded, (new \DateTime($expire))->getTimestamp(), '/', Config::getParam('cookieDomain'), ('https' == $protocol), true, null)
-            ->addCookie($store->getKey(), $encoded, (new \DateTime($expire))->getTimestamp(), '/', Config::getParam('cookieDomain'), ('https' == $protocol), true, Config::getParam('cookieSamesite'))
+            ->addCookie($store->getKey() . '_legacy', $encoded, (new \DateTime($expire))->getTimestamp(), '/', $cookieDomain, ('https' == $protocol), true, null)
+            ->addCookie($store->getKey(), $encoded, (new \DateTime($expire))->getTimestamp(), '/', $cookieDomain, ('https' == $protocol), true, Config::getParam('cookieSamesite'))
             ->setStatusCode(Response::STATUS_CODE_CREATED)
         ;
 
@@ -1191,8 +1197,10 @@ Http::post('/v1/account/sessions/anonymous')
     ->inject('store')
     ->inject('proofForPassword')
     ->inject('proofForToken')
+    ->inject('domainVerification')
+    ->inject('cookieDomain')
     ->inject('authorization')
-    ->action(function (Request $request, Response $response, Locale $locale, User $user, Document $project, Database $dbForProject, Reader $geodb, Event $queueForEvents, Store $store, ProofsPassword $proofForPassword, ProofsToken $proofForToken, Authorization $authorization) {
+    ->action(function (Request $request, Response $response, Locale $locale, User $user, Document $project, Database $dbForProject, Reader $geodb, Event $queueForEvents, Store $store, ProofsPassword $proofForPassword, ProofsToken $proofForToken, bool $domainVerification, ?string $cookieDomain, Authorization $authorization) {
         $protocol = $request->getProtocol();
 
         if ('console' === $project->getId()) {
@@ -1283,15 +1291,15 @@ Http::post('/v1/account/sessions/anonymous')
             ->setProperty('secret', $secret)
             ->encode();
 
-        if (!Config::getParam('domainVerification')) {
+        if (!$domainVerification) {
             $response->addHeader('X-Fallback-Cookies', \json_encode([$store->getKey() => $encoded]));
         }
 
         $expire = DateTime::formatTz(DateTime::addSeconds(new \DateTime(), $duration));
 
         $response
-            ->addCookie($store->getKey() . '_legacy', $encoded, (new \DateTime($expire))->getTimestamp(), '/', Config::getParam('cookieDomain'), ('https' == $protocol), true, null)
-            ->addCookie($store->getKey(), $encoded, (new \DateTime($expire))->getTimestamp(), '/', Config::getParam('cookieDomain'), ('https' == $protocol), true, Config::getParam('cookieSamesite'))
+            ->addCookie($store->getKey() . '_legacy', $encoded, (new \DateTime($expire))->getTimestamp(), '/', $cookieDomain, ('https' == $protocol), true, null)
+            ->addCookie($store->getKey(), $encoded, (new \DateTime($expire))->getTimestamp(), '/', $cookieDomain, ('https' == $protocol), true, Config::getParam('cookieSamesite'))
             ->setStatusCode(Response::STATUS_CODE_CREATED)
         ;
 
@@ -1346,7 +1354,9 @@ Http::post('/v1/account/sessions/token')
     ->inject('store')
     ->inject('proofForToken')
     ->inject('proofForCode')
-->inject('authorization')
+    ->inject('domainVerification')
+    ->inject('cookieDomain')
+    ->inject('authorization')
     ->action($createSession);
 
 Http::get('/v1/account/sessions/oauth2/:provider')
@@ -1545,8 +1555,10 @@ Http::get('/v1/account/sessions/oauth2/:provider/redirect')
     ->inject('proofForPassword')
     ->inject('proofForToken')
     ->inject('plan')
+    ->inject('domainVerification')
+    ->inject('cookieDomain')
     ->inject('authorization')
-    ->action(function (string $provider, string $code, string $state, string $error, string $error_description, Request $request, Response $response, Document $project, Validator $redirectValidator, Document $devKey, User $user, Database $dbForProject, Database $dbForPlatform, Reader $geodb, Event $queueForEvents, Store $store, ProofsPassword $proofForPassword, ProofsToken $proofForToken, array $plan, Authorization $authorization) use ($oauthDefaultSuccess) {
+    ->action(function (string $provider, string $code, string $state, string $error, string $error_description, Request $request, Response $response, Document $project, Validator $redirectValidator, Document $devKey, User $user, Database $dbForProject, Database $dbForPlatform, Reader $geodb, Event $queueForEvents, Store $store, ProofsPassword $proofForPassword, ProofsToken $proofForToken, array $plan, bool $domainVerification, ?string $cookieDomain, Authorization $authorization) use ($oauthDefaultSuccess) {
         $protocol = System::getEnv('_APP_OPTIONS_FORCE_HTTPS') === 'disabled' ? 'http' : 'https';
         $port = $request->getPort();
         $callbackBase = $protocol . '://' . $request->getHostname();
@@ -2062,7 +2074,7 @@ Http::get('/v1/account/sessions/oauth2/:provider/redirect')
                 ->setProperty('secret', $secret)
                 ->encode();
 
-            if (!Config::getParam('domainVerification')) {
+            if (!$domainVerification) {
                 $response->addHeader('X-Fallback-Cookies', \json_encode([$store->getKey() => $encoded]));
             }
 
@@ -2075,14 +2087,14 @@ Http::get('/v1/account/sessions/oauth2/:provider/redirect')
             // TODO: Remove this deprecated workaround - support only token
             if ($state['success']['path'] == $oauthDefaultSuccess) {
                 $query['project'] = $project->getId();
-                $query['domain'] = Config::getParam('cookieDomain');
+                $query['domain'] = $cookieDomain;
                 $query['key'] = $store->getKey();
                 $query['secret'] = $encoded;
             }
 
             $response
-                ->addCookie($store->getKey() . '_legacy', $encoded, (new \DateTime($expire))->getTimestamp(), '/', Config::getParam('cookieDomain'), ('https' == $protocol), true, null)
-                ->addCookie($store->getKey(), $encoded, (new \DateTime($expire))->getTimestamp(), '/', Config::getParam('cookieDomain'), ('https' == $protocol), true, Config::getParam('cookieSamesite'));
+                ->addCookie($store->getKey() . '_legacy', $encoded, (new \DateTime($expire))->getTimestamp(), '/', $cookieDomain, ('https' == $protocol), true, null)
+                ->addCookie($store->getKey(), $encoded, (new \DateTime($expire))->getTimestamp(), '/', $cookieDomain, ('https' == $protocol), true, Config::getParam('cookieSamesite'));
         }
 
         if (isset($sessionUpgrade) && $sessionUpgrade && isset($session)) {
@@ -2893,11 +2905,13 @@ Http::put('/v1/account/sessions/magic-url')
     ->inject('queueForMails')
     ->inject('store')
     ->inject('proofForCode')
+    ->inject('domainVerification')
+    ->inject('cookieDomain')
     ->inject('authorization')
-    ->action(function ($userId, $secret, $request, $response, $user, $dbForProject, $project, $platform, $locale, $geodb, $queueForEvents, $queueForMails, $store, $proofForCode, $authorization) use ($createSession) {
+    ->action(function ($userId, $secret, $request, $response, $user, $dbForProject, $project, $platform, $locale, $geodb, $queueForEvents, $queueForMails, $store, $proofForCode, $domainVerification, $cookieDomain, $authorization) use ($createSession) {
         $proofForToken = new ProofsToken(TOKEN_LENGTH_MAGIC_URL);
         $proofForToken->setHash(new Sha());
-        $createSession($userId, $secret, $request, $response, $user, $dbForProject, $project, $platform, $locale, $geodb, $queueForEvents, $queueForMails, $store, $proofForToken, $proofForCode, $authorization);
+        $createSession($userId, $secret, $request, $response, $user, $dbForProject, $project, $platform, $locale, $geodb, $queueForEvents, $queueForMails, $store, $proofForToken, $proofForCode, $domainVerification, $cookieDomain, $authorization);
     });
 
 Http::put('/v1/account/sessions/phone')
@@ -2943,6 +2957,8 @@ Http::put('/v1/account/sessions/phone')
     ->inject('store')
     ->inject('proofForToken')
     ->inject('proofForCode')
+    ->inject('domainVerification')
+    ->inject('cookieDomain')
     ->inject('authorization')
     ->action($createSession);
 
@@ -3734,7 +3750,9 @@ Http::patch('/v1/account/status')
     ->inject('dbForProject')
     ->inject('queueForEvents')
     ->inject('store')
-    ->action(function (Request $request, Response $response, Document $user, Database $dbForProject, Event $queueForEvents, Store $store) {
+    ->inject('domainVerification')
+    ->inject('cookieDomain')
+    ->action(function (Request $request, Response $response, Document $user, Database $dbForProject, Event $queueForEvents, Store $store, bool $domainVerification, ?string $cookieDomain) {
 
         $user->setAttribute('status', false);
 
@@ -3744,14 +3762,14 @@ Http::patch('/v1/account/status')
             ->setParam('userId', $user->getId())
             ->setPayload($response->output($user, Response::MODEL_ACCOUNT));
 
-        if (!Config::getParam('domainVerification')) {
+        if (!$domainVerification) {
             $response->addHeader('X-Fallback-Cookies', \json_encode([]));
         }
 
         $protocol = $request->getProtocol();
         $response
-            ->addCookie($store->getKey() . '_legacy', '', \time() - 3600, '/', Config::getParam('cookieDomain'), ('https' == $protocol), true, null)
-            ->addCookie($store->getKey(), '', \time() - 3600, '/', Config::getParam('cookieDomain'), ('https' == $protocol), true, Config::getParam('cookieSamesite'))
+            ->addCookie($store->getKey() . '_legacy', '', \time() - 3600, '/', $cookieDomain, ('https' == $protocol), true, null)
+            ->addCookie($store->getKey(), '', \time() - 3600, '/', $cookieDomain, ('https' == $protocol), true, Config::getParam('cookieSamesite'))
         ;
 
         $response->dynamic($user, Response::MODEL_ACCOUNT);
@@ -3944,7 +3962,7 @@ Http::post('/v1/account/recovery')
             ->setParam('userId', $profile->getId())
             ->setParam('tokenId', $recovery->getId())
             ->setUser($profile)
-            ->setPayload(Response::showSensitive(fn () => $response->output($recovery, Response::MODEL_TOKEN)), sensitive: ['secret']);
+            ->setPayload($response->showSensitive(fn () => $response->output($recovery, Response::MODEL_TOKEN)), sensitive: ['secret']);
 
         $response
             ->setStatusCode(Response::STATUS_CODE_CREATED)
@@ -4045,7 +4063,7 @@ Http::put('/v1/account/recovery')
         $queueForEvents
             ->setParam('userId', $profile->getId())
             ->setParam('tokenId', $recoveryDocument->getId())
-            ->setPayload(Response::showSensitive(fn () => $response->output($recoveryDocument, Response::MODEL_TOKEN)), sensitive: ['secret']);
+            ->setPayload($response->showSensitive(fn () => $response->output($recoveryDocument, Response::MODEL_TOKEN)), sensitive: ['secret']);
 
         $response->dynamic($recoveryDocument, Response::MODEL_TOKEN);
     });
@@ -4275,7 +4293,7 @@ Http::post('/v1/account/verifications/email')
         $queueForEvents
             ->setParam('userId', $user->getId())
             ->setParam('tokenId', $verification->getId())
-            ->setPayload(Response::showSensitive(fn () => $response->output($verification, Response::MODEL_TOKEN)), sensitive: ['secret']);
+            ->setPayload($response->showSensitive(fn () => $response->output($verification, Response::MODEL_TOKEN)), sensitive: ['secret']);
 
         $response
             ->setStatusCode(Response::STATUS_CODE_CREATED)
@@ -4367,7 +4385,7 @@ Http::put('/v1/account/verifications/email')
         $queueForEvents
             ->setParam('userId', $userId)
             ->setParam('tokenId', $verification->getId())
-            ->setPayload(Response::showSensitive(fn () => $response->output($verification, Response::MODEL_TOKEN)), sensitive: ['secret']);
+            ->setPayload($response->showSensitive(fn () => $response->output($verification, Response::MODEL_TOKEN)), sensitive: ['secret']);
 
         $response->dynamic($verification, Response::MODEL_TOKEN);
     });
