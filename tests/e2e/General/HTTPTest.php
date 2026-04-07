@@ -127,6 +127,7 @@ class HTTPTest extends Scope
         $response = $this->client->call(Client::METHOD_GET, '/console/', $this->getHeaders());
 
         $this->assertEquals(404, $response['headers']['status-code']);
+        $this->assertEquals('general_route_not_found', $response['body']['type']);
     }
 
     public function testCors()
