@@ -105,8 +105,7 @@ class Update extends Action
      * @throws Exception
      * @throws \Throwable
      * @throws \Utopia\Database\Exception
-     * @throws Authorization
-     * @throws Structure
+     * @throws StructureException
      * @throws \Utopia\Http\Exception
      */
     public function action(string $transactionId, bool $commit, bool $rollback, Document $project, UtopiaResponse $response, Database $dbForProject, callable $getDatabasesDB, User $user, TransactionState $transactionState, Delete $queueForDeletes, Event $queueForEvents, Context $usage, Event $queueForRealtime, Event $queueForFunctions, Event $queueForWebhooks, Authorization $authorization, EventProcessor $eventProcessor): void
@@ -183,19 +182,33 @@ class Update extends Action
             $dbForDatabases = $getDatabasesDB($databaseDoc);
 
             try {
-                $dbForDatabases->withTransaction(function () use ($dbForDatabases, $dbForProject, $transactionState, $queueForDeletes, $transactionId, &$transaction, &$operations, &$totalOperations, &$databaseOperations, &$currentDocumentId, $queueForEvents, $usage, $queueForRealtime, $queueForFunctions, $queueForWebhooks, $authorization) {
-                    $authorization->skip(fn () => $dbForProject->updateDocument('transactions', $transactionId, new Document([
-                        'status' => 'committing',
-                    ])));
+                $transaction = $authorization->skip(fn () => $dbForProject->updateDocument(
+                    'transactions',
+                    $transactionId,
+                    new Document(['status' => 'committing'])
+                ));
 
-                    $operations = $authorization->skip(fn () => $dbForProject->find('transactionLogs', [
-                        Query::equal('transactionInternalId', [$transaction->getSequence()]),
-                        Query::orderAsc(),
-                        Query::limit(PHP_INT_MAX),
-                    ]));
+                $operations = $authorization->skip(fn () => $dbForProject->find('transactionLogs', [
+                    Query::equal('transactionInternalId', [$transaction->getSequence()]),
+                    Query::orderAsc(),
+                    Query::limit(PHP_INT_MAX),
+                ]));
 
+                $collections = [];
+                foreach ($operations as $operation) {
+                    $databaseInternalId = $operation['databaseInternalId'];
+                    $collectionInternalId = $operation['collectionInternalId'];
+                    $collectionId = "database_{$databaseInternalId}_collection_{$collectionInternalId}";
+
+                    if (!isset($collections[$collectionId])) {
+                        $collections[$collectionId] = $authorization->skip(
+                            fn () => $dbForProject->getCollection($collectionId)
+                        );
+                    }
+                }
+
+                $dbForDatabases->withTransaction(function () use ($dbForDatabases, $transactionState, &$operations, &$totalOperations, &$databaseOperations, &$currentDocumentId, $collections) {
                     $state = [];
-                    $collections = [];
 
                     foreach ($operations as $operation) {
                         $databaseInternalId = $operation['databaseInternalId'];
@@ -211,11 +224,6 @@ class Update extends Action
                             $data = $data->getArrayCopy();
                         }
 
-                        if (!isset($collections[$collectionId])) {
-                            $collections[$collectionId] = $authorization->skip(
-                                fn () => $dbForProject->getCollection($collectionId)
-                            );
-                        }
                         $collection = $collections[$collectionId];
 
                         if (\is_array($data) && !empty($data)) {
@@ -277,16 +285,17 @@ class Update extends Action
                         }
                     }
 
-                    $transaction = $authorization->skip(fn () => $dbForProject->updateDocument(
-                        'transactions',
-                        $transactionId,
-                        new Document(['status' => 'committed'])
-                    ));
-
-                    $queueForDeletes
-                        ->setType(DELETE_TYPE_DOCUMENT)
-                        ->setDocument($transaction);
                 });
+
+                $transaction = $authorization->skip(fn () => $dbForProject->updateDocument(
+                    'transactions',
+                    $transactionId,
+                    new Document(['status' => 'committed'])
+                ));
+
+                $queueForDeletes
+                    ->setType(DELETE_TYPE_DOCUMENT)
+                    ->setDocument($transaction);
             } catch (NotFoundException $e) {
                 $authorization->skip(fn () => $dbForProject->updateDocument('transactions', $transactionId, new Document([
                     'status' => 'failed',
