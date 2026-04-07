@@ -129,6 +129,78 @@ trait LabelsBase
         $this->updateLabels([]);
     }
 
+    public function testUpdateLabelsIdempotent(): void
+    {
+        $labels = ['stable', 'production'];
+
+        $first = $this->updateLabels($labels);
+        $this->assertSame(200, $first['headers']['status-code']);
+
+        $second = $this->updateLabels($labels);
+        $this->assertSame(200, $second['headers']['status-code']);
+
+        $this->assertSame($first['body']['labels'], $second['body']['labels']);
+
+        // Cleanup
+        $this->updateLabels([]);
+    }
+
+    public function testUpdateLabelsDeduplicatedOrder(): void
+    {
+        $response = $this->updateLabels(['b', 'a', 'b']);
+
+        $this->assertSame(200, $response['headers']['status-code']);
+        $this->assertCount(2, $response['body']['labels']);
+        $this->assertSame('b', $response['body']['labels'][0]);
+        $this->assertSame('a', $response['body']['labels'][1]);
+
+        // Cleanup
+        $this->updateLabels([]);
+    }
+
+    public function testUpdateLabelsInvalidHyphen(): void
+    {
+        $response = $this->updateLabels(['my-label']);
+
+        $this->assertSame(400, $response['headers']['status-code']);
+    }
+
+    public function testUpdateLabelsInvalidUnderscore(): void
+    {
+        $response = $this->updateLabels(['my_label']);
+
+        $this->assertSame(400, $response['headers']['status-code']);
+    }
+
+    public function testUpdateLabelsInvalidSpace(): void
+    {
+        $response = $this->updateLabels(['my label']);
+
+        $this->assertSame(400, $response['headers']['status-code']);
+    }
+
+    public function testUpdateLabelsInvalidEmptyString(): void
+    {
+        $response = $this->updateLabels(['']);
+
+        $this->assertSame(400, $response['headers']['status-code']);
+    }
+
+    public function testUpdateLabelsResponseModel(): void
+    {
+        $response = $this->updateLabels(['test']);
+
+        $this->assertSame(200, $response['headers']['status-code']);
+        $this->assertArrayHasKey('$id', $response['body']);
+        $this->assertArrayHasKey('name', $response['body']);
+        $this->assertArrayHasKey('labels', $response['body']);
+        $this->assertIsArray($response['body']['labels']);
+        $this->assertContains('test', $response['body']['labels']);
+
+        // Cleanup
+        $this->updateLabels([]);
+    }
+
     // Helpers
 
     /**
