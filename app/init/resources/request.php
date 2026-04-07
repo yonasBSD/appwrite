@@ -1335,7 +1335,7 @@ return function (Container $container): void {
                 if (\in_array($databaseHost, $dbTypeSharedTables)) {
                     $database
                         ->setSharedTables(true)
-                        ->setTenant((int) $project->getSequence())
+                        ->setTenant($project->getSequence())
                         ->setNamespace($databaseDSN->getParam('namespace'));
                 } else {
                     $database
