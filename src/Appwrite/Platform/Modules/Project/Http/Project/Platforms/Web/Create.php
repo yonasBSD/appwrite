@@ -89,17 +89,17 @@ class Create extends Base
     ) {
         $type = Platform::TYPE_WEB;
         $key = ''; // App platform attribute
-        
+
         // Backwards compatibility
         // Used to have: type, name, key, hostname
-        if(!empty($request->getParam('type', ''))) {
+        if (!empty($request->getParam('type', ''))) {
             // Validate deprecated type, and rename to new type
             $deprecatedtypeMapping = [
                 // Web
                 'web' => Platform::TYPE_WEB,
                 'flutter-web' => Platform::TYPE_WEB,
                 'unity' => Platform::TYPE_WEB, // Was not officially supported anyway
-                
+
                 // Apple
                 'flutter-macos' => Platform::TYPE_APPLE,
                 'flutter-ios' => Platform::TYPE_APPLE,
@@ -108,26 +108,26 @@ class Create extends Base
                 'apple-macos' => Platform::TYPE_APPLE,
                 'apple-watchos' => Platform::TYPE_APPLE,
                 'apple-tvos' => Platform::TYPE_APPLE,
-                
+
                 // Android
                 'flutter-android' => Platform::TYPE_ANDROID,
                 'android' => Platform::TYPE_ANDROID,
                 'react-native-android' => Platform::TYPE_ANDROID,
-                
+
                 'flutter-windows' => Platform::TYPE_WINDOWS,
             ];
-               
+
             $typeValidator = new WhiteList(\array_keys($deprecatedtypeMapping));
-            if(!$typeValidator->isValid($request->getParam('type', ''))) {
+            if (!$typeValidator->isValid($request->getParam('type', ''))) {
                 throw new Exception(Exception::GENERAL_BAD_REQUEST, 'Param "type" is invalid: ' . $typeValidator->getDescription());
             }
-            
+
             $type = $deprecatedtypeMapping[$request->getParam('type', '')] ?? Platform::TYPE_WEB;
-            
+
             // Validate deprecated app id (key)
             if (!empty($request->getParam('key', ''))) {
                 $keyValidator = new Text(256);
-                if(!$keyValidator->isValid($request->getParam('key', ''))) {
+                if (!$keyValidator->isValid($request->getParam('key', ''))) {
                     throw new Exception(Exception::GENERAL_BAD_REQUEST, 'Param "key" is invalid: ' . $keyValidator->getDescription());
                 }
                 $key = $request->getParam('key', '');
