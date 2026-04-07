@@ -10,7 +10,22 @@ class PlatformWeb extends PlatformBase
     public function __construct()
     {
         $this->conditions = [
-            'type' => Platform::TYPE_WEB,
+            'type' => [
+                Platform::TYPE_WEB,
+                // Backwards compatibility
+                'flutter-web',
+                'unity',
+                'flutter-macos',
+                'flutter-ios',
+                'react-native-ios',
+                'apple-ios',
+                'apple-macos',
+                'apple-watchos',
+                'apple-tvos',
+                'flutter-android',
+                'react-native-android',
+                'flutter-windows',
+            ],
         ];
 
         parent::__construct();

@@ -101,7 +101,23 @@ class Update extends Base
 
         // Wrapped in if, for backwards compatibility
         if (!empty($hostname)) {
-            if ($platform->getAttribute('type', '') !== Platform::TYPE_WEB) {
+            $supportedTypes = [
+                Platform::TYPE_WEB,
+                // Backwards compatibility
+                'flutter-web',
+                'unity',
+                'flutter-macos',
+                'flutter-ios',
+                'react-native-ios',
+                'apple-ios',
+                'apple-macos',
+                'apple-watchos',
+                'apple-tvos',
+                'flutter-android',
+                'react-native-android',
+                'flutter-windows',
+            ];
+            if (!in_array($platform->getAttribute('type', ''), $supportedTypes)) {
                 throw new Exception(Exception::PLATFORM_METHOD_UNSUPPORTED);
             }
         }

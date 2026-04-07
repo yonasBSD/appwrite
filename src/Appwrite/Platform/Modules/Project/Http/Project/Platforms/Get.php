@@ -84,7 +84,7 @@ class Get extends Base
             Platform::TYPE_ANDROID => Response::MODEL_PLATFORM_ANDROID,
             Platform::TYPE_WINDOWS => Response::MODEL_PLATFORM_WINDOWS,
             Platform::TYPE_LINUX => Response::MODEL_PLATFORM_LINUX,
-            default => throw new Exception(Exception::GENERAL_UNKNOWN, 'Platform type ' . $type . ' is not supported'),
+            default => Response::MODEL_PLATFORM_WEB // Backwards compatibility
         };
 
         $response->dynamic($platform, $model);
