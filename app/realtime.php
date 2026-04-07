@@ -701,7 +701,19 @@ $server->onOpen(function (int $connection, SwooleRequest $request) use ($server,
          * Channels Check
          */
         if (empty($channels)) {
-            throw new Exception(Exception::REALTIME_POLICY_VIOLATION, 'Missing channels');
+            // in case of message based 'subscribe' channels will be empty at first and only projectId and roles will be available
+            $connectedPayloadJson = json_encode([
+                'type' => 'connected',
+                'data' => [
+                    'channels' => [],
+                    'subscriptions' => [],
+                    'user' => $user
+                ]
+            ]);
+
+            $realtime->subscribe($project->getId(), $connection, '', $roles, [], []);
+            $server->send([$connection], $connectedPayloadJson);
+            return;
         }
 
         $names = array_keys($channels);
@@ -995,8 +1007,9 @@ $server->onMessage(function (int $connection, string $message) use ($server, $re
                     if (!is_array($payload['channels']) || !array_is_list($payload['channels'])) {
                         throw new Exception(Exception::REALTIME_MESSAGE_FORMAT_INVALID, 'channels is not a valid array.');
                     }
+                    // registering the queries if not present and check in the same payload later on
                     if (!array_key_exists('queries', $payload)) {
-                        throw new Exception(Exception::REALTIME_MESSAGE_FORMAT_INVALID, 'queries is not present in payload.');
+                        $payload['queries'] = [];
                     }
                     if (!is_array($payload['queries']) || !array_is_list($payload['queries'])) {
                         throw new Exception(Exception::REALTIME_MESSAGE_FORMAT_INVALID, 'queries is not a valid array.');

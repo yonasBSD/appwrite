@@ -27,7 +27,7 @@ class RealtimeCustomClientQueryTestWithMessage extends Scope
     /**
      * Same signature as `RealtimeBase::getWebsocket()`, but:
      * - never sends queries in the URL (avoids URL length limits)
-     * - once connected, updates the generated subscription using a bulk `type: "query"` message
+     * - once connected, sends channel/query data using a `type: "subscribe"` message
      */
     private function getWebsocket(
         array $channels = [],
@@ -42,7 +42,6 @@ class RealtimeCustomClientQueryTestWithMessage extends Scope
 
         $queryString = \http_build_query([
             'project' => $projectId,
-            'channels' => $channels,
         ]);
 
         $client = new WebSocketClient(
@@ -55,25 +54,30 @@ class RealtimeCustomClientQueryTestWithMessage extends Scope
         $connected = \json_decode($client->receive(), true);
         $this->assertEquals('connected', $connected['type'] ?? null);
 
-        if ($queries === null) {
+        if (empty($channels)) {
             return $client;
         }
-
-        $subscriptions = $connected['data']['subscriptions'] ?? [];
-        $this->assertNotEmpty($subscriptions);
-        $subscriptionId = $subscriptions[\array_key_first($subscriptions)];
 
         if ($queries === []) {
             $queries = [Query::select(['*'])->toString()];
         }
 
+        $payload = [[
+            'channels' => $channels,
+        ]];
+
+        if ($queries !== null) {
+            $payload[0]['queries'] = $queries;
+        }
+
+        $existingSubscriptions = $connected['data']['subscriptions'] ?? [];
+        if (!empty($existingSubscriptions)) {
+            $payload[0]['subscriptionId'] = $existingSubscriptions[\array_key_first($existingSubscriptions)];
+        }
+
         $client->send(\json_encode([
             'type' => 'subscribe',
-            'data' => [[
-                'subscriptionId' => $subscriptionId,
-                'channels' => $channels,
-                'queries' => $queries,
-            ]],
+            'data' => $payload,
         ]));
 
         $response = \json_decode($client->receive(), true);
@@ -101,7 +105,6 @@ class RealtimeCustomClientQueryTestWithMessage extends Scope
         $projectId = $this->getProject()['$id'];
         $queryString = \http_build_query([
             'project' => $projectId,
-            'channels' => $channels,
         ]);
 
         $client = new WebSocketClient(
@@ -114,14 +117,9 @@ class RealtimeCustomClientQueryTestWithMessage extends Scope
         $connected = \json_decode($client->receive(), true);
         $this->assertEquals('connected', $connected['type'] ?? null);
 
-        $subscriptions = $connected['data']['subscriptions'] ?? [];
-        $this->assertNotEmpty($subscriptions);
-        $subscriptionId = $subscriptions[\array_key_first($subscriptions)];
-
         $client->send(\json_encode([
             'type' => 'subscribe',
             'data' => [[
-                'subscriptionId' => $subscriptionId,
                 'channels' => $channels,
                 'queries' => $queryStrings,
             ]],
@@ -182,7 +180,6 @@ class RealtimeCustomClientQueryTestWithMessage extends Scope
 
         $queryString = \http_build_query([
             'project' => $projectId,
-            'channels' => ['documents'],
         ]);
         $client = new WebSocketClient(
             'ws://appwrite.test/v1/realtime?' . $queryString,
@@ -193,9 +190,12 @@ class RealtimeCustomClientQueryTestWithMessage extends Scope
         );
         $connected = \json_decode($client->receive(), true);
         $this->assertEquals('connected', $connected['type'] ?? null);
-        $mapping = $connected['data']['subscriptions'] ?? [];
-        $this->assertNotEmpty($mapping);
-        $initialSubscriptionId = $mapping[\array_key_first($mapping)];
+        $initialResponse = $this->sendSubscribeMessage($client, [[
+            'channels' => ['documents'],
+            'queries' => [Query::select(['*'])->toString()],
+        ]]);
+        $initialSubscriptionId = $initialResponse['data']['subscriptions'][0]['subscriptionId'] ?? '';
+        $this->assertNotEmpty($initialSubscriptionId);
 
         $q1 = [Query::equal('status', ['q1'])->toString()];
         $r1 = $this->sendSubscribeMessage($client, [[
@@ -373,7 +373,7 @@ class RealtimeCustomClientQueryTestWithMessage extends Scope
 
         $client = $this->getWebsocketWithCustomQuery(
             [
-                'channels' => ['project'],
+                'project' => $projectId,
             ],
             [
                 'origin' => 'http://localhost',
@@ -384,22 +384,18 @@ class RealtimeCustomClientQueryTestWithMessage extends Scope
 
         $response = \json_decode($client->receive(), true);
         $this->assertSame('connected', $response['type']);
-        $this->assertContains('project', $response['data']['channels']);
-        $this->assertArrayHasKey('subscriptions', $response['data']);
-        $this->assertIsArray($response['data']['subscriptions']);
-        $this->assertNotEmpty($response['data']['subscriptions']);
+        $subscribeResponse = $this->sendSubscribeMessage($client, [[
+            'channels' => ['project'],
+            'queries' => [Query::select(['*'])->toString()],
+        ]]);
+        $this->assertCount(1, $subscribeResponse['data']['subscriptions']);
+        $this->assertSame(['project'], $subscribeResponse['data']['subscriptions'][0]['channels']);
 
         $client->close();
 
-        $queryArray = [Query::select(['*'])->toString()];
         $clientWithQuery = $this->getWebsocketWithCustomQuery(
             [
-                'channels' => ['project'],
-                'project' => [
-                    0 => [
-                        0 => $queryArray[0],
-                    ],
-                ],
+                'project' => $projectId,
             ],
             [
                 'origin' => 'http://localhost',
@@ -410,10 +406,12 @@ class RealtimeCustomClientQueryTestWithMessage extends Scope
 
         $response = \json_decode($clientWithQuery->receive(), true);
         $this->assertSame('connected', $response['type']);
-        $this->assertContains('project', $response['data']['channels']);
-        $this->assertArrayHasKey('subscriptions', $response['data']);
-        $this->assertIsArray($response['data']['subscriptions']);
-        $this->assertNotEmpty($response['data']['subscriptions']);
+        $subscribeResponseWithQuery = $this->sendSubscribeMessage($clientWithQuery, [[
+            'channels' => ['project'],
+            'queries' => [Query::select(['*'])->toString()],
+        ]]);
+        $this->assertCount(1, $subscribeResponseWithQuery['data']['subscriptions']);
+        $this->assertSame(['project'], $subscribeResponseWithQuery['data']['subscriptions'][0]['channels']);
 
         $clientWithQuery->close();
     }

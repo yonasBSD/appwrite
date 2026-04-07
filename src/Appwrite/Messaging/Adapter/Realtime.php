@@ -74,18 +74,21 @@ class Realtime extends MessagingAdapter
         }
 
         $strings = [];
-        if (empty($queryGroup)) {
-            $strings[] = Query::select(['*'])->toString();
-        } else {
-            foreach ($queryGroup as $query) {
-                $strings[] = $query->toString();
-            }
-        }
+        $data = [];
 
-        $data = [
-            'strings' => $strings,
-            'compiled' => RuntimeQuery::compile($queryGroup),
-        ];
+        if (!empty($channels)) {
+            if (empty($queryGroup)) {
+                $strings[] = Query::select(['*'])->toString();
+            } else {
+                foreach ($queryGroup as $query) {
+                    $strings[] = $query->toString();
+                }
+            }
+            $data = [
+                'strings' => $strings,
+                'compiled' => RuntimeQuery::compile($queryGroup),
+            ];
+        }
 
         foreach ($roles as $role) {
             if (!isset($this->subscriptions[$projectId][$role])) {
