@@ -122,6 +122,13 @@ class HTTPTest extends Scope
         $this->assertEquals(200, $response['headers']['status-code']);
     }
 
+    public function testConsoleRootWithoutRouteDoesNotFatal()
+    {
+        $response = $this->client->call(Client::METHOD_GET, '/console/', $this->getHeaders());
+
+        $this->assertEquals(404, $response['headers']['status-code']);
+    }
+
     public function testCors()
     {
 

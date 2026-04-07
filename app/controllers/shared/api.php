@@ -401,6 +401,10 @@ Http::init()
             }
         }
 
+        if ($route === null) {
+            throw new AppwriteException(AppwriteException::GENERAL_ROUTE_NOT_FOUND);
+        }
+
         // Steps 7-9: Access Control - Method, Namespace and Scope Validation
         /**
          * @var ?Method $method
@@ -489,6 +493,10 @@ Http::init()
         $request->setUser($user);
 
         $route = $utopia->getRoute();
+        if ($route === null) {
+            throw new AppwriteException(AppwriteException::GENERAL_ROUTE_NOT_FOUND);
+        }
+
         $path = $route->getMatchedPath();
         $databaseType = match (true) {
             str_contains($path, '/documentsdb') => DATABASE_TYPE_DOCUMENTSDB,
