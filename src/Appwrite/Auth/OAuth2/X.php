@@ -252,6 +252,10 @@ class X extends OAuth2
 
         $data = OpenSSL::encrypt($verifier, OpenSSL::CIPHER_AES_128_GCM, $key, OPENSSL_RAW_DATA, $iv, $tag);
 
+        if ($data === false || $tag === null) {
+            throw new \RuntimeException('Failed to encrypt PKCE verifier.');
+        }
+
         return [
             'data' => $this->base64UrlEncode($data),
             'iv' => \bin2hex($iv),
