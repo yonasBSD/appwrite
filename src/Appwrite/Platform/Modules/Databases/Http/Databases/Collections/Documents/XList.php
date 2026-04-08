@@ -170,7 +170,7 @@ class XList extends Action
                     if ($cachedTotal !== null && $cachedTotal !== false) {
                         $total = $cachedTotal;
                     } else {
-                        $total = $dbForProject->count($collectionTableId, $queries, APP_LIMIT_COUNT);
+                        $total = $dbForDatabases->count($collectionTableId, $queries, APP_LIMIT_COUNT);
                         $dbForProject->getCache()->save($cacheKey, $total, $totalField);
                     }
                 } else {
