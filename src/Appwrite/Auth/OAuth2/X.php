@@ -71,15 +71,10 @@ class X extends OAuth2
     protected function getTokens(string $code): array
     {
         if (empty($this->tokens)) {
-            $headers = [
-                'Authorization: Basic ' . \base64_encode($this->appID . ':' . $this->appSecret),
-                'Content-Type: application/x-www-form-urlencoded',
-            ];
-
-            $this->tokens = \json_decode($this->request(
+            $this->tokens = $this->decodeJsonObject($this->request(
                 'POST',
                 'https://api.x.com/2/oauth2/token',
-                $headers,
+                $this->tokenEndpointHeaders(),
                 \http_build_query([
                     'code' => $code,
                     'client_id' => $this->appID,
@@ -87,7 +82,7 @@ class X extends OAuth2
                     'redirect_uri' => $this->callback,
                     'code_verifier' => $this->getPKCEVerifier(),
                 ])
-            ), true);
+            ));
         }
 
         return $this->tokens;
@@ -100,21 +95,16 @@ class X extends OAuth2
      */
     public function refreshTokens(string $refreshToken): array
     {
-        $headers = [
-            'Authorization: Basic ' . \base64_encode($this->appID . ':' . $this->appSecret),
-            'Content-Type: application/x-www-form-urlencoded',
-        ];
-
-        $this->tokens = \json_decode($this->request(
+        $this->tokens = $this->decodeJsonObject($this->request(
             'POST',
             'https://api.x.com/2/oauth2/token',
-            $headers,
+            $this->tokenEndpointHeaders(),
             \http_build_query([
                 'client_id' => $this->appID,
                 'refresh_token' => $refreshToken,
                 'grant_type' => 'refresh_token',
             ])
-        ), true);
+        ));
 
         if (empty($this->tokens['refresh_token'])) {
             $this->tokens['refresh_token'] = $refreshToken;
@@ -182,38 +172,62 @@ class X extends OAuth2
     protected function getUser(string $accessToken): array
     {
         if (empty($this->user)) {
-            $this->user = \json_decode($this->request(
+            $this->user = $this->decodeJsonObject($this->request(
                 'GET',
                 'https://api.x.com/2/users/me?user.fields=confirmed_email',
                 ['Authorization: Bearer ' . $accessToken]
-            ), true);
+            ));
         }
 
         return $this->user;
     }
 
-    public function parseState(string $state)
+    /**
+     * @return array<string, mixed>|null
+     */
+    public function parseState(string $state): ?array
     {
         $decoded = $this->base64UrlDecode($state);
         if ($decoded === false) {
             return null;
         }
 
-        $state = \json_decode($decoded, true);
+        $parsed = \json_decode($decoded, true);
 
-        if (!\is_array($state)) {
-            return $state;
+        if (!\is_array($parsed)) {
+            return null;
         }
 
-        $pkce = $state[self::PKCE_STATE_KEY] ?? null;
+        $pkce = $parsed[self::PKCE_STATE_KEY] ?? null;
 
         if (\is_array($pkce)) {
             $this->pkceVerifier = $this->decryptPKCEVerifier($pkce);
         }
 
-        unset($state[self::PKCE_STATE_KEY]);
+        unset($parsed[self::PKCE_STATE_KEY]);
 
-        return $state;
+        return $parsed;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function tokenEndpointHeaders(): array
+    {
+        return [
+            'Authorization: Basic ' . \base64_encode($this->appID . ':' . $this->appSecret),
+            'Content-Type: application/x-www-form-urlencoded',
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function decodeJsonObject(string $json): array
+    {
+        $decoded = \json_decode($json, true);
+
+        return \is_array($decoded) ? $decoded : [];
     }
 
     private function getPKCEVerifier(): string
@@ -275,7 +289,13 @@ class X extends OAuth2
 
     private function getPKCEStateKey(): string
     {
-        return System::getEnv('_APP_OPENSSL_KEY_V1');
+        $key = System::getEnv('_APP_OPENSSL_KEY_V1', '');
+
+        if ($key === '') {
+            throw new \RuntimeException('X OAuth2 requires _APP_OPENSSL_KEY_V1 to encrypt PKCE state.');
+        }
+
+        return $key;
     }
 
     private function base64UrlEncode(string $value): string
