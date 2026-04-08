@@ -33,7 +33,7 @@ class Delete extends Action
             ->httpAlias('/v1/projects/:projectId/platforms/:platformId')
             ->desc('Delete project platform')
             ->groups(['api', 'project'])
-            ->label('scope', 'project.write')
+            ->label('scope', 'platforms.write')
             ->label('event', 'platforms.[platformId].delete')
             ->label('audits.event', 'project.platform.delete')
             ->label('audits.resource', 'project.platform/{response.$id}')
