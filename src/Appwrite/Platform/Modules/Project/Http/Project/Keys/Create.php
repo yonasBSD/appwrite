@@ -2,7 +2,6 @@
 
 namespace Appwrite\Platform\Modules\Project\Http\Project\Keys;
 
-use Appwrite\Auth\Key;
 use Appwrite\Event\Event as QueueEvent;
 use Appwrite\Extend\Exception;
 use Appwrite\Platform\Modules\Compute\Base;
@@ -70,7 +69,6 @@ class Create extends Base
             ->inject('dbForPlatform')
             ->inject('project')
             ->inject('authorization')
-            ->inject('apiKey')
             ->callback($this->action(...));
     }
 
@@ -87,25 +85,8 @@ class Create extends Base
         Database $dbForPlatform,
         Document $project,
         Authorization $authorization,
-        ?Key $apiKey,
     ) {
         $keyId = ($keyId == 'unique()') ? ID::unique() : $keyId;
-
-        $isProjectApiKey = $apiKey !== null && !empty($apiKey->getProjectId());
-
-        if ($isProjectApiKey) {
-            if (!empty(\array_diff($scopes ?? [], $apiKey->getScopes()))) {
-                throw new Exception(Exception::GENERAL_ARGUMENT_INVALID, 'New API key cannot exceed scopes of currently authenticated API key.');
-            }
-
-            if (\is_null($expire) && !\is_null($apiKey->getExpire())) {
-                throw new Exception(Exception::GENERAL_ARGUMENT_INVALID, 'New API key must have expiry set, because currently authenticated API key has an expiry.');
-            }
-
-            if (!\is_null($expire) && !\is_null($apiKey->getExpire()) && $expire > $apiKey->getExpire()) {
-                throw new Exception(Exception::GENERAL_ARGUMENT_INVALID, 'New API key expiry must be sooner than currently authenticated API key expiry.');
-            }
-        }
 
         $key = new Document([
             '$id' => $keyId,

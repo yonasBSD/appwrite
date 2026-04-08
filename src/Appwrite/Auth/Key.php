@@ -22,7 +22,6 @@ class Key
         protected array $scopes,
         protected string $name,
         protected bool $expired = false,
-        protected ?string $expire = null,
         protected array $disabledMetrics = [],
         protected bool $hostnameOverride = false,
         protected bool $bannerDisabled = false,
@@ -70,11 +69,6 @@ class Key
     public function isExpired(): bool
     {
         return $this->expired;
-    }
-
-    public function getExpire(): ?string
-    {
-        return $this->expire;
     }
 
     public function getDisabledMetrics(): array
@@ -182,7 +176,6 @@ class Key
                     $scopes,
                     $name,
                     $expired,
-                    DateTime::addSeconds(new \DateTime(), 86400), // Max possible JWT expiry
                     $disabledMetrics,
                     $hostnameOverride,
                     $bannerDisabled,
@@ -217,8 +210,7 @@ class Key
                     $role,
                     $scopes,
                     $name,
-                    $expired,
-                    $expire,
+                    $expired
                 );
             case API_KEY_ACCOUNT:
                 $key = $user->find(
@@ -252,8 +244,7 @@ class Key
                     $role,
                     $scopes,
                     $name,
-                    $expired,
-                    $expire,
+                    $expired
                 );
 
                 return $key;
@@ -289,8 +280,7 @@ class Key
                     $role,
                     $scopes,
                     $name,
-                    $expired,
-                    $expire,
+                    $expired
                 );
 
                 return $key;
