@@ -25,6 +25,7 @@ class PlatformWeb extends PlatformBase
                 'flutter-android',
                 'react-native-android',
                 'flutter-windows',
+                'flutter-linux',
             ],
         ];
 
@@ -39,6 +40,7 @@ class PlatformWeb extends PlatformBase
             ])
             // Backwards compatibility
             ->addRule('key', [
+                'hidden' => true,
                 'type' => self::TYPE_STRING,
                 'description' => 'Deprecated for old versions using alias endpoint to create universal platform.',
                 'default' => '',

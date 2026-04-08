@@ -5,7 +5,6 @@ namespace Appwrite\Platform\Modules\Project\Http\Project\Platforms\Windows;
 use Appwrite\Event\Event as QueueEvent;
 use Appwrite\Extend\Exception;
 use Appwrite\Network\Platform;
-use Appwrite\Platform\Modules\Compute\Base;
 use Appwrite\SDK\AuthType;
 use Appwrite\SDK\Method;
 use Appwrite\SDK\Response as SDKResponse;
@@ -20,7 +19,7 @@ use Utopia\Platform\Action;
 use Utopia\Platform\Scope\HTTP;
 use Utopia\Validator\Text;
 
-class Create extends Base
+class Create extends Action
 {
     use HTTP;
 

@@ -5,7 +5,6 @@ namespace Appwrite\Platform\Modules\Project\Http\Project\Platforms\Web;
 use Appwrite\Event\Event as QueueEvent;
 use Appwrite\Extend\Exception;
 use Appwrite\Network\Platform;
-use Appwrite\Platform\Modules\Compute\Base;
 use Appwrite\SDK\AuthType;
 use Appwrite\SDK\Method;
 use Appwrite\SDK\Response as SDKResponse;
@@ -20,7 +19,7 @@ use Utopia\Platform\Scope\HTTP;
 use Utopia\Validator\Hostname;
 use Utopia\Validator\Text;
 
-class Update extends Base
+class Update extends Action
 {
     use HTTP;
 
@@ -116,6 +115,7 @@ class Update extends Base
                 'flutter-android',
                 'react-native-android',
                 'flutter-windows',
+                'flutter-linux',
             ];
             if (!in_array($platform->getAttribute('type', ''), $supportedTypes)) {
                 throw new Exception(Exception::PLATFORM_METHOD_UNSUPPORTED);

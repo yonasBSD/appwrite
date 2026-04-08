@@ -5,7 +5,6 @@ namespace Appwrite\Platform\Modules\Project\Http\Project\Platforms\Apple;
 use Appwrite\Event\Event as QueueEvent;
 use Appwrite\Extend\Exception;
 use Appwrite\Network\Platform;
-use Appwrite\Platform\Modules\Compute\Base;
 use Appwrite\SDK\AuthType;
 use Appwrite\SDK\Method;
 use Appwrite\SDK\Response as SDKResponse;
@@ -19,7 +18,7 @@ use Utopia\Platform\Action;
 use Utopia\Platform\Scope\HTTP;
 use Utopia\Validator\Text;
 
-class Update extends Base
+class Update extends Action
 {
     use HTTP;
 

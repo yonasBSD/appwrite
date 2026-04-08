@@ -9,11 +9,6 @@ use Utopia\Database\Document;
 
 class Project extends Model
 {
-    /**
-     * @var bool
-     */
-    protected bool $public = true;
-
     public function __construct()
     {
         $this

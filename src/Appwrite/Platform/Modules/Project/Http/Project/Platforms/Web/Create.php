@@ -5,7 +5,6 @@ namespace Appwrite\Platform\Modules\Project\Http\Project\Platforms\Web;
 use Appwrite\Event\Event as QueueEvent;
 use Appwrite\Extend\Exception;
 use Appwrite\Network\Platform;
-use Appwrite\Platform\Modules\Compute\Base;
 use Appwrite\SDK\AuthType;
 use Appwrite\SDK\Method;
 use Appwrite\SDK\Response as SDKResponse;
@@ -27,7 +26,7 @@ use Utopia\Validator\WhiteList;
  * WARNING: This kind of platform has most complex action, because it holds backwards compatibility too.
  * If possible, refer to any other type of platform for APIs, for more simpler endpoint.
  */
-class Create extends Base
+class Create extends Action
 {
     use HTTP;
 
@@ -96,9 +95,8 @@ class Create extends Base
         // Backwards compatibility
         // Used to have: type, name, key, hostname
         if (!empty($type)) {
-
             // Validate deprecated type, and rename to new type
-            $deprecatedtypeMapping = [
+            $deprecatedTypeMapping = [
                 // Web
                 'web' => Platform::TYPE_WEB,
                 'flutter-web' => Platform::TYPE_WEB,
@@ -118,15 +116,16 @@ class Create extends Base
                 'android' => Platform::TYPE_ANDROID,
                 'react-native-android' => Platform::TYPE_ANDROID,
 
+                'flutter-linux' => Platform::TYPE_LINUX,
                 'flutter-windows' => Platform::TYPE_WINDOWS,
             ];
 
-            $typeValidator = new WhiteList(\array_keys($deprecatedtypeMapping));
+            $typeValidator = new WhiteList(\array_keys($deprecatedTypeMapping));
             if (!$typeValidator->isValid($request->getParam('type', ''))) {
                 throw new Exception(Exception::GENERAL_BAD_REQUEST, 'Param "type" is invalid: ' . $typeValidator->getDescription());
             }
 
-            $type = $deprecatedtypeMapping[$request->getParam('type', '')] ?? '';
+            $type = $deprecatedTypeMapping[$request->getParam('type', '')] ?? '';
         }
 
         if (!empty($key)) {

@@ -1181,7 +1181,7 @@ return [
     ],
     Exception::PLATFORM_METHOD_UNSUPPORTED => [
         'name' => Exception::PLATFORM_METHOD_UNSUPPORTED,
-        'description' => 'The requested platform has invalid type. Please use coresponding update method for the platform type.',
+        'description' => 'The requested platform has invalid type. Please use corresponding update method for the platform type.',
         'code' => 400,
     ],
     Exception::PLATFORM_ALREADY_EXISTS => [

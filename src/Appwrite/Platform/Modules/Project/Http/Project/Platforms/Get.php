@@ -4,7 +4,6 @@ namespace Appwrite\Platform\Modules\Project\Http\Project\Platforms;
 
 use Appwrite\Extend\Exception;
 use Appwrite\Network\Platform;
-use Appwrite\Platform\Modules\Compute\Base;
 use Appwrite\SDK\AuthType;
 use Appwrite\SDK\Method;
 use Appwrite\SDK\Response as SDKResponse;
@@ -16,7 +15,7 @@ use Utopia\Database\Validator\UID;
 use Utopia\Platform\Action;
 use Utopia\Platform\Scope\HTTP;
 
-class Get extends Base
+class Get extends Action
 {
     use HTTP;
 
