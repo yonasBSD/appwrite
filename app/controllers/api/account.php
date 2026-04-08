@@ -1341,13 +1341,12 @@ Http::get('/v1/account/sessions/oauth2/:provider')
     ->inject('project')
     ->inject('platform')
     ->action(function (string $provider, string $success, string $failure, array $scopes, Request $request, Response $response, Document $project, array $platform) use ($oauthDefaultSuccess, $oauthDefaultFailure) {
-        $protocol = $request->getProtocol();
-        $port = (string) $request->getPort();
+        $protocol = System::getEnv('_APP_OPTIONS_FORCE_HTTPS') === 'disabled' ? 'http' : 'https';
+        $port = $request->getPort();
         $callbackBase = $protocol . '://' . $request->getHostname();
-        if (
-            $port !== ''
-            && !(($protocol === 'https' && $port === '443') || ($protocol === 'http' && $port === '80'))
-        ) {
+        if ($protocol === 'https' && $port !== '443') {
+            $callbackBase .= ':' . $port;
+        } elseif ($protocol === 'http' && $port !== '80') {
             $callbackBase .= ':' . $port;
         }
 
@@ -1398,12 +1397,10 @@ Http::get('/v1/account/sessions/oauth2/:provider')
             'token' => false,
         ], $scopes);
 
-        $loginURL = $oauth2->getLoginURL();
-
         $response
             ->addHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
             ->addHeader('Pragma', 'no-cache')
-            ->redirect($loginURL);
+            ->redirect($oauth2->getLoginURL());
     });
 
 Http::get('/v1/account/sessions/oauth2/callback/:provider/:projectId')
@@ -1421,13 +1418,12 @@ Http::get('/v1/account/sessions/oauth2/callback/:provider/:projectId')
     ->inject('request')
     ->inject('response')
     ->action(function (string $projectId, string $provider, string $code, string $state, string $error, string $error_description, Request $request, Response $response) {
-        $protocol = $request->getProtocol();
-        $port = (string) $request->getPort();
+        $protocol = System::getEnv('_APP_OPTIONS_FORCE_HTTPS') === 'disabled' ? 'http' : 'https';
+        $port = $request->getPort();
         $callbackBase = $protocol . '://' . $request->getHostname();
-        if (
-            $port !== ''
-            && !(($protocol === 'https' && $port === '443') || ($protocol === 'http' && $port === '80'))
-        ) {
+        if ($protocol === 'https' && $port !== '443') {
+            $callbackBase .= ':' . $port;
+        } elseif ($protocol === 'http' && $port !== '80') {
             $callbackBase .= ':' . $port;
         }
 
@@ -1458,13 +1454,12 @@ Http::post('/v1/account/sessions/oauth2/callback/:provider/:projectId')
     ->inject('request')
     ->inject('response')
     ->action(function (string $projectId, string $provider, string $code, string $state, string $error, string $error_description, Request $request, Response $response) {
-        $protocol = $request->getProtocol();
-        $port = (string) $request->getPort();
+        $protocol = System::getEnv('_APP_OPTIONS_FORCE_HTTPS') === 'disabled' ? 'http' : 'https';
+        $port = $request->getPort();
         $callbackBase = $protocol . '://' . $request->getHostname();
-        if (
-            $port !== ''
-            && !(($protocol === 'https' && $port === '443') || ($protocol === 'http' && $port === '80'))
-        ) {
+        if ($protocol === 'https' && $port !== '443') {
+            $callbackBase .= ':' . $port;
+        } elseif ($protocol === 'http' && $port !== '80') {
             $callbackBase .= ':' . $port;
         }
 
@@ -1511,13 +1506,12 @@ Http::get('/v1/account/sessions/oauth2/:provider/redirect')
     ->inject('proofForToken')
     ->inject('authorization')
     ->action(function (string $provider, string $code, string $state, string $error, string $error_description, Request $request, Response $response, Document $project, Validator $redirectValidator, Document $devKey, User $user, Database $dbForProject, Database $dbForPlatform, Reader $geodb, Event $queueForEvents, Store $store, ProofsPassword $proofForPassword, ProofsToken $proofForToken, Authorization $authorization) use ($oauthDefaultSuccess) {
-        $protocol = $request->getProtocol();
-        $port = (string) $request->getPort();
+        $protocol = System::getEnv('_APP_OPTIONS_FORCE_HTTPS') === 'disabled' ? 'http' : 'https';
+        $port = $request->getPort();
         $callbackBase = $protocol . '://' . $request->getHostname();
-        if (
-            $port !== ''
-            && !(($protocol === 'https' && $port === '443') || ($protocol === 'http' && $port === '80'))
-        ) {
+        if ($protocol === 'https' && $port !== '443') {
+            $callbackBase .= ':' . $port;
+        } elseif ($protocol === 'http' && $port !== '80') {
             $callbackBase .= ':' . $port;
         }
 
@@ -2054,13 +2048,12 @@ Http::get('/v1/account/tokens/oauth2/:provider')
     ->inject('project')
     ->inject('platform')
     ->action(function (string $provider, string $success, string $failure, array $scopes, Request $request, Response $response, Document $project, array $platform) use ($oauthDefaultSuccess, $oauthDefaultFailure) {
-        $protocol = $request->getProtocol();
-        $port = (string) $request->getPort();
+        $protocol = System::getEnv('_APP_OPTIONS_FORCE_HTTPS') === 'disabled' ? 'http' : 'https';
+        $port = $request->getPort();
         $callbackBase = $protocol . '://' . $request->getHostname();
-        if (
-            $port !== ''
-            && !(($protocol === 'https' && $port === '443') || ($protocol === 'http' && $port === '80'))
-        ) {
+        if ($protocol === 'https' && $port !== '443') {
+            $callbackBase .= ':' . $port;
+        } elseif ($protocol === 'http' && $port !== '80') {
             $callbackBase .= ':' . $port;
         }
 
@@ -2090,13 +2083,12 @@ Http::get('/v1/account/tokens/oauth2/:provider')
         }
 
         $host = $platform['consoleHostname'] ?? '';
-        $protocol = $request->getProtocol();
-        $port = (string) $request->getPort();
+        $protocol = System::getEnv('_APP_OPTIONS_FORCE_HTTPS') === 'disabled' ? 'http' : 'https';
+        $port = $request->getPort();
         $redirectBase = $protocol . '://' . $host;
-        if (
-            $port !== ''
-            && !(($protocol === 'https' && $port === '443') || ($protocol === 'http' && $port === '80'))
-        ) {
+        if ($protocol === 'https' && $port !== '443') {
+            $redirectBase .= ':' . $port;
+        } elseif ($protocol === 'http' && $port !== '80') {
             $redirectBase .= ':' . $port;
         }
 
