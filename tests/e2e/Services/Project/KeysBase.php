@@ -698,18 +698,15 @@ trait KeysBase
     /**
      * @param array<string>|null $scopes
      */
-    protected function createKey(string $keyId, ?string $name, ?array $scopes = null, ?string $expire = null, bool $authenticated = true, bool $sendScopes = true): mixed
+    protected function createKey(string $keyId, ?string $name, ?array $scopes = null, ?string $expire = null, bool $authenticated = true): mixed
     {
         $params = [
             'keyId' => $keyId,
+            'scopes' => $scopes,
         ];
 
         if ($name !== null) {
             $params['name'] = $name;
-        }
-
-        if ($sendScopes) {
-            $params['scopes'] = $scopes;
         }
 
         if ($expire !== null) {
