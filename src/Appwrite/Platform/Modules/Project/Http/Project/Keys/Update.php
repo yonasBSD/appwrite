@@ -39,7 +39,7 @@ class Update extends Base
             ->httpAlias('/v1/projects/:projectId/keys/:keyId')
             ->desc('Update project key')
             ->groups(['api', 'project'])
-            ->label('scope', 'project.write')
+            ->label('scope', 'keys.write')
             ->label('event', 'keys.[keyId].update')
             ->label('audits.event', 'project.key.update')
             ->label('audits.resource', 'project.key/{response.$id}')

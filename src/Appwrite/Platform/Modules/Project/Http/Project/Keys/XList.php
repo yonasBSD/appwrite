@@ -37,7 +37,7 @@ class XList extends Base
             ->httpAlias('/v1/projects/:projectId/keys')
             ->desc('List project keys')
             ->groups(['api', 'project'])
-            ->label('scope', 'project.read')
+            ->label('scope', 'keys.read')
             ->label('sdk', new Method(
                 namespace: 'project',
                 group: 'keys',

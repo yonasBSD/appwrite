@@ -34,7 +34,7 @@ class Delete extends Base
             ->httpAlias('/v1/projects/:projectId/keys/:keyId')
             ->desc('Delete project key')
             ->groups(['api', 'project'])
-            ->label('scope', 'project.write')
+            ->label('scope', 'keys.write')
             ->label('event', 'keys.[keyId].delete')
             ->label('audits.event', 'project.key.delete')
             ->label('audits.resource', 'project.key/{request.keyId}')

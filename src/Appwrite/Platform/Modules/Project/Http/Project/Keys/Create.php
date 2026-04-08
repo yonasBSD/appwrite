@@ -41,7 +41,7 @@ class Create extends Base
             ->httpAlias('/v1/projects/:projectId/keys')
             ->desc('Create project key')
             ->groups(['api', 'project'])
-            ->label('scope', 'project.write')
+            ->label('scope', 'keys.write')
             ->label('event', 'keys.[keyId].create')
             ->label('audits.event', 'project.key.create')
             ->label('audits.resource', 'project.key/{response.$id}')
