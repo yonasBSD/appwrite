@@ -72,7 +72,7 @@ class XList extends Action
             ->param('queries', [], new ArrayList(new Text(APP_LIMIT_ARRAY_ELEMENT_SIZE), APP_LIMIT_ARRAY_PARAMS_SIZE), 'Array of query strings generated using the Query class provided by the SDK. [Learn more about queries](https://appwrite.io/docs/queries). Maximum of ' . APP_LIMIT_ARRAY_PARAMS_SIZE . ' queries are allowed, each ' . APP_LIMIT_ARRAY_ELEMENT_SIZE . ' characters long.', true)
             ->param('transactionId', null, fn (Database $dbForProject) => new Nullable(new UID($dbForProject->getAdapter()->getMaxUIDLength())), 'Transaction ID to read uncommitted changes within the transaction.', true, ['dbForProject'])
             ->param('total', true, new Boolean(true), 'When set to false, the total count returned will be 0 and will not be calculated.', true)
-            ->param('ttl', 0, new Range(min: 0, max: 86400), 'TTL (seconds) for cached responses when caching is enabled for select queries. Must be between 0 and 86400 (24 hours).', true)
+            ->param('ttl', 0, new Range(min: 0, max: 86400), 'TTL (seconds) for caching list responses that include a select query. Responses are stored in an in-memory key-value cache, keyed per project, collection, schema version (attributes and indexes), caller authorization roles, and the exact query — so users with different permissions never share cached entries. Schema changes invalidate cached entries automatically; document writes do not, so choose a TTL you are comfortable serving as stale data. Set to 0 to disable caching. Must be between 0 and 86400 (24 hours).', true)
             ->inject('response')
             ->inject('dbForProject')
             ->inject('user')
@@ -136,32 +136,12 @@ class XList extends Action
             } elseif (! empty($selectQueries)) {
 
                 if ((int)$ttl > 0) {
-                    $serializedQueries = [];
-                    foreach ($queries as $query) {
-                        $serializedQueries[] = $query instanceof Query ? $query->toArray() : $query;
-                    }
-
-                    $hostname = $dbForProject->getAdapter()->getHostname();
+                    $cacheKey = $this->getListCacheKey($dbForProject, $collectionId);
                     $roles = $dbForProject->getAuthorization()->getRoles();
-                    $schemaHash = \md5(\json_encode($collection->getAttribute('attributes', [])) . \json_encode($collection->getAttribute('indexes', [])));
-                    $cacheKeyBase = \sprintf(
-                        '%s-cache-%s:%s:%s:collection:%s:%s:user:%s:%s',
-                        $dbForProject->getCacheName(),
-                        $hostname,
-                        $dbForProject->getNamespace(),
-                        $dbForProject->getTenant(),
-                        $collectionId,
-                        $schemaHash,
-                        \md5(\json_encode($roles)),
-                        \md5(\json_encode($serializedQueries))
-                    );
+                    $documentsField = $this->getListCacheField($collection, $roles, $queries, self::LIST_CACHE_FIELD_DOCUMENTS);
 
-                    $documentsCacheKey = $cacheKeyBase . ':documents';
-                    $totalCacheKey = $cacheKeyBase . ':total';
-
-                    $documentsCacheHit = $totalDocumentsCacheHit = false;
-
-                    $cachedDocuments = $dbForProject->getCache()->load($documentsCacheKey, $ttl);
+                    $documentsCacheHit = false;
+                    $cachedDocuments = $dbForProject->getCache()->load($cacheKey, $ttl, $documentsField);
 
                     if ($cachedDocuments !== null &&
                         $cachedDocuments !== false &&
@@ -177,24 +157,23 @@ class XList extends Action
                         $documentsArray = \array_map(function ($doc) {
                             return $doc->getArrayCopy();
                         }, $documents);
-                        $dbForProject->getCache()->save($documentsCacheKey, $documentsArray);
+                        $dbForProject->getCache()->save($cacheKey, $documentsArray, $documentsField);
                     }
 
                     if ($includeTotal) {
-                        $cachedTotal = $dbForProject->getCache()->load($totalCacheKey, $ttl);
+                        $totalField = $this->getListCacheField($collection, $roles, $queries, self::LIST_CACHE_FIELD_TOTAL);
+                        $cachedTotal = $dbForProject->getCache()->load($cacheKey, $ttl, $totalField);
                         if ($cachedTotal !== null && $cachedTotal !== false) {
                             $total = $cachedTotal;
-                            $totalDocumentsCacheHit = true;
                         } else {
                             $total = $dbForProject->count($collectionTableId, $queries, APP_LIMIT_COUNT);
-                            $dbForProject->getCache()->save($totalCacheKey, $total);
+                            $dbForProject->getCache()->save($cacheKey, $total, $totalField);
                         }
                     } else {
                         $total = 0;
                     }
 
                     $response->addHeader('X-Appwrite-Cache', $documentsCacheHit ? 'hit' : 'miss');
-
                 } else {
                     // has selects, allow relationship on documents
                     $documents = $dbForDatabases->find($collectionTableId, $queries);
