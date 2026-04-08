@@ -42,7 +42,7 @@ class Create extends Action
                 namespace: 'project',
                 group: 'variables',
                 name: 'createVariable',
-                description: <<<'EOT'
+                description: <<<EOT
                 Create a new project environment variable. These variables can be accessed by all functions and sites in the project.
                 EOT,
                 auth: [AuthType::ADMIN, AuthType::KEY],
@@ -50,13 +50,13 @@ class Create extends Action
                     new SDKResponse(
                         code: Response::STATUS_CODE_CREATED,
                         model: Response::MODEL_VARIABLE,
-                    ),
+                    )
                 ],
             ))
             ->param('variableId', 'unique()', fn (Database $dbForProject) => new CustomId(false, $dbForProject->getAdapter()->getMaxUIDLength()), 'Variable ID. Choose a custom ID or generate a random ID with `ID.unique()`. Valid chars are a-z, A-Z, 0-9, period, hyphen, and underscore. Can\'t start with a special char. Max length is 36 chars.', true, ['dbForProject'])
-            ->param('key', null, new Text(Database::LENGTH_KEY), 'Variable key. Max length: '.Database::LENGTH_KEY.' chars.')
+            ->param('key', null, new Text(Database::LENGTH_KEY), 'Variable key. Max length: ' . Database::LENGTH_KEY  . ' chars.')
             ->param('value', null, new Text(8192, 0), 'Variable value. Max length: 8192 chars.')
-            ->param('secret', true, new Boolean, 'Secret variables can be updated or deleted, but only projects can read them during build and runtime.', true)
+            ->param('secret', true, new Boolean(), 'Secret variables can be updated or deleted, but only projects can read them during build and runtime.', true)
             ->inject('response')
             ->inject('queueForEvents')
             ->inject('dbForProject')
@@ -94,7 +94,7 @@ class Create extends Action
 
         foreach (['functions', 'sites'] as $collection) {
             $dbForProject->updateDocuments($collection, new Document([
-                'live' => false,
+                'live' => false
             ]));
         }
 
