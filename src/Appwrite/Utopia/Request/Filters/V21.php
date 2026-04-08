@@ -11,6 +11,63 @@ class V21 extends Filter
     public function parse(array $content, string $model): array
     {
         switch ($model) {
+            // Web is special case compared to others, because it holds backwards compatibility logic
+            case 'project.createWebPlatform':
+                $content = $this->fillPlatformId($content);
+                $content = $this->removePlatformStore($content);
+                // Keep 'key' for backwards compatibility
+                break;
+            case 'project.updateWebPlatform':
+                $content = $this->removePlatformStore($content);
+                // Keep 'key' for backwards compatibility
+                break;
+            case 'project.createApplePlatform':
+                $content = $this->fillPlatformId($content);
+                $content = $this->removePlatformStore($content);
+                $content = $this->replacePlatformKey($content, 'bundleIdentifier');
+                unset($content['hostname']); // Hostname unsupported
+                break;
+            case 'project.updateApplePlatform':
+                $content = $this->removePlatformStore($content);
+                $content = $this->replacePlatformKey($content, 'bundleIdentifier');
+                unset($content['hostname']); // Hostname unsupported
+                break;
+            case 'project.createAndroidPlatform':
+                $content = $this->fillPlatformId($content);
+                $content = $this->removePlatformStore($content);
+                $content = $this->replacePlatformKey($content, 'applicationId');
+                unset($content['hostname']); // Hostname unsupported
+                break;
+            case 'project.updateAndroidPlatform':
+                $content = $this->removePlatformStore($content);
+                $content = $this->replacePlatformKey($content, 'applicationId');
+                unset($content['hostname']); // Hostname unsupported
+                break;
+            case 'project.createWindowsPlatform':
+                $content = $this->fillPlatformId($content);
+                $content = $this->removePlatformStore($content);
+                $content = $this->replacePlatformKey($content, 'packageIdentifierName');
+                unset($content['hostname']); // Hostname unsupported
+                break;
+            case 'project.updateWindowsPlatform':
+                $content = $this->removePlatformStore($content);
+                $content = $this->replacePlatformKey($content, 'packageIdentifierName');
+                unset($content['hostname']); // Hostname unsupported
+                break;
+            case 'project.createLinuxPlatform':
+                $content = $this->fillPlatformId($content);
+                $content = $this->removePlatformStore($content);
+                $content = $this->replacePlatformKey($content, 'packageName');
+                unset($content['hostname']); // Hostname unsupported
+                break;
+            case 'project.updateLinuxPlatform':
+                $content = $this->removePlatformStore($content);
+                $content = $this->replacePlatformKey($content, 'packageName');
+                unset($content['hostname']); // Hostname unsupported
+                break;
+            case 'project.listPlatforms':
+                $content = $this->preservePlatformsQueries($content);
+                break;
             case 'webhooks.create':
                 $content = $this->fillWebhookid($content);
                 break;
@@ -65,6 +122,21 @@ class V21 extends Filter
         return $content;
     }
 
+    protected function fillVariableId(array $content): array
+    {
+        $content['variableId'] = $content['variableId'] ?? 'unique()';
+        return $content;
+    }
+
+    protected function preserveVariablesQueries(array $content): array
+    {
+        $content['queries'] = $content['queries'] ?? [
+            Query::limit(APP_LIMIT_SUBQUERY)
+        ];
+
+        return $content;
+    }
+
     protected function fillPlatformId(array $content): array
     {
         $content['platformId'] = $content['platformId'] ?? 'unique()';
@@ -82,21 +154,6 @@ class V21 extends Filter
     protected function removePlatformStore(array $content): array
     {
         unset($content['store']);
-        return $content;
-    }
-
-    protected function fillVariableId(array $content): array
-    {
-        $content['variableId'] = $content['variableId'] ?? 'unique()';
-        return $content;
-    }
-
-    protected function preserveVariablesQueries(array $content): array
-    {
-        $content['queries'] = $content['queries'] ?? [
-            Query::limit(APP_LIMIT_SUBQUERY)
-        ];
-
         return $content;
     }
 
