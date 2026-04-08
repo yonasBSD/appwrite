@@ -1,12 +1,12 @@
 <?php
 
-namespace Appwrite\Platform\Modules\Webhooks\Http\Webhooks;
+namespace Appwrite\Platform\Modules\Project\Http\Project\Platforms;
 
 use Appwrite\Extend\Exception;
 use Appwrite\SDK\AuthType;
 use Appwrite\SDK\Method;
 use Appwrite\SDK\Response as SDKResponse;
-use Appwrite\Utopia\Database\Validator\Queries\Webhooks;
+use Appwrite\Utopia\Database\Validator\Queries\Platforms;
 use Appwrite\Utopia\Response;
 use Utopia\Database\Database;
 use Utopia\Database\Document;
@@ -25,34 +25,34 @@ class XList extends Action
 
     public static function getName()
     {
-        return 'listWebhooks';
+        return 'listProjectPlatforms';
     }
 
     public function __construct()
     {
         $this
             ->setHttpMethod(Action::HTTP_REQUEST_METHOD_GET)
-            ->setHttpPath('/v1/webhooks')
-            ->httpAlias('/v1/projects/:projectId/webhooks')
-            ->desc('List webhooks')
-            ->groups(['api', 'webhooks'])
-            ->label('scope', 'webhooks.read')
+            ->setHttpPath('/v1/project/platforms')
+            ->httpAlias('/v1/projects/:projectId/platforms')
+            ->desc('List project platforms')
+            ->groups(['api', 'project'])
+            ->label('scope', 'project.read')
             ->label('sdk', new Method(
-                namespace: 'webhooks',
-                group: null,
-                name: 'list',
+                namespace: 'project',
+                group: 'platforms',
+                name: 'listPlatforms',
                 description: <<<EOT
-                Get a list of all webhooks belonging to the project. You can use the query params to filter your results.
+                Get a list of all platforms in the project. This endpoint returns an array of all platforms and their configurations.
                 EOT,
                 auth: [AuthType::ADMIN, AuthType::KEY],
                 responses: [
                     new SDKResponse(
                         code: Response::STATUS_CODE_OK,
-                        model: Response::MODEL_WEBHOOK_LIST,
+                        model: Response::MODEL_PLATFORM_LIST,
                     )
                 ]
             ))
-            ->param('queries', [], new Webhooks(), 'Array of query strings generated using the Query class provided by the SDK. [Learn more about queries](https://appwrite.io/docs/queries). Maximum of ' . APP_LIMIT_ARRAY_PARAMS_SIZE . ' queries are allowed, each ' . APP_LIMIT_ARRAY_ELEMENT_SIZE . ' characters long. You may filter on the following attributes: ' . implode(', ', Webhooks::ALLOWED_ATTRIBUTES), true)
+            ->param('queries', [], new Platforms(), 'Array of query strings generated using the Query class provided by the SDK. [Learn more about queries](https://appwrite.io/docs/queries). Maximum of ' . APP_LIMIT_ARRAY_PARAMS_SIZE . ' queries are allowed, each ' . APP_LIMIT_ARRAY_ELEMENT_SIZE . ' characters long. You may filter on the following attributes: ' . implode(', ', Platforms::ALLOWED_ATTRIBUTES), true)
             ->param('total', true, new Boolean(true), 'When set to false, the total count returned will be 0 and will not be calculated.', true)
             ->inject('project')
             ->inject('response')
@@ -70,12 +70,18 @@ class XList extends Action
         Document $project,
         Response $response,
         Database $dbForPlatform,
-        Authorization $authorization
+        Authorization $authorization,
     ) {
         try {
             $queries = Query::parseQueries($queries);
         } catch (QueryException $e) {
             throw new Exception(Exception::GENERAL_QUERY_INVALID, $e->getMessage());
+        }
+
+        foreach ($queries as $query) {
+            if (\in_array($query->getAttribute(), ['bundleIdentifier', 'applicationId', 'packageIdentifierName', 'packageName'])) {
+                $query->setAttribute('key');
+            }
         }
 
         $queries[] = Query::equal('projectInternalId', [$project->getSequence()]);
@@ -89,14 +95,14 @@ class XList extends Action
                 throw new Exception(Exception::GENERAL_QUERY_INVALID, $validator->getDescription());
             }
 
-            $webhookId = $cursor->getValue();
-            $cursorDocument = $authorization->skip(fn () => $dbForPlatform->findOne('webhooks', [
-                Query::equal('$id', [$webhookId]),
+            $platformId = $cursor->getValue();
+            $cursorDocument = $authorization->skip(fn () => $dbForPlatform->findOne('platforms', [
+                Query::equal('$id', [$platformId]),
                 Query::equal('projectInternalId', [$project->getSequence()]),
             ]));
 
             if ($cursorDocument->isEmpty()) {
-                throw new Exception(Exception::GENERAL_CURSOR_NOT_FOUND, "Webhook '{$webhookId}' for the 'cursor' value not found.");
+                throw new Exception(Exception::GENERAL_CURSOR_NOT_FOUND, "Platform '{$platformId}' for the 'cursor' value not found.");
             }
 
             $cursor->setValue($cursorDocument);
@@ -105,15 +111,15 @@ class XList extends Action
         $filterQueries = Query::groupByType($queries)['filters'];
 
         try {
-            $webhooks = $authorization->skip(fn () => $dbForPlatform->find('webhooks', $queries));
-            $total = $includeTotal ? $authorization->skip(fn () => $dbForPlatform->count('webhooks', $filterQueries, APP_LIMIT_COUNT)) : 0;
+            $platforms = $authorization->skip(fn () => $dbForPlatform->find('platforms', $queries));
+            $total = $includeTotal ? $authorization->skip(fn () => $dbForPlatform->count('platforms', $filterQueries, APP_LIMIT_COUNT)) : 0;
         } catch (OrderException $e) {
             throw new Exception(Exception::DATABASE_QUERY_ORDER_NULL, "The order attribute '{$e->getAttribute()}' had a null value. Cursor pagination requires all documents order attribute values are non-null.");
         }
 
         $response->dynamic(new Document([
-            'webhooks' => $webhooks,
+            'platforms' => $platforms,
             'total' => $total,
-        ]), Response::MODEL_WEBHOOK_LIST);
+        ]), Response::MODEL_PLATFORM_LIST);
     }
 }
