@@ -253,7 +253,7 @@ class X extends OAuth2
         $data = OpenSSL::encrypt($verifier, OpenSSL::CIPHER_AES_128_GCM, $key, OPENSSL_RAW_DATA, $iv, $tag);
 
         if ($data === false || $tag === null) {
-            throw new \RuntimeException('Failed to encrypt PKCE verifier.');
+            throw new \Exception('Failed to encrypt PKCE verifier.');
         }
 
         return [
@@ -296,7 +296,7 @@ class X extends OAuth2
         $key = System::getEnv('_APP_OPENSSL_KEY_V1', '');
 
         if ($key === '') {
-            throw new \RuntimeException('X OAuth2 requires _APP_OPENSSL_KEY_V1 to encrypt PKCE state.');
+            throw new \Exception('X OAuth2 requires _APP_OPENSSL_KEY_V1 to encrypt PKCE state.');
         }
 
         return $key;
