@@ -8,6 +8,7 @@ use Appwrite\Platform\Modules\Project\Http\Project\Keys\Delete as DeleteKey;
 use Appwrite\Platform\Modules\Project\Http\Project\Keys\Get as GetKey;
 use Appwrite\Platform\Modules\Project\Http\Project\Keys\Update as UpdateKey;
 use Appwrite\Platform\Modules\Project\Http\Project\Keys\XList as ListKeys;
+use Appwrite\Platform\Modules\Project\Http\Project\Labels\Update as UpdateProjectLabels;
 use Appwrite\Platform\Modules\Project\Http\Project\Variables\Create as CreateVariable;
 use Appwrite\Platform\Modules\Project\Http\Project\Variables\Delete as DeleteVariable;
 use Appwrite\Platform\Modules\Project\Http\Project\Variables\Get as GetVariable;
@@ -37,5 +38,6 @@ class Http extends Service
         $this->addAction(GetKey::getName(), new GetKey());
         $this->addAction(DeleteKey::getName(), new DeleteKey());
         $this->addAction(UpdateKey::getName(), new UpdateKey());
+        $this->addAction(UpdateProjectLabels::getName(), new UpdateProjectLabels());
     }
 }

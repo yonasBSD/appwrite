@@ -12,7 +12,7 @@ class Project extends Model
     /**
      * @var bool
      */
-    protected bool $public = false;
+    protected bool $public = true;
 
     public function __construct()
     {
@@ -134,6 +134,24 @@ class Project extends Model
             ->addRule('authPersonalDataCheck', [
                 'type' => self::TYPE_BOOLEAN,
                 'description' => 'Whether or not to check the user password for similarity with their personal data.',
+                'default' => false,
+                'example' => true,
+            ])
+            ->addRule('authDisposableEmails', [
+                'type' => self::TYPE_BOOLEAN,
+                'description' => 'Whether or not to disallow disposable email addresses during signup and email updates.',
+                'default' => false,
+                'example' => true,
+            ])
+            ->addRule('authCanonicalEmails', [
+                'type' => self::TYPE_BOOLEAN,
+                'description' => 'Whether or not to require canonical email addresses during signup and email updates.',
+                'default' => false,
+                'example' => true,
+            ])
+            ->addRule('authFreeEmails', [
+                'type' => self::TYPE_BOOLEAN,
+                'description' => 'Whether or not to disallow free email addresses during signup and email updates.',
                 'default' => false,
                 'example' => true,
             ])
@@ -415,6 +433,9 @@ class Project extends Model
         $document->setAttribute('authPasswordHistory', $authValues['passwordHistory'] ?? 0);
         $document->setAttribute('authPasswordDictionary', $authValues['passwordDictionary'] ?? false);
         $document->setAttribute('authPersonalDataCheck', $authValues['personalDataCheck'] ?? false);
+        $document->setAttribute('authDisposableEmails', $authValues['disposableEmails'] ?? false);
+        $document->setAttribute('authCanonicalEmails', $authValues['canonicalEmails'] ?? false);
+        $document->setAttribute('authFreeEmails', $authValues['freeEmails'] ?? false);
         $document->setAttribute('authMockNumbers', $authValues['mockNumbers'] ?? []);
         $document->setAttribute('authSessionAlerts', $authValues['sessionAlerts'] ?? false);
         $document->setAttribute('authMembershipsUserName', $authValues['membershipsUserName'] ?? true);
