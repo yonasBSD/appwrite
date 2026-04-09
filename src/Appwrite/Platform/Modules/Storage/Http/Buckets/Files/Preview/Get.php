@@ -15,7 +15,6 @@ use Utopia\Compression\Algorithms\GZIP;
 use Utopia\Compression\Algorithms\Zstd;
 use Utopia\Compression\Compression;
 use Utopia\Config\Config;
-use Utopia\Console;
 use Utopia\Database\Database;
 use Utopia\Database\DateTime;
 use Utopia\Database\Document;
@@ -26,6 +25,7 @@ use Utopia\Http\Adapter\Swoole\Request;
 use Utopia\Image\Image;
 use Utopia\Platform\Action;
 use Utopia\Platform\Scope\HTTP;
+use Utopia\Span\Span;
 use Utopia\Storage\Device;
 use Utopia\System\System;
 use Utopia\Validator\HexColor;
@@ -269,7 +269,17 @@ class Get extends Action
 
         $totalTime = \microtime(true) - $startTime;
 
-        Console::info("File preview rendered,project=" . $project->getId() . ",bucket=" . $bucketId . ",file=" . $file->getId() . ",uri=" . $request->getURI() . ",total=" . $totalTime . ",rendering=" . $renderingTime . ",decryption=" . $decryptionTime . ",decompression=" . $decompressionTime . ",download=" . $downloadTime);
+        Span::add('storage.file_id', $file->getId());
+        Span::add('storage.bucket_id', $bucketId);
+        Span::add('storage.file_size_bytes', $file->getAttribute('sizeActual'));
+        if (!empty($type)) {
+            Span::add('storage.file_extension', $type);
+        }
+        Span::add('storage.timing.download_seconds', $downloadTime);
+        Span::add('storage.timing.decryption_seconds', $decryptionTime);
+        Span::add('storage.timing.decompression_seconds', $decompressionTime);
+        Span::add('storage.timing.rendering_seconds', $renderingTime);
+        Span::add('storage.timing.total_seconds', $totalTime);
 
         $contentType = (\array_key_exists($output, $outputs)) ? $outputs[$output] : $outputs['jpg'];
 
