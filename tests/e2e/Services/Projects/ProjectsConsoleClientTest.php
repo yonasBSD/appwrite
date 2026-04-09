@@ -2497,49 +2497,222 @@ class ProjectsConsoleClientTest extends Scope
 
         $id = $project['body']['$id'];
 
+        // Bulk disable should no longer work
         $response = $this->client->call(Client::METHOD_PATCH, '/projects/' . $id . '/service/all', array_merge([
             'content-type' => 'application/json',
             'x-appwrite-project' => $this->getProject()['$id'],
+            'x-appwrite-response-format' => '1.9.0',
             'cookie' => 'a_session_console=' . $this->getRoot()['session'],
         ]), [
             'status' => false,
         ]);
 
-        $this->assertEquals(200, $response['headers']['status-code']);
-        $this->assertNotEmpty($response['body']['$id']);
+        $this->assertEquals(405, $response['headers']['status-code']);
+        $this->assertEquals('general_not_implemented', $response['body']['type']);
 
-        $response = $this->client->call(Client::METHOD_GET, '/projects/' . $id, array_merge([
-            'content-type' => 'application/json',
-            'x-appwrite-project' => $this->getProject()['$id'],
-            'cookie' => 'a_session_console=' . $this->getRoot()['session'],
-        ]));
-
-        $this->assertEquals(200, $response['headers']['status-code']);
-        $this->assertNotEmpty($response['body']['$id']);
-
-        $matches = [];
-        $pattern = '/serviceStatusFor.*/';
-
-        foreach ($response['body'] as $key => $value) {
-            if (\preg_match($pattern, $key)) {
-                $matches[$key] = $value;
-            }
-        }
-
-        foreach ($matches as $value) {
-            $this->assertFalse($value);
-        }
-
+        // Bulk enable should no longer work
         $response = $this->client->call(Client::METHOD_PATCH, '/projects/' . $id . '/service/all', array_merge([
             'content-type' => 'application/json',
             'x-appwrite-project' => $this->getProject()['$id'],
+            'x-appwrite-response-format' => '1.9.0',
             'cookie' => 'a_session_console=' . $this->getRoot()['session'],
         ]), [
             'status' => true,
         ]);
 
+        $this->assertEquals(405, $response['headers']['status-code']);
+        $this->assertEquals('general_not_implemented', $response['body']['type']);
+    }
+
+    public function testUpdateProjectApisAll(): void
+    {
+        $team = $this->client->call(Client::METHOD_POST, '/teams', array_merge([
+            'content-type' => 'application/json',
+            'x-appwrite-project' => $this->getProject()['$id'],
+            'cookie' => 'a_session_console=' . $this->getRoot()['session'],
+        ]), [
+            'teamId' => ID::unique(),
+            'name' => 'Project Test',
+        ]);
+
+        $this->assertEquals(201, $team['headers']['status-code']);
+        $this->assertNotEmpty($team['body']['$id']);
+
+        $project = $this->client->call(Client::METHOD_POST, '/projects', array_merge([
+            'content-type' => 'application/json',
+            'x-appwrite-project' => $this->getProject()['$id'],
+            'cookie' => 'a_session_console=' . $this->getRoot()['session'],
+        ]), [
+            'projectId' => ID::unique(),
+            'name' => 'Project Test',
+            'teamId' => $team['body']['$id'],
+            'region' => System::getEnv('_APP_REGION', 'default')
+        ]);
+
+        $this->assertEquals(201, $project['headers']['status-code']);
+        $this->assertNotEmpty($project['body']['$id']);
+
+        $id = $project['body']['$id'];
+
+        // Bulk disable should no longer work
+        $response = $this->client->call(Client::METHOD_PATCH, '/projects/' . $id . '/api/all', array_merge([
+            'content-type' => 'application/json',
+            'x-appwrite-project' => $this->getProject()['$id'],
+            'x-appwrite-response-format' => '1.9.0',
+            'cookie' => 'a_session_console=' . $this->getRoot()['session'],
+        ]), [
+            'status' => false,
+        ]);
+
+        $this->assertEquals(405, $response['headers']['status-code']);
+        $this->assertEquals('general_not_implemented', $response['body']['type']);
+
+        // Bulk enable should no longer work
+        $response = $this->client->call(Client::METHOD_PATCH, '/projects/' . $id . '/api/all', array_merge([
+            'content-type' => 'application/json',
+            'x-appwrite-project' => $this->getProject()['$id'],
+            'x-appwrite-response-format' => '1.9.0',
+            'cookie' => 'a_session_console=' . $this->getRoot()['session'],
+        ]), [
+            'status' => true,
+        ]);
+
+        $this->assertEquals(405, $response['headers']['status-code']);
+        $this->assertEquals('general_not_implemented', $response['body']['type']);
+    }
+
+    public function testUpdateProjectApiStatus(): void
+    {
+        $team = $this->client->call(Client::METHOD_POST, '/teams', array_merge([
+            'content-type' => 'application/json',
+            'x-appwrite-project' => $this->getProject()['$id'],
+            'cookie' => 'a_session_console=' . $this->getRoot()['session'],
+        ]), [
+            'teamId' => ID::unique(),
+            'name' => 'Project Test',
+        ]);
+
+        $this->assertEquals(201, $team['headers']['status-code']);
+        $this->assertNotEmpty($team['body']['$id']);
+
+        $project = $this->client->call(Client::METHOD_POST, '/projects', array_merge([
+            'content-type' => 'application/json',
+            'x-appwrite-project' => $this->getProject()['$id'],
+            'cookie' => 'a_session_console=' . $this->getRoot()['session'],
+        ]), [
+            'projectId' => ID::unique(),
+            'name' => 'Project Test',
+            'teamId' => $team['body']['$id'],
+            'region' => System::getEnv('_APP_REGION', 'default')
+        ]);
+
+        $this->assertEquals(201, $project['headers']['status-code']);
+        $this->assertNotEmpty($project['body']['$id']);
+
+        $id = $project['body']['$id'];
+        $protocols = ['rest', 'graphql', 'websocket'];
+
+        /**
+         * Test for Disabled using old format (api + status)
+         */
+        foreach ($protocols as $key) {
+
+            $response = $this->client->call(Client::METHOD_PATCH, '/projects/' . $id . '/api', array_merge([
+                'content-type' => 'application/json',
+                'x-appwrite-project' => $this->getProject()['$id'],
+                'x-appwrite-response-format' => '1.9.0',
+                'cookie' => 'a_session_console=' . $this->getRoot()['session'],
+            ]), [
+                'api' => $key,
+                'status' => false,
+            ]);
+
+            $this->assertEquals(200, $response['headers']['status-code']);
+            $this->assertNotEmpty($response['body']['$id']);
+
+            $response = $this->client->call(Client::METHOD_GET, '/projects/' . $id, array_merge([
+                'content-type' => 'application/json',
+                'x-appwrite-project' => $this->getProject()['$id'],
+                'cookie' => 'a_session_console=' . $this->getRoot()['session'],
+            ]));
+
+            $this->assertEquals(200, $response['headers']['status-code']);
+            $this->assertNotEmpty($response['body']['$id']);
+            $this->assertEquals(false, $response['body']['protocolStatusFor' . ucfirst($key)]);
+        }
+
+        /**
+         * Test for Enabled using old format (api + status)
+         */
+        foreach ($protocols as $key) {
+
+            $response = $this->client->call(Client::METHOD_PATCH, '/projects/' . $id . '/api', array_merge([
+                'content-type' => 'application/json',
+                'x-appwrite-project' => $this->getProject()['$id'],
+                'x-appwrite-response-format' => '1.9.0',
+                'cookie' => 'a_session_console=' . $this->getRoot()['session'],
+            ]), [
+                'api' => $key,
+                'status' => true,
+            ]);
+
+            $this->assertEquals(200, $response['headers']['status-code']);
+            $this->assertNotEmpty($response['body']['$id']);
+
+            $response = $this->client->call(Client::METHOD_GET, '/projects/' . $id, array_merge([
+                'content-type' => 'application/json',
+                'x-appwrite-project' => $this->getProject()['$id'],
+                'cookie' => 'a_session_console=' . $this->getRoot()['session'],
+            ]));
+
+            $this->assertEquals(200, $response['headers']['status-code']);
+            $this->assertNotEmpty($response['body']['$id']);
+            $this->assertEquals(true, $response['body']['protocolStatusFor' . ucfirst($key)]);
+        }
+    }
+
+    public function testUpdateProjectApiStatusRealtimeBackwardsCompat(): void
+    {
+        $team = $this->client->call(Client::METHOD_POST, '/teams', array_merge([
+            'content-type' => 'application/json',
+            'x-appwrite-project' => $this->getProject()['$id'],
+            'cookie' => 'a_session_console=' . $this->getRoot()['session'],
+        ]), [
+            'teamId' => ID::unique(),
+            'name' => 'Project Test',
+        ]);
+
+        $this->assertEquals(201, $team['headers']['status-code']);
+
+        $project = $this->client->call(Client::METHOD_POST, '/projects', array_merge([
+            'content-type' => 'application/json',
+            'x-appwrite-project' => $this->getProject()['$id'],
+            'cookie' => 'a_session_console=' . $this->getRoot()['session'],
+        ]), [
+            'projectId' => ID::unique(),
+            'name' => 'Project Test',
+            'teamId' => $team['body']['$id'],
+            'region' => System::getEnv('_APP_REGION', 'default')
+        ]);
+
+        $this->assertEquals(201, $project['headers']['status-code']);
+
+        $id = $project['body']['$id'];
+
+        /**
+         * Test that "realtime" gets renamed to "websocket" via request filter
+         */
+        $response = $this->client->call(Client::METHOD_PATCH, '/projects/' . $id . '/api', array_merge([
+            'content-type' => 'application/json',
+            'x-appwrite-project' => $this->getProject()['$id'],
+            'x-appwrite-response-format' => '1.9.0',
+            'cookie' => 'a_session_console=' . $this->getRoot()['session'],
+        ]), [
+            'api' => 'realtime',
+            'status' => false,
+        ]);
+
         $this->assertEquals(200, $response['headers']['status-code']);
-        $this->assertNotEmpty($response['body']['$id']);
 
         $response = $this->client->call(Client::METHOD_GET, '/projects/' . $id, array_merge([
             'content-type' => 'application/json',
@@ -2548,17 +2721,29 @@ class ProjectsConsoleClientTest extends Scope
         ]));
 
         $this->assertEquals(200, $response['headers']['status-code']);
+        $this->assertEquals(false, $response['body']['protocolStatusForWebsocket']);
 
-        $matches = [];
-        foreach ($response['body'] as $key => $value) {
-            if (\preg_match($pattern, $key)) {
-                $matches[$key] = $value;
-            }
-        }
+        // Re-enable via old "realtime" name
+        $response = $this->client->call(Client::METHOD_PATCH, '/projects/' . $id . '/api', array_merge([
+            'content-type' => 'application/json',
+            'x-appwrite-project' => $this->getProject()['$id'],
+            'x-appwrite-response-format' => '1.9.0',
+            'cookie' => 'a_session_console=' . $this->getRoot()['session'],
+        ]), [
+            'api' => 'realtime',
+            'status' => true,
+        ]);
 
-        foreach ($matches as $value) {
-            $this->assertTrue($value);
-        }
+        $this->assertEquals(200, $response['headers']['status-code']);
+
+        $response = $this->client->call(Client::METHOD_GET, '/projects/' . $id, array_merge([
+            'content-type' => 'application/json',
+            'x-appwrite-project' => $this->getProject()['$id'],
+            'cookie' => 'a_session_console=' . $this->getRoot()['session'],
+        ]));
+
+        $this->assertEquals(200, $response['headers']['status-code']);
+        $this->assertEquals(true, $response['body']['protocolStatusForWebsocket']);
     }
 
     public function testUpdateProjectServiceStatusAdmin(): array
@@ -2604,6 +2789,7 @@ class ProjectsConsoleClientTest extends Scope
             $response = $this->client->call(Client::METHOD_PATCH, '/projects/' . $id . '/service', array_merge([
                 'content-type' => 'application/json',
                 'x-appwrite-project' => $this->getProject()['$id'],
+                'x-appwrite-response-format' => '1.9.0',
                 'cookie' => 'a_session_console=' . $this->getRoot()['session'],
             ]), [
                 'service' => $key,
@@ -2649,6 +2835,7 @@ class ProjectsConsoleClientTest extends Scope
             $response = $this->client->call(Client::METHOD_PATCH, '/projects/' . $id . '/service/', array_merge([
                 'content-type' => 'application/json',
                 'x-appwrite-project' => $this->getProject()['$id'],
+                'x-appwrite-response-format' => '1.9.0',
             ], $this->getHeaders()), [
                 'service' => $key,
                 'status' => true,
@@ -2678,6 +2865,7 @@ class ProjectsConsoleClientTest extends Scope
             $response = $this->client->call(Client::METHOD_PATCH, '/projects/' . $id . '/service', array_merge([
                 'content-type' => 'application/json',
                 'x-appwrite-project' => $this->getProject()['$id'],
+                'x-appwrite-response-format' => '1.9.0',
                 'cookie' => 'a_session_console=' . $this->getRoot()['session'],
             ]), [
                 'service' => $key,
@@ -2725,6 +2913,7 @@ class ProjectsConsoleClientTest extends Scope
             $response = $this->client->call(Client::METHOD_PATCH, '/projects/' . $id . '/service/', array_merge([
                 'content-type' => 'application/json',
                 'x-appwrite-project' => $this->getProject()['$id'],
+                'x-appwrite-response-format' => '1.9.0',
             ], $this->getHeaders()), [
                 'service' => $service,
                 'status' => true,
@@ -2752,6 +2941,7 @@ class ProjectsConsoleClientTest extends Scope
             $response = $this->client->call(Client::METHOD_PATCH, '/projects/' . $id . '/service', array_merge([
                 'content-type' => 'application/json',
                 'x-appwrite-project' => $this->getProject()['$id'],
+                'x-appwrite-response-format' => '1.9.0',
                 'cookie' => 'a_session_console=' . $this->getRoot()['session'],
             ]), [
                 'service' => $key,
@@ -2841,6 +3031,7 @@ class ProjectsConsoleClientTest extends Scope
             $response = $this->client->call(Client::METHOD_PATCH, '/projects/' . $id . '/service/', array_merge([
                 'content-type' => 'application/json',
                 'x-appwrite-project' => $this->getProject()['$id'],
+                'x-appwrite-response-format' => '1.9.0',
             ], $this->getHeaders()), [
                 'service' => $service,
                 'status' => true,

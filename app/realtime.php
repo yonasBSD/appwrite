@@ -661,6 +661,7 @@ $server->onOpen(function (int $connection, SwooleRequest $request) use ($server,
         $logUser = $user;
 
         $apis = $project->getAttribute('apis', []);
+        // Websocket is what to check, but realtime is checked too for backwards compatibility
         $websocketEnabled = $apis['websocket'] ?? $apis['realtime'] ?? true;
         if (
             !$websocketEnabled
