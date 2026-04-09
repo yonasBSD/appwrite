@@ -27,7 +27,7 @@ class Update extends Action
     public function __construct()
     {
         $this
-            ->setHttpMethod(Action::HTTP_REQUEST_METHOD_PUT)
+            ->setHttpMethod(Action::HTTP_REQUEST_METHOD_PATCH)
             ->setHttpPath('/v1/project/services/:serviceId/status')
             ->httpAlias('/v1/projects/:projectId/service')
             ->desc('Update project service status')

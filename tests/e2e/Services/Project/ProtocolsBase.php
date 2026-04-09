@@ -182,7 +182,7 @@ trait ProtocolsBase
             $headers = array_merge($headers, $this->getHeaders());
         }
 
-        return $this->client->call(Client::METHOD_PUT, '/project/protocols/' . $protocolId . '/status', $headers, [
+        return $this->client->call(Client::METHOD_PATCH, '/project/protocols/' . $protocolId . '/status', $headers, [
             'enabled' => $enabled,
         ]);
     }

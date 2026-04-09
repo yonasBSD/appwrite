@@ -182,7 +182,7 @@ trait ServicesBase
             $headers = array_merge($headers, $this->getHeaders());
         }
 
-        return $this->client->call(Client::METHOD_PUT, '/project/services/' . $serviceId . '/status', $headers, [
+        return $this->client->call(Client::METHOD_PATCH, '/project/services/' . $serviceId . '/status', $headers, [
             'enabled' => $enabled,
         ]);
     }
