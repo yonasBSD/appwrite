@@ -21,7 +21,6 @@ use Utopia\Database\Adapter\MySQL;
 use Utopia\Database\Database;
 use Utopia\Database\Document;
 use Utopia\DI\Container;
-use Utopia\Http\Adapter\FPM\Server as FPMServer;
 use Utopia\Http\Http;
 use Utopia\Http\Request as UtopiaRequest;
 use Utopia\Http\Response as UtopiaResponse;
@@ -58,6 +57,22 @@ class Specs extends Action
     public function getResponse(): UtopiaResponse
     {
         return new AppwriteResponse(new SwooleResponse());
+    }
+
+    protected function getSpecsContainer(UtopiaResponse $response): Container
+    {
+        $container = new Container();
+        $container->set('request', fn () => $this->getRequest());
+        $container->set('response', fn () => $response);
+        $container->set('dbForPlatform', fn () => new Database(new MySQL(''), new Cache(new None())));
+        $container->set('dbForProject', fn () => new Database(new MySQL(''), new Cache(new None())));
+        $container->set('redirectValidator', fn () => new Redirect([], []));
+        $container->set('project', fn () => new Document([]));
+        $container->set('passwordsDictionary', fn () => []);
+        $container->set('localeCodes', fn () => \array_map(fn ($locale) => $locale['code'], Config::getParam('locale-codes', [])));
+        $container->set('plan', fn () => []);
+
+        return $container;
     }
 
     protected function getFormatInstance(string $format, array $arguments)
@@ -340,17 +355,8 @@ class Specs extends Action
 
         $mocks = ($mode === 'mocks');
 
-        // Mock dependencies needed by param validator injections in route definitions
-        $specsContainer = new Container();
-        $specsContainer->set('request', fn () => $this->getRequest());
-        $specsContainer->set('response', fn () => $response);
-        $specsContainer->set('dbForPlatform', fn () => new Database(new MySQL(''), new Cache(new None())));
-        $specsContainer->set('dbForProject', fn () => new Database(new MySQL(''), new Cache(new None())));
-        $specsContainer->set('redirectValidator', fn () => new Redirect([], []));
-        $specsContainer->set('project', fn () => new Document([]));
-        $specsContainer->set('passwordsDictionary', fn () => []);
-        $specsContainer->set('localeCodes', fn () => \array_map(fn ($locale) => $locale['code'], Config::getParam('locale-codes', [])));
-        $specsContainer->set('plan', fn () => []);
+        // Specs generation only needs route validator dependencies, not an HTTP server runtime.
+        $specsContainer = $this->getSpecsContainer($response);
 
         $platforms = static::getPlatforms();
         $authCounts = $this->getAuthCounts();
@@ -448,7 +454,7 @@ class Specs extends Action
             }
 
             $arguments = [
-                new Http(new FPMServer($specsContainer), 'UTC'),
+                $specsContainer,
                 $services,
                 $routes,
                 $models,
