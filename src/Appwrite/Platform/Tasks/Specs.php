@@ -21,7 +21,6 @@ use Utopia\Database\Adapter\MySQL;
 use Utopia\Database\Database;
 use Utopia\Database\Document;
 use Utopia\DI\Container;
-use Utopia\Http\Adapter\FPM\Server as FPMServer;
 use Utopia\Http\Http;
 use Utopia\Http\Request as UtopiaRequest;
 use Utopia\Http\Response as UtopiaResponse;
@@ -448,7 +447,7 @@ class Specs extends Action
             }
 
             $arguments = [
-                new Http(new FPMServer($specsContainer), 'UTC'),
+                $specsContainer,
                 $services,
                 $routes,
                 $models,
@@ -482,7 +481,12 @@ class Specs extends Action
                     ? $specsDir . '/' . $format . '-mocks-' . $platform . '.json'
                     : $specsDir . '/' . $format . '-' . $version . '-' . $platform . '.json';
 
-                $parsedSpecs = $specs->parse();
+                try {
+                    $parsedSpecs = $specs->parse();
+                } catch (\RuntimeException $e) {
+                    throw new \RuntimeException("Spec generation failed for {$platform} ({$format}): " . $e->getMessage(), 0, $e);
+                }
+
                 $encodedSpecs = \json_encode($parsedSpecs, JSON_PRETTY_PRINT);
 
                 unset($parsedSpecs);
