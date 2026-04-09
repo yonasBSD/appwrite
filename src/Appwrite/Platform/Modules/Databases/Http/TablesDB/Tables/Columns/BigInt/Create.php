@@ -8,6 +8,7 @@ use Appwrite\SDK\Method;
 use Appwrite\SDK\Response as SDKResponse;
 use Appwrite\Utopia\Response as UtopiaResponse;
 use Utopia\Database\Database;
+use Utopia\Database\Validator\BigInt;
 use Utopia\Database\Validator\Key;
 use Utopia\Database\Validator\UID;
 use Utopia\Http\Adapter\Swoole\Response as SwooleResponse;
@@ -58,7 +59,7 @@ class Create extends BigIntCreate
             ->param('required', null, new Boolean(), 'Is column required?')
             ->param('min', null, new Nullable(new Integer(false, 64)), 'Minimum value', true)
             ->param('max', null, new Nullable(new Integer(false, 64)), 'Maximum value', true)
-            ->param('default', null, new Nullable(new Integer(false, 64)), 'Default value. Cannot be set when column is required.', true)
+            ->param('default', null, new Nullable(new BigInt(false, true)), 'Default value. Cannot be set when column is required.', true)
             ->param('array', false, new Boolean(), 'Is column an array?', true)
             ->inject('response')
             ->inject('dbForProject')
