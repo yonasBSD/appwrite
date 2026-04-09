@@ -48,6 +48,36 @@ class Platform
     ];
 
     /**
+     * Map deprecated platform types to their new consolidated types.
+     *
+     * The 1.9.x refactor consolidated ~15 platform types into 5 new ones.
+     * Existing platforms in the database may still have old type values.
+     *
+     * @param string $type
+     * @return string The mapped type, or the original if not deprecated.
+     */
+    public static function mapDeprecatedType(string $type): string
+    {
+        $mapping = [
+            'flutter-web' => self::TYPE_WEB,
+            'unity' => self::TYPE_WEB,
+            'flutter-ios' => self::TYPE_APPLE,
+            'flutter-macos' => self::TYPE_APPLE,
+            'apple-ios' => self::TYPE_APPLE,
+            'apple-macos' => self::TYPE_APPLE,
+            'apple-watchos' => self::TYPE_APPLE,
+            'apple-tvos' => self::TYPE_APPLE,
+            'react-native-ios' => self::TYPE_APPLE,
+            'flutter-android' => self::TYPE_ANDROID,
+            'react-native-android' => self::TYPE_ANDROID,
+            'flutter-windows' => self::TYPE_WINDOWS,
+            'flutter-linux' => self::TYPE_LINUX,
+        ];
+
+        return $mapping[$type] ?? $type;
+    }
+
+    /**
      * Get user-friendly platform name from a scheme.
      *
      * @param string|null $scheme
