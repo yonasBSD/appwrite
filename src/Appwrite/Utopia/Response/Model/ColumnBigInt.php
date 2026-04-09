@@ -50,8 +50,7 @@ class ColumnBigInt extends Column
     }
 
     public array $conditions = [
-        'type' => 'bigint',
-        'size' => 8,
+        'type' => 'bigint'
     ];
 
     public function getName(): string

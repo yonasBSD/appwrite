@@ -50,8 +50,7 @@ class AttributeBigInt extends Attribute
     }
 
     public array $conditions = [
-        'type' => 'bigint',
-        'size' => 8,
+        'type' => 'bigint'
     ];
 
     public function getName(): string
