@@ -131,6 +131,78 @@ trait ProtocolsBase
         $this->updateProtocolStatus('graphql', true);
     }
 
+    public function testDisabledRestBlocksAllServiceEndpoints(): void
+    {
+        $endpoints = [
+            'account'    => '/account',
+            'teams'      => '/teams',
+            'databases'  => '/databases',
+            'storage'    => '/storage/buckets',
+            'functions'  => '/functions',
+            'sites'      => '/sites',
+            'locale'     => '/locale',
+            'health'     => '/health',
+            'users'      => '/users',
+            'messaging'  => '/messaging/providers',
+            'migrations' => '/migrations',
+        ];
+
+        $this->updateProtocolStatus('rest', false);
+
+        foreach ($endpoints as $service => $path) {
+            $response = $this->client->call(Client::METHOD_GET, $path, [
+                'content-type' => 'application/json',
+                'x-appwrite-project' => $this->getProject()['$id'],
+            ]);
+
+            $this->assertSame(403, $response['headers']['status-code'], 'Disabled REST protocol should block ' . $service . ' endpoint (got ' . $response['headers']['status-code'] . ')');
+            $this->assertSame('general_api_disabled', $response['body']['type'], 'Disabled REST protocol should return general_api_disabled for ' . $service);
+        }
+
+        // Cleanup
+        $this->updateProtocolStatus('rest', true);
+    }
+
+    public function testReenabledRestAllowsAllServiceEndpoints(): void
+    {
+        $endpoints = [
+            'teams'      => '/teams',
+            'databases'  => '/databases',
+            'functions'  => '/functions',
+            'locale'     => '/locale',
+        ];
+
+        $this->updateProtocolStatus('rest', false);
+        $this->updateProtocolStatus('rest', true);
+
+        foreach ($endpoints as $service => $path) {
+            $response = $this->client->call(Client::METHOD_GET, $path, array_merge([
+                'content-type' => 'application/json',
+                'x-appwrite-project' => $this->getProject()['$id'],
+            ], $this->getHeaders()));
+
+            $this->assertNotEquals(403, $response['headers']['status-code'], 'Re-enabled REST protocol should not block ' . $service . ' endpoint');
+        }
+    }
+
+    public function testDisabledGraphqlBlocksMutationRequest(): void
+    {
+        $this->updateProtocolStatus('graphql', false);
+
+        $response = $this->client->call(Client::METHOD_POST, '/graphql', [
+            'content-type' => 'application/json',
+            'x-appwrite-project' => $this->getProject()['$id'],
+        ], [
+            'query' => 'mutation { teamsCreate(teamId: "unique()", name: "Test") { _id } }',
+        ]);
+
+        $this->assertSame(403, $response['headers']['status-code']);
+        $this->assertSame('general_api_disabled', $response['body']['type']);
+
+        // Cleanup
+        $this->updateProtocolStatus('graphql', true);
+    }
+
     public function testResponseModel(): void
     {
         $response = $this->updateProtocolStatus('rest', false);

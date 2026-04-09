@@ -133,6 +133,79 @@ trait ServicesBase
         $this->updateServiceStatus('teams', true);
     }
 
+    public function testEachDisabledServiceBlocksItsEndpoint(): void
+    {
+        $serviceEndpoints = [
+            'account'    => ['method' => Client::METHOD_GET,  'path' => '/account'],
+            'avatars'    => ['method' => Client::METHOD_GET,  'path' => '/avatars/initials'],
+            'databases'  => ['method' => Client::METHOD_GET,  'path' => '/databases'],
+            'tablesdb'   => ['method' => Client::METHOD_GET,  'path' => '/tablesdb'],
+            'locale'     => ['method' => Client::METHOD_GET,  'path' => '/locale'],
+            'health'     => ['method' => Client::METHOD_GET,  'path' => '/health'],
+            'project'    => ['method' => Client::METHOD_GET,  'path' => '/project/platforms'],
+            'storage'    => ['method' => Client::METHOD_GET,  'path' => '/storage/buckets'],
+            'teams'      => ['method' => Client::METHOD_GET,  'path' => '/teams'],
+            'users'      => ['method' => Client::METHOD_GET,  'path' => '/users'],
+            'vcs'        => ['method' => Client::METHOD_GET,  'path' => '/vcs/installations'],
+            'sites'      => ['method' => Client::METHOD_GET,  'path' => '/sites'],
+            'functions'  => ['method' => Client::METHOD_GET,  'path' => '/functions'],
+            'proxy'      => ['method' => Client::METHOD_GET,  'path' => '/proxy/rules'],
+            'graphql'    => ['method' => Client::METHOD_POST, 'path' => '/graphql'],
+            'migrations' => ['method' => Client::METHOD_GET,  'path' => '/migrations'],
+            'messaging'  => ['method' => Client::METHOD_GET,  'path' => '/messaging/providers'],
+        ];
+
+        foreach ($serviceEndpoints as $service => $endpoint) {
+            $this->updateServiceStatus($service, false);
+
+            $response = $this->client->call($endpoint['method'], $endpoint['path'], [
+                'content-type' => 'application/json',
+                'x-appwrite-project' => $this->getProject()['$id'],
+            ]);
+
+            $this->assertSame(403, $response['headers']['status-code'], 'Service ' . $service . ' should block requests when disabled (got ' . $response['headers']['status-code'] . ')');
+            $this->assertSame('general_service_disabled', $response['body']['type'], 'Service ' . $service . ' should return general_service_disabled error type');
+
+            // Cleanup
+            $this->updateServiceStatus($service, true);
+        }
+    }
+
+    public function testEachReenabledServiceAllowsRequest(): void
+    {
+        $serviceEndpoints = [
+            'account'    => ['method' => Client::METHOD_GET,  'path' => '/account'],
+            'avatars'    => ['method' => Client::METHOD_GET,  'path' => '/avatars/initials'],
+            'databases'  => ['method' => Client::METHOD_GET,  'path' => '/databases'],
+            'tablesdb'   => ['method' => Client::METHOD_GET,  'path' => '/tablesdb'],
+            'locale'     => ['method' => Client::METHOD_GET,  'path' => '/locale'],
+            'health'     => ['method' => Client::METHOD_GET,  'path' => '/health'],
+            'project'    => ['method' => Client::METHOD_GET,  'path' => '/project/platforms'],
+            'storage'    => ['method' => Client::METHOD_GET,  'path' => '/storage/buckets'],
+            'teams'      => ['method' => Client::METHOD_GET,  'path' => '/teams'],
+            'users'      => ['method' => Client::METHOD_GET,  'path' => '/users'],
+            'vcs'        => ['method' => Client::METHOD_GET,  'path' => '/vcs/installations'],
+            'sites'      => ['method' => Client::METHOD_GET,  'path' => '/sites'],
+            'functions'  => ['method' => Client::METHOD_GET,  'path' => '/functions'],
+            'proxy'      => ['method' => Client::METHOD_GET,  'path' => '/proxy/rules'],
+            'graphql'    => ['method' => Client::METHOD_POST, 'path' => '/graphql'],
+            'migrations' => ['method' => Client::METHOD_GET,  'path' => '/migrations'],
+            'messaging'  => ['method' => Client::METHOD_GET,  'path' => '/messaging/providers'],
+        ];
+
+        foreach ($serviceEndpoints as $service => $endpoint) {
+            $this->updateServiceStatus($service, false);
+            $this->updateServiceStatus($service, true);
+
+            $response = $this->client->call($endpoint['method'], $endpoint['path'], array_merge([
+                'content-type' => 'application/json',
+                'x-appwrite-project' => $this->getProject()['$id'],
+            ], $this->getHeaders()));
+
+            $this->assertNotEquals(403, $response['headers']['status-code'], 'Service ' . $service . ' should allow requests after re-enabling');
+        }
+    }
+
     public function testResponseModel(): void
     {
         $response = $this->updateServiceStatus('teams', false);
