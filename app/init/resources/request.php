@@ -128,7 +128,7 @@ return function (Container $container): void {
         $method = $method === Http::REQUEST_METHOD_HEAD ? Http::REQUEST_METHOD_GET : $method;
         $route = Router::match($method, $url);
 
-        return $route?->getPath() ?? $request->getURI();
+        return $route?->getPath() ?? $url;
     }, ['request']);
 
     // Per-request queue resources (stateful, accumulate event data during request)
