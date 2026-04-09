@@ -93,13 +93,10 @@ class Create extends Action
             throw new Exception($this->getInvalidValueException(), $validator->getDescription());
         }
 
-        // `bigint` is always stored as a 64-bit integer.
-        $size = 8;
-
         $attribute = $this->createAttribute($databaseId, $collectionId, new Document([
             'key' => $key,
             'type' => Database::VAR_BIGINT,
-            'size' => $size,
+            'size' => 8,
             'required' => $required,
             'default' => $default,
             'array' => $array,

@@ -276,7 +276,16 @@ class Create extends Action
     ): array {
         $key = $attribute['key'];
         $type = $attribute['type'];
-        $size = $attribute['size'] ?? 0;
+        switch ($type) {
+            case Database::VAR_INTEGER:
+                $size = 4;
+                break;
+            case Database::VAR_BIGINT:
+                $size = 8;
+                break;
+            default:
+                $size = $attribute['size'] ?? 0;
+        }
         $required = $attribute['required'] ?? false;
         $signed = $attribute['signed'] ?? true;
         $array = $attribute['array'] ?? false;
