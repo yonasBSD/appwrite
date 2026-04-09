@@ -734,16 +734,18 @@ $server->onOpen(function (int $connection, SwooleRequest $request) use ($server,
          */
         if (empty($channels)) {
             // in case of message based 'subscribe' channels will be empty at first and only projectId and roles will be available
+            $sanitizedUser = empty($user->getId()) ? null : $response->output($user, Response::MODEL_ACCOUNT);
             $connectedPayloadJson = json_encode([
                 'type' => 'connected',
                 'data' => [
                     'channels' => [],
                     'subscriptions' => [],
-                    'user' => $user
+                    'user' => $sanitizedUser
                 ]
             ]);
 
             $realtime->subscribe($project->getId(), $connection, '', $roles, [], [], $user->getId());
+            $realtime->connections[$connection]['authorization'] = $authorization;
             $server->send([$connection], $connectedPayloadJson);
             $registerConnectionStats($project->getId(), $project->getAttribute('teamId'), $connectedPayloadJson);
             return;
