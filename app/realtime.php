@@ -712,7 +712,7 @@ $server->onOpen(function (int $connection, SwooleRequest $request) use ($server,
 
         $channels = Realtime::convertChannels($request->getQuery('channels', []), $user->getId());
 
-        $registerConnectionStats = static function (string $projectId, string $teamId, string $payloadJson) use ($register, $stats): void {
+        $registerConnectionStats = static function (string $projectId, ?string $teamId, string $payloadJson) use ($register, $stats): void {
             $register->get('telemetry.connectionCounter')->add(1);
             $register->get('telemetry.connectionCreatedCounter')->add(1);
 
