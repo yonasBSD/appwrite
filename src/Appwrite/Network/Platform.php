@@ -67,14 +67,27 @@ class Platform
             $key = strtolower($platform['key'] ?? '');
 
             switch ($type) {
+                case 'flutter-web':
+                case 'unity':
                 case self::TYPE_WEB:
                     if (!empty($hostname)) {
                         $hostnames[] = $hostname;
                     }
                     break;
+                case 'flutter-android':
+                case 'react-native-android':
                 case self::TYPE_ANDROID:
+                case 'flutter-windows':
                 case self::TYPE_WINDOWS:
+                case 'flutter-linux':
                 case self::TYPE_LINUX:
+                case 'flutter-ios':
+                case 'flutter-macos':
+                case 'apple-ios':
+                case 'apple-macos':
+                case 'apple-watchos':
+                case 'apple-tvos':
+                case 'react-native-ios':
                 case self::TYPE_APPLE:
                     if (!empty($key)) {
                         $hostnames[] = $key;
@@ -100,22 +113,35 @@ class Platform
                         $schemes[] = $scheme;
                     }
                     break;
+                case 'flutter-web':
+                case 'unity':
                 case self::TYPE_WEB:
                     $schemes[] = self::SCHEME_HTTP;
                     $schemes[] = self::SCHEME_HTTPS;
                     break;
+                case 'flutter-android':
+                case 'react-native-android':
                 case self::TYPE_ANDROID:
                     $schemes[] = self::SCHEME_ANDROID;
                     break;
+                case 'flutter-ios':
+                case 'flutter-macos':
+                case 'apple-ios':
+                case 'apple-macos':
+                case 'apple-watchos':
+                case 'apple-tvos':
+                case 'react-native-ios':
                 case self::TYPE_APPLE:
                     $schemes[] = self::SCHEME_WATCHOS;
                     $schemes[] = self::SCHEME_MACOS;
                     $schemes[] = self::SCHEME_TVOS;
                     $schemes[] = self::SCHEME_IOS;
                     break;
+                case 'flutter-windows':
                 case self::TYPE_WINDOWS:
                     $schemes[] = self::SCHEME_WINDOWS;
                     break;
+                case 'flutter-linux':
                 case self::TYPE_LINUX:
                     $schemes[] = self::SCHEME_LINUX;
                     break;

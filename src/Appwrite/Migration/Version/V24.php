@@ -372,6 +372,28 @@ class V24 extends Migration
                     $document->setAttribute('resourceInternalId', $projectInternalId);
                 }
                 break;
+            case 'platforms':
+                $type = $document->getAttribute('type', '');
+                $typeMap = [
+                    'flutter-web' => 'web',
+                    'unity' => 'web',
+                    'flutter-ios' => 'apple',
+                    'flutter-macos' => 'apple',
+                    'apple-ios' => 'apple',
+                    'apple-macos' => 'apple',
+                    'apple-watchos' => 'apple',
+                    'apple-tvos' => 'apple',
+                    'react-native-ios' => 'apple',
+                    'flutter-android' => 'android',
+                    'react-native-android' => 'android',
+                    'flutter-windows' => 'windows',
+                    'flutter-linux' => 'linux',
+                ];
+
+                if (isset($typeMap[$type])) {
+                    $document->setAttribute('type', $typeMap[$type]);
+                }
+                break;
             default:
                 break;
         }
