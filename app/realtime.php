@@ -712,6 +712,23 @@ $server->onOpen(function (int $connection, SwooleRequest $request) use ($server,
 
         $channels = Realtime::convertChannels($request->getQuery('channels', []), $user->getId());
 
+        $registerConnectionStats = static function (string $projectId, string $teamId, string $payloadJson) use ($register, $stats): void {
+            $register->get('telemetry.connectionCounter')->add(1);
+            $register->get('telemetry.connectionCreatedCounter')->add(1);
+
+            $stats->set($projectId, [
+                'projectId' => $projectId,
+                'teamId' => $teamId
+            ]);
+            $stats->incr($projectId, 'connections');
+            $stats->incr($projectId, 'connectionsTotal');
+
+            triggerStats([
+                METRIC_REALTIME_CONNECTIONS => 1,
+                METRIC_REALTIME_OUTBOUND => \strlen($payloadJson),
+            ], $projectId);
+        };
+
         /**
          * Channels Check
          */
@@ -728,6 +745,7 @@ $server->onOpen(function (int $connection, SwooleRequest $request) use ($server,
 
             $realtime->subscribe($project->getId(), $connection, '', $roles, [], [], $user->getId());
             $server->send([$connection], $connectedPayloadJson);
+            $registerConnectionStats($project->getId(), $project->getAttribute('teamId'), $connectedPayloadJson);
             return;
         }
 
@@ -773,20 +791,7 @@ $server->onOpen(function (int $connection, SwooleRequest $request) use ($server,
         ]);
 
         $server->send([$connection], $connectedPayloadJson);
-
-        $register->get('telemetry.connectionCounter')->add(1);
-        $register->get('telemetry.connectionCreatedCounter')->add(1);
-
-        $stats->set($project->getId(), [
-            'projectId' => $project->getId(),
-            'teamId' => $project->getAttribute('teamId')
-        ]);
-        $stats->incr($project->getId(), 'connections');
-        $stats->incr($project->getId(), 'connectionsTotal');
-
-        $connectedOutboundBytes = \strlen($connectedPayloadJson);
-
-        triggerStats([METRIC_REALTIME_CONNECTIONS => 1, METRIC_REALTIME_OUTBOUND => $connectedOutboundBytes], $project->getId());
+        $registerConnectionStats($project->getId(), $project->getAttribute('teamId'), $connectedPayloadJson);
 
 
     } catch (Throwable $th) {
