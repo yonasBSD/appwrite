@@ -271,9 +271,9 @@ class Get extends Action
 
         Span::add('storage.file.id', $file->getId());
         Span::add('storage.bucket.id', $bucketId);
-        Span::add('storage.file_size_bytes', $file->getAttribute('sizeActual'));
+        Span::add('storage.file.size_bytes', $file->getAttribute('sizeActual'));
         if (!empty($type)) {
-            Span::add('storage.file_extension', $type);
+            Span::add('storage.file.extension', $type);
         }
         Span::add('storage.timing.download_seconds', $downloadTime);
         Span::add('storage.timing.decryption_seconds', $decryptionTime);
