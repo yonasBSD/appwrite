@@ -269,8 +269,8 @@ class Get extends Action
 
         $totalTime = \microtime(true) - $startTime;
 
-        Span::add('storage.file_id', $file->getId());
-        Span::add('storage.bucket_id', $bucketId);
+        Span::add('storage.file.id', $file->getId());
+        Span::add('storage.bucket.id', $bucketId);
         Span::add('storage.file_size_bytes', $file->getAttribute('sizeActual'));
         if (!empty($type)) {
             Span::add('storage.file_extension', $type);

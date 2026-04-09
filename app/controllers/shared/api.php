@@ -683,8 +683,8 @@ Http::init()
                     if ($file->isEmpty()) {
                         throw new Exception(Exception::STORAGE_FILE_NOT_FOUND);
                     }
-                    Span::add('storage.bucket_id', $bucketId);
-                    Span::add('storage.file_id', $fileId);
+                    Span::add('storage.bucket.id', $bucketId);
+                    Span::add('storage.file.id', $fileId);
                     // Do not update transformedAt if it's a console user
                     if (! $user->isPrivileged($authorization->getRoles())) {
                         $transformedAt = $file->getAttribute('transformedAt', '');
