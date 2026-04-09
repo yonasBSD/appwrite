@@ -137,6 +137,7 @@ class Mails extends Listener
         }
 
         $queueForMails
+            ->setProject($project)
             ->setSubject($subject)
             ->setPreview($preview)
             ->setBody($body)
