@@ -435,15 +435,6 @@ class Swagger2 extends Format
                         $node['type'] = $validator->getType();
                         $node['x-example'] = ($param['example'] ?? '') ?: '<' . \strtoupper(Template::fromCamelCaseToSnake($node['name'])) . '>';
                         break;
-                    case \Utopia\Database\Validator\BigInt::class:
-                        // BigInt validator reports Database::VAR_BIGINT, but Swagger expects scalar types.
-                        // We expose it as int64 to keep schema consistent with Column/Attribute models.
-                        $node['type'] = 'integer';
-                        $node['format'] = 'int64';
-                        if (!empty($param['example'])) {
-                            $node['x-example'] = $param['example'];
-                        }
-                        break;
                     case \Utopia\Validator\Boolean::class:
                         $node['type'] = $validator->getType();
                         $node['x-example'] = ($param['example'] ?? '') ?: false;

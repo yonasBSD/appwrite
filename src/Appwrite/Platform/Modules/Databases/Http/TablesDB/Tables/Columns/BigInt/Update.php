@@ -9,7 +9,6 @@ use Appwrite\SDK\Method;
 use Appwrite\SDK\Response as SDKResponse;
 use Appwrite\Utopia\Response as UtopiaResponse;
 use Utopia\Database\Database;
-use Utopia\Database\Validator\BigInt;
 use Utopia\Database\Validator\Key;
 use Utopia\Database\Validator\UID;
 use Utopia\Http\Adapter\Swoole\Response as SwooleResponse;
@@ -61,7 +60,7 @@ class Update extends BigIntUpdate
             ->param('required', null, new Boolean(), 'Is column required?')
             ->param('min', null, new Nullable(new Integer(false, 64)), 'Minimum value', true)
             ->param('max', null, new Nullable(new Integer(false, 64)), 'Maximum value', true)
-            ->param('default', null, new Nullable(new BigInt(false, true)), 'Default value. Cannot be set when column is required.')
+            ->param('default', null, new Nullable(new Integer(false, 64)), 'Default value. Cannot be set when column is required.')
             ->param('newKey', null, fn (Database $dbForProject) => new Nullable(new Key(false, $dbForProject->getAdapter()->getMaxUIDLength())), 'New Column Key.', true, ['dbForProject'])
             ->inject('response')
             ->inject('dbForProject')
