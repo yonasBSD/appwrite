@@ -51,7 +51,7 @@ class Update extends Action
                     )
                 ],
             ))
-            ->param('protocolId', '', new WhiteList(array_keys(array_filter(Config::getParam('protocols'), fn ($element) => $element['optional'])), true), 'Protocol name. Can be one of: '.\implode(', ', array_keys(array_filter(Config::getParam('protocols'), fn ($element) => $element['optional']))))
+            ->param('protocolId', '', new WhiteList(array_keys(Config::getParam('protocols')), true), 'Protocol name. Can be one of: ' . \implode(', ', array_keys(Config::getParam('protocols'))))
             ->param('enabled', null, new Boolean(), 'Protocol status.')
             ->inject('response')
             ->inject('dbForPlatform')

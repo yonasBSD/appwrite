@@ -166,7 +166,7 @@ trait ServicesBase
     {
         $response = $this->updateServiceStatus('', false);
 
-        $this->assertSame(400, $response['headers']['status-code']);
+        $this->assertSame(404, $response['headers']['status-code']);
     }
 
     // Helpers

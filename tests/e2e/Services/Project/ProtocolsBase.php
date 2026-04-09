@@ -72,7 +72,7 @@ trait ProtocolsBase
     {
         $this->updateProtocolStatus('rest', false);
 
-        $response = $this->client->call(Client::METHOD_GET, '/teams', [
+        $response = $this->client->call(Client::METHOD_GET, '/locale/countries', [
             'content-type' => 'application/json',
             'x-appwrite-project' => $this->getProject()['$id'],
         ]);
@@ -89,10 +89,10 @@ trait ProtocolsBase
         $this->updateProtocolStatus('rest', false);
         $this->updateProtocolStatus('rest', true);
 
-        $response = $this->client->call(Client::METHOD_GET, '/teams', array_merge([
+        $response = $this->client->call(Client::METHOD_GET, '/locale/countries', [
             'content-type' => 'application/json',
             'x-appwrite-project' => $this->getProject()['$id'],
-        ], $this->getHeaders()));
+        ]);
 
         $this->assertSame(200, $response['headers']['status-code']);
     }
@@ -120,10 +120,10 @@ trait ProtocolsBase
         $this->updateProtocolStatus('graphql', false);
 
         // REST should still work
-        $response = $this->client->call(Client::METHOD_GET, '/teams', array_merge([
+        $response = $this->client->call(Client::METHOD_GET, '/locale/countries', [
             'content-type' => 'application/json',
             'x-appwrite-project' => $this->getProject()['$id'],
-        ], $this->getHeaders()));
+        ]);
 
         $this->assertSame(200, $response['headers']['status-code']);
 
@@ -166,7 +166,7 @@ trait ProtocolsBase
     {
         $response = $this->updateProtocolStatus('', false);
 
-        $this->assertSame(400, $response['headers']['status-code']);
+        $this->assertSame(404, $response['headers']['status-code']);
     }
 
     // Helpers

@@ -76,7 +76,7 @@ Http::patch('/v1/projects/:projectId/service/all')
     ->groups(['api', 'projects'])
     ->label('scope', 'projects.write')
     ->action(function () {
-        throw new Exception(Exception::GENERAL_NOT_IMPLEMENTED);
+        throw new Exception(Exception::GENERAL_NOT_IMPLEMENTED, 'Bulk API no longer exists for services. Please change status individually.');
     });
 
 Http::patch('/v1/projects/:projectId/api/all')
@@ -84,7 +84,7 @@ Http::patch('/v1/projects/:projectId/api/all')
     ->groups(['api', 'projects'])
     ->label('scope', 'projects.write')
     ->action(function () {
-        throw new Exception(Exception::GENERAL_NOT_IMPLEMENTED);
+        throw new Exception(Exception::GENERAL_NOT_IMPLEMENTED, 'Bulk API no longer exists for services. Please change status individually.');
     });
 
 Http::patch('/v1/projects/:projectId/oauth2')
