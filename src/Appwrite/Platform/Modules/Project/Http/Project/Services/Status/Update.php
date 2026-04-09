@@ -71,7 +71,9 @@ class Update extends Action
         $services = $project->getAttribute('services', []);
         $services[$serviceId] = $enabled;
 
-        $project = $authorization->skip(fn () => $dbForPlatform->updateDocument('projects', $project->getId(), $project->setAttribute('services', $services)));
+        $project = $authorization->skip(fn () => $dbForPlatform->updateDocument('projects', $project->getId(), new Document([
+            'services' => $services,
+        ])));
 
         $response->dynamic($project, Response::MODEL_PROJECT);
     }
