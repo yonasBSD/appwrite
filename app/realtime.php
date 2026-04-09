@@ -660,9 +660,10 @@ $server->onOpen(function (int $connection, SwooleRequest $request) use ($server,
         $user = $app->getResource('user'); /** @var User $user */
         $logUser = $user;
 
+        $apis = $project->getAttribute('apis', []);
+        $websocketEnabled = $apis['websocket'] ?? $apis['realtime'] ?? true;
         if (
-            array_key_exists('realtime', $project->getAttribute('apis', []))
-            && !$project->getAttribute('apis', [])['realtime']
+            !$websocketEnabled
             && !($user->isPrivileged($authorization->getRoles()) || $user->isApp($authorization->getRoles()))
         ) {
             throw new AppwriteException(AppwriteException::GENERAL_API_DISABLED);

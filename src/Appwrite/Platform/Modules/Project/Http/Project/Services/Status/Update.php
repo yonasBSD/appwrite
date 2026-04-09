@@ -12,9 +12,7 @@ use Utopia\Database\Database;
 use Utopia\Database\Document;
 use Utopia\Database\Validator\Authorization;
 use Utopia\Platform\Scope\HTTP;
-use Utopia\Validator\ArrayList;
 use Utopia\Validator\Boolean;
-use Utopia\Validator\Text;
 use Utopia\Validator\WhiteList;
 
 class Update extends Action
@@ -73,7 +71,7 @@ class Update extends Action
         $services = $project->getAttribute('services', []);
         $services[$serviceId] = $enabled;
 
-        $project = $authorization->skip(fn() => $dbForPlatform->updateDocument('projects', $project->getId(), $project->setAttribute('services', $services)));
+        $project = $authorization->skip(fn () => $dbForPlatform->updateDocument('projects', $project->getId(), $project->setAttribute('services', $services)));
 
         $response->dynamic($project, Response::MODEL_PROJECT);
     }

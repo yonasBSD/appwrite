@@ -19,6 +19,10 @@ class V22 extends Filter
             unset($content['status']);
         }
 
+        if (($content['protocolId'] ?? '') === 'realtime') {
+            $content['protocolId'] = 'websocket';
+        }
+
         return $content;
     }
 

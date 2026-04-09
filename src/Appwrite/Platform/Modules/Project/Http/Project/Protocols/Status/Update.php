@@ -12,9 +12,7 @@ use Utopia\Database\Database;
 use Utopia\Database\Document;
 use Utopia\Database\Validator\Authorization;
 use Utopia\Platform\Scope\HTTP;
-use Utopia\Validator\ArrayList;
 use Utopia\Validator\Boolean;
-use Utopia\Validator\Text;
 use Utopia\Validator\WhiteList;
 
 class Update extends Action
@@ -53,7 +51,7 @@ class Update extends Action
                     )
                 ],
             ))
-            ->param('protocolId', '', new WhiteList(array_keys(array_filter(Config::getParam('apis'), fn ($element) => $element['optional'])), true), 'Protocol name. Can be one of: '.\implode(', ', array_keys(array_filter(Config::getParam('apis'), fn ($element) => $element['optional']))))
+            ->param('protocolId', '', new WhiteList(array_keys(array_filter(Config::getParam('protocols'), fn ($element) => $element['optional'])), true), 'Protocol name. Can be one of: '.\implode(', ', array_keys(array_filter(Config::getParam('protocols'), fn ($element) => $element['optional']))))
             ->param('enabled', null, new Boolean(), 'Protocol status.')
             ->inject('response')
             ->inject('dbForPlatform')
@@ -73,7 +71,7 @@ class Update extends Action
         $protocols = $project->getAttribute('apis', []);
         $protocols[$protocolId] = $enabled;
 
-        $project = $authorization->skip(fn() => $dbForPlatform->updateDocument('projects', $project->getId(), $project->setAttribute('apis', $protocols)));
+        $project = $authorization->skip(fn () => $dbForPlatform->updateDocument('projects', $project->getId(), $project->setAttribute('apis', $protocols)));
 
         $response->dynamic($project, Response::MODEL_PROJECT);
     }
