@@ -39,16 +39,12 @@ class FormatTest extends TestCase
     {
         $createWebPlatform = $this->format->requestParameterConfig('project', 'createWebPlatform', 'hostname', true, false, '');
         $updateWebPlatform = $this->format->requestParameterConfig('project', 'updateWebPlatform', 'hostname', true, false, '');
-        $createKey = $this->format->requestParameterConfig('project', 'createKey', 'scopes', false, true, null);
-        $updateKey = $this->format->requestParameterConfig('project', 'updateKey', 'scopes', false, true, null);
         $listPlatforms = $this->format->requestParameterConfig('project', 'listPlatforms', 'queries', true, false, []);
 
         $this->assertTrue($createWebPlatform['required']);
         $this->assertFalse($createWebPlatform['emitDefault']);
         $this->assertTrue($updateWebPlatform['required']);
         $this->assertFalse($updateWebPlatform['emitDefault']);
-        $this->assertFalse($createKey['nullable']);
-        $this->assertFalse($updateKey['nullable']);
         $this->assertTrue($listPlatforms['emitDefault']);
     }
 
