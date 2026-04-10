@@ -4,7 +4,7 @@ namespace Appwrite\Platform\Workers;
 
 use Ahc\Jwt\JWT;
 use Appwrite\Event\Mail;
-use Appwrite\Event\Message\Migration as MigrationMessage;
+use Appwrite\Event\Message\Migration;
 use Appwrite\Event\Message\Usage as UsageMessage;
 use Appwrite\Event\Publisher\Usage as UsagePublisher;
 use Appwrite\Event\Realtime;
@@ -130,7 +130,7 @@ class Migrations extends Action
         array $plan,
         Authorization $authorization,
     ): void {
-        $migrationMessage = MigrationMessage::fromArray($message->getPayload() ?? []);
+        $migrationMessage = Migration::fromArray($message->getPayload() ?? []);
         $this->getDatabasesDB = $getDatabasesDB;
         $this->getProjectDB = $getProjectDB;
 

@@ -2,7 +2,6 @@
 
 namespace Appwrite\Platform\Tasks;
 
-use Appwrite\Event\Message\StatsResources as StatsResourcesMessage;
 use Appwrite\Event\Publisher\StatsResources as StatsResourcesPublisher;
 use Appwrite\Platform\Action;
 use Utopia\Console;
@@ -71,7 +70,7 @@ class StatsResources extends Action
                 Query::greaterThanEqual('accessedAt', DateTime::format($last24Hours)),
                 Query::equal('region', [System::getEnv('_APP_REGION', 'default')])
             ], function ($project) use ($publisherForStatsResources) {
-                $publisherForStatsResources->enqueue(new StatsResourcesMessage(
+                $publisherForStatsResources->enqueue(new \Appwrite\Event\Message\StatsResources(
                     project: $project,
                 ));
                 Console::success('project: ' . $project->getId() . '(' . $project->getSequence() . ')' . ' queued');

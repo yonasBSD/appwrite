@@ -4,12 +4,12 @@ namespace Appwrite\Event\Message;
 
 use Utopia\Database\Document;
 
-class Migration extends Base
+final class Migration extends Base
 {
     public function __construct(
-        public Document $project,
-        public Document $migration,
-        public array $platform = [],
+        public readonly Document $project,
+        public readonly Document $migration,
+        public readonly array $platform = [],
     ) {
     }
 
@@ -24,8 +24,7 @@ class Migration extends Base
 
     public static function fromArray(array $data): static
     {
-        /** @phpstan-ignore new.static (subclass constructors are backwards-compatible via optional params) */
-        return new static(
+        return new self(
             project: new Document($data['project'] ?? []),
             migration: new Document($data['migration'] ?? []),
             platform: $data['platform'] ?? [],

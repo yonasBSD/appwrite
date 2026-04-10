@@ -4,10 +4,10 @@ namespace Appwrite\Event\Message;
 
 use Utopia\Database\Document;
 
-class StatsResources extends Base
+final class StatsResources extends Base
 {
     public function __construct(
-        public Document $project,
+        public readonly Document $project,
     ) {
     }
 
@@ -20,8 +20,7 @@ class StatsResources extends Base
 
     public static function fromArray(array $data): static
     {
-        /** @phpstan-ignore new.static (subclass constructors are backwards-compatible via optional params) */
-        return new static(
+        return new self(
             project: new Document($data['project'] ?? []),
         );
     }

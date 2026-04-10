@@ -2,7 +2,7 @@
 
 namespace Appwrite\Platform\Workers;
 
-use Appwrite\Event\Message\Execution as ExecutionMessage;
+use Appwrite\Event\Message\Execution;
 use Exception;
 use Utopia\Database\Database;
 use Utopia\Platform\Action;
@@ -32,14 +32,13 @@ class Executions extends Action
         Message $message,
         Database $dbForProject,
     ): void {
-        $executionMessage = ExecutionMessage::fromArray($message->getPayload() ?? []);
+        $executionMessage = Execution::fromArray($message->getPayload() ?? []);
         $execution = $executionMessage->execution;
 
         if ($execution->isEmpty()) {
             throw new Exception('Missing execution');
         }
 
-        $project = $executionMessage->project;
         $dbForProject->upsertDocument('executions', $execution);
     }
 }
