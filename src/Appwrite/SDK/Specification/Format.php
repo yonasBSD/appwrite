@@ -78,6 +78,27 @@ abstract class Format
         ],
     ];
 
+    private const array REQUEST_PARAMETER_OVERRIDES = [
+        [
+            'namespace' => 'project',
+            'methods' => [
+                'createKey',
+                'updateKey',
+            ],
+            'parameter' => 'scopes',
+            'nullable' => false,
+        ],
+        [
+            'namespace' => 'project',
+            'methods' => [
+                'createWebPlatform',
+                'updateWebPlatform',
+            ],
+            'parameter' => 'hostname',
+            'required' => true,
+        ],
+    ];
+
     protected array $enumBlacklist = [];
 
     public function __construct(Container $container, array $services, array $routes, array $models, array $keys, int $authCount, string $platform)
@@ -774,8 +795,54 @@ abstract class Format
         return $values;
     }
 
+    protected function getRequestParameterOverride(string $service, string $method, string $param): array
+    {
+        foreach (self::REQUEST_PARAMETER_OVERRIDES as $override) {
+            if (
+                $override['namespace'] === $service
+                && \in_array($method, $override['methods'], true)
+                && $override['parameter'] === $param
+            ) {
+                return $override;
+            }
+        }
+
+        return [];
+    }
+
+    protected function isRequestParameterRequired(string $service, string $method, string $param, bool $required): bool
+    {
+        $override = $this->getRequestParameterOverride($service, $method, $param);
+
+        return $override['required'] ?? $required;
+    }
+
+    protected function isRequestParameterNullable(string $service, string $method, string $param, bool $nullable): bool
+    {
+        $override = $this->getRequestParameterOverride($service, $method, $param);
+
+        return $override['nullable'] ?? $nullable;
+    }
+
+    protected function shouldEmitRequestParameterDefault(string $service, string $method, string $param, bool $optional, mixed $default): bool
+    {
+        if (\is_null($default)) {
+            return false;
+        }
+
+        if (!$optional) {
+            return false;
+        }
+
+        return !$this->isRequestParameterRequired($service, $method, $param, false);
+    }
+
     public function getResponseEnumName(string $model, string $param): ?string
     {
+        if ($param === 'type' && \str_starts_with($model, 'platform') && $model !== 'platformList') {
+            return 'PlatformType';
+        }
+
         if ($param !== 'status') {
             return null;
         }
