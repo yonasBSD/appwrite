@@ -693,6 +693,15 @@ Http::init()
                     }
                 }
 
+                $accessedAt = $cacheLog->getAttribute('accessedAt', '');
+                if (DateTime::formatTz(DateTime::addSeconds(new \DateTime(), -APP_CACHE_UPDATE)) > $accessedAt) {
+                    $authorization->skip(fn () => $dbForProject->updateDocument('cache', $cacheLog->getId(), new Document([
+                        'accessedAt' => DateTime::now(),
+                    ])));
+                    // Refresh the filesystem file's mtime so TTL-based expiry in cache->load() stays valid
+                    $cache->save($key, $data);
+                }
+
                 $response
                     ->addHeader('Cache-Control', sprintf('private, max-age=%d', $timestamp))
                     ->addHeader('X-Appwrite-Cache', 'hit')
