@@ -10,12 +10,6 @@ use Utopia\Queue\Message;
 
 class Executions extends Action
 {
-    /**
-     * Keep skipping execution upserts for this internal project.
-     * The HTTP execution flow applies the same exclusion separately.
-     */
-    private const string EXCLUDED_PROJECT_ID = '6862e6a6000cce69f9da';
-
     public static function getName(): string
     {
         return 'executions';
@@ -46,8 +40,6 @@ class Executions extends Action
         }
 
         $project = $executionMessage->project;
-        if ($project->getId() !== self::EXCLUDED_PROJECT_ID) {
-            $dbForProject->upsertDocument('executions', $execution);
-        }
+        $dbForProject->upsertDocument('executions', $execution);
     }
 }
