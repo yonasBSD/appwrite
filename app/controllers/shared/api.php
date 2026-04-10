@@ -3,8 +3,8 @@
 use Appwrite\Auth\Key;
 use Appwrite\Auth\MFA\Type\TOTP;
 use Appwrite\Bus\Events\RequestCompleted;
-use Appwrite\Event\Audit;
 use Appwrite\Event\Build;
+use Appwrite\Event\Context\Audit as AuditContext;
 use Appwrite\Event\Database as EventDatabase;
 use Appwrite\Event\Delete;
 use Appwrite\Event\Event;
@@ -12,6 +12,7 @@ use Appwrite\Event\Func;
 use Appwrite\Event\Mail;
 use Appwrite\Event\Message\Usage as UsageMessage;
 use Appwrite\Event\Messaging;
+use Appwrite\Event\Publisher\Audit;
 use Appwrite\Event\Publisher\Usage as UsagePublisher;
 use Appwrite\Event\Realtime;
 use Appwrite\Event\Webhook;
@@ -88,7 +89,7 @@ Http::init()
     ->inject('request')
     ->inject('dbForPlatform')
     ->inject('dbForProject')
-    ->inject('queueForAudits')
+    ->inject('auditContext')
     ->inject('project')
     ->inject('user')
     ->inject('session')
@@ -97,7 +98,7 @@ Http::init()
     ->inject('team')
     ->inject('apiKey')
     ->inject('authorization')
-    ->action(function (Http $utopia, Request $request, Database $dbForPlatform, Database $dbForProject, Audit $queueForAudits, Document $project, User $user, ?Document $session, array $servers, string $mode, Document $team, ?Key $apiKey, Authorization $authorization) {
+    ->action(function (Http $utopia, Request $request, Database $dbForPlatform, Database $dbForProject, AuditContext $auditContext, Document $project, User $user, ?Document $session, array $servers, string $mode, Document $team, ?Key $apiKey, Authorization $authorization) {
         $route = $utopia->getRoute();
         if ($route === null) {
             throw new AppwriteException(AppwriteException::GENERAL_ROUTE_NOT_FOUND);
@@ -193,7 +194,7 @@ Http::init()
                     'name' => $apiKey->getName(),
                 ]);
 
-                $queueForAudits->setUser($user);
+                $auditContext->setUser($user);
             }
 
             // For standard keys, update last accessed time
@@ -264,7 +265,7 @@ Http::init()
                     API_KEY_ORGANIZATION => ACTIVITY_TYPE_KEY_ORGANIZATION,
                     default => ACTIVITY_TYPE_KEY_PROJECT,
                 });
-                $queueForAudits->setUser($userClone);
+                $auditContext->setUser($userClone);
             }
 
             // Apply permission
@@ -477,7 +478,7 @@ Http::init()
     ->inject('user')
     ->inject('queueForEvents')
     ->inject('queueForMessaging')
-    ->inject('queueForAudits')
+    ->inject('auditContext')
     ->inject('queueForDeletes')
     ->inject('queueForDatabase')
     ->inject('queueForBuilds')
@@ -494,7 +495,7 @@ Http::init()
     ->inject('telemetry')
     ->inject('platform')
     ->inject('authorization')
-    ->action(function (Http $utopia, Request $request, Response $response, Document $project, User $user, Event $queueForEvents, Messaging $queueForMessaging, Audit $queueForAudits, Delete $queueForDeletes, EventDatabase $queueForDatabase, Build $queueForBuilds, Context $usage, Func $queueForFunctions, Mail $queueForMails, Database $dbForProject, callable $timelimit, Document $resourceToken, string $mode, ?Key $apiKey, array $plan, Document $devKey, Telemetry $telemetry, array $platform, Authorization $authorization) {
+    ->action(function (Http $utopia, Request $request, Response $response, Document $project, User $user, Event $queueForEvents, Messaging $queueForMessaging, AuditContext $auditContext, Delete $queueForDeletes, EventDatabase $queueForDatabase, Build $queueForBuilds, Context $usage, Func $queueForFunctions, Mail $queueForMails, Database $dbForProject, callable $timelimit, Document $resourceToken, string $mode, ?Key $apiKey, array $plan, Document $devKey, Telemetry $telemetry, array $platform, Authorization $authorization) {
 
         $response->setUser($user);
         $request->setUser($user);
@@ -595,7 +596,7 @@ Http::init()
             ->setProject($project)
             ->setUser($user);
 
-        $queueForAudits
+        $auditContext
             ->setMode($mode)
             ->setUserAgent($request->getUserAgent(''))
             ->setIP($request->getIP())
@@ -610,7 +611,7 @@ Http::init()
             if (empty($user->getAttribute('type'))) {
                 $userClone->setAttribute('type', $mode === APP_MODE_ADMIN ? ACTIVITY_TYPE_ADMIN : ACTIVITY_TYPE_USER);
             }
-            $queueForAudits->setUser($userClone);
+            $auditContext->setUser($userClone);
         }
 
         /* Auto-set projects */
@@ -789,7 +790,8 @@ Http::shutdown()
     ->inject('project')
     ->inject('user')
     ->inject('queueForEvents')
-    ->inject('queueForAudits')
+    ->inject('auditContext')
+    ->inject('publisherForAudits')
     ->inject('usage')
     ->inject('publisherForUsage')
     ->inject('queueForDeletes')
@@ -806,7 +808,7 @@ Http::shutdown()
     ->inject('bus')
     ->inject('apiKey')
     ->inject('mode')
-    ->action(function (Http $utopia, Request $request, Response $response, Document $project, User $user, Event $queueForEvents, Audit $queueForAudits, Context $usage, UsagePublisher $publisherForUsage, Delete $queueForDeletes, EventDatabase $queueForDatabase, Build $queueForBuilds, Messaging $queueForMessaging, Func $queueForFunctions, Event $queueForWebhooks, Realtime $queueForRealtime, Database $dbForProject, Authorization $authorization, callable $timelimit, EventProcessor $eventProcessor, Bus $bus, ?Key $apiKey, string $mode) use ($parseLabel) {
+    ->action(function (Http $utopia, Request $request, Response $response, Document $project, User $user, Event $queueForEvents, AuditContext $auditContext, Audit $publisherForAudits, Context $usage, UsagePublisher $publisherForUsage, Delete $queueForDeletes, EventDatabase $queueForDatabase, Build $queueForBuilds, Messaging $queueForMessaging, Func $queueForFunctions, Event $queueForWebhooks, Realtime $queueForRealtime, Database $dbForProject, Authorization $authorization, callable $timelimit, EventProcessor $eventProcessor, Bus $bus, ?Key $apiKey, string $mode) use ($parseLabel) {
 
         $responsePayload = $response->getPayload();
 
@@ -901,7 +903,7 @@ Http::shutdown()
         if (! empty($pattern)) {
             $resource = $parseLabel($pattern, $responsePayload, $requestParams, $user);
             if (! empty($resource) && $resource !== $pattern) {
-                $queueForAudits->setResource($resource);
+                $auditContext->setResource($resource);
             }
         }
 
@@ -911,8 +913,8 @@ Http::shutdown()
             if (empty($user->getAttribute('type'))) {
                 $userClone->setAttribute('type', $mode === APP_MODE_ADMIN ? ACTIVITY_TYPE_ADMIN : ACTIVITY_TYPE_USER);
             }
-            $queueForAudits->setUser($userClone);
-        } elseif ($queueForAudits->getUser() === null || $queueForAudits->getUser()->isEmpty()) {
+            $auditContext->setUser($userClone);
+        } elseif ($auditContext->getUser() === null || $auditContext->getUser()->isEmpty()) {
             /**
              * User in the request is empty, and no user was set for auditing previously.
              * This indicates:
@@ -930,24 +932,31 @@ Http::shutdown()
                 'name' => 'Guest',
             ]);
 
-            $queueForAudits->setUser($user);
+            $auditContext->setUser($user);
         }
 
-        if (! empty($queueForAudits->getResource()) && ! $queueForAudits->getUser()->isEmpty()) {
+        $auditUser = $auditContext->getUser();
+        if (! empty($auditContext->getResource()) && ! \is_null($auditUser) && ! $auditUser->isEmpty()) {
             /**
              * audits.payload is switched to default true
              * in order to auto audit payload for all endpoints
              */
             $pattern = $route->getLabel('audits.payload', true);
             if (! empty($pattern)) {
-                $queueForAudits->setPayload($responsePayload);
+                $auditContext->setPayload($responsePayload);
             }
 
-            foreach ($queueForEvents->getParams() as $key => $value) {
-                $queueForAudits->setParam($key, $value);
-            }
-
-            $queueForAudits->trigger();
+            $publisherForAudits->enqueue(new \Appwrite\Event\Message\Audit(
+                project: $auditContext->getProject() ?? new Document(),
+                user: $auditUser,
+                payload: $auditContext->getPayload(),
+                resource: $auditContext->getResource(),
+                mode: $auditContext->getMode(),
+                ip: $auditContext->getIP(),
+                userAgent: $auditContext->getUserAgent(),
+                event: $auditContext->getEvent(),
+                hostname: $auditContext->getHostname(),
+            ));
         }
 
         if (! empty($queueForDeletes->getType())) {

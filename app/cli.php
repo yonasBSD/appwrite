@@ -2,7 +2,6 @@
 
 require_once __DIR__ . '/init.php';
 
-use Appwrite\Event\Certificate;
 use Appwrite\Event\Delete;
 use Appwrite\Event\Event;
 use Appwrite\Event\Func;
@@ -262,9 +261,6 @@ $container->set('queueForFunctions', function (Publisher $publisher) {
 }, ['publisher']);
 $container->set('queueForDeletes', function (Publisher $publisher) {
     return new Delete($publisher);
-}, ['publisher']);
-$container->set('queueForCertificates', function (Publisher $publisher) {
-    return new Certificate($publisher);
 }, ['publisher']);
 $container->set('logError', function (Registry $register) {
     return function (Throwable $error, string $namespace, string $action) use ($register) {
