@@ -795,46 +795,33 @@ abstract class Format
         return $values;
     }
 
-    protected function getRequestParameterOverride(string $service, string $method, string $param): array
+    protected function getRequestParameterConfig(string $service, string $method, string $param, bool $optional, bool $nullable, mixed $default): array
     {
+        $config = [
+            'required' => !$optional,
+            'nullable' => $nullable,
+            'emitDefault' => $optional && !\is_null($default),
+        ];
+
         foreach (self::REQUEST_PARAMETER_OVERRIDES as $override) {
             if (
-                $override['namespace'] === $service
-                && \in_array($method, $override['methods'], true)
-                && $override['parameter'] === $param
+                $override['namespace'] !== $service
+                || !\in_array($method, $override['methods'], true)
+                || $override['parameter'] !== $param
             ) {
-                return $override;
+                continue;
             }
+
+            $config['required'] = $override['required'] ?? $config['required'];
+            $config['nullable'] = $override['nullable'] ?? $config['nullable'];
+            break;
         }
 
-        return [];
-    }
-
-    protected function isRequestParameterRequired(string $service, string $method, string $param, bool $required): bool
-    {
-        $override = $this->getRequestParameterOverride($service, $method, $param);
-
-        return $override['required'] ?? $required;
-    }
-
-    protected function isRequestParameterNullable(string $service, string $method, string $param, bool $nullable): bool
-    {
-        $override = $this->getRequestParameterOverride($service, $method, $param);
-
-        return $override['nullable'] ?? $nullable;
-    }
-
-    protected function shouldEmitRequestParameterDefault(string $service, string $method, string $param, bool $optional, mixed $default): bool
-    {
-        if (\is_null($default)) {
-            return false;
+        if ($config['required']) {
+            $config['emitDefault'] = false;
         }
 
-        if (!$optional) {
-            return false;
-        }
-
-        return !$this->isRequestParameterRequired($service, $method, $param, false);
+        return $config;
     }
 
     public function getResponseEnumName(string $model, string $param): ?string

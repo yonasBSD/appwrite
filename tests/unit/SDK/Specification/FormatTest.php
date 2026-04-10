@@ -25,32 +25,28 @@ class FormatTest extends TestCase
                 return [];
             }
 
-            public function requestParameterRequired(string $service, string $method, string $param, bool $required): bool
+            public function requestParameterConfig(string $service, string $method, string $param, bool $optional, bool $nullable, mixed $default): array
             {
-                return $this->isRequestParameterRequired($service, $method, $param, $required);
-            }
-
-            public function requestParameterNullable(string $service, string $method, string $param, bool $nullable): bool
-            {
-                return $this->isRequestParameterNullable($service, $method, $param, $nullable);
-            }
-
-            public function requestParameterDefault(string $service, string $method, string $param, bool $optional, mixed $default): bool
-            {
-                return $this->shouldEmitRequestParameterDefault($service, $method, $param, $optional, $default);
+                return $this->getRequestParameterConfig($service, $method, $param, $optional, $nullable, $default);
             }
         };
     }
 
     public function testProjectRequestParameterOverrides(): void
     {
-        $this->assertTrue($this->format->requestParameterRequired('project', 'createWebPlatform', 'hostname', false));
-        $this->assertTrue($this->format->requestParameterRequired('project', 'updateWebPlatform', 'hostname', false));
-        $this->assertFalse($this->format->requestParameterNullable('project', 'createKey', 'scopes', true));
-        $this->assertFalse($this->format->requestParameterNullable('project', 'updateKey', 'scopes', true));
-        $this->assertFalse($this->format->requestParameterDefault('project', 'createWebPlatform', 'hostname', true, ''));
-        $this->assertFalse($this->format->requestParameterDefault('project', 'updateWebPlatform', 'hostname', true, ''));
-        $this->assertTrue($this->format->requestParameterDefault('project', 'listPlatforms', 'queries', true, []));
+        $createWebPlatform = $this->format->requestParameterConfig('project', 'createWebPlatform', 'hostname', true, false, '');
+        $updateWebPlatform = $this->format->requestParameterConfig('project', 'updateWebPlatform', 'hostname', true, false, '');
+        $createKey = $this->format->requestParameterConfig('project', 'createKey', 'scopes', false, true, null);
+        $updateKey = $this->format->requestParameterConfig('project', 'updateKey', 'scopes', false, true, null);
+        $listPlatforms = $this->format->requestParameterConfig('project', 'listPlatforms', 'queries', true, false, []);
+
+        $this->assertTrue($createWebPlatform['required']);
+        $this->assertFalse($createWebPlatform['emitDefault']);
+        $this->assertTrue($updateWebPlatform['required']);
+        $this->assertFalse($updateWebPlatform['emitDefault']);
+        $this->assertFalse($createKey['nullable']);
+        $this->assertFalse($updateKey['nullable']);
+        $this->assertTrue($listPlatforms['emitDefault']);
     }
 
     public function testProjectPlatformResponseTypeUsesSharedEnumName(): void

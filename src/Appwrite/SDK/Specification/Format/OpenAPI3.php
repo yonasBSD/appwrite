@@ -381,13 +381,22 @@ class OpenAPI3 extends Format
                  */
                 $validator = $this->getValidator($param);
 
+                $isNullable = $validator instanceof Nullable;
+
+                $parameter = $this->getRequestParameterConfig(
+                    $sdk->getNamespace() ?? '',
+                    $methodName,
+                    $name,
+                    $param['optional'],
+                    $isNullable,
+                    $param['default'],
+                );
+
                 $node = [
                     'name' => $name,
                     'description' => $param['description'],
-                    'required' => $this->isRequestParameterRequired($sdk->getNamespace() ?? '', $methodName, $name, !$param['optional']),
+                    'required' => $parameter['required'],
                 ];
-
-                $isNullable = $validator instanceof Nullable;
 
                 if ($isNullable) {
                     /** @var Nullable $validator */
@@ -735,7 +744,7 @@ class OpenAPI3 extends Format
                         break;
                 }
 
-                if ($this->shouldEmitRequestParameterDefault($sdk->getNamespace() ?? '', $methodName, $name, $param['optional'], $param['default'])) { // Param has default value
+                if ($parameter['emitDefault']) { // Param has default value
                     $node['schema']['default'] = $param['default'];
                 }
 
@@ -783,7 +792,7 @@ class OpenAPI3 extends Format
                         $body['content'][$consumes[0]]['schema']['properties'][$name]['x-global'] = true;
                     }
 
-                    if ($this->isRequestParameterNullable($sdk->getNamespace() ?? '', $methodName, $name, $isNullable)) {
+                    if ($parameter['nullable']) {
                         $body['content'][$consumes[0]]['schema']['properties'][$name]['x-nullable'] = true;
                     }
                 }

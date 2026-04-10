@@ -383,13 +383,22 @@ class Swagger2 extends Format
                 /** @var Validator $validator */
                 $validator = $this->getValidator($param);
 
+                $isNullable = $validator instanceof Nullable;
+
+                $parameter = $this->getRequestParameterConfig(
+                    $sdk->getNamespace() ?? '',
+                    $methodName,
+                    $name,
+                    $param['optional'],
+                    $isNullable,
+                    $param['default'],
+                );
+
                 $node = [
                     'name' => $name,
                     'description' => $param['description'],
-                    'required' => $this->isRequestParameterRequired($sdk->getNamespace() ?? '', $methodName, $name, !$param['optional']),
+                    'required' => $parameter['required'],
                 ];
-
-                $isNullable = $validator instanceof Nullable;
 
                 if ($isNullable) {
                     /** @var Nullable $validator */
@@ -711,7 +720,7 @@ class Swagger2 extends Format
                         break;
                 }
 
-                if ($this->shouldEmitRequestParameterDefault($sdk->getNamespace() ?? '', $methodName, $name, $param['optional'], $param['default'])) { // Param has default value
+                if ($parameter['emitDefault']) { // Param has default value
                     $node['default'] = $param['default'];
                 }
 
@@ -755,7 +764,7 @@ class Swagger2 extends Format
                         $body['schema']['properties'][$name]['x-global'] = true;
                     }
 
-                    if ($this->isRequestParameterNullable($sdk->getNamespace() ?? '', $methodName, $name, $isNullable)) {
+                    if ($parameter['nullable']) {
                         $body['schema']['properties'][$name]['x-nullable'] = true;
                     }
 
