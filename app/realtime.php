@@ -48,7 +48,7 @@ require_once __DIR__ . '/init.php';
 /** @var Registry $register */
 $register = $GLOBALS['register'] ?? throw new \RuntimeException('Registry not initialized');
 
-$registerConnectionResources ??= require __DIR__ . '/init/resources/connection.php';
+$registerConnectionResources ??= require __DIR__ . '/init/realtime/connection.php';
 
 Runtime::enableCoroutine(SWOOLE_HOOK_ALL);
 

@@ -1,7 +1,7 @@
 <?php
 
 require_once __DIR__ . '/init.php';
-$registerWorkerMessageResources = require __DIR__ . '/init/resources/message.php';
+$registerWorkerMessageResources = require __DIR__ . '/init/worker/message.php';
 
 use Appwrite\Certificates\LetsEncrypt;
 use Appwrite\Platform\Appwrite;
