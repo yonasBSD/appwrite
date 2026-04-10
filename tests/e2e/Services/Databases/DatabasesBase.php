@@ -11539,7 +11539,7 @@ trait DatabasesBase
         $this->assertEquals('Product B', $rows['body'][$this->getRecordResource()][0]['name']);
         $this->assertEquals(139.99, $rows['body'][$this->getRecordResource()][0]['price']);
     }
-    public function testDocumentWithEmptyPaylod(): void
+    public function testDocumentWithEmptyPayload(): void
     {
         $data = $this->setupCollection();
         $databaseId = $data['databaseId'];
