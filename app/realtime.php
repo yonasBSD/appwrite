@@ -48,7 +48,7 @@ require_once __DIR__ . '/init.php';
 /** @var Registry $register */
 $register = $GLOBALS['register'] ?? throw new \RuntimeException('Registry not initialized');
 
-$registerRequestResources ??= require __DIR__ . '/init/resources/request.php';
+$registerConnectionResources ??= require __DIR__ . '/init/resources/connection.php';
 
 Runtime::enableCoroutine(SWOOLE_HOOK_ALL);
 
@@ -621,7 +621,7 @@ $server->onWorkerStart(function (int $workerId) use ($server, $register, $stats,
     Console::error('Failed to restart pub/sub...');
 });
 
-$server->onOpen(function (int $connection, SwooleRequest $request) use ($server, $register, $stats, &$realtime, $registerRequestResources) {
+$server->onOpen(function (int $connection, SwooleRequest $request) use ($server, $register, $stats, &$realtime, $registerConnectionResources) {
     global $container;
     $request = new Request($request);
     $response = new Response(new SwooleResponse());
@@ -630,9 +630,8 @@ $server->onOpen(function (int $connection, SwooleRequest $request) use ($server,
 
     $connectionContainer = new Container($container);
     $connectionContainer->set('request', fn () => $request);
-    $connectionContainer->set('response', fn () => $response);
 
-    $registerRequestResources($connectionContainer);
+    $registerConnectionResources($connectionContainer);
 
     $project = null;
     $logUser = null;

@@ -51,7 +51,6 @@ use Utopia\DI\Container;
 use Utopia\Domains\Domain;
 use Utopia\DSN\DSN;
 use Utopia\Http\Http;
-use Utopia\Http\Router;
 use Utopia\Locale\Locale;
 use Utopia\Logger\Log;
 use Utopia\Pools\Group;
@@ -120,16 +119,6 @@ return function (Container $container): void {
 
         return $locale;
     });
-
-    $container->set('requestRoutePath', function (Request $request) {
-        $url = \parse_url($request->getURI(), PHP_URL_PATH);
-        $url = \is_string($url) ? ($url === '' ? '/' : $url) : '/';
-        $method = $request->getMethod();
-        $method = $method === Http::REQUEST_METHOD_HEAD ? Http::REQUEST_METHOD_GET : $method;
-        $route = Router::match($method, $url);
-
-        return $route?->getPath() ?? $url;
-    }, ['request']);
 
     // Per-request queue resources (stateful, accumulate event data during request)
     $container->set('queueForMessaging', function (Publisher $publisher) {
@@ -636,7 +625,7 @@ return function (Container $container): void {
         return $user;
     }, ['mode', 'project', 'console', 'request', 'response', 'dbForProject', 'dbForPlatform', 'store', 'proofForToken', 'authorization']);
 
-    $container->set('project', function ($dbForPlatform, $request, $console, $authorization, string $requestRoutePath) {
+    $container->set('project', function ($dbForPlatform, $request, $console, $authorization, Http $utopia) {
         /** @var Appwrite\Utopia\Request $request */
         /** @var Utopia\Database\Database $dbForPlatform */
         /** @var Utopia\Database\Document $console */
@@ -650,11 +639,14 @@ return function (Container $container): void {
         // These endpoints moved from /v1/projects/:projectId/<resource> to /v1/<resource>
         // When accessed via the old alias path, extract projectId from the URI
         $deprecatedProjectPathPrefix = '/v1/projects/';
-        $isDeprecatedAlias = \str_starts_with($request->getURI(), $deprecatedProjectPathPrefix) &&
-            !\str_starts_with($requestRoutePath, $deprecatedProjectPathPrefix);
+        $route = $utopia->match($request);
+        if (!empty($route)) {
+            $isDeprecatedAlias = \str_starts_with($request->getURI(), $deprecatedProjectPathPrefix) &&
+                !\str_starts_with($route->getPath(), $deprecatedProjectPathPrefix);
 
-        if ($isDeprecatedAlias) {
-            $projectId = \explode('/', $request->getURI(), 5)[3] ?? '';
+            if ($isDeprecatedAlias) {
+                $projectId = \explode('/', $request->getURI(), 5)[3] ?? '';
+            }
         }
 
         if (empty($projectId) || $projectId === 'console') {
@@ -664,7 +656,7 @@ return function (Container $container): void {
         $project = $authorization->skip(fn () => $dbForPlatform->getDocument('projects', $projectId));
 
         return $project;
-    }, ['dbForPlatform', 'request', 'console', 'authorization', 'requestRoutePath']);
+    }, ['dbForPlatform', 'request', 'console', 'authorization', 'utopia']);
 
     $container->set('session', function (User $user, Store $store, Token $proofForToken) {
         if ($user->isEmpty()) {
@@ -1131,18 +1123,20 @@ return function (Container $container): void {
         return $key;
     }, ['request', 'project', 'servers', 'dbForPlatform', 'authorization']);
 
-    $container->set('team', function (Document $project, Database $dbForPlatform, string $requestRoutePath, Request $request, Authorization $authorization) {
+    $container->set('team', function (Document $project, Database $dbForPlatform, Http $utopia, Request $request, Authorization $authorization) {
         $teamInternalId = '';
         if ($project->getId() !== 'console') {
             $teamInternalId = $project->getAttribute('teamInternalId', '');
         } else {
+            $route = $utopia->match($request);
+            $path = ! empty($route) ? $route->getPath() : $request->getURI();
             $orgHeader = $request->getHeader('x-appwrite-organization', '');
-            if (str_starts_with($requestRoutePath, '/v1/projects/:projectId')) {
+            if (str_starts_with($path, '/v1/projects/:projectId')) {
                 $uri = $request->getURI();
                 $pid = explode('/', $uri)[3];
                 $p = $authorization->skip(fn () => $dbForPlatform->getDocument('projects', $pid));
                 $teamInternalId = $p->getAttribute('teamInternalId', '');
-            } elseif ($requestRoutePath === '/v1/projects') {
+            } elseif ($path === '/v1/projects') {
                 $teamId = $request->getParam('teamId', '');
 
                 if (empty($teamId)) {
@@ -1170,7 +1164,7 @@ return function (Container $container): void {
         });
 
         return $team;
-    }, ['project', 'dbForPlatform', 'requestRoutePath', 'request', 'authorization']);
+    }, ['project', 'dbForPlatform', 'utopia', 'request', 'authorization']);
 
     $container->set('previewHostname', function (Request $request, ?Key $apiKey) {
         $allowed = false;
