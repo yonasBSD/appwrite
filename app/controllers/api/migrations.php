@@ -1,7 +1,8 @@
 <?php
 
 use Appwrite\Event\Event;
-use Appwrite\Event\Migration;
+use Appwrite\Event\Message\Migration as MigrationMessage;
+use Appwrite\Event\Publisher\Migration as MigrationPublisher;
 use Appwrite\Extend\Exception;
 use Appwrite\OpenSSL\OpenSSL;
 use Appwrite\SDK\AuthType;
@@ -92,8 +93,8 @@ Http::post('/v1/migrations/appwrite')
     ->inject('platform')
     ->inject('user')
     ->inject('queueForEvents')
-    ->inject('queueForMigrations')
-    ->action(function (array $resources, string $endpoint, string $projectId, string $apiKey, Response $response, Database $dbForProject, Document $project, array $platform, Document $user, Event $queueForEvents, Migration $queueForMigrations) {
+    ->inject('publisherForMigrations')
+    ->action(function (array $resources, string $endpoint, string $projectId, string $apiKey, Response $response, Database $dbForProject, Document $project, array $platform, Document $user, Event $queueForEvents, MigrationPublisher $publisherForMigrations) {
         $migration = $dbForProject->createDocument('migrations', new Document([
             '$id' => ID::unique(),
             'status' => 'pending',
@@ -114,12 +115,12 @@ Http::post('/v1/migrations/appwrite')
         $queueForEvents->setParam('migrationId', $migration->getId());
 
         // Trigger Transfer
-        $queueForMigrations
-            ->setMigration($migration)
-            ->setProject($project)
-            ->setPlatform($platform)
-            ->setUser($user)
-            ->trigger();
+        $publisherForMigrations->enqueue(new MigrationMessage(
+            project: $project,
+            migration: $migration,
+            platform: $platform,
+            user: $user,
+        ));
 
         $response
             ->setStatusCode(Response::STATUS_CODE_ACCEPTED)
@@ -153,8 +154,8 @@ Http::post('/v1/migrations/firebase')
     ->inject('platform')
     ->inject('user')
     ->inject('queueForEvents')
-    ->inject('queueForMigrations')
-    ->action(function (array $resources, string $serviceAccount, Response $response, Database $dbForProject, Document $project, array $platform, Document $user, Event $queueForEvents, Migration $queueForMigrations) {
+    ->inject('publisherForMigrations')
+    ->action(function (array $resources, string $serviceAccount, Response $response, Database $dbForProject, Document $project, array $platform, Document $user, Event $queueForEvents, MigrationPublisher $publisherForMigrations) {
         $serviceAccountData = json_decode($serviceAccount, true);
 
         if (empty($serviceAccountData)) {
@@ -183,12 +184,12 @@ Http::post('/v1/migrations/firebase')
         $queueForEvents->setParam('migrationId', $migration->getId());
 
         // Trigger Transfer
-        $queueForMigrations
-            ->setMigration($migration)
-            ->setProject($project)
-            ->setPlatform($platform)
-            ->setUser($user)
-            ->trigger();
+        $publisherForMigrations->enqueue(new MigrationMessage(
+            project: $project,
+            migration: $migration,
+            platform: $platform,
+            user: $user,
+        ));
 
         $response
             ->setStatusCode(Response::STATUS_CODE_ACCEPTED)
@@ -227,8 +228,8 @@ Http::post('/v1/migrations/supabase')
     ->inject('platform')
     ->inject('user')
     ->inject('queueForEvents')
-    ->inject('queueForMigrations')
-    ->action(function (array $resources, string $endpoint, string $apiKey, string $databaseHost, string $username, string $password, int $port, Response $response, Database $dbForProject, Document $project, array $platform, Document $user, Event $queueForEvents, Migration $queueForMigrations) {
+    ->inject('publisherForMigrations')
+    ->action(function (array $resources, string $endpoint, string $apiKey, string $databaseHost, string $username, string $password, int $port, Response $response, Database $dbForProject, Document $project, array $platform, Document $user, Event $queueForEvents, MigrationPublisher $publisherForMigrations) {
         $migration = $dbForProject->createDocument('migrations', new Document([
             '$id' => ID::unique(),
             'status' => 'pending',
@@ -252,12 +253,12 @@ Http::post('/v1/migrations/supabase')
         $queueForEvents->setParam('migrationId', $migration->getId());
 
         // Trigger Transfer
-        $queueForMigrations
-            ->setMigration($migration)
-            ->setProject($project)
-            ->setPlatform($platform)
-            ->setUser($user)
-            ->trigger();
+        $publisherForMigrations->enqueue(new MigrationMessage(
+            project: $project,
+            migration: $migration,
+            platform: $platform,
+            user: $user,
+        ));
 
         $response
             ->setStatusCode(Response::STATUS_CODE_ACCEPTED)
@@ -297,8 +298,8 @@ Http::post('/v1/migrations/nhost')
     ->inject('platform')
     ->inject('user')
     ->inject('queueForEvents')
-    ->inject('queueForMigrations')
-    ->action(function (array $resources, string $subdomain, string $region, string $adminSecret, string $database, string $username, string $password, int $port, Response $response, Database $dbForProject, Document $project, array $platform, Document $user, Event $queueForEvents, Migration $queueForMigrations) {
+    ->inject('publisherForMigrations')
+    ->action(function (array $resources, string $subdomain, string $region, string $adminSecret, string $database, string $username, string $password, int $port, Response $response, Database $dbForProject, Document $project, array $platform, Document $user, Event $queueForEvents, MigrationPublisher $publisherForMigrations) {
         $migration = $dbForProject->createDocument('migrations', new Document([
             '$id' => ID::unique(),
             'status' => 'pending',
@@ -323,12 +324,12 @@ Http::post('/v1/migrations/nhost')
         $queueForEvents->setParam('migrationId', $migration->getId());
 
         // Trigger Transfer
-        $queueForMigrations
-            ->setMigration($migration)
-            ->setProject($project)
-            ->setPlatform($platform)
-            ->setUser($user)
-            ->trigger();
+        $publisherForMigrations->enqueue(new MigrationMessage(
+            project: $project,
+            migration: $migration,
+            platform: $platform,
+            user: $user,
+        ));
 
         $response
             ->setStatusCode(Response::STATUS_CODE_ACCEPTED)
@@ -368,7 +369,7 @@ Http::post('/v1/migrations/csv/imports')
     ->inject('deviceForFiles')
     ->inject('deviceForMigrations')
     ->inject('queueForEvents')
-    ->inject('queueForMigrations')
+    ->inject('publisherForMigrations')
     ->action(function (
         string $bucketId,
         string $fileId,
@@ -383,7 +384,7 @@ Http::post('/v1/migrations/csv/imports')
         Device $deviceForFiles,
         Device $deviceForMigrations,
         Event $queueForEvents,
-        Migration $queueForMigrations
+        MigrationPublisher $publisherForMigrations
     ) {
         $bucket = $authorization->skip(function () use ($internalFile, $dbForPlatform, $dbForProject, $bucketId) {
             if ($internalFile) {
@@ -479,11 +480,10 @@ Http::post('/v1/migrations/csv/imports')
 
         $queueForEvents->setParam('migrationId', $migration->getId());
 
-        $queueForMigrations
-            ->setMigration($migration)
-            ->setProject($project)
-            ->setProject($project)
-            ->trigger();
+        $publisherForMigrations->enqueue(new MigrationMessage(
+            project: $project,
+            migration: $migration,
+        ));
 
         $response
             ->setStatusCode(Response::STATUS_CODE_ACCEPTED)
@@ -526,7 +526,7 @@ Http::post('/v1/migrations/csv/exports')
     ->inject('project')
     ->inject('platform')
     ->inject('queueForEvents')
-    ->inject('queueForMigrations')
+    ->inject('publisherForMigrations')
     ->action(function (
         string $resourceId,
         string $filename,
@@ -545,7 +545,7 @@ Http::post('/v1/migrations/csv/exports')
         Document $project,
         array $platform,
         Event $queueForEvents,
-        Migration $queueForMigrations
+        MigrationPublisher $publisherForMigrations
     ) {
         try {
             $parsedQueries = Query::parseQueries($queries);
@@ -630,11 +630,11 @@ Http::post('/v1/migrations/csv/exports')
 
         $queueForEvents->setParam('migrationId', $migration->getId());
 
-        $queueForMigrations
-            ->setMigration($migration)
-            ->setProject($project)
-            ->setPlatform($platform)
-            ->trigger();
+        $publisherForMigrations->enqueue(new MigrationMessage(
+            project: $project,
+            migration: $migration,
+            platform: $platform,
+        ));
 
         $response
             ->setStatusCode(Response::STATUS_CODE_ACCEPTED)
@@ -673,7 +673,7 @@ Http::post('/v1/migrations/json/imports')
     ->inject('deviceForFiles')
     ->inject('deviceForMigrations')
     ->inject('queueForEvents')
-    ->inject('queueForMigrations')
+    ->inject('publisherForMigrations')
     ->action(function (
         string $bucketId,
         string $fileId,
@@ -688,7 +688,7 @@ Http::post('/v1/migrations/json/imports')
         Device $deviceForFiles,
         Device $deviceForMigrations,
         Event $queueForEvents,
-        Migration $queueForMigrations
+        MigrationPublisher $publisherForMigrations
     ) {
         $bucket = $authorization->skip(function () use ($internalFile, $dbForPlatform, $dbForProject, $bucketId) {
             if ($internalFile) {
@@ -783,11 +783,11 @@ Http::post('/v1/migrations/json/imports')
 
         $queueForEvents->setParam('migrationId', $migration->getId());
 
-        $queueForMigrations
-            ->setMigration($migration)
-            ->setProject($project)
-            ->setPlatform($platform)
-            ->trigger();
+        $publisherForMigrations->enqueue(new MigrationMessage(
+            project: $project,
+            migration: $migration,
+            platform: $platform,
+        ));
 
         $response
             ->setStatusCode(Response::STATUS_CODE_ACCEPTED)
@@ -826,7 +826,7 @@ Http::post('/v1/migrations/json/exports')
     ->inject('project')
     ->inject('platform')
     ->inject('queueForEvents')
-    ->inject('queueForMigrations')
+    ->inject('publisherForMigrations')
     ->action(function (
         string $resourceId,
         string $filename,
@@ -841,7 +841,7 @@ Http::post('/v1/migrations/json/exports')
         Document $project,
         array $platform,
         Event $queueForEvents,
-        Migration $queueForMigrations
+        MigrationPublisher $publisherForMigrations
     ) {
         try {
             $parsedQueries = Query::parseQueries($queries);
@@ -915,11 +915,11 @@ Http::post('/v1/migrations/json/exports')
 
         $queueForEvents->setParam('migrationId', $migration->getId());
 
-        $queueForMigrations
-            ->setMigration($migration)
-            ->setProject($project)
-            ->setPlatform($platform)
-            ->trigger();
+        $publisherForMigrations->enqueue(new MigrationMessage(
+            project: $project,
+            migration: $migration,
+            platform: $platform,
+        ));
 
         $response
             ->setStatusCode(Response::STATUS_CODE_ACCEPTED)
@@ -1217,8 +1217,8 @@ Http::patch('/v1/migrations/:migrationId')
     ->inject('project')
     ->inject('platform')
     ->inject('user')
-    ->inject('queueForMigrations')
-    ->action(function (string $migrationId, Response $response, Database $dbForProject, Document $project, array $platform, Document $user, Migration $queueForMigrations) {
+    ->inject('publisherForMigrations')
+    ->action(function (string $migrationId, Response $response, Database $dbForProject, Document $project, array $platform, Document $user, MigrationPublisher $publisherForMigrations) {
         $migration = $dbForProject->getDocument('migrations', $migrationId);
 
         if ($migration->isEmpty()) {
@@ -1234,12 +1234,12 @@ Http::patch('/v1/migrations/:migrationId')
             ->setAttribute('dateUpdated', \time());
 
         // Trigger Migration
-        $queueForMigrations
-            ->setMigration($migration)
-            ->setProject($project)
-            ->setPlatform($platform)
-            ->setUser($user)
-            ->trigger();
+        $publisherForMigrations->enqueue(new MigrationMessage(
+            project: $project,
+            migration: $migration,
+            platform: $platform,
+            user: $user,
+        ));
 
         $response->noContent();
     });
