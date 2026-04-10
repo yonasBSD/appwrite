@@ -450,7 +450,7 @@ $server->onWorkerStart(function (int $workerId) use ($server, $register, $stats,
                         ]
                     ];
 
-                    $server->send($realtime->getSubscribers($event), json_encode([
+                    $server->send(array_keys($realtime->getSubscribers($event)), json_encode([
                         'type' => 'event',
                         'data' => $event['data']
                     ]));
@@ -712,11 +712,43 @@ $server->onOpen(function (int $connection, SwooleRequest $request) use ($server,
 
         $channels = Realtime::convertChannels($request->getQuery('channels', []), $user->getId());
 
+        $updateStats = static function (string $projectId, ?string $teamId, string $payloadJson) use ($register, $stats): void {
+            $register->get('telemetry.connectionCounter')->add(1);
+            $register->get('telemetry.connectionCreatedCounter')->add(1);
+
+            $stats->set($projectId, [
+                'projectId' => $projectId,
+                'teamId' => $teamId
+            ]);
+            $stats->incr($projectId, 'connections');
+            $stats->incr($projectId, 'connectionsTotal');
+
+            triggerStats([
+                METRIC_REALTIME_CONNECTIONS => 1,
+                METRIC_REALTIME_OUTBOUND => \strlen($payloadJson),
+            ], $projectId);
+        };
+
         /**
          * Channels Check
          */
         if (empty($channels)) {
-            throw new Exception(Exception::REALTIME_POLICY_VIOLATION, 'Missing channels');
+            // in case of message based 'subscribe' channels will be empty at first and only projectId and roles will be available
+            $sanitizedUser = empty($user->getId()) ? null : $response->output($user, Response::MODEL_ACCOUNT);
+            $connectedPayloadJson = json_encode([
+                'type' => 'connected',
+                'data' => [
+                    'channels' => [],
+                    'subscriptions' => [],
+                    'user' => $sanitizedUser
+                ]
+            ]);
+
+            $realtime->subscribe($project->getId(), $connection, '', $roles, [], [], $user->getId());
+            $realtime->connections[$connection]['authorization'] = $authorization;
+            $server->send([$connection], $connectedPayloadJson);
+            $updateStats($project->getId(), $project->getAttribute('teamId'), $connectedPayloadJson);
+            return;
         }
 
         $names = array_keys($channels);
@@ -740,7 +772,8 @@ $server->onOpen(function (int $connection, SwooleRequest $request) use ($server,
                 $subscriptionId,
                 $roles,
                 $subscription['channels'],
-                $subscription['queries']
+                $subscription['queries'],
+                $user->getId()
             );
 
             $mapping[$index] = $subscriptionId;
@@ -760,20 +793,7 @@ $server->onOpen(function (int $connection, SwooleRequest $request) use ($server,
         ]);
 
         $server->send([$connection], $connectedPayloadJson);
-
-        $register->get('telemetry.connectionCounter')->add(1);
-        $register->get('telemetry.connectionCreatedCounter')->add(1);
-
-        $stats->set($project->getId(), [
-            'projectId' => $project->getId(),
-            'teamId' => $project->getAttribute('teamId')
-        ]);
-        $stats->incr($project->getId(), 'connections');
-        $stats->incr($project->getId(), 'connectionsTotal');
-
-        $connectedOutboundBytes = \strlen($connectedPayloadJson);
-
-        triggerStats([METRIC_REALTIME_CONNECTIONS => 1, METRIC_REALTIME_OUTBOUND => $connectedOutboundBytes], $project->getId());
+        $updateStats($project->getId(), $project->getAttribute('teamId'), $connectedPayloadJson);
 
 
     } catch (Throwable $th) {
@@ -815,7 +835,6 @@ $server->onOpen(function (int $connection, SwooleRequest $request) use ($server,
 $server->onMessage(function (int $connection, string $message) use ($server, $realtime, $containerId) {
     $project = null;
     $authorization = null;
-
     try {
         $rawSize = \strlen($message);
         $response = new Response(new SwooleResponse());
@@ -941,7 +960,8 @@ $server->onMessage(function (int $connection, string $message) use ($server, $re
                             $subscriptionId,
                             $roles,
                             $subscription['channels'] ?? [],
-                            $queries
+                            $queries,
+                            $user->getId()
                         );
                     }
                 }
@@ -969,6 +989,99 @@ $server->onMessage(function (int $connection, string $message) use ($server, $re
                     if ($authOutboundBytes > 0) {
                         triggerStats([
                             METRIC_REALTIME_OUTBOUND => $authOutboundBytes,
+                        ], $project->getId());
+                    }
+                }
+
+                break;
+
+            case 'subscribe':
+                /**
+                 * Message based upsertion of a subscription
+                 * If subscriptionId is given then it will match subId of the connection and update the subscription with channels and queries
+                 * If non-existing subid is given or not given a new subid will be generated
+                 * Similar to what we have now -> two subscribe() block with same channels and queries still two different subscriptions
+                 *
+                 * structure of the payload -> array of maps
+                 * 'data' : [subscriptionId:"" , channels:[] , queries:[]]
+                 */
+                if (!is_array($message['data']) || !array_is_list($message['data'])) {
+                    throw new Exception(Exception::REALTIME_MESSAGE_FORMAT_INVALID, 'Payload is not valid.');
+                }
+
+                $roles = $realtime->connections[$connection]['roles'] ?? [Role::guests()->toString()];
+                $userId = $realtime->connections[$connection]['userId'] ?? '';
+
+                // bulk validation + parsing before subscribing
+                $parsedPayloads = [];
+                foreach ($message['data'] as $payload) {
+                    if (!\is_array($payload)) {
+                        throw new Exception(Exception::REALTIME_MESSAGE_FORMAT_INVALID, 'Each subscribe payload must be an object.');
+                    }
+                    if (!array_key_exists('channels', $payload)) {
+                        throw new Exception(Exception::REALTIME_MESSAGE_FORMAT_INVALID, 'channels is not present in payload.');
+                    }
+                    if (!is_array($payload['channels']) || !array_is_list($payload['channels'])) {
+                        throw new Exception(Exception::REALTIME_MESSAGE_FORMAT_INVALID, 'channels is not a valid array.');
+                    }
+                    // registering the queries if not present and check in the same payload later on
+                    if (!array_key_exists('queries', $payload)) {
+                        $payload['queries'] = [];
+                    }
+                    if (!is_array($payload['queries']) || !array_is_list($payload['queries'])) {
+                        throw new Exception(Exception::REALTIME_MESSAGE_FORMAT_INVALID, 'queries is not a valid array.');
+                    }
+
+                    $subscriptionId = \array_key_exists('subscriptionId', $payload)
+                        ? $payload['subscriptionId']
+                        : ID::unique();
+
+                    try {
+                        $convertedQueries = Realtime::convertQueries($payload['queries']);
+                    } catch (QueryException $e) {
+                        throw new Exception(Exception::REALTIME_MESSAGE_FORMAT_INVALID, 'Invalid query: ' . $e->getMessage());
+                    }
+
+                    $parsedPayloads[] = [
+                        'subscriptionId' => $subscriptionId,
+                        'channels' => $payload['channels'],
+                        'queries' => $convertedQueries,
+                    ];
+                }
+
+                foreach ($parsedPayloads as $parsedPayload) {
+                    $subscriptionId = $parsedPayload['subscriptionId'];
+                    $channels = \array_keys(Realtime::convertChannels($parsedPayload['channels'], $userId));
+                    $queries = $parsedPayload['queries'];
+                    $realtime->subscribe($projectId, $connection, $subscriptionId, $roles, $channels, $queries);
+                }
+
+                // subscribe() overwrites the connection entry; restore auth so later onMessage uses the same context.
+                $realtime->connections[$connection]['authorization'] = $authorization;
+
+                $responsePayload = json_encode([
+                    'type' => 'response',
+                    'data' => [
+                        'to' => 'subscribe',
+                        'success' => true,
+                        'subscriptions' => \array_map(function (array $parsedPayload) {
+                            return [
+                                'subscriptionId' => $parsedPayload['subscriptionId'],
+                                'channels' => $parsedPayload['channels'],
+                                'queries' => \array_map(fn ($q) => $q->toString(), $parsedPayload['queries']),
+                            ];
+                        }, $parsedPayloads),
+                    ]
+                ]);
+
+                $server->send([$connection], $responsePayload);
+
+                if ($project !== null && !$project->isEmpty()) {
+                    $subscribeOutboundBytes = \strlen($responsePayload);
+
+                    if ($subscribeOutboundBytes > 0) {
+                        triggerStats([
+                            METRIC_REALTIME_OUTBOUND => $subscribeOutboundBytes,
                         ], $project->getId());
                     }
                 }
