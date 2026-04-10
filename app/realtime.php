@@ -1056,6 +1056,9 @@ $server->onMessage(function (int $connection, string $message) use ($server, $re
                     $realtime->subscribe($projectId, $connection, $subscriptionId, $roles, $channels, $queries);
                 }
 
+                // subscribe() overwrites the connection entry; restore auth so later onMessage uses the same context.
+                $realtime->connections[$connection]['authorization'] = $authorization;
+
                 $responsePayload = json_encode([
                     'type' => 'response',
                     'data' => [
