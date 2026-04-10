@@ -800,7 +800,6 @@ abstract class Format
         $config = [
             'required' => !$optional,
             'nullable' => $nullable,
-            'emitDefault' => $optional && !\is_null($default),
         ];
 
         foreach (self::REQUEST_PARAMETER_OVERRIDES as $override) {
@@ -817,9 +816,7 @@ abstract class Format
             break;
         }
 
-        if ($config['required']) {
-            $config['emitDefault'] = false;
-        }
+        $config['emitDefault'] = !$config['required'] && !\is_null($default);
 
         return $config;
     }

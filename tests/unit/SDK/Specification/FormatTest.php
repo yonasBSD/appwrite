@@ -6,30 +6,33 @@ use Appwrite\SDK\Specification\Format;
 use PHPUnit\Framework\TestCase;
 use Utopia\DI\Container;
 
+class TestFormat extends Format
+{
+    public function getName(): string
+    {
+        return 'test';
+    }
+
+    public function parse(): array
+    {
+        return [];
+    }
+
+    public function requestParameterConfig(string $service, string $method, string $param, bool $optional, bool $nullable, mixed $default): array
+    {
+        return $this->getRequestParameterConfig($service, $method, $param, $optional, $nullable, $default);
+    }
+}
+
 class FormatTest extends TestCase
 {
-    private Format $format;
+    private TestFormat $format;
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        $this->format = new class (new Container(), [], [], [], [], 0, 'console') extends Format {
-            public function getName(): string
-            {
-                return 'test';
-            }
-
-            public function parse(): array
-            {
-                return [];
-            }
-
-            public function requestParameterConfig(string $service, string $method, string $param, bool $optional, bool $nullable, mixed $default): array
-            {
-                return $this->getRequestParameterConfig($service, $method, $param, $optional, $nullable, $default);
-            }
-        };
+        $this->format = new TestFormat(new Container(), [], [], [], [], 0, 'console');
     }
 
     public function testProjectRequestParameterOverrides(): void
@@ -53,6 +56,10 @@ class FormatTest extends TestCase
     {
         $this->assertSame('PlatformType', $this->format->getResponseEnumName('platformAndroid', 'type'));
         $this->assertSame('PlatformType', $this->format->getResponseEnumName('platformWeb', 'type'));
+        $this->assertSame('PlatformType', $this->format->getResponseEnumName('platformApple', 'type'));
+        $this->assertSame('PlatformType', $this->format->getResponseEnumName('platformWindows', 'type'));
+        $this->assertSame('PlatformType', $this->format->getResponseEnumName('platformLinux', 'type'));
+        $this->assertNull($this->format->getResponseEnumName('platformList', 'type'));
     }
 
     public function testExistingResponseEnumMappingsRemainUnchanged(): void
