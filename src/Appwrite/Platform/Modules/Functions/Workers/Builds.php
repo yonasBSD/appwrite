@@ -1123,7 +1123,6 @@ class Builds extends Action
                 $publisherForScreenshots->enqueue(new \Appwrite\Event\Message\Screenshot(
                     project: $project,
                     deploymentId: $deployment->getId(),
-                    platform: $platform,
                 ));
 
                 Console::log('Site screenshot queued');

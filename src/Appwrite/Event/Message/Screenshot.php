@@ -9,7 +9,6 @@ final class Screenshot extends Base
     public function __construct(
         public readonly Document $project,
         public readonly string $deploymentId,
-        public readonly array $platform = [],
     ) {
     }
 
@@ -22,7 +21,6 @@ final class Screenshot extends Base
                 'database' => $this->project->getAttribute('database', ''),
             ],
             'deploymentId' => $this->deploymentId,
-            'platform' => $this->platform,
         ];
     }
 
@@ -31,7 +29,6 @@ final class Screenshot extends Base
         return new self(
             project: new Document($data['project'] ?? []),
             deploymentId: $data['deploymentId'] ?? '',
-            platform: $data['platform'] ?? [],
         );
     }
 }
