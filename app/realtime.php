@@ -712,7 +712,7 @@ $server->onOpen(function (int $connection, SwooleRequest $request) use ($server,
 
         $channels = Realtime::convertChannels($request->getQuery('channels', []), $user->getId());
 
-        $registerConnectionStats = static function (string $projectId, ?string $teamId, string $payloadJson) use ($register, $stats): void {
+        $updateStats = static function (string $projectId, ?string $teamId, string $payloadJson) use ($register, $stats): void {
             $register->get('telemetry.connectionCounter')->add(1);
             $register->get('telemetry.connectionCreatedCounter')->add(1);
 
@@ -747,7 +747,7 @@ $server->onOpen(function (int $connection, SwooleRequest $request) use ($server,
             $realtime->subscribe($project->getId(), $connection, '', $roles, [], [], $user->getId());
             $realtime->connections[$connection]['authorization'] = $authorization;
             $server->send([$connection], $connectedPayloadJson);
-            $registerConnectionStats($project->getId(), $project->getAttribute('teamId'), $connectedPayloadJson);
+            $updateStats($project->getId(), $project->getAttribute('teamId'), $connectedPayloadJson);
             return;
         }
 
@@ -793,7 +793,7 @@ $server->onOpen(function (int $connection, SwooleRequest $request) use ($server,
         ]);
 
         $server->send([$connection], $connectedPayloadJson);
-        $registerConnectionStats($project->getId(), $project->getAttribute('teamId'), $connectedPayloadJson);
+        $updateStats($project->getId(), $project->getAttribute('teamId'), $connectedPayloadJson);
 
 
     } catch (Throwable $th) {
