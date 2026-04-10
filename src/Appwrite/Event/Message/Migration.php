@@ -10,7 +10,6 @@ class Migration extends Base
         public Document $project,
         public Document $migration,
         public array $platform = [],
-        public ?Document $user = null,
     ) {
     }
 
@@ -20,7 +19,6 @@ class Migration extends Base
             'project' => $this->project->getArrayCopy(),
             'migration' => $this->migration->getArrayCopy(),
             'platform' => $this->platform,
-            'user' => $this->user?->getArrayCopy() ?? [],
         ];
     }
 
@@ -31,7 +29,6 @@ class Migration extends Base
             project: new Document($data['project'] ?? []),
             migration: new Document($data['migration'] ?? []),
             platform: $data['platform'] ?? [],
-            user: new Document($data['user'] ?? []),
         );
     }
 }

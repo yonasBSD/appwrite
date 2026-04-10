@@ -18,6 +18,7 @@ readonly class StatsResources extends Base
 
     public function enqueue(StatsResourcesMessage $message): string|bool
     {
+        // Resource stats are best-effort; publishing failures should not interrupt the scheduler loop.
         try {
             return $this->publish($this->queue, $message);
         } catch (\Throwable $th) {

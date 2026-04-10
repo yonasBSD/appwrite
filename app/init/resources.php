@@ -87,7 +87,7 @@ $container->set('publisherForUsage', fn (Publisher $publisher) => new UsagePubli
 ), ['publisher']);
 $container->set('publisherForExecutions', fn (Publisher $publisher) => new ExecutionPublisher(
     $publisher,
-    new Queue(Event::EXECUTIONS_QUEUE_NAME)
+    new Queue(System::getEnv('_APP_EXECUTIONS_QUEUE_NAME', Event::EXECUTIONS_QUEUE_NAME))
 ), ['publisher']);
 $container->set('publisherForMigrations', fn (Publisher $publisher) => new MigrationPublisher(
     $publisher,
