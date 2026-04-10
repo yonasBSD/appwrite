@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "4fb974e9843f6104e40396e7cad4a833",
+    "content-hash": "cf3f6bf217746bbfb9d5a5a8c3295eef",
     "packages": [
         {
             "name": "adhocore/jwt",
@@ -3850,16 +3850,16 @@
         },
         {
             "name": "utopia-php/database",
-            "version": "5.3.19",
+            "version": "dev-datetime-exception",
             "source": {
                 "type": "git",
                 "url": "https://github.com/utopia-php/database.git",
-                "reference": "72ee1614c37e37c7fdd9d4dc87f1f7cdfa1ca691"
+                "reference": "615a530e6434e74742b6b12dabee5993ba8575fd"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/utopia-php/database/zipball/72ee1614c37e37c7fdd9d4dc87f1f7cdfa1ca691",
-                "reference": "72ee1614c37e37c7fdd9d4dc87f1f7cdfa1ca691",
+                "url": "https://api.github.com/repos/utopia-php/database/zipball/615a530e6434e74742b6b12dabee5993ba8575fd",
+                "reference": "615a530e6434e74742b6b12dabee5993ba8575fd",
                 "shasum": ""
             },
             "require": {
@@ -3903,9 +3903,9 @@
             ],
             "support": {
                 "issues": "https://github.com/utopia-php/database/issues",
-                "source": "https://github.com/utopia-php/database/tree/5.3.19"
+                "source": "https://github.com/utopia-php/database/tree/datetime-exception"
             },
-            "time": "2026-03-31T15:52:08+00:00"
+            "time": "2026-04-10T11:10:59+00:00"
         },
         {
             "name": "utopia-php/detector",
@@ -8426,9 +8426,18 @@
             "time": "2024-11-07T12:36:22+00:00"
         }
     ],
-    "aliases": [],
+    "aliases": [
+        {
+            "package": "utopia-php/database",
+            "version": "dev-datetime-exception",
+            "alias": "5.21.0",
+            "alias_normalized": "5.21.0.0"
+        }
+    ],
     "minimum-stability": "dev",
-    "stability-flags": {},
+    "stability-flags": {
+        "utopia-php/database": 20
+    },
     "prefer-stable": true,
     "prefer-lowest": false,
     "platform": {
