@@ -11539,4 +11539,83 @@ trait DatabasesBase
         $this->assertEquals('Product B', $rows['body'][$this->getRecordResource()][0]['name']);
         $this->assertEquals(139.99, $rows['body'][$this->getRecordResource()][0]['price']);
     }
+    public function testDocumentWithEmptyPaylod(): void
+    {
+        $data = $this->setupCollection();
+        $databaseId = $data['databaseId'];
+        $document = $this->client->call(Client::METHOD_POST, $this->getRecordUrl($databaseId, $data['moviesId']), array_merge([
+            'content-type' => 'application/json',
+            'x-appwrite-project' => $this->getProject()['$id'],
+        ], $this->getHeaders()), [
+            $this->getRecordIdParam() => ID::unique(),
+            'data' => [],
+            'permissions' => [
+                Permission::read(Role::user($this->getUser()['$id'])),
+                Permission::update(Role::user($this->getUser()['$id'])),
+                Permission::delete(Role::user($this->getUser()['$id'])),
+            ]
+        ]);
+        if ($this->getSupportForAttributes()) {
+            $this->assertEquals(400, $document['headers']['status-code']);
+        } else {
+            $this->assertEquals(201, $document['headers']['status-code']);
+            $this->assertEquals($data['moviesId'], $document['body'][$this->getContainerIdResponseKey()]);
+            $this->assertArrayNotHasKey('$collection', $document['body']);
+            $this->assertEquals($databaseId, $document['body']['$databaseId']);
+            $this->assertTrue(array_key_exists('$sequence', $document['body']));
+            $this->assertIsString($document['body']['$sequence']);
+
+            $documentId = $document['body']['$id'];
+
+            $fetched = $this->client->call(
+                Client::METHOD_GET,
+                $this->getRecordUrl($databaseId, $data['moviesId'], $documentId),
+                array_merge([
+                    'content-type' => 'application/json',
+                    'x-appwrite-project' => $this->getProject()['$id'],
+                ], $this->getHeaders())
+            );
+
+            $this->assertEquals(200, $fetched['headers']['status-code']);
+            $this->assertEqualsCanonicalizing([
+                '$id',
+                '$databaseId',
+                '$createdAt',
+                '$updatedAt',
+                '$permissions',
+                '$sequence',
+                $this->getContainerIdResponseKey(),
+            ], \array_keys($fetched['body']));
+            $this->assertFalse(array_key_exists('$tenant', $fetched['body']));
+
+            $updated = $this->client->call(
+                Client::METHOD_PATCH,
+                $this->getRecordUrl($databaseId, $data['moviesId'], $documentId),
+                array_merge([
+                    'content-type' => 'application/json',
+                    'x-appwrite-project' => $this->getProject()['$id'],
+                ], $this->getHeaders()),
+                [
+                    'data' => [
+                        'status' => 'draft',
+                    ],
+                ]
+            );
+
+            $this->assertEquals(200, $updated['headers']['status-code']);
+            $this->assertEquals('draft', $updated['body']['status']);
+
+            $refetched = $this->client->call(
+                Client::METHOD_GET,
+                $this->getRecordUrl($databaseId, $data['moviesId'], $documentId),
+                array_merge([
+                    'content-type' => 'application/json',
+                    'x-appwrite-project' => $this->getProject()['$id'],
+                ], $this->getHeaders())
+            );
+
+            $this->assertEquals(200, $refetched['headers']['status-code']);
+            $this->assertEquals('draft', $refetched['body']['status']);
+        }
+    }
 }
