@@ -24,7 +24,6 @@ trait ServicesBase
         'sites',
         'functions',
         'proxy',
-        'graphql',
         'migrations',
         'messaging',
     ];
@@ -150,7 +149,6 @@ trait ServicesBase
             'sites'      => ['method' => Client::METHOD_GET,  'path' => '/sites'],
             'functions'  => ['method' => Client::METHOD_GET,  'path' => '/functions'],
             'proxy'      => ['method' => Client::METHOD_GET,  'path' => '/proxy/rules'],
-            'graphql'    => ['method' => Client::METHOD_POST, 'path' => '/graphql'],
             'migrations' => ['method' => Client::METHOD_GET,  'path' => '/migrations'],
             'messaging'  => ['method' => Client::METHOD_GET,  'path' => '/messaging/providers'],
         ];
@@ -188,7 +186,6 @@ trait ServicesBase
             'sites'      => ['method' => Client::METHOD_GET,  'path' => '/sites'],
             'functions'  => ['method' => Client::METHOD_GET,  'path' => '/functions'],
             'proxy'      => ['method' => Client::METHOD_GET,  'path' => '/proxy/rules'],
-            'graphql'    => ['method' => Client::METHOD_POST, 'path' => '/graphql'],
             'migrations' => ['method' => Client::METHOD_GET,  'path' => '/migrations'],
             'messaging'  => ['method' => Client::METHOD_GET,  'path' => '/messaging/providers'],
         ];

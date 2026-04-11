@@ -90,16 +90,16 @@ trait ProjectsBase
             'name' => 'Webhook Test',
             'events' => ['users.*.create', 'users.*.update.email'],
             'url' => 'https://appwrite.io',
-            'security' => true,
-            'httpUser' => 'username',
-            'httpPass' => 'password',
+            'tls' => true,
+            'authUsername' => 'username',
+            'authPassword' => 'password',
         ]);
 
         $this->assertEquals(201, $response['headers']['status-code']);
 
         self::$cachedProjectWithWebhook = array_merge($projectData, [
             'webhookId' => $response['body']['$id'],
-            'signatureKey' => $response['body']['signatureKey']
+            'signatureKey' => $response['body']['secret']
         ]);
 
         return self::$cachedProjectWithWebhook;

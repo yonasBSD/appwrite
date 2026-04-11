@@ -78,12 +78,12 @@ trait KeysBase
         $this->deleteKey($key['body']['$id']);
     }
 
-    public function testCreateKeyWithNullScopes(): void
+    public function testCreateKeyWithEmptyScopes(): void
     {
         $key = $this->createKey(
             ID::unique(),
-            'Null Scopes Key',
-            null,
+            'Empty Scopes Key',
+            [],
         );
 
         $this->assertSame(201, $key['headers']['status-code']);
