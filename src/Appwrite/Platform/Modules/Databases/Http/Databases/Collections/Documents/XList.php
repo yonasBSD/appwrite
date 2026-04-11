@@ -140,44 +140,49 @@ class XList extends Action
                 $documents = $transactionState->listDocuments($database, $collectionTableId, $transactionId, $queries);
                 $total = $includeTotal ? $transactionState->countDocuments($database, $collectionTableId, $transactionId, $queries) : 0;
             } elseif ((int)$ttl > 0) {
-                $cacheKey = $this->getListCacheKey($dbForProject, $collectionId);
-                $roles = $dbForProject->getAuthorization()->getRoles();
-                $documentsField = $this->getListCacheField($collection, $roles, $queries, self::LIST_CACHE_FIELD_DOCUMENTS);
+                try {
+                    $cacheKey = $this->getListCacheKey($dbForProject, $collectionId);
+                    $roles = $dbForProject->getAuthorization()->getRoles();
+                    $documentsField = $this->getListCacheField($collection, $roles, $queries, self::LIST_CACHE_FIELD_DOCUMENTS);
 
-                $documentsCacheHit = false;
-                $cachedDocuments = $dbForProject->getCache()->load($cacheKey, $ttl, $documentsField);
+                    $documentsCacheHit = false;
+                    $cachedDocuments = $dbForProject->getCache()->load($cacheKey, $ttl, $documentsField);
 
-                if ($cachedDocuments !== null &&
-                    $cachedDocuments !== false &&
-                    \is_array($cachedDocuments)) {
-                    $documents = \array_map(function ($doc) {
-                        return new Document($doc);
-                    }, $cachedDocuments);
-                    $documentsCacheHit = true;
-                } else {
-                    $documents = $find();
-
-                    // Convert Document objects to arrays for caching
-                    $documentsArray = \array_map(function ($doc) {
-                        return $doc->getArrayCopy();
-                    }, $documents);
-                    $dbForProject->getCache()->save($cacheKey, $documentsArray, $documentsField);
-                }
-
-                if ($includeTotal) {
-                    $totalField = $this->getListCacheField($collection, $roles, $queries, self::LIST_CACHE_FIELD_TOTAL);
-                    $cachedTotal = $dbForProject->getCache()->load($cacheKey, $ttl, $totalField);
-                    if ($cachedTotal !== null && $cachedTotal !== false) {
-                        $total = $cachedTotal;
+                    if ($cachedDocuments !== null &&
+                        $cachedDocuments !== false &&
+                        \is_array($cachedDocuments)) {
+                        $documents = \array_map(function ($doc) {
+                            return new Document($doc);
+                        }, $cachedDocuments);
+                        $documentsCacheHit = true;
                     } else {
-                        $total = $dbForDatabases->count($collectionTableId, $queries, APP_LIMIT_COUNT);
-                        $dbForProject->getCache()->save($cacheKey, $total, $totalField);
-                    }
-                } else {
-                    $total = 0;
-                }
+                        $documents = $find();
 
-                $response->addHeader('X-Appwrite-Cache', $documentsCacheHit ? 'hit' : 'miss');
+                        $documentsArray = \array_map(function ($doc) {
+                            return $doc->getArrayCopy();
+                        }, $documents);
+                        $dbForProject->getCache()->save($cacheKey, $documentsArray, $documentsField);
+                    }
+
+                    if ($includeTotal) {
+                        $totalField = $this->getListCacheField($collection, $roles, $queries, self::LIST_CACHE_FIELD_TOTAL);
+                        $cachedTotal = $dbForProject->getCache()->load($cacheKey, $ttl, $totalField);
+                        if ($cachedTotal !== null && $cachedTotal !== false) {
+                            $total = $cachedTotal;
+                        } else {
+                            $total = $dbForDatabases->count($collectionTableId, $queries, APP_LIMIT_COUNT);
+                            $dbForProject->getCache()->save($cacheKey, $total, $totalField);
+                        }
+                    } else {
+                        $total = 0;
+                    }
+
+                    $response->addHeader('X-Appwrite-Cache', $documentsCacheHit ? 'hit' : 'miss');
+                } catch (\Throwable) {
+                    $documents = $find();
+                    $total = $includeTotal ? $dbForDatabases->count($collectionTableId, $queries, APP_LIMIT_COUNT) : 0;
+                    $response->addHeader('X-Appwrite-Cache', 'error');
+                }
             } else {
                 $documents = $find();
                 $total = $includeTotal ? $dbForDatabases->count($collectionTableId, $queries, APP_LIMIT_COUNT) : 0;
