@@ -7,8 +7,8 @@ class Webhooks extends Base
     public const ALLOWED_ATTRIBUTES = [
         'name',
         'url',
-        'httpUser',
-        'security',
+        'authUsername',
+        'tls',
         'events',
         'enabled',
         'logs',

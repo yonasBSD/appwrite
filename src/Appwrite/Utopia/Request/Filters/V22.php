@@ -50,6 +50,26 @@ class V22 extends Filter
         return $content;
     }
 
+    protected function parseWebhook(array $content): array
+    {
+        if (isset($content['security'])) {
+            $content['tls'] = $content['security'];
+            unset($content['security']);
+        }
+
+        if (isset($content['httpUser'])) {
+            $content['authUsername'] = $content['httpUser'];
+            unset($content['httpUser']);
+        }
+
+        if (isset($content['httpPass'])) {
+            $content['authPassword'] = $content['httpPass'];
+            unset($content['httpPass']);
+        }
+
+        return $content;
+    }
+
     public function parse(array $content, string $model): array
     {
         switch ($model) {
@@ -62,6 +82,10 @@ class V22 extends Filter
             case 'project.createKey':
             case 'project.updateKey':
                 $content = $this->parseKeyScopes($content);
+                break;
+            case 'webhooks.create':
+            case 'webhooks.update':
+                $content = $this->parseWebhook($content);
                 break;
         }
         return $content;
