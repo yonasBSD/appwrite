@@ -5,6 +5,7 @@ require_once __DIR__ . '/init.php';
 use Appwrite\Event\Delete;
 use Appwrite\Event\Event;
 use Appwrite\Event\Func;
+use Appwrite\Event\Publisher\Certificate as CertificatePublisher;
 use Appwrite\Event\Publisher\StatsResources as StatsResourcesPublisher;
 use Appwrite\Event\Publisher\Usage as UsagePublisher;
 use Appwrite\Platform\Appwrite;
@@ -251,6 +252,10 @@ $container->set('usage', function () {
 $container->set('publisherForUsage', fn (Publisher $publisher) => new UsagePublisher(
     $publisher,
     new Queue(System::getEnv('_APP_STATS_USAGE_QUEUE_NAME', Event::STATS_USAGE_QUEUE_NAME))
+), ['publisher']);
+$container->set('publisherForCertificates', fn (Publisher $publisher) => new CertificatePublisher(
+    $publisher,
+    new Queue(System::getEnv('_APP_CERTIFICATES_QUEUE_NAME', Event::CERTIFICATES_QUEUE_NAME))
 ), ['publisher']);
 $container->set('publisherForStatsResources', fn (Publisher $publisher) => new StatsResourcesPublisher(
     $publisher,
