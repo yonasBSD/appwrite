@@ -7,7 +7,6 @@ use Appwrite\Event\Event;
 use Appwrite\Event\Func;
 use Appwrite\Event\Mail;
 use Appwrite\Event\Messaging;
-use Appwrite\Event\Migration;
 use Appwrite\Event\Realtime;
 use Appwrite\Event\Webhook;
 use Appwrite\Usage\Context;
@@ -328,10 +327,6 @@ return function (Container $container): void {
     $container->set('queueForRealtime', function () {
         return new Realtime();
     }, []);
-
-    $container->set('queueForMigrations', function (Publisher $publisher) {
-        return new Migration($publisher);
-    }, ['publisher']);
 
     $container->set('deviceForSites', function (Document $project, Telemetry $telemetry) {
         return new TelemetryDevice($telemetry, getDevice(APP_STORAGE_SITES . '/app-' . $project->getId()));
