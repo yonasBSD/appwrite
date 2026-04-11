@@ -41,6 +41,15 @@ class V22 extends Filter
         return $content;
     }
 
+    protected function parseKeyScopes(array $content): array
+    {
+        if (!\is_array($content['scopes'] ?? null)) {
+            $content['scopes'] = [];
+        }
+
+        return $content;
+    }
+
     public function parse(array $content, string $model): array
     {
         switch ($model) {
@@ -49,6 +58,10 @@ class V22 extends Filter
                 break;
             case 'project.updateProtocolStatus':
                 $content = $this->parseUpdateProtocolStatus($content);
+                break;
+            case 'project.createKey':
+            case 'project.updateKey':
+                $content = $this->parseKeyScopes($content);
                 break;
         }
         return $content;
