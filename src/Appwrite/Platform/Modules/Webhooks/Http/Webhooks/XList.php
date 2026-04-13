@@ -78,6 +78,15 @@ class XList extends Action
             throw new Exception(Exception::GENERAL_QUERY_INVALID, $e->getMessage());
         }
 
+        foreach ($queries as $query) {
+            $attribute = $query->getAttribute();
+            if ($attribute === 'authUsername') {
+                $query->setAttribute('httpUser');
+            } elseif ($attribute === 'tls') {
+                $query->setAttribute('security');
+            }
+        }
+
         $queries[] = Query::equal('projectInternalId', [$project->getSequence()]);
 
         $cursor = Query::getCursorQueries($queries, false);
