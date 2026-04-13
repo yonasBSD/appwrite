@@ -6,7 +6,7 @@ use Appwrite\GraphQL\Exception as GQLException;
 use Appwrite\Promises\Swoole;
 use Appwrite\Utopia\Request;
 use Appwrite\Utopia\Response;
-use Swoole\Coroutine\Channel;
+use Utopia\DI\Container;
 use Utopia\Http\Exception;
 use Utopia\Http\Http;
 use Utopia\Http\Route;
@@ -15,27 +15,37 @@ use Utopia\System\System;
 class Resolvers
 {
     /**
-     * Per-request channel used to serialize batched query execution so
-     * concurrent coroutines don't interleave writes on the shared Response.
+     * Clone the shared GraphQL request before a resolver mutates it.
      */
-    private static ?Channel $lock = null;
-
-    /**
-     * Acquire a coroutine-safe lock for the current request.
-     * Creates the channel lazily and pushes a token; the channel
-     * capacity of 1 ensures only one resolve() runs at a time.
-     */
-    private static function acquireLock(): void
+    private static function createResolverRequest(Http $utopia): Request
     {
-        if (self::$lock === null) {
-            self::$lock = new Channel(1);
-        }
-        self::$lock->push(true);
+        /** @var Request $request */
+        $request = clone $utopia->getResource('request');
+
+        return $request;
     }
 
-    private static function releaseLock(): void
+    /**
+     * Clone the shared GraphQL response so each resolver writes into an
+     * isolated payload/status buffer.
+     */
+    private static function createResolverResponse(Http $utopia): Response
     {
-        self::$lock?->pop();
+        /** @var Response $response */
+        $response = clone $utopia->getResource('response');
+
+        return $response;
+    }
+
+    /**
+     * Get the current coroutine's request container.
+     */
+    private static function getResolverContainer(Http $utopia): Container
+    {
+        /** @var callable(): Container $getContainer */
+        $getContainer = $utopia->getResource('container');
+
+        return $getContainer();
     }
     /**
      * Create a resolver for a given API {@see Route}.
@@ -51,8 +61,8 @@ class Resolvers
         return static fn ($type, $args, $context, $info) => new Swoole(
             function (callable $resolve, callable $reject) use ($utopia, $route, $args) {
                 $utopia = $utopia->getResource('utopia:graphql');
-                $request = $utopia->getResource('request');
-                $response = $utopia->getResource('response');
+                $request = self::createResolverRequest($utopia);
+                $response = self::createResolverResponse($utopia);
 
                 $path = $route->getPath();
                 foreach ($args as $key => $value) {
@@ -118,8 +128,8 @@ class Resolvers
         return static fn ($type, $args, $context, $info) => new Swoole(
             function (callable $resolve, callable $reject) use ($utopia, $databaseId, $collectionId, $url, $args) {
                 $utopia = $utopia->getResource('utopia:graphql');
-                $request = $utopia->getResource('request');
-                $response = $utopia->getResource('response');
+                $request = self::createResolverRequest($utopia);
+                $response = self::createResolverResponse($utopia);
 
                 $request->setMethod('GET');
                 $request->setURI($url($databaseId, $collectionId, $args));
@@ -149,8 +159,8 @@ class Resolvers
         return static fn ($type, $args, $context, $info) => new Swoole(
             function (callable $resolve, callable $reject) use ($utopia, $databaseId, $collectionId, $url, $params, $args) {
                 $utopia = $utopia->getResource('utopia:graphql');
-                $request = $utopia->getResource('request');
-                $response = $utopia->getResource('response');
+                $request = self::createResolverRequest($utopia);
+                $response = self::createResolverResponse($utopia);
 
                 $request->setMethod('GET');
                 $request->setURI($url($databaseId, $collectionId, $args));
@@ -185,8 +195,8 @@ class Resolvers
         return static fn ($type, $args, $context, $info) => new Swoole(
             function (callable $resolve, callable $reject) use ($utopia, $databaseId, $collectionId, $url, $params, $args) {
                 $utopia = $utopia->getResource('utopia:graphql');
-                $request = $utopia->getResource('request');
-                $response = $utopia->getResource('response');
+                $request = self::createResolverRequest($utopia);
+                $response = self::createResolverResponse($utopia);
 
                 $request->setMethod('POST');
                 $request->setURI($url($databaseId, $collectionId, $args));
@@ -217,8 +227,8 @@ class Resolvers
         return static fn ($type, $args, $context, $info) => new Swoole(
             function (callable $resolve, callable $reject) use ($utopia, $databaseId, $collectionId, $url, $params, $args) {
                 $utopia = $utopia->getResource('utopia:graphql');
-                $request = $utopia->getResource('request');
-                $response = $utopia->getResource('response');
+                $request = self::createResolverRequest($utopia);
+                $response = self::createResolverResponse($utopia);
 
                 $request->setMethod('PATCH');
                 $request->setURI($url($databaseId, $collectionId, $args));
@@ -247,8 +257,8 @@ class Resolvers
         return static fn ($type, $args, $context, $info) => new Swoole(
             function (callable $resolve, callable $reject) use ($utopia, $databaseId, $collectionId, $url, $args) {
                 $utopia = $utopia->getResource('utopia:graphql');
-                $request = $utopia->getResource('request');
-                $response = $utopia->getResource('response');
+                $request = self::createResolverRequest($utopia);
+                $response = self::createResolverResponse($utopia);
 
                 $request->setMethod('DELETE');
                 $request->setURI($url($databaseId, $collectionId, $args));
@@ -283,13 +293,10 @@ class Resolvers
             $request->removeHeader('content-type');
         }
 
-        $request = clone $request;
-        $utopia->setResource('request', static fn () => $request);
+        $container = self::getResolverContainer($utopia);
+        $container->set('request', static fn () => $request);
+        $container->set('response', static fn () => $response);
 
-        // Serialize execution: when Swoole coroutine hooks are active,
-        // batched queries run in parallel coroutines sharing one Response.
-        // The lock ensures only one query writes to the Response at a time.
-        self::acquireLock();
         try {
             $response->setContentType(Response::CONTENT_TYPE_NULL);
             $response->clearSent();
@@ -301,14 +308,12 @@ class Resolvers
             $payload = $response->getPayload();
             $statusCode = $response->getStatusCode();
         } catch (\Throwable $e) {
-            self::releaseLock();
             if ($beforeReject) {
                 $e = $beforeReject($e);
             }
             $reject($e);
             return;
         }
-        self::releaseLock();
 
         if ($statusCode < 200 || $statusCode >= 400) {
             if ($beforeReject) {
