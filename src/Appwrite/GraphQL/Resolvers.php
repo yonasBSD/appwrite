@@ -16,6 +16,57 @@ use Utopia\System\System;
 class Resolvers
 {
     /**
+     * Request-scoped locks keyed by the per-request GraphQL Http instance.
+     *
+     * @var \WeakMap<Http, ResolverLock>|null
+     */
+    private static ?\WeakMap $locks = null;
+
+    /**
+     * Clone the shared GraphQL response so each resolver writes into an
+     * isolated payload and status buffer.
+     */
+    private static function createResolverResponse(Http $utopia): Response
+    {
+        /** @var Response $response */
+        $response = clone $utopia->getResource('response');
+
+        return $response;
+    }
+
+    /**
+     * Preserve response side effects that callers depend on, such as session
+     * cookies created by account auth routes.
+     */
+    private static function mergeResponseSideEffects(Response $from, Response $to): void
+    {
+        foreach ($from->getCookies() as $cookie) {
+            $to->removeCookie($cookie['name']);
+            $to->addCookie(
+                $cookie['name'],
+                $cookie['value'],
+                $cookie['expire'],
+                $cookie['path'],
+                $cookie['domain'],
+                $cookie['secure'],
+                $cookie['httponly'],
+                $cookie['samesite']
+            );
+        }
+
+        $headers = $from->getHeaders();
+        $fallbackCookies = $headers['X-Fallback-Cookies'] ?? null;
+        if ($fallbackCookies === null) {
+            return;
+        }
+
+        $to->removeHeader('X-Fallback-Cookies');
+        foreach ((array) $fallbackCookies as $value) {
+            $to->addHeader('X-Fallback-Cookies', $value);
+        }
+    }
+
+    /**
      * Get the current request container.
      */
     private static function getResolverContainer(Http $utopia): Container
@@ -32,17 +83,12 @@ class Resolvers
      */
     private static function getLock(Http $utopia): ResolverLock
     {
-        $container = self::getResolverContainer($utopia);
-
-        if (!$container->has('graphql:lock')) {
-            $lock = new ResolverLock();
-
-            $container->set('graphql:lock', static fn () => $lock);
+        self::$locks ??= new \WeakMap();
+        if (!isset(self::$locks[$utopia])) {
+            self::$locks[$utopia] = new ResolverLock();
         }
 
-        $lock = $container->get('graphql:lock');
-
-        return $lock;
+        return self::$locks[$utopia];
     }
 
     /**
@@ -343,21 +389,25 @@ class Resolvers
         }
 
         $request = clone $request;
+        $resolverResponse = self::createResolverResponse($utopia);
         $container = self::getResolverContainer($utopia);
 
         self::acquireLock($lock);
         try {
             $container->set('request', static fn () => $request);
-            $container->set('response', static fn () => $response);
-            $response->setContentType(Response::CONTENT_TYPE_NULL);
-            $response->clearSent();
+            $container->set('response', static fn () => $resolverResponse);
+            $resolverResponse->setContentType(Response::CONTENT_TYPE_NULL);
+            $resolverResponse->clearSent();
 
             $route = $utopia->match($request, fresh: true);
+            $request->setRoute($route);
 
-            $utopia->execute($route, $request, $response);
+            $utopia->execute($route, $request, $resolverResponse);
 
-            $payload = $response->getPayload();
-            $statusCode = $response->getStatusCode();
+            self::mergeResponseSideEffects($resolverResponse, $response);
+
+            $payload = $resolverResponse->getPayload();
+            $statusCode = $resolverResponse->getStatusCode();
         } catch (\Throwable $e) {
             if ($beforeReject) {
                 $e = $beforeReject($e);
