@@ -69,12 +69,16 @@ class Webhook extends Model
                 'default' => '',
                 'example' => 'password',
             ])
+            /*
+            Not exposed for security; Secret is currently write-only.
+            
             ->addRule('secret', [
                 'type' => self::TYPE_STRING,
                 'description' => 'Signature key which can be used to validate incoming webhook payloads.',
                 'default' => '',
                 'example' => 'ad3d581ca230e2b7059c545e5a',
             ])
+            */
             ->addRule('enabled', [
                 'type' => self::TYPE_BOOLEAN,
                 'description' => 'Indicates if this webhook is enabled.',
@@ -106,7 +110,9 @@ class Webhook extends Model
         $document->setAttribute('authPassword', $document->getAttribute('httpPass'));
         $document->removeAttribute('httpPass');
 
-        $document->setAttribute('secret', $document->getAttribute('signatureKey'));
+        // Would be 'secret', but we want it to be write-only.
+        // $document->setAttribute('secret', $document->getAttribute('signatureKey'));
+        // Remove DB-level attribute, just to be sure.
         $document->removeAttribute('signatureKey');
 
         return $document;
