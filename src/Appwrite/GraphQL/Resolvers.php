@@ -6,6 +6,7 @@ use Appwrite\GraphQL\Exception as GQLException;
 use Appwrite\Promises\Swoole;
 use Appwrite\Utopia\Request;
 use Appwrite\Utopia\Response;
+use Swoole\Coroutine\Channel;
 use Utopia\Http\Exception;
 use Utopia\Http\Http;
 use Utopia\Http\Route;
@@ -13,6 +14,29 @@ use Utopia\System\System;
 
 class Resolvers
 {
+    /**
+     * Per-request channel used to serialize batched query execution so
+     * concurrent coroutines don't interleave writes on the shared Response.
+     */
+    private static ?Channel $lock = null;
+
+    /**
+     * Acquire a coroutine-safe lock for the current request.
+     * Creates the channel lazily and pushes a token; the channel
+     * capacity of 1 ensures only one resolve() runs at a time.
+     */
+    private static function acquireLock(): void
+    {
+        if (self::$lock === null) {
+            self::$lock = new Channel(1);
+        }
+        self::$lock->push(true);
+    }
+
+    private static function releaseLock(): void
+    {
+        self::$lock?->pop();
+    }
     /**
      * Create a resolver for a given API {@see Route}.
      *
@@ -261,30 +285,38 @@ class Resolvers
 
         $request = clone $request;
         $utopia->setResource('request', static fn () => $request);
-        $response->setContentType(Response::CONTENT_TYPE_NULL);
-        $response->clearSent();
 
+        // Serialize execution: when Swoole coroutine hooks are active,
+        // batched queries run in parallel coroutines sharing one Response.
+        // The lock ensures only one query writes to the Response at a time.
+        self::acquireLock();
         try {
+            $response->setContentType(Response::CONTENT_TYPE_NULL);
+            $response->clearSent();
+
             $route = $utopia->match($request, fresh: true);
 
             $utopia->execute($route, $request, $response);
+
+            $payload = $response->getPayload();
+            $statusCode = $response->getStatusCode();
         } catch (\Throwable $e) {
+            self::releaseLock();
             if ($beforeReject) {
                 $e = $beforeReject($e);
             }
             $reject($e);
             return;
         }
+        self::releaseLock();
 
-        $payload = $response->getPayload();
-
-        if ($response->getStatusCode() < 200 || $response->getStatusCode() >= 400) {
+        if ($statusCode < 200 || $statusCode >= 400) {
             if ($beforeReject) {
                 $payload = $beforeReject($payload);
             }
             $reject(new GQLException(
                 message: $payload['message'],
-                code: $response->getStatusCode()
+                code: $statusCode
             ));
             return;
         }
