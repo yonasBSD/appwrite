@@ -3,7 +3,6 @@
 namespace Appwrite\Platform\Modules\Webhooks\Http\Webhooks;
 
 use Appwrite\Extend\Exception;
-use Appwrite\Platform\Modules\Compute\Base;
 use Appwrite\SDK\AuthType;
 use Appwrite\SDK\Method;
 use Appwrite\SDK\Response as SDKResponse;
@@ -20,7 +19,7 @@ use Utopia\Platform\Action;
 use Utopia\Platform\Scope\HTTP;
 use Utopia\Validator\Boolean;
 
-class XList extends Base
+class XList extends Action
 {
     use HTTP;
 
@@ -77,6 +76,15 @@ class XList extends Base
             $queries = Query::parseQueries($queries);
         } catch (QueryException $e) {
             throw new Exception(Exception::GENERAL_QUERY_INVALID, $e->getMessage());
+        }
+
+        foreach ($queries as $query) {
+            $attribute = $query->getAttribute();
+            if ($attribute === 'authUsername') {
+                $query->setAttribute('httpUser');
+            } elseif ($attribute === 'tls') {
+                $query->setAttribute('security');
+            }
         }
 
         $queries[] = Query::equal('projectInternalId', [$project->getSequence()]);
