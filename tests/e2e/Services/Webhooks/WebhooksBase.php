@@ -694,10 +694,10 @@ trait WebhooksBase
         $this->assertEquals(128, \strlen($updated['body']['secret']));
         $this->assertNotEquals($originalSecret, $updated['body']['secret']);
 
-        // Verify new secret persisted via GET
+        // Verify secret is not exposed via GET
         $get = $this->getWebhook($webhookId);
         $this->assertEquals(200, $get['headers']['status-code']);
-        $this->assertNotEquals($originalSecret, $get['body']['secret']);
+        $this->assertEmpty($get['body']['secret']);
 
         // Test secret update on non-existent webhook
         $notFound = $this->updateWebhookSecret('non-existent-id');
@@ -996,7 +996,7 @@ trait WebhooksBase
 
     public function testWebhookSecretNotExposedInResponses(): void
     {
-        // Create webhook — secret must not leak in creation response
+        // Create webhook — secret IS returned on creation
         $webhook = $this->createWebhook(
             ID::unique(),
             'Secret Exposure Test',
@@ -1011,24 +1011,24 @@ trait WebhooksBase
 
         $this->assertEquals(201, $webhook['headers']['status-code']);
         $webhookId = $webhook['body']['$id'];
-        $this->assertArrayNotHasKey('secret', $webhook['body']);
+        $this->assertEquals('my-custom-secret', $webhook['body']['secret']);
         $this->assertArrayNotHasKey('signatureKey', $webhook['body']);
 
-        // Get webhook — secret must not leak
+        // Get webhook — secret must not be exposed
         $get = $this->getWebhook($webhookId);
         $this->assertEquals(200, $get['headers']['status-code']);
-        $this->assertArrayNotHasKey('secret', $get['body']);
+        $this->assertEmpty($get['body']['secret']);
         $this->assertArrayNotHasKey('signatureKey', $get['body']);
 
-        // List webhooks — secret must not leak
+        // List webhooks — secret must not be exposed
         $list = $this->listWebhooks(null, true);
         $this->assertEquals(200, $list['headers']['status-code']);
         foreach ($list['body']['webhooks'] as $item) {
-            $this->assertArrayNotHasKey('secret', $item);
+            $this->assertEmpty($item['secret']);
             $this->assertArrayNotHasKey('signatureKey', $item);
         }
 
-        // Update webhook — secret must not leak
+        // Update webhook — secret must not be exposed
         $updated = $this->updateWebhook(
             $webhookId,
             'Secret Exposure Test Updated',
@@ -1040,13 +1040,13 @@ trait WebhooksBase
             null
         );
         $this->assertEquals(200, $updated['headers']['status-code']);
-        $this->assertArrayNotHasKey('secret', $updated['body']);
+        $this->assertEmpty($updated['body']['secret']);
         $this->assertArrayNotHasKey('signatureKey', $updated['body']);
 
-        // Update webhook secret — secret must not leak
+        // Update webhook secret — secret IS returned on rotation
         $rotated = $this->updateWebhookSecret($webhookId, 'rotated-secret-key');
         $this->assertEquals(200, $rotated['headers']['status-code']);
-        $this->assertArrayNotHasKey('secret', $rotated['body']);
+        $this->assertEquals('rotated-secret-key', $rotated['body']['secret']);
         $this->assertArrayNotHasKey('signatureKey', $rotated['body']);
 
         // Cleanup
@@ -1228,6 +1228,12 @@ trait WebhooksBase
     {
         $customId = 'my-custom-webhook-id';
 
+        // Clean up stale webhook from a previous run if it exists
+        $existing = $this->getWebhook($customId);
+        if ($existing['headers']['status-code'] === 200) {
+            $this->deleteWebhook($customId);
+        }
+
         $webhook = $this->createWebhook(
             $customId,
             'Custom ID Webhook',
@@ -1246,6 +1252,19 @@ trait WebhooksBase
         $get = $this->getWebhook($customId);
         $this->assertEquals(200, $get['headers']['status-code']);
         $this->assertEquals($customId, $get['body']['$id']);
+
+        // Ensure duplicate creation fails
+        $duplicate = $this->createWebhook(
+            $customId,
+            'Duplicate Custom ID Webhook',
+            ['users.*.create'],
+            null,
+            'https://appwrite.io',
+            null,
+            null,
+            null
+        );
+        $this->assertEquals(409, $duplicate['headers']['status-code']);
 
         // Cleanup
         $this->deleteWebhook($customId);
@@ -1282,8 +1301,7 @@ trait WebhooksBase
         $this->assertEquals(true, $get['body']['tls']);
         $this->assertEquals('myuser', $get['body']['authUsername']);
         $this->assertEquals('mypass', $get['body']['authPassword']);
-        $this->assertNotEmpty($get['body']['secret']);
-        $this->assertEquals(128, \strlen($get['body']['secret']));
+        $this->assertEmpty($get['body']['secret']);
         $this->assertEquals(0, $get['body']['attempts']);
         $this->assertEquals('', $get['body']['logs']);
 
@@ -1990,7 +2008,7 @@ trait WebhooksBase
         $this->assertEquals(true, $get['body']['security']);
         $this->assertEquals('getuser', $get['body']['httpUser']);
         $this->assertEquals('getpass', $get['body']['httpPass']);
-        $this->assertNotEmpty($get['body']['signatureKey']);
+        $this->assertEmpty($get['body']['signatureKey']);
 
         // Cleanup
         $this->deleteWebhook($webhookId);
