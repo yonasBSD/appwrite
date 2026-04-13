@@ -4,7 +4,6 @@ namespace Appwrite\Platform\Modules\Webhooks\Http\Webhooks\Signature;
 
 use Appwrite\Event\Event as QueueEvent;
 use Appwrite\Extend\Exception;
-use Appwrite\Platform\Modules\Compute\Base;
 use Appwrite\SDK\AuthType;
 use Appwrite\SDK\Method;
 use Appwrite\SDK\Response as SDKResponse;
@@ -17,7 +16,7 @@ use Utopia\Database\Validator\UID;
 use Utopia\Platform\Action;
 use Utopia\Platform\Scope\HTTP;
 
-class Update extends Base
+class Update extends Action
 {
     use HTTP;
 
@@ -29,9 +28,9 @@ class Update extends Base
     public function __construct()
     {
         $this->setHttpMethod(Action::HTTP_REQUEST_METHOD_PATCH)
-            ->setHttpPath('/v1/webhooks/:webhookId/signature')
+            ->setHttpPath('/v1/webhooks/:webhookId/secret')
             ->httpAlias('/v1/projects/:projectId/webhooks/:webhookId/signature')
-            ->desc('Update webhook signature key')
+            ->desc('Update webhook secret key')
             ->groups(['api', 'webhooks'])
             ->label('scope', 'webhooks.write')
             ->label('event', 'webhooks.[webhookId].update')
@@ -40,9 +39,9 @@ class Update extends Base
             ->label('sdk', new Method(
                 namespace: 'webhooks',
                 group: null,
-                name: 'updateSignature',
+                name: 'updateSecret',
                 description: <<<EOT
-                Update the webhook signature key. This endpoint can be used to regenerate the signature key used to sign and validate payload deliveries for a specific webhook.
+                Update the webhook signing key. This endpoint can be used to regenerate the signing key used to sign and validate payload deliveries for a specific webhook.
                 EOT,
                 auth: [AuthType::ADMIN, AuthType::KEY],
                 responses: [

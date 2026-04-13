@@ -278,6 +278,18 @@ class OpenAPI3 extends Format
                     }
                 }
 
+                if (\is_string($model)) {
+                    throw new \RuntimeException("Unresolved response model '{$model}' for method '{$sdk->getNamespace()}.{$sdk->getMethodName()}'. Ensure the model is registered.");
+                }
+
+                if (\is_array($model)) {
+                    foreach ($model as $m) {
+                        if (\is_string($m)) {
+                            throw new \RuntimeException("Unresolved response model '{$m}' for method '{$sdk->getNamespace()}.{$sdk->getMethodName()}'. Ensure the model is registered.");
+                        }
+                    }
+                }
+
                 if (!(\is_array($model)) && $model->isNone()) {
                     $temp['responses'][(string)$response->getCode() ?? '500'] = [
                         'description' => in_array($produces, [
@@ -367,15 +379,24 @@ class OpenAPI3 extends Format
                 /**
                  * @var \Utopia\Validator $validator
                  */
-                $validator = (\is_callable($param['validator'])) ? call_user_func_array($param['validator'], $this->app->getResources($param['injections'])) : $param['validator'];
+                $validator = $this->getValidator($param);
+
+                $isNullable = $validator instanceof Nullable;
+
+                $parameter = $this->getRequestParameterConfig(
+                    $sdk->getNamespace() ?? '',
+                    $methodName,
+                    $name,
+                    $param['optional'],
+                    $isNullable,
+                    $param['default'],
+                );
 
                 $node = [
                     'name' => $name,
                     'description' => $param['description'],
-                    'required' => !$param['optional'],
+                    'required' => $parameter['required'],
                 ];
-
-                $isNullable = $validator instanceof Nullable;
 
                 if ($isNullable) {
                     /** @var Nullable $validator */
@@ -723,7 +744,7 @@ class OpenAPI3 extends Format
                         break;
                 }
 
-                if ($param['optional'] && !\is_null($param['default'])) { // Param has default value
+                if ($parameter['emitDefault']) { // Param has default value
                     $node['schema']['default'] = $param['default'];
                 }
 
@@ -734,7 +755,7 @@ class OpenAPI3 extends Format
                     $node['in'] = 'query';
                     $temp['parameters'][] = $node;
                 } else { // Param is in payload
-                    if (!$param['optional']) {
+                    if ($node['required']) {
                         $bodyRequired[] = $name;
                     }
 
@@ -771,7 +792,7 @@ class OpenAPI3 extends Format
                         $body['content'][$consumes[0]]['schema']['properties'][$name]['x-global'] = true;
                     }
 
-                    if ($isNullable) {
+                    if ($parameter['nullable']) {
                         $body['content'][$consumes[0]]['schema']['properties'][$name]['x-nullable'] = true;
                     }
                 }
@@ -821,6 +842,10 @@ class OpenAPI3 extends Format
             }
 
             foreach ($model->getRules() as $name => $rule) {
+                if (($rule['hidden'] ?? false) === true) {
+                    continue;
+                }
+
                 $type = '';
                 $format = null;
                 $items = null;
