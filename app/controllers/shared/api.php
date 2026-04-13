@@ -194,7 +194,7 @@ Http::init()
                     'name' => $apiKey->getName(),
                 ]);
 
-                $auditContext->setUser($user);
+                $auditContext->user = $user;
             }
 
             // For standard keys, update last accessed time
@@ -265,7 +265,7 @@ Http::init()
                     API_KEY_ORGANIZATION => ACTIVITY_TYPE_KEY_ORGANIZATION,
                     default => ACTIVITY_TYPE_KEY_PROJECT,
                 });
-                $auditContext->setUser($userClone);
+                $auditContext->user = $userClone;
             }
 
             // Apply permission
@@ -596,13 +596,12 @@ Http::init()
             ->setProject($project)
             ->setUser($user);
 
-        $auditContext
-            ->setMode($mode)
-            ->setUserAgent($request->getUserAgent(''))
-            ->setIP($request->getIP())
-            ->setHostname($request->getHostname())
-            ->setEvent($route->getLabel('audits.event', ''))
-            ->setProject($project);
+        $auditContext->mode = $mode;
+        $auditContext->userAgent = $request->getUserAgent('');
+        $auditContext->ip = $request->getIP();
+        $auditContext->hostname = $request->getHostname();
+        $auditContext->event = $route->getLabel('audits.event', '');
+        $auditContext->project = $project;
 
         /* If a session exists, use the user associated with the session */
         if (! $user->isEmpty()) {
@@ -611,7 +610,7 @@ Http::init()
             if (empty($user->getAttribute('type'))) {
                 $userClone->setAttribute('type', $mode === APP_MODE_ADMIN ? ACTIVITY_TYPE_ADMIN : ACTIVITY_TYPE_USER);
             }
-            $auditContext->setUser($userClone);
+            $auditContext->user = $userClone;
         }
 
         /* Auto-set projects */
@@ -903,7 +902,7 @@ Http::shutdown()
         if (! empty($pattern)) {
             $resource = $parseLabel($pattern, $responsePayload, $requestParams, $user);
             if (! empty($resource) && $resource !== $pattern) {
-                $auditContext->setResource($resource);
+                $auditContext->resource = $resource;
             }
         }
 
@@ -913,8 +912,8 @@ Http::shutdown()
             if (empty($user->getAttribute('type'))) {
                 $userClone->setAttribute('type', $mode === APP_MODE_ADMIN ? ACTIVITY_TYPE_ADMIN : ACTIVITY_TYPE_USER);
             }
-            $auditContext->setUser($userClone);
-        } elseif ($auditContext->getUser() === null || $auditContext->getUser()->isEmpty()) {
+            $auditContext->user = $userClone;
+        } elseif ($auditContext->user === null || $auditContext->user->isEmpty()) {
             /**
              * User in the request is empty, and no user was set for auditing previously.
              * This indicates:
@@ -932,30 +931,30 @@ Http::shutdown()
                 'name' => 'Guest',
             ]);
 
-            $auditContext->setUser($user);
+            $auditContext->user = $user;
         }
 
-        $auditUser = $auditContext->getUser();
-        if (! empty($auditContext->getResource()) && ! \is_null($auditUser) && ! $auditUser->isEmpty()) {
+        $auditUser = $auditContext->user;
+        if (! empty($auditContext->resource) && ! \is_null($auditUser) && ! $auditUser->isEmpty()) {
             /**
              * audits.payload is switched to default true
              * in order to auto audit payload for all endpoints
              */
             $pattern = $route->getLabel('audits.payload', true);
             if (! empty($pattern)) {
-                $auditContext->setPayload($responsePayload);
+                $auditContext->payload = $responsePayload;
             }
 
             $publisherForAudits->enqueue(new \Appwrite\Event\Message\Audit(
-                project: $auditContext->getProject() ?? new Document(),
+                project: $auditContext->project ?? new Document(),
                 user: $auditUser,
-                payload: $auditContext->getPayload(),
-                resource: $auditContext->getResource(),
-                mode: $auditContext->getMode(),
-                ip: $auditContext->getIP(),
-                userAgent: $auditContext->getUserAgent(),
-                event: $auditContext->getEvent(),
-                hostname: $auditContext->getHostname(),
+                payload: $auditContext->payload,
+                resource: $auditContext->resource,
+                mode: $auditContext->mode,
+                ip: $auditContext->ip,
+                userAgent: $auditContext->userAgent,
+                event: $auditContext->event,
+                hostname: $auditContext->hostname,
             ));
         }
 
