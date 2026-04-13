@@ -6,9 +6,7 @@ use Appwrite\GraphQL\Exception as GQLException;
 use Appwrite\Promises\Swoole;
 use Appwrite\Utopia\Request;
 use Appwrite\Utopia\Response;
-use stdClass;
 use Swoole\Coroutine;
-use Swoole\Coroutine\Channel;
 use Utopia\DI\Container;
 use Utopia\Http\Exception;
 use Utopia\Http\Http;
@@ -31,23 +29,17 @@ class Resolvers
     /**
      * Get the request-scoped lock shared by GraphQL resolver coroutines
      * for the current HTTP request.
-     *
-     * @return stdClass{channel: Channel, owner: int|null, depth: int}
      */
-    private static function getLock(Http $utopia): stdClass
+    private static function getLock(Http $utopia): ResolverLock
     {
         $container = self::getResolverContainer($utopia);
 
         if (!$container->has('graphql:lock')) {
-            $lock = new stdClass();
-            $lock->channel = new Channel(1);
-            $lock->owner = null;
-            $lock->depth = 0;
+            $lock = new ResolverLock();
 
             $container->set('graphql:lock', static fn () => $lock);
         }
 
-        /** @var stdClass{channel: Channel, owner: int|null, depth: int} $lock */
         $lock = $container->get('graphql:lock');
 
         return $lock;
@@ -56,10 +48,8 @@ class Resolvers
     /**
      * Acquire the request-scoped resolver lock. Re-entering from the
      * same coroutine only increments depth to avoid self-deadlock.
-     *
-     * @param stdClass{channel: Channel, owner: int|null, depth: int} $lock
      */
-    private static function acquireLock(stdClass $lock): void
+    private static function acquireLock(ResolverLock $lock): void
     {
         $cid = Coroutine::getCid();
 
@@ -75,10 +65,8 @@ class Resolvers
 
     /**
      * Release the request-scoped resolver lock.
-     *
-     * @param stdClass{channel: Channel, owner: int|null, depth: int} $lock
      */
-    private static function releaseLock(stdClass $lock): void
+    private static function releaseLock(ResolverLock $lock): void
     {
         if ($lock->owner !== Coroutine::getCid()) {
             return;
@@ -93,6 +81,7 @@ class Resolvers
         $lock->owner = null;
         $lock->channel->pop();
     }
+
     /**
      * Create a resolver for a given API {@see Route}.
      *
@@ -330,7 +319,7 @@ class Resolvers
      * @param Http $utopia
      * @param Request $request
      * @param Response $response
-     * @param stdClass{channel: Channel, owner: int|null, depth: int} $lock
+     * @param ResolverLock $lock
      * @param callable $resolve
      * @param callable $reject
      * @param callable|null $beforeResolve
@@ -342,7 +331,7 @@ class Resolvers
         Http $utopia,
         Request $request,
         Response $response,
-        stdClass $lock,
+        ResolverLock $lock,
         callable $resolve,
         callable $reject,
         ?callable $beforeResolve = null,
@@ -354,10 +343,12 @@ class Resolvers
         }
 
         $request = clone $request;
-        $utopia->setResource('request', static fn () => $request);
+        $container = self::getResolverContainer($utopia);
 
         self::acquireLock($lock);
         try {
+            $container->set('request', static fn () => $request);
+            $container->set('response', static fn () => $response);
             $response->setContentType(Response::CONTENT_TYPE_NULL);
             $response->clearSent();
 
@@ -368,14 +359,14 @@ class Resolvers
             $payload = $response->getPayload();
             $statusCode = $response->getStatusCode();
         } catch (\Throwable $e) {
-            self::releaseLock($lock);
             if ($beforeReject) {
                 $e = $beforeReject($e);
             }
             $reject($e);
             return;
+        } finally {
+            self::releaseLock($lock);
         }
-        self::releaseLock($lock);
 
         if ($statusCode < 200 || $statusCode >= 400) {
             if ($beforeReject) {
