@@ -82,15 +82,6 @@ abstract class Format
         [
             'namespace' => 'project',
             'methods' => [
-                'createKey',
-                'updateKey',
-            ],
-            'parameter' => 'scopes',
-            'nullable' => false,
-        ],
-        [
-            'namespace' => 'project',
-            'methods' => [
                 'createWebPlatform',
                 'updateWebPlatform',
             ],
