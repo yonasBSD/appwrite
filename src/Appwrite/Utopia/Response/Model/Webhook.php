@@ -71,7 +71,7 @@ class Webhook extends Model
             ])
             /*
             Not exposed for security; Secret is currently write-only.
-            
+
             ->addRule('secret', [
                 'type' => self::TYPE_STRING,
                 'description' => 'Signature key which can be used to validate incoming webhook payloads.',
