@@ -425,7 +425,7 @@ Http::init()
         }
 
         if (! empty($method)) {
-            $namespace = $method->getNamespace();
+            $namespace = \strtolower($method->getNamespace());
 
             if (
                 array_key_exists($namespace, $project->getAttribute('services', []))
@@ -434,6 +434,15 @@ Http::init()
             ) {
                 throw new Exception(Exception::GENERAL_SERVICE_DISABLED);
             }
+        }
+
+        // Step 8b: Check REST protocol status
+        if (
+            array_key_exists('rest', $project->getAttribute('apis', []))
+            && ! $project->getAttribute('apis', [])['rest']
+            && ! ($user->isPrivileged($authorization->getRoles()) || $user->isApp($authorization->getRoles()))
+        ) {
+            throw new AppwriteException(AppwriteException::GENERAL_API_DISABLED);
         }
 
         // Step 9: Validate scope permissions
@@ -510,14 +519,6 @@ Http::init()
             str_contains($path, '/vectorsdb') => DATABASE_TYPE_VECTORSDB,
             default => '',
         };
-
-        if (
-            array_key_exists('rest', $project->getAttribute('apis', []))
-            && ! $project->getAttribute('apis', [])['rest']
-            && ! ($user->isPrivileged($authorization->getRoles()) || $user->isApp($authorization->getRoles()))
-        ) {
-            throw new AppwriteException(AppwriteException::GENERAL_API_DISABLED);
-        }
 
         /*
         * Abuse Check
