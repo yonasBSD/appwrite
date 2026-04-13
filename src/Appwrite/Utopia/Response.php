@@ -613,6 +613,8 @@ class Response extends SwooleResponse
             throw new \Exception('Response body is not a valid JSON object.');
         }
 
+        $this->payload = \is_array($data) ? $data : (array) $data;
+
         $this
             ->setContentType(Response::CONTENT_TYPE_JSON, self::CHARSET_UTF8)
             ->send(\json_encode($data, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR));
@@ -634,6 +636,16 @@ class Response extends SwooleResponse
     public function clearSent(): static
     {
         $this->sent = false;
+        return $this;
+    }
+
+    /**
+     * Mark the response as already sent so later callers do not attempt to
+     * write a second payload to the same underlying Swoole response.
+     */
+    public function markSent(): static
+    {
+        $this->sent = true;
         return $this;
     }
 
