@@ -3,6 +3,7 @@
 namespace Tests\E2E\Services\Project;
 
 use Tests\E2E\Client;
+use Utopia\Database\Helpers\ID;
 
 trait SMTPBase
 {
@@ -651,6 +652,91 @@ trait SMTPBase
 
         $this->assertSame(204, $response['headers']['status-code']);
         $this->assertEmpty($response['body']);
+
+        // Cleanup
+        $this->updateSMTPStatus(false);
+    }
+
+    // Integration tests
+
+    public function testCreateSMTPTestEmailDelivery(): void
+    {
+        $senderName = 'SMTP Test Sender';
+        $senderEmail = 'smtptest@appwrite.io';
+        $replyToEmail = 'smtpreply@appwrite.io';
+        $recipientEmail = 'smtpdelivery-' . \uniqid() . '@appwrite.io';
+
+        // Configure SMTP with replyTo
+        $response = $this->updateSMTP(
+            senderName: $senderName,
+            senderEmail: $senderEmail,
+            host: 'maildev',
+            port: 1025,
+            replyTo: $replyToEmail,
+        );
+
+        $this->assertSame(200, $response['headers']['status-code']);
+        $this->assertSame(true, $response['body']['smtpEnabled']);
+
+        // Trigger test email
+        $response = $this->createSMTPTest([$recipientEmail]);
+
+        $this->assertSame(204, $response['headers']['status-code']);
+
+        // Verify email arrived via maildev
+        $email = $this->getLastEmailByAddress($recipientEmail, function ($email) {
+            $this->assertSame('Custom SMTP email sample', $email['subject']);
+        });
+
+        $this->assertSame($senderEmail, $email['from'][0]['address']);
+        $this->assertSame($senderName, $email['from'][0]['name']);
+        $this->assertSame($replyToEmail, $email['replyTo'][0]['address']);
+        $this->assertSame($senderName, $email['replyTo'][0]['name']);
+        $this->assertSame('Custom SMTP email sample', $email['subject']);
+        $this->assertStringContainsStringIgnoringCase('working correctly', $email['text']);
+        $this->assertStringContainsStringIgnoringCase('working correctly', $email['html']);
+
+        // Cleanup
+        $this->updateSMTPStatus(false);
+    }
+
+    public function testMagicURLLoginUsesCustomSMTP(): void
+    {
+        $senderName = 'Custom Auth Mailer';
+        $senderEmail = 'authmailer@appwrite.io';
+        $recipientEmail = 'magicurl-' . \uniqid() . '@appwrite.io';
+
+        // Configure custom SMTP
+        $response = $this->updateSMTP(
+            senderName: $senderName,
+            senderEmail: $senderEmail,
+            host: 'maildev',
+            port: 1025,
+        );
+
+        $this->assertSame(200, $response['headers']['status-code']);
+        $this->assertSame(true, $response['body']['smtpEnabled']);
+
+        // Trigger MagicURL login as a client (no auth headers needed)
+        $response = $this->client->call(Client::METHOD_POST, '/account/tokens/magic-url', [
+            'origin' => 'http://localhost',
+            'content-type' => 'application/json',
+            'x-appwrite-project' => $this->getProject()['$id'],
+        ], [
+            'userId' => ID::unique(),
+            'email' => $recipientEmail,
+        ]);
+
+        $this->assertSame(201, $response['headers']['status-code']);
+
+        // Verify the email arrived with custom SMTP sender details
+        $email = $this->getLastEmailByAddress($recipientEmail, function ($email) {
+            $this->assertStringContainsString('Login', $email['subject']);
+        });
+
+        $this->assertSame($senderEmail, $email['from'][0]['address']);
+        $this->assertSame($senderName, $email['from'][0]['name']);
+        $this->assertSame($this->getProject()['name'] . ' Login', $email['subject']);
 
         // Cleanup
         $this->updateSMTPStatus(false);
