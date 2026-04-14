@@ -346,6 +346,6 @@ $cli
 $cli->shutdown()->action(fn () => Timer::clearAll());
 
 Runtime::enableCoroutine(SWOOLE_HOOK_ALL);
-require_once __DIR__ . '/init/span.php';
+require_once __DIR__ . '/init/ ';
 run($cli->run(...));
 Console::exit($exitCode);
