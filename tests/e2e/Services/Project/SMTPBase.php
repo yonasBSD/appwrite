@@ -117,7 +117,6 @@ trait SMTPBase
             replyTo: 'reply@example.com',
             username: 'smtpuser',
             password: 'smtppass',
-            secure: '',
         );
 
         $this->assertSame(200, $response['headers']['status-code']);
@@ -302,14 +301,13 @@ trait SMTPBase
         $this->assertSame(400, $response['headers']['status-code']);
     }
 
-    public function testUpdateSMTPValidSecureTLS(): void
+    public function testUpdateSMTPWithoutSecure(): void
     {
         $response = $this->updateSMTP(
             senderName: 'Test Sender',
             senderEmail: 'sender@example.com',
             host: 'maildev',
             port: 1025,
-            secure: '',
         );
 
         $this->assertSame(200, $response['headers']['status-code']);
@@ -517,10 +515,10 @@ trait SMTPBase
         string $senderEmail = '',
         string $host = '',
         int $port = 587,
-        string $replyTo = '',
-        string $username = '',
-        string $password = '',
-        string $secure = '',
+        ?string $replyTo = null,
+        ?string $username = null,
+        ?string $password = null,
+        ?string $secure = null,
         ?bool $enabled = null,
         bool $authenticated = true,
     ): mixed {
@@ -538,11 +536,23 @@ trait SMTPBase
             'senderEmail' => $senderEmail,
             'host' => $host,
             'port' => $port,
-            'replyTo' => $replyTo,
-            'username' => $username,
-            'password' => $password,
-            'secure' => $secure,
         ];
+
+        if (!\is_null($replyTo)) {
+            $params['replyTo'] = $replyTo;
+        }
+
+        if (!\is_null($username)) {
+            $params['username'] = $username;
+        }
+
+        if (!\is_null($password)) {
+            $params['password'] = $password;
+        }
+
+        if (!\is_null($secure)) {
+            $params['secure'] = $secure;
+        }
 
         if (!\is_null($enabled)) {
             $params['enabled'] = $enabled;
