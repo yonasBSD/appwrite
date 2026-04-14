@@ -3,7 +3,6 @@
 use Ahc\Jwt\JWT;
 use Appwrite\Auth\Validator\MockNumber;
 use Appwrite\Event\Delete;
-use Appwrite\Event\Mail;
 use Appwrite\Extend\Exception;
 use Appwrite\SDK\AuthType;
 use Appwrite\SDK\ContentType;
@@ -13,7 +12,6 @@ use Appwrite\SDK\Response as SDKResponse;
 use Appwrite\Template\Template;
 use Appwrite\Utopia\Database\Validator\Queries\Keys;
 use Appwrite\Utopia\Response;
-use PHPMailer\PHPMailer\PHPMailer;
 use Utopia\Config\Config;
 use Utopia\Database\Database;
 use Utopia\Database\Document;
@@ -24,8 +22,6 @@ use Utopia\Locale\Locale;
 use Utopia\System\System;
 use Utopia\Validator\ArrayList;
 use Utopia\Validator\Boolean;
-use Utopia\Validator\Hostname;
-use Utopia\Validator\Integer;
 use Utopia\Validator\Nullable;
 use Utopia\Validator\Range;
 use Utopia\Validator\Text;
@@ -617,220 +613,6 @@ Http::post('/v1/projects/:projectId/jwts')
                 'projectId' => $project->getId(),
                 'scopes' => $scopes
             ])]), Response::MODEL_JWT);
-    });
-
-// CUSTOM SMTP and Templates
-Http::patch('/v1/projects/:projectId/smtp')
-    ->desc('Update SMTP')
-    ->groups(['api', 'projects'])
-    ->label('scope', 'projects.write')
-    ->label('sdk', [
-        new Method(
-            namespace: 'projects',
-            group: 'templates',
-            name: 'updateSmtp',
-            description: '/docs/references/projects/update-smtp.md',
-            auth: [AuthType::ADMIN],
-            responses: [
-                new SDKResponse(
-                    code: Response::STATUS_CODE_OK,
-                    model: Response::MODEL_PROJECT,
-                )
-            ],
-            deprecated: new Deprecated(
-                since: '1.8.0',
-                replaceWith: 'projects.updateSMTP',
-            ),
-            public: false,
-        ),
-        new Method(
-            namespace: 'projects',
-            group: 'templates',
-            name: 'updateSMTP',
-            description: '/docs/references/projects/update-smtp.md',
-            auth: [AuthType::ADMIN],
-            responses: [
-                new SDKResponse(
-                    code: Response::STATUS_CODE_OK,
-                    model: Response::MODEL_PROJECT,
-                )
-            ]
-        )
-    ])
-    ->param('projectId', '', fn (Database $dbForPlatform) => new UID($dbForPlatform->getAdapter()->getMaxUIDLength()), 'Project unique ID.', false, ['dbForPlatform'])
-    ->param('enabled', false, new Boolean(), 'Enable custom SMTP service')
-    ->param('senderName', '', new Text(255, 0), 'Name of the email sender', true)
-    ->param('senderEmail', '', new Email(), 'Email of the sender', true)
-    ->param('replyTo', '', new Email(), 'Reply to email', true)
-    ->param('host', '', new HostName(), 'SMTP server host name', true)
-    ->param('port', 587, new Integer(), 'SMTP server port', true)
-    ->param('username', '', new Text(0, 0), 'SMTP server username', true)
-    ->param('password', '', new Text(0, 0), 'SMTP server password', true)
-    ->param('secure', '', new WhiteList(['tls', 'ssl'], true), 'Does SMTP server use secure connection', true)
-    ->inject('response')
-    ->inject('dbForPlatform')
-    ->action(function (string $projectId, bool $enabled, string $senderName, string $senderEmail, string $replyTo, string $host, int $port, string $username, string $password, string $secure, Response $response, Database $dbForPlatform) {
-
-        $project = $dbForPlatform->getDocument('projects', $projectId);
-
-        if ($project->isEmpty()) {
-            throw new Exception(Exception::PROJECT_NOT_FOUND);
-        }
-
-        // Ensure required params for when enabling SMTP
-        if ($enabled) {
-            if (empty($senderName)) {
-                throw new Exception(Exception::GENERAL_ARGUMENT_INVALID, 'Sender name is required when enabling SMTP.');
-            } elseif (empty($senderEmail)) {
-                throw new Exception(Exception::GENERAL_ARGUMENT_INVALID, 'Sender email is required when enabling SMTP.');
-            } elseif (empty($host)) {
-                throw new Exception(Exception::GENERAL_ARGUMENT_INVALID, 'Host is required when enabling SMTP.');
-            } elseif (empty($port)) {
-                throw new Exception(Exception::GENERAL_ARGUMENT_INVALID, 'Port is required when enabling SMTP.');
-            }
-        }
-
-        // validate SMTP settings
-        if ($enabled) {
-            $mail = new PHPMailer(true);
-            $mail->isSMTP();
-            $mail->SMTPAuth = (!empty($username) && !empty($password));
-            $mail->Username = $username;
-            $mail->Password = $password;
-            $mail->Host = $host;
-            $mail->Port = $port;
-            $mail->SMTPSecure = $secure;
-            $mail->SMTPAutoTLS = false;
-            $mail->Timeout = 5;
-
-            try {
-                $valid = $mail->SmtpConnect();
-
-                if (!$valid) {
-                    throw new Exception('Connection is not valid.');
-                }
-            } catch (Throwable $error) {
-                throw new Exception(Exception::PROJECT_SMTP_CONFIG_INVALID, $error->getMessage());
-            }
-        }
-
-        // Save SMTP settings
-        if ($enabled) {
-            $smtp = [
-                'enabled' => $enabled,
-                'senderName' => $senderName,
-                'senderEmail' => $senderEmail,
-                'replyTo' => $replyTo,
-                'host' => $host,
-                'port' => $port,
-                'username' => $username,
-                'password' => $password,
-                'secure' => $secure,
-            ];
-        } else {
-            $smtp = [
-                'enabled' => false
-            ];
-        }
-
-        $project = $dbForPlatform->updateDocument('projects', $project->getId(), $project->setAttribute('smtp', $smtp));
-
-        $response->dynamic($project, Response::MODEL_PROJECT);
-    });
-
-Http::post('/v1/projects/:projectId/smtp/tests')
-    ->desc('Create SMTP test')
-    ->groups(['api', 'projects'])
-    ->label('scope', 'projects.write')
-    ->label('sdk', [
-        new Method(
-            namespace: 'projects',
-            group: 'templates',
-            name: 'createSmtpTest',
-            description: '/docs/references/projects/create-smtp-test.md',
-            auth: [AuthType::ADMIN],
-            responses: [
-                new SDKResponse(
-                    code: Response::STATUS_CODE_NOCONTENT,
-                    model: Response::MODEL_NONE,
-                )
-            ],
-            deprecated: new Deprecated(
-                since: '1.8.0',
-                replaceWith: 'projects.createSMTPTest',
-            ),
-            public: false,
-        ),
-        new Method(
-            namespace: 'projects',
-            group: 'templates',
-            name: 'createSMTPTest',
-            description: '/docs/references/projects/create-smtp-test.md',
-            auth: [AuthType::ADMIN],
-            responses: [
-                new SDKResponse(
-                    code: Response::STATUS_CODE_NOCONTENT,
-                    model: Response::MODEL_NONE,
-                )
-            ]
-        )
-    ])
-    ->param('projectId', '', fn (Database $dbForPlatform) => new UID($dbForPlatform->getAdapter()->getMaxUIDLength()), 'Project unique ID.', false, ['dbForPlatform'])
-    ->param('emails', [], new ArrayList(new Email(), 10), 'Array of emails to send test email to. Maximum of 10 emails are allowed.')
-    ->param('senderName', System::getEnv('_APP_SYSTEM_EMAIL_NAME', APP_NAME . ' Server'), new Text(255, 0), 'Name of the email sender')
-    ->param('senderEmail', System::getEnv('_APP_SYSTEM_EMAIL_ADDRESS', APP_EMAIL_TEAM), new Email(), 'Email of the sender')
-    ->param('replyTo', '', new Email(), 'Reply to email', true)
-    ->param('host', '', new HostName(), 'SMTP server host name')
-    ->param('port', 587, new Integer(), 'SMTP server port', true)
-    ->param('username', '', new Text(0, 0), 'SMTP server username', true)
-    ->param('password', '', new Text(0, 0), 'SMTP server password', true)
-    ->param('secure', '', new WhiteList(['tls', 'ssl'], true), 'Does SMTP server use secure connection', true)
-    ->inject('response')
-    ->inject('dbForPlatform')
-    ->inject('queueForMails')
-    ->inject('plan')
-    ->action(function (string $projectId, array $emails, string $senderName, string $senderEmail, string $replyTo, string $host, int $port, string $username, string $password, string $secure, Response $response, Database $dbForPlatform, Mail $queueForMails, array $plan) {
-        $project = $dbForPlatform->getDocument('projects', $projectId);
-
-        if ($project->isEmpty()) {
-            throw new Exception(Exception::PROJECT_NOT_FOUND);
-        }
-
-        $replyToEmail = !empty($replyTo) ? $replyTo : $senderEmail;
-
-        $subject = 'Custom SMTP email sample';
-        $template = Template::fromFile(__DIR__ . '/../../config/locale/templates/email-smtp-test.tpl');
-        $template
-            ->setParam('{{from}}', "{$senderName} ({$senderEmail})")
-            ->setParam('{{replyTo}}', "{$senderName} ({$replyToEmail})")
-            ->setParam('{{logoUrl}}', $plan['logoUrl'] ?? APP_EMAIL_LOGO_URL)
-            ->setParam('{{accentColor}}', $plan['accentColor'] ?? APP_EMAIL_ACCENT_COLOR)
-            ->setParam('{{twitterUrl}}', $plan['twitterUrl'] ?? APP_SOCIAL_TWITTER)
-            ->setParam('{{discordUrl}}', $plan['discordUrl'] ?? APP_SOCIAL_DISCORD)
-            ->setParam('{{githubUrl}}', $plan['githubUrl'] ?? APP_SOCIAL_GITHUB_APPWRITE)
-            ->setParam('{{termsUrl}}', $plan['termsUrl'] ?? APP_EMAIL_TERMS_URL)
-            ->setParam('{{privacyUrl}}', $plan['privacyUrl'] ?? APP_EMAIL_PRIVACY_URL);
-
-        foreach ($emails as $email) {
-            $queueForMails
-                ->setSmtpHost($host)
-                ->setSmtpPort($port)
-                ->setSmtpUsername($username)
-                ->setSmtpPassword($password)
-                ->setSmtpSecure($secure)
-                ->setSmtpReplyTo($replyTo)
-                ->setSmtpSenderEmail($senderEmail)
-                ->setSmtpSenderName($senderName)
-                ->setRecipient($email)
-                ->setName('')
-                ->setBodyTemplate(__DIR__ . '/../../config/locale/templates/email-base-styled.tpl')
-                ->setBody($template->render())
-                ->setVariables([])
-                ->setSubject($subject)
-                ->trigger();
-        }
-
-        $response->noContent();
     });
 
 Http::get('/v1/projects/:projectId/templates/sms/:type/:locale')

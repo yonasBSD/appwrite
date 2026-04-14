@@ -1,6 +1,6 @@
 <?php
 
-namespace Appwrite\Platform\Modules\Project\Http\Project\Labels;
+namespace Appwrite\Platform\Modules\Project\Http\Project\SMTP\Status;
 
 use Appwrite\Platform\Action;
 use Appwrite\SDK\AuthType;
@@ -11,8 +11,7 @@ use Utopia\Database\Database;
 use Utopia\Database\Document;
 use Utopia\Database\Validator\Authorization;
 use Utopia\Platform\Scope\HTTP;
-use Utopia\Validator\ArrayList;
-use Utopia\Validator\Text;
+use Utopia\Validator\Boolean;
 
 class Update extends Action
 {
@@ -20,27 +19,26 @@ class Update extends Action
 
     public static function getName()
     {
-        return 'updateProjectLabels';
+        return 'updateProjectSMTPStatus';
     }
 
     public function __construct()
     {
         $this
-            ->setHttpMethod(Action::HTTP_REQUEST_METHOD_PUT)
-            ->setHttpPath('/v1/project/labels')
-            ->httpAlias('/v1/projects/:projectId/labels')
-            ->desc('Update project labels')
+            ->setHttpMethod(Action::HTTP_REQUEST_METHOD_PATCH)
+            ->setHttpPath('/v1/project/smtp/status')
+            ->desc('Update project SMTP status')
             ->groups(['api', 'project'])
             ->label('scope', 'project.write')
-            ->label('event', 'labels.*.update')
-            ->label('audits.event', 'project.labels.update')
-            ->label('audits.resource', 'project.labels/{response.$id}')
+            ->label('event', 'smtp.*.update')
+            ->label('audits.event', 'project.smtp.update')
+            ->label('audits.resource', 'project.smtp/{response.$id}')
             ->label('sdk', new Method(
                 namespace: 'project',
-                group: null,
-                name: 'updateLabels',
+                group: 'smtp',
+                name: 'updateSMTPStatus',
                 description: <<<EOT
-                Update the project labels. Labels can be used to easily filter projects in an organization.
+                Update the status of a SMTP. Use this endpoint to enable or disable ability to configure custom email sender in your project. 
                 EOT,
                 auth: [AuthType::ADMIN, AuthType::KEY],
                 responses: [
@@ -50,7 +48,7 @@ class Update extends Action
                     )
                 ],
             ))
-            ->param('labels', [], new ArrayList(new Text(36, allowList: [...Text::NUMBERS, ...Text::ALPHABET_UPPER, ...Text::ALPHABET_LOWER]), APP_LIMIT_ARRAY_LABELS_SIZE), 'Array of project labels. Replaces the previous labels. Maximum of ' . APP_LIMIT_ARRAY_LABELS_SIZE . ' labels are allowed, each up to 36 alphanumeric characters long.')
+            ->param('enabled', null, new Boolean(), 'SMTP status.')
             ->inject('response')
             ->inject('dbForPlatform')
             ->inject('project')
@@ -58,19 +56,18 @@ class Update extends Action
             ->callback($this->action(...));
     }
 
-    /**
-     * @param array<string> $labels
-     */
     public function action(
-        array $labels,
+        bool $enabled,
         Response $response,
         Database $dbForPlatform,
         Document $project,
         Authorization $authorization
     ): void {
-        $labels = (array) \array_values(\array_unique($labels));
+        $smtp = $project->getAttribute('smtp', []);
 
-        $project = $authorization->skip(fn () => $dbForPlatform->updateDocument('projects', $project->getId(), new Document(['labels' => $labels])));
+        $smtp['enabled'] = $enabled;
+
+        $project = $authorization->skip(fn () => $dbForPlatform->updateDocument('projects', $project->getId(), $project->setAttribute('smtp', $smtp)));
 
         $response->dynamic($project, Response::MODEL_PROJECT);
     }
