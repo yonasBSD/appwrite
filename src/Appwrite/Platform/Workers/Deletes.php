@@ -759,19 +759,11 @@ class Deletes extends Action
                     $databasesToClean
                 ));
             } elseif ($sharedTablesV1) {
-                /**
-                 * Temporary disabling deletes for internal collections
-                 */
-                $queries = \array_map(
-                    fn ($id) => Query::notEqual('$id', $id),
-                    $projectCollectionIds
-                );
-
-                $queries[] = Query::orderAsc();
-
                 $this->deleteByGroup(
                     Database::METADATA,
-                    $queries,
+                    [
+                        Query::orderAsc()
+                    ],
                     $dbForProject
                 );
             } elseif ($sharedTablesV2) {
