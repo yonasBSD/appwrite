@@ -2,20 +2,21 @@
 
 namespace Appwrite\Event\Message;
 
+use Appwrite\Event\Context\Audit as AuditContext;
 use Utopia\Database\Document;
 
 final class Audit extends Base
 {
     public function __construct(
-        public readonly Document $project,
-        public readonly Document $user,
-        public readonly array $payload,
-        public readonly string $resource,
-        public readonly string $mode,
-        public readonly string $ip,
-        public readonly string $userAgent,
         public readonly string $event,
-        public readonly string $hostname,
+        public readonly array $payload,
+        public readonly Document $project = new Document(),
+        public readonly Document $user = new Document(),
+        public readonly string $resource = '',
+        public readonly string $mode = '',
+        public readonly string $ip = '',
+        public readonly string $userAgent = '',
+        public readonly string $hostname = '',
     ) {
     }
 
@@ -41,15 +42,30 @@ final class Audit extends Base
     public static function fromArray(array $data): static
     {
         return new self(
+            event: $data['event'] ?? '',
+            payload: $data['payload'] ?? [],
             project: new Document($data['project'] ?? []),
             user: new Document($data['user'] ?? []),
-            payload: $data['payload'] ?? [],
             resource: $data['resource'] ?? '',
             mode: $data['mode'] ?? '',
             ip: $data['ip'] ?? '',
             userAgent: $data['userAgent'] ?? '',
-            event: $data['event'] ?? '',
             hostname: $data['hostname'] ?? '',
+        );
+    }
+
+    public static function fromContext(AuditContext $context): static
+    {
+        return new self(
+            event: $context->event,
+            payload: $context->payload,
+            project: $context->project ?? new Document(),
+            user: $context->user ?? new Document(),
+            resource: $context->resource,
+            mode: $context->mode,
+            ip: $context->ip,
+            userAgent: $context->userAgent,
+            hostname: $context->hostname,
         );
     }
 }
