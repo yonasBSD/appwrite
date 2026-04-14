@@ -17,6 +17,10 @@ use Utopia\Emails\Validator\Email;
 use Utopia\Http\Adapter\Swoole\Response as SwooleResponse;
 use Utopia\Platform\Scope\HTTP;
 use Utopia\Validator\ArrayList;
+use Utopia\Validator\Hostname;
+use Utopia\Validator\Integer;
+use Utopia\Validator\Text;
+use Utopia\Validator\WhiteList;
 
 class Create extends Action
 {
@@ -56,6 +60,14 @@ class Create extends Action
                 contentType: ContentType::NONE,
             ))
             ->param('emails', [], new ArrayList(new Email(), 10), 'Array of emails to send test email to. Maximum of 10 emails are allowed.')
+            ->param('senderName', '', new Text(256), 'Name of the email sender', optional: true, deprecated: true) // Backwards compatibility
+            ->param('senderEmail', '', new Email(), 'Email of the sender', optional: true, deprecated: true) // Backwards compatibility
+            ->param('replyTo', '', new Email(), 'Reply to email', optional: true, deprecated: true) // Backwards compatibility
+            ->param('host', '', new Hostname(), 'SMTP server host name', optional: true, deprecated: true) // Backwards compatibility
+            ->param('port', null, new Integer(), 'SMTP server port', optional: true, deprecated: true) // Backwards compatibility
+            ->param('username', '', new Text(256), 'SMTP server username', optional: true, deprecated: true) // Backwards compatibility
+            ->param('password', '', new Text(256), 'SMTP server password', optional: true, deprecated: true) // Backwards compatibility
+            ->param('secure', '', new WhiteList(['tls', 'ssl'], true), 'Does SMTP server use secure connection', optional: true, deprecated: true) // Backwards compatibility
             ->inject('response')
             ->inject('project')
             ->inject('queueForMails')
@@ -68,26 +80,36 @@ class Create extends Action
      */
     public function action(
         array $emails,
+        string $paramSenderName, // Backwards compatibility
+        string $paramSenderEmail, // Backwards compatibility
+        string $paramReplyTo, // Backwards compatibility
+        string $paramHost, // Backwards compatibility
+        ?int $paramPort, // Backwards compatibility
+        string $paramUsername, // Backwards compatibility
+        string $paramPassword, // Backwards compatibility
+        string $paramSecure, // Backwards compatibility
         Response $response,
         Document $project,
         Mail $queueForMails,
         array $plan
     ): void {
+        // Backwards compatibility: use inline params if provided, otherwise fall back to project SMTP config
+        $hasInlineParams = !empty($paramHost);
 
         $smtp = $project->getAttribute('smtp', []);
 
-        if ($smtp['enabled'] !== true) {
+        if (!$hasInlineParams && ($smtp['enabled'] ?? false) !== true) {
             throw new Exception(Exception::GENERAL_ARGUMENT_INVALID, 'SMTP must be enabled on the project to send a test email.');
         }
 
-        $senderName = $smtp['senderName'] ?? '';
-        $senderEmail = $smtp['senderEmail'] ?? '';
-        $replyTo = $smtp['replyTo'] ?? '';
-        $host = $smtp['host'] ?? '';
-        $port = $smtp['port'] ?? '';
-        $username = $smtp['username'] ?? '';
-        $password = $smtp['password'] ?? '';
-        $secure = $smtp['secure'] ?? '';
+        $senderName = $paramSenderName ?: ($smtp['senderName'] ?? '');
+        $senderEmail = $paramSenderEmail ?: ($smtp['senderEmail'] ?? '');
+        $replyTo = $paramReplyTo ?: ($smtp['replyTo'] ?? '');
+        $host = $paramHost ?: ($smtp['host'] ?? '');
+        $port = $paramPort ?? ($smtp['port'] ?? '');
+        $username = $paramUsername ?: ($smtp['username'] ?? '');
+        $password = $paramPassword ?: ($smtp['password'] ?? '');
+        $secure = $paramSecure ?: ($smtp['secure'] ?? '');
 
         if (empty($senderName)) {
             throw new Exception(Exception::GENERAL_ARGUMENT_INVALID, 'SMTP sender name must be configured on the project to send a test email.');
