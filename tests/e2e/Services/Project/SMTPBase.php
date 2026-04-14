@@ -712,10 +712,10 @@ trait SMTPBase
         $response = $this->updateSMTP(
             senderName: $senderName,
             senderEmail: $senderEmail,
-            host: $smtpHost,
-            port: $smtpPort,
-            username: $smtpUsername,
-            password: $smtpPassword,
+            host: 'maildev',
+            port: 1025,
+            username: 'user',
+            password: 'password',
         );
 
         $this->assertSame(200, $response['headers']['status-code']);
