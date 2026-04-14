@@ -107,7 +107,7 @@ trait SMTPBase
         $this->updateSMTPStatus(false);
     }
 
-    public function testUpdateSMTPWithAllOptionalFields(): void
+    public function testUpdateSMTPWithOptionalReplyTo(): void
     {
         $response = $this->updateSMTP(
             senderName: 'Full Sender',
@@ -115,8 +115,6 @@ trait SMTPBase
             host: 'maildev',
             port: 1025,
             replyTo: 'reply@example.com',
-            username: 'smtpuser',
-            password: 'smtppass',
         );
 
         $this->assertSame(200, $response['headers']['status-code']);
@@ -126,8 +124,6 @@ trait SMTPBase
         $this->assertSame('reply@example.com', $response['body']['smtpReplyTo']);
         $this->assertSame('maildev', $response['body']['smtpHost']);
         $this->assertSame(1025, $response['body']['smtpPort']);
-        $this->assertSame('smtpuser', $response['body']['smtpUsername']);
-        $this->assertSame('smtppass', $response['body']['smtpPassword']);
 
         // Cleanup
         $this->updateSMTPStatus(false);
@@ -301,6 +297,173 @@ trait SMTPBase
         $this->assertSame(400, $response['headers']['status-code']);
     }
 
+    public function testUpdateSMTPSenderNameMinLength(): void
+    {
+        $response = $this->updateSMTP(
+            senderName: 'A',
+            senderEmail: 'sender@example.com',
+            host: 'maildev',
+            port: 1025,
+        );
+
+        $this->assertSame(200, $response['headers']['status-code']);
+        $this->assertSame('A', $response['body']['smtpSenderName']);
+
+        // Cleanup
+        $this->updateSMTPStatus(false);
+    }
+
+    public function testUpdateSMTPSenderNameMaxLength(): void
+    {
+        $name = str_repeat('a', 256);
+        $response = $this->updateSMTP(
+            senderName: $name,
+            senderEmail: 'sender@example.com',
+            host: 'maildev',
+            port: 1025,
+        );
+
+        $this->assertSame(200, $response['headers']['status-code']);
+        $this->assertSame($name, $response['body']['smtpSenderName']);
+
+        // Cleanup
+        $this->updateSMTPStatus(false);
+    }
+
+    public function testUpdateSMTPSenderNameTooLong(): void
+    {
+        $response = $this->updateSMTP(
+            senderName: str_repeat('a', 257),
+            senderEmail: 'sender@example.com',
+            host: 'maildev',
+            port: 1025,
+        );
+
+        $this->assertSame(400, $response['headers']['status-code']);
+    }
+
+    public function testUpdateSMTPUsernameMinLength(): void
+    {
+        $response = $this->updateSMTP(
+            senderName: 'Test',
+            senderEmail: 'sender@example.com',
+            host: 'maildev',
+            port: 1025,
+            username: 'u',
+        );
+
+        $this->assertSame(200, $response['headers']['status-code']);
+        $this->assertSame('u', $response['body']['smtpUsername']);
+
+        // Cleanup
+        $this->updateSMTPStatus(false);
+    }
+
+    public function testUpdateSMTPUsernameMaxLength(): void
+    {
+        $username = str_repeat('a', 256);
+        $response = $this->updateSMTP(
+            senderName: 'Test',
+            senderEmail: 'sender@example.com',
+            host: 'maildev',
+            port: 1025,
+            username: $username,
+        );
+
+        $this->assertSame(200, $response['headers']['status-code']);
+        $this->assertSame($username, $response['body']['smtpUsername']);
+
+        // Cleanup
+        $this->updateSMTPStatus(false);
+    }
+
+    public function testUpdateSMTPUsernameTooLong(): void
+    {
+        $response = $this->updateSMTP(
+            senderName: 'Test',
+            senderEmail: 'sender@example.com',
+            host: 'maildev',
+            port: 1025,
+            username: str_repeat('a', 257),
+        );
+
+        $this->assertSame(400, $response['headers']['status-code']);
+    }
+
+    public function testUpdateSMTPUsernameEmpty(): void
+    {
+        $response = $this->updateSMTP(
+            senderName: 'Test',
+            senderEmail: 'sender@example.com',
+            host: 'maildev',
+            port: 1025,
+            username: '',
+        );
+
+        $this->assertSame(400, $response['headers']['status-code']);
+    }
+
+    public function testUpdateSMTPPasswordMinLength(): void
+    {
+        $response = $this->updateSMTP(
+            senderName: 'Test',
+            senderEmail: 'sender@example.com',
+            host: 'maildev',
+            port: 1025,
+            password: 'p',
+        );
+
+        $this->assertSame(200, $response['headers']['status-code']);
+        $this->assertSame('p', $response['body']['smtpPassword']);
+
+        // Cleanup
+        $this->updateSMTPStatus(false);
+    }
+
+    public function testUpdateSMTPPasswordMaxLength(): void
+    {
+        $password = str_repeat('a', 256);
+        $response = $this->updateSMTP(
+            senderName: 'Test',
+            senderEmail: 'sender@example.com',
+            host: 'maildev',
+            port: 1025,
+            password: $password,
+        );
+
+        $this->assertSame(200, $response['headers']['status-code']);
+        $this->assertSame($password, $response['body']['smtpPassword']);
+
+        // Cleanup
+        $this->updateSMTPStatus(false);
+    }
+
+    public function testUpdateSMTPPasswordTooLong(): void
+    {
+        $response = $this->updateSMTP(
+            senderName: 'Test',
+            senderEmail: 'sender@example.com',
+            host: 'maildev',
+            port: 1025,
+            password: str_repeat('a', 257),
+        );
+
+        $this->assertSame(400, $response['headers']['status-code']);
+    }
+
+    public function testUpdateSMTPPasswordEmpty(): void
+    {
+        $response = $this->updateSMTP(
+            senderName: 'Test',
+            senderEmail: 'sender@example.com',
+            host: 'maildev',
+            port: 1025,
+            password: '',
+        );
+
+        $this->assertSame(400, $response['headers']['status-code']);
+    }
+
     public function testUpdateSMTPWithoutSecure(): void
     {
         $response = $this->updateSMTP(
@@ -421,7 +584,8 @@ trait SMTPBase
 
         $response = $this->createSMTPTest([]);
 
-        $this->assertSame(400, $response['headers']['status-code']);
+        $this->assertSame(204, $response['headers']['status-code']);
+        $this->assertEmpty($response['body']);
 
         // Cleanup
         $this->updateSMTPStatus(false);
