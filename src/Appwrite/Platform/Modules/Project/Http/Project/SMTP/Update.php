@@ -58,13 +58,13 @@ class Update extends Action
                     )
                 ],
             ))
-            ->param('senderName', '', new Text(255, 0), 'Name of the email sender')
+            ->param('senderName', '', new Text(256), 'Name of the email sender')
             ->param('senderEmail', '', new Email(), 'Email of the sender')
             ->param('replyTo', '', new Email(), 'Reply to email', true)
             ->param('host', '', new Hostname(), 'SMTP server host name')
             ->param('port', 587, new Integer(), 'SMTP server port')
-            ->param('username', '', new Text(0, 0), 'SMTP server username', true)
-            ->param('password', '', new Text(0, 0), 'SMTP server password', true)
+            ->param('username', '', new Text(256), 'SMTP server username', true)
+            ->param('password', '', new Text(256), 'SMTP server password', true)
             ->param('secure', '', new WhiteList(['tls', 'ssl'], true), 'Does SMTP server use secure connection', true)
             ->param('enabled', null, new Nullable(new Boolean()), 'Enable custom SMTP service', optional: true, deprecated: true) // Backwards compatibility
             ->inject('response')
