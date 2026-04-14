@@ -666,13 +666,15 @@ trait SMTPBase
         $replyToEmail = 'smtpreply@appwrite.io';
         $recipientEmail = 'smtpdelivery-' . \uniqid() . '@appwrite.io';
 
-        // Configure SMTP with replyTo
+        // Configure SMTP with replyTo and auth credentials
         $response = $this->updateSMTP(
             senderName: $senderName,
             senderEmail: $senderEmail,
             host: 'maildev',
             port: 1025,
             replyTo: $replyToEmail,
+            username: 'user',
+            password: 'password',
         );
 
         $this->assertSame(200, $response['headers']['status-code']);
@@ -706,12 +708,14 @@ trait SMTPBase
         $senderEmail = 'authmailer@appwrite.io';
         $recipientEmail = 'magicurl-' . \uniqid() . '@appwrite.io';
 
-        // Configure custom SMTP
+        // Configure custom SMTP with auth credentials
         $response = $this->updateSMTP(
             senderName: $senderName,
             senderEmail: $senderEmail,
-            host: 'maildev',
-            port: 1025,
+            host: $smtpHost,
+            port: $smtpPort,
+            username: $smtpUsername,
+            password: $smtpPassword,
         );
 
         $this->assertSame(200, $response['headers']['status-code']);
