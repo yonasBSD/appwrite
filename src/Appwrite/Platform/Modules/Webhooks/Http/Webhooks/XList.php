@@ -120,6 +120,10 @@ class XList extends Action
             throw new Exception(Exception::DATABASE_QUERY_ORDER_NULL, "The order attribute '{$e->getAttribute()}' had a null value. Cursor pagination requires all documents order attribute values are non-null.");
         }
 
+        foreach ($webhooks as $webhook) {
+            $webhook->removeAttribute('signatureKey');
+        }
+
         $response->dynamic(new Document([
             'webhooks' => $webhooks,
             'total' => $total,
