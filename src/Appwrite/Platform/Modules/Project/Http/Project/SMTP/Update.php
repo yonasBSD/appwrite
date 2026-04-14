@@ -99,6 +99,8 @@ class Update extends Action
             $project = $authorization->skip(fn () => $dbForPlatform->updateDocument('projects', $project->getId(), $project->setAttribute('smtp', $smtp)));
 
             $response->dynamic($project, Response::MODEL_PROJECT);
+
+            return;
         }
 
         // Validate SMTP settings

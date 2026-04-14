@@ -59,6 +59,7 @@ class Create extends Action
             ->inject('response')
             ->inject('project')
             ->inject('queueForMails')
+            ->inject('plan')
             ->callback($this->action(...));
     }
 
@@ -69,7 +70,8 @@ class Create extends Action
         array $emails,
         Response $response,
         Document $project,
-        Mail $queueForMails
+        Mail $queueForMails,
+        array $plan
     ): void {
 
         $smtp = $project->getAttribute('smtp', []);
@@ -106,7 +108,7 @@ class Create extends Action
         $replyToEmail = !empty($replyTo) ? $replyTo : $senderEmail;
 
         $subject = 'Custom SMTP email sample';
-        $template = Template::fromFile(__DIR__ . '/../../config/locale/templates/email-smtp-test.tpl');
+        $template = Template::fromFile(APP_CE_CONFIG_DIR . '/locale/templates/email-smtp-test.tpl');
         $template
             ->setParam('{{from}}', "{$senderName} ({$senderEmail})")
             ->setParam('{{replyTo}}', "{$senderName} ({$replyToEmail})")
@@ -130,7 +132,7 @@ class Create extends Action
                 ->setSmtpSenderName($senderName)
                 ->setRecipient($email)
                 ->setName('')
-                ->setBodyTemplate(__DIR__ . '/../../config/locale/templates/email-base-styled.tpl')
+                ->setBodyTemplate(APP_CE_CONFIG_DIR . '/locale/templates/email-base-styled.tpl')
                 ->setBody($template->render())
                 ->setVariables([])
                 ->setSubject($subject)
