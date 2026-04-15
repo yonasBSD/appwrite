@@ -1482,6 +1482,250 @@ trait MigrationsBase
         }, 10_000, 500);
     }
 
+    /**
+     * Set up a database + table + bucket + uploaded CSV for the skip/overwrite tests.
+     * Returns [$databaseId, $tableId, $bucketId, $fileId, $firstRowId, $firstRowName, $firstRowAge].
+     *
+     * @return array{string,string,string,string,string,string,int}
+     */
+    private function prepareCsvImportFixture(string $testLabel): array
+    {
+        $headers = [
+            'content-type' => 'application/json',
+            'x-appwrite-project' => $this->getProject()['$id'],
+            'x-appwrite-key' => $this->getProject()['apiKey']
+        ];
+
+        // database
+        $response = $this->client->call(Client::METHOD_POST, '/databases', $headers, [
+            'databaseId' => ID::unique(),
+            'name' => 'Test DB ' . $testLabel,
+        ]);
+        $this->assertEquals(201, $response['headers']['status-code']);
+        $databaseId = $response['body']['$id'];
+
+        // table
+        $response = $this->client->call(Client::METHOD_POST, '/tablesdb/' . $databaseId . '/tables', $headers, [
+            'name' => 'Test table ' . $testLabel,
+            'tableId' => ID::unique(),
+        ]);
+        $this->assertEquals(201, $response['headers']['status-code']);
+        $tableId = $response['body']['$id'];
+
+        // columns: name, age (match documents.csv fixture)
+        $response = $this->client->call(Client::METHOD_POST, '/tablesdb/' . $databaseId . '/tables/' . $tableId . '/columns/string', $headers, [
+            'key' => 'name',
+            'size' => 256,
+            'required' => true,
+        ]);
+        $this->assertEquals(202, $response['headers']['status-code']);
+
+        $response = $this->client->call(Client::METHOD_POST, '/tablesdb/' . $databaseId . '/tables/' . $tableId . '/columns/integer', $headers, [
+            'key' => 'age',
+            'min' => 18,
+            'max' => 65,
+            'required' => true,
+        ]);
+        $this->assertEquals(202, $response['headers']['status-code']);
+
+        // bucket
+        $response = $this->client->call(Client::METHOD_POST, '/storage/buckets', $headers, [
+            'bucketId' => ID::unique(),
+            'name' => 'Bucket ' . $testLabel,
+            'maximumFileSize' => 2000000,
+            'allowedFileExtensions' => ['csv'],
+        ]);
+        $this->assertEquals(201, $response['headers']['status-code']);
+        $bucketId = $response['body']['$id'];
+
+        // upload documents.csv (100 rows with $id, name, age columns)
+        $response = $this->client->call(Client::METHOD_POST, '/storage/buckets/' . $bucketId . '/files', array_merge([
+            'content-type' => 'multipart/form-data',
+            'x-appwrite-project' => $this->getProject()['$id'],
+        ], $this->getHeaders()), [
+            'fileId' => ID::unique(),
+            'file' => new CURLFile(realpath(__DIR__ . '/../../../resources/csv/documents.csv'), 'text/csv', 'documents.csv'),
+        ]);
+        $this->assertEquals(201, $response['headers']['status-code']);
+        $fileId = $response['body']['$id'];
+
+        // first row in documents.csv: hxfcwpcas5xokpwe,Diamond Mendez,56
+        return [$databaseId, $tableId, $bucketId, $fileId, 'hxfcwpcas5xokpwe', 'Diamond Mendez', 56];
+    }
+
+    /**
+     * skip=true on re-import: duplicates are silently no-op'd, existing rows preserved unchanged.
+     */
+    public function testCreateCSVImportSkipDuplicates(): void
+    {
+        [$databaseId, $tableId, $bucketId, $fileId, $rowId, $originalName, $originalAge] = $this->prepareCsvImportFixture('skip');
+
+        // First import: 100 rows created
+        $first = $this->performCsvMigration([
+            'fileId' => $fileId,
+            'bucketId' => $bucketId,
+            'resourceId' => $databaseId . ':' . $tableId,
+        ]);
+        $this->assertEventually(function () use ($first) {
+            $migration = $this->client->call(Client::METHOD_GET, '/migrations/' . $first['body']['$id'], array_merge([
+                'content-type' => 'application/json',
+                'x-appwrite-project' => $this->getProject()['$id'],
+            ], $this->getHeaders()));
+            $this->assertEquals('completed', $migration['body']['status']);
+            $this->assertEquals(100, $migration['body']['statusCounters'][Resource::TYPE_ROW]['success']);
+        }, 10_000, 500);
+
+        // Mutate one row so we can prove skip does NOT overwrite it
+        $mutate = $this->client->call(Client::METHOD_PATCH, '/tablesdb/' . $databaseId . '/tables/' . $tableId . '/rows/' . $rowId, [
+            'content-type' => 'application/json',
+            'x-appwrite-project' => $this->getProject()['$id'],
+            'x-appwrite-key' => $this->getProject()['apiKey'],
+        ], [
+            'data' => ['age' => 22],
+        ]);
+        $this->assertEquals(200, $mutate['headers']['status-code']);
+        $this->assertEquals(22, $mutate['body']['age']);
+
+        // Second import with skip=true: no errors, mutated row preserved
+        $second = $this->performCsvMigration([
+            'fileId' => $fileId,
+            'bucketId' => $bucketId,
+            'resourceId' => $databaseId . ':' . $tableId,
+            'skip' => true,
+        ]);
+        $this->assertEventually(function () use ($second) {
+            $migration = $this->client->call(Client::METHOD_GET, '/migrations/' . $second['body']['$id'], array_merge([
+                'content-type' => 'application/json',
+                'x-appwrite-project' => $this->getProject()['$id'],
+            ], $this->getHeaders()));
+            $this->assertEquals('completed', $migration['body']['status']);
+        }, 10_000, 500);
+
+        // Mutated row kept its mutated value (not overwritten by CSV's original age)
+        $row = $this->client->call(Client::METHOD_GET, '/tablesdb/' . $databaseId . '/tables/' . $tableId . '/rows/' . $rowId, array_merge([
+            'content-type' => 'application/json',
+            'x-appwrite-project' => $this->getProject()['$id'],
+        ], $this->getHeaders()));
+        $this->assertEquals(200, $row['headers']['status-code']);
+        $this->assertEquals($originalName, $row['body']['name']);
+        $this->assertEquals(22, $row['body']['age'], 'skip=true must not overwrite mutated row');
+
+        // Row count still 100 (no duplicates created)
+        $rows = $this->client->call(Client::METHOD_GET, '/tablesdb/' . $databaseId . '/tables/' . $tableId . '/rows', array_merge([
+            'content-type' => 'application/json',
+            'x-appwrite-project' => $this->getProject()['$id'],
+        ], $this->getHeaders()), [
+            'queries' => [Query::limit(150)->toString()],
+        ]);
+        $this->assertEquals(100, $rows['body']['total']);
+    }
+
+    /**
+     * overwrite=true on re-import: existing rows are replaced with imported values.
+     */
+    public function testCreateCSVImportOverwrite(): void
+    {
+        [$databaseId, $tableId, $bucketId, $fileId, $rowId, $originalName, $originalAge] = $this->prepareCsvImportFixture('overwrite');
+
+        // First import: 100 rows created
+        $first = $this->performCsvMigration([
+            'fileId' => $fileId,
+            'bucketId' => $bucketId,
+            'resourceId' => $databaseId . ':' . $tableId,
+        ]);
+        $this->assertEventually(function () use ($first) {
+            $migration = $this->client->call(Client::METHOD_GET, '/migrations/' . $first['body']['$id'], array_merge([
+                'content-type' => 'application/json',
+                'x-appwrite-project' => $this->getProject()['$id'],
+            ], $this->getHeaders()));
+            $this->assertEquals('completed', $migration['body']['status']);
+            $this->assertEquals(100, $migration['body']['statusCounters'][Resource::TYPE_ROW]['success']);
+        }, 10_000, 500);
+
+        // Mutate one row so we can prove overwrite restores it to the CSV's original value
+        $mutate = $this->client->call(Client::METHOD_PATCH, '/tablesdb/' . $databaseId . '/tables/' . $tableId . '/rows/' . $rowId, [
+            'content-type' => 'application/json',
+            'x-appwrite-project' => $this->getProject()['$id'],
+            'x-appwrite-key' => $this->getProject()['apiKey'],
+        ], [
+            'data' => ['age' => 22],
+        ]);
+        $this->assertEquals(200, $mutate['headers']['status-code']);
+        $this->assertEquals(22, $mutate['body']['age']);
+
+        // Second import with overwrite=true: mutated row restored to CSV value
+        $second = $this->performCsvMigration([
+            'fileId' => $fileId,
+            'bucketId' => $bucketId,
+            'resourceId' => $databaseId . ':' . $tableId,
+            'overwrite' => true,
+        ]);
+        $this->assertEventually(function () use ($second) {
+            $migration = $this->client->call(Client::METHOD_GET, '/migrations/' . $second['body']['$id'], array_merge([
+                'content-type' => 'application/json',
+                'x-appwrite-project' => $this->getProject()['$id'],
+            ], $this->getHeaders()));
+            $this->assertEquals('completed', $migration['body']['status']);
+        }, 10_000, 500);
+
+        // Mutated row is back to CSV's original age (proving overwrite actually replaced the row)
+        $row = $this->client->call(Client::METHOD_GET, '/tablesdb/' . $databaseId . '/tables/' . $tableId . '/rows/' . $rowId, array_merge([
+            'content-type' => 'application/json',
+            'x-appwrite-project' => $this->getProject()['$id'],
+        ], $this->getHeaders()));
+        $this->assertEquals(200, $row['headers']['status-code']);
+        $this->assertEquals($originalName, $row['body']['name']);
+        $this->assertEquals($originalAge, $row['body']['age'], 'overwrite=true must restore row to imported value');
+
+        // Row count still 100 (no duplicates created)
+        $rows = $this->client->call(Client::METHOD_GET, '/tablesdb/' . $databaseId . '/tables/' . $tableId . '/rows', array_merge([
+            'content-type' => 'application/json',
+            'x-appwrite-project' => $this->getProject()['$id'],
+        ], $this->getHeaders()), [
+            'queries' => [Query::limit(150)->toString()],
+        ]);
+        $this->assertEquals(100, $rows['body']['total']);
+    }
+
+    /**
+     * Default behavior (neither flag): re-import of duplicate ids fails with DuplicateException.
+     * Regression guard so the skip/overwrite additions don't silently change the default.
+     */
+    public function testCreateCSVImportDefaultFailsOnDuplicate(): void
+    {
+        [$databaseId, $tableId, $bucketId, $fileId] = $this->prepareCsvImportFixture('default');
+
+        // First import: succeeds
+        $first = $this->performCsvMigration([
+            'fileId' => $fileId,
+            'bucketId' => $bucketId,
+            'resourceId' => $databaseId . ':' . $tableId,
+        ]);
+        $this->assertEventually(function () use ($first) {
+            $migration = $this->client->call(Client::METHOD_GET, '/migrations/' . $first['body']['$id'], array_merge([
+                'content-type' => 'application/json',
+                'x-appwrite-project' => $this->getProject()['$id'],
+            ], $this->getHeaders()));
+            $this->assertEquals('completed', $migration['body']['status']);
+        }, 10_000, 500);
+
+        // Second import with no flags: should fail on duplicate ids
+        $second = $this->performCsvMigration([
+            'fileId' => $fileId,
+            'bucketId' => $bucketId,
+            'resourceId' => $databaseId . ':' . $tableId,
+        ]);
+        $this->assertEventually(function () use ($second) {
+            $migration = $this->client->call(Client::METHOD_GET, '/migrations/' . $second['body']['$id'], array_merge([
+                'content-type' => 'application/json',
+                'x-appwrite-project' => $this->getProject()['$id'],
+            ], $this->getHeaders()));
+            $this->assertEquals('finished', $migration['body']['stage']);
+            $this->assertEquals('failed', $migration['body']['status']);
+            $this->assertNotEmpty($migration['body']['errors']);
+        }, 60_000, 500);
+    }
+
     private function performCsvMigration(array $body): array
     {
         return $this->client->call(Client::METHOD_POST, '/migrations/csv', [
