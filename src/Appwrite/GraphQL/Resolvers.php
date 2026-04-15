@@ -94,41 +94,39 @@ class Resolvers
         Http $utopia,
         ?Route $route,
     ): callable {
-        return static fn ($type, $args, $context, $info) => (function () use ($utopia, $route, $args) {
-            return new Swoole(function (callable $resolve, callable $reject) use ($utopia, $route, $args) {
-                $utopia = $utopia->getResource('utopia:graphql');
-                $request = $utopia->getResource('request');
-                $response = $utopia->getResource('response');
+        return static fn ($type, $args, $context, $info) => new Swoole(function (callable $resolve, callable $reject) use ($utopia, $route, $args) {
+            $utopia = $utopia->getResource('utopia:graphql');
+            $request = $utopia->getResource('request');
+            $response = $utopia->getResource('response');
 
-                self::resolve(
-                    $utopia,
-                    $request,
-                    $response,
-                    $resolve,
-                    $reject,
-                    prepareRequest: static function (Request $request) use ($route, $args): void {
-                        $path = $route->getPath();
-                        foreach ($args as $key => $value) {
-                            if (\str_contains($path, '/:' . $key)) {
-                                $path = \str_replace(':' . $key, $value, $path);
-                            }
-                        }
-
-                        $request->setMethod($route->getMethod());
-                        $request->setURI($path);
-
-                        switch ($route->getMethod()) {
-                            case 'GET':
-                                $request->setQueryString($args);
-                                break;
-                            default:
-                                $request->setPayload($args);
-                                break;
+            self::resolve(
+                $utopia,
+                $request,
+                $response,
+                $resolve,
+                $reject,
+                prepareRequest: static function (Request $request) use ($route, $args): void {
+                    $path = $route->getPath();
+                    foreach ($args as $key => $value) {
+                        if (\str_contains($path, '/:' . $key)) {
+                            $path = \str_replace(':' . $key, $value, $path);
                         }
                     }
-                );
-            });
-        })();
+
+                    $request->setMethod($route->getMethod());
+                    $request->setURI($path);
+
+                    switch ($route->getMethod()) {
+                        case 'GET':
+                            $request->setQueryString($args);
+                            break;
+                        default:
+                            $request->setPayload($args);
+                            break;
+                    }
+                }
+            );
+        });
     }
 
     /**
@@ -168,25 +166,23 @@ class Resolvers
         string $collectionId,
         callable $url,
     ): callable {
-        return static fn ($type, $args, $context, $info) => (function () use ($utopia, $databaseId, $collectionId, $url, $args) {
-            return new Swoole(function (callable $resolve, callable $reject) use ($utopia, $databaseId, $collectionId, $url, $args) {
-                $utopia = $utopia->getResource('utopia:graphql');
-                $request = $utopia->getResource('request');
-                $response = $utopia->getResource('response');
+        return static fn ($type, $args, $context, $info) => new Swoole(function (callable $resolve, callable $reject) use ($utopia, $databaseId, $collectionId, $url, $args) {
+            $utopia = $utopia->getResource('utopia:graphql');
+            $request = $utopia->getResource('request');
+            $response = $utopia->getResource('response');
 
-                self::resolve(
-                    $utopia,
-                    $request,
-                    $response,
-                    $resolve,
-                    $reject,
-                    prepareRequest: static function (Request $request) use ($databaseId, $collectionId, $url, $args): void {
-                        $request->setMethod('GET');
-                        $request->setURI($url($databaseId, $collectionId, $args));
-                    }
-                );
-            });
-        })();
+            self::resolve(
+                $utopia,
+                $request,
+                $response,
+                $resolve,
+                $reject,
+                prepareRequest: static function (Request $request) use ($databaseId, $collectionId, $url, $args): void {
+                    $request->setMethod('GET');
+                    $request->setURI($url($databaseId, $collectionId, $args));
+                }
+            );
+        });
     }
 
     /**
@@ -206,31 +202,29 @@ class Resolvers
         callable $url,
         callable $params,
     ): callable {
-        return static fn ($type, $args, $context, $info) => (function () use ($utopia, $databaseId, $collectionId, $url, $params, $args) {
-            return new Swoole(function (callable $resolve, callable $reject) use ($utopia, $databaseId, $collectionId, $url, $params, $args) {
-                $utopia = $utopia->getResource('utopia:graphql');
-                $request = $utopia->getResource('request');
-                $response = $utopia->getResource('response');
+        return static fn ($type, $args, $context, $info) => new Swoole(function (callable $resolve, callable $reject) use ($utopia, $databaseId, $collectionId, $url, $params, $args) {
+            $utopia = $utopia->getResource('utopia:graphql');
+            $request = $utopia->getResource('request');
+            $response = $utopia->getResource('response');
 
-                $beforeResolve = function ($payload) {
-                    return $payload['documents'];
-                };
+            $beforeResolve = function ($payload) {
+                return $payload['documents'];
+            };
 
-                self::resolve(
-                    $utopia,
-                    $request,
-                    $response,
-                    $resolve,
-                    $reject,
-                    beforeResolve: $beforeResolve,
-                    prepareRequest: static function (Request $request) use ($databaseId, $collectionId, $url, $params, $args): void {
-                        $request->setMethod('GET');
-                        $request->setURI($url($databaseId, $collectionId, $args));
-                        $request->setQueryString($params($databaseId, $collectionId, $args));
-                    }
-                );
-            });
-        })();
+            self::resolve(
+                $utopia,
+                $request,
+                $response,
+                $resolve,
+                $reject,
+                beforeResolve: $beforeResolve,
+                prepareRequest: static function (Request $request) use ($databaseId, $collectionId, $url, $params, $args): void {
+                    $request->setMethod('GET');
+                    $request->setURI($url($databaseId, $collectionId, $args));
+                    $request->setQueryString($params($databaseId, $collectionId, $args));
+                }
+            );
+        });
     }
 
     /**
@@ -250,26 +244,24 @@ class Resolvers
         callable $url,
         callable $params,
     ): callable {
-        return static fn ($type, $args, $context, $info) => (function () use ($utopia, $databaseId, $collectionId, $url, $params, $args) {
-            return new Swoole(function (callable $resolve, callable $reject) use ($utopia, $databaseId, $collectionId, $url, $params, $args) {
-                $utopia = $utopia->getResource('utopia:graphql');
-                $request = $utopia->getResource('request');
-                $response = $utopia->getResource('response');
+        return static fn ($type, $args, $context, $info) => new Swoole(function (callable $resolve, callable $reject) use ($utopia, $databaseId, $collectionId, $url, $params, $args) {
+            $utopia = $utopia->getResource('utopia:graphql');
+            $request = $utopia->getResource('request');
+            $response = $utopia->getResource('response');
 
-                self::resolve(
-                    $utopia,
-                    $request,
-                    $response,
-                    $resolve,
-                    $reject,
-                    prepareRequest: static function (Request $request) use ($databaseId, $collectionId, $url, $params, $args): void {
-                        $request->setMethod('POST');
-                        $request->setURI($url($databaseId, $collectionId, $args));
-                        $request->setPayload($params($databaseId, $collectionId, $args));
-                    }
-                );
-            });
-        })();
+            self::resolve(
+                $utopia,
+                $request,
+                $response,
+                $resolve,
+                $reject,
+                prepareRequest: static function (Request $request) use ($databaseId, $collectionId, $url, $params, $args): void {
+                    $request->setMethod('POST');
+                    $request->setURI($url($databaseId, $collectionId, $args));
+                    $request->setPayload($params($databaseId, $collectionId, $args));
+                }
+            );
+        });
     }
 
     /**
@@ -289,26 +281,24 @@ class Resolvers
         callable $url,
         callable $params,
     ): callable {
-        return static fn ($type, $args, $context, $info) => (function () use ($utopia, $databaseId, $collectionId, $url, $params, $args) {
-            return new Swoole(function (callable $resolve, callable $reject) use ($utopia, $databaseId, $collectionId, $url, $params, $args) {
-                $utopia = $utopia->getResource('utopia:graphql');
-                $request = $utopia->getResource('request');
-                $response = $utopia->getResource('response');
+        return static fn ($type, $args, $context, $info) => new Swoole(function (callable $resolve, callable $reject) use ($utopia, $databaseId, $collectionId, $url, $params, $args) {
+            $utopia = $utopia->getResource('utopia:graphql');
+            $request = $utopia->getResource('request');
+            $response = $utopia->getResource('response');
 
-                self::resolve(
-                    $utopia,
-                    $request,
-                    $response,
-                    $resolve,
-                    $reject,
-                    prepareRequest: static function (Request $request) use ($databaseId, $collectionId, $url, $params, $args): void {
-                        $request->setMethod('PATCH');
-                        $request->setURI($url($databaseId, $collectionId, $args));
-                        $request->setPayload($params($databaseId, $collectionId, $args));
-                    }
-                );
-            });
-        })();
+            self::resolve(
+                $utopia,
+                $request,
+                $response,
+                $resolve,
+                $reject,
+                prepareRequest: static function (Request $request) use ($databaseId, $collectionId, $url, $params, $args): void {
+                    $request->setMethod('PATCH');
+                    $request->setURI($url($databaseId, $collectionId, $args));
+                    $request->setPayload($params($databaseId, $collectionId, $args));
+                }
+            );
+        });
     }
 
     /**
@@ -326,25 +316,23 @@ class Resolvers
         string $collectionId,
         callable $url,
     ): callable {
-        return static fn ($type, $args, $context, $info) => (function () use ($utopia, $databaseId, $collectionId, $url, $args) {
-            return new Swoole(function (callable $resolve, callable $reject) use ($utopia, $databaseId, $collectionId, $url, $args) {
-                $utopia = $utopia->getResource('utopia:graphql');
-                $request = $utopia->getResource('request');
-                $response = $utopia->getResource('response');
+        return static fn ($type, $args, $context, $info) => new Swoole(function (callable $resolve, callable $reject) use ($utopia, $databaseId, $collectionId, $url, $args) {
+            $utopia = $utopia->getResource('utopia:graphql');
+            $request = $utopia->getResource('request');
+            $response = $utopia->getResource('response');
 
-                self::resolve(
-                    $utopia,
-                    $request,
-                    $response,
-                    $resolve,
-                    $reject,
-                    prepareRequest: static function (Request $request) use ($databaseId, $collectionId, $url, $args): void {
-                        $request->setMethod('DELETE');
-                        $request->setURI($url($databaseId, $collectionId, $args));
-                    }
-                );
-            });
-        })();
+            self::resolve(
+                $utopia,
+                $request,
+                $response,
+                $resolve,
+                $reject,
+                prepareRequest: static function (Request $request) use ($databaseId, $collectionId, $url, $args): void {
+                    $request->setMethod('DELETE');
+                    $request->setURI($url($databaseId, $collectionId, $args));
+                }
+            );
+        });
     }
 
     /**
