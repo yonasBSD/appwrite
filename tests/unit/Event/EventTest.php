@@ -156,4 +156,35 @@ class EventTest extends TestCase
             $this->assertInstanceOf(InvalidArgumentException::class, $th, 'An invalid exception was thrown');
         }
     }
+
+    public function testGenerateMirrorEvents(): void
+    {
+        $tableRowEvents = Event::generateEvents('databases.[databaseId].tables.[tableId].rows.[rowId].update', [
+            'databaseId' => 'factory-db',
+            'tableId' => 'assembly',
+            'rowId' => 'row-123',
+        ]);
+        $this->assertContains('databases.factory-db.collections.assembly.documents.row-123.update', $tableRowEvents);
+
+        $collectionDocumentEvents = Event::generateEvents('databases.[databaseId].collections.[collectionId].documents.[documentId].update', [
+            'databaseId' => 'factory-db',
+            'collectionId' => 'assembly',
+            'documentId' => 'doc-123',
+        ]);
+        $this->assertContains('databases.factory-db.tables.assembly.rows.doc-123.update', $collectionDocumentEvents);
+
+        $tableColumnEvents = Event::generateEvents('databases.[databaseId].tables.[tableId].columns.[columnId].create', [
+            'databaseId' => 'factory-db',
+            'tableId' => 'assembly',
+            'columnId' => 'status',
+        ]);
+        $this->assertContains('databases.factory-db.collections.assembly.attributes.status.create', $tableColumnEvents);
+
+        $collectionAttributeEvents = Event::generateEvents('databases.[databaseId].collections.[collectionId].attributes.[attributeId].create', [
+            'databaseId' => 'factory-db',
+            'collectionId' => 'assembly',
+            'attributeId' => 'status',
+        ]);
+        $this->assertContains('databases.factory-db.tables.assembly.columns.status.create', $collectionAttributeEvents);
+    }
 }

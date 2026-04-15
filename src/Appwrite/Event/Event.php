@@ -662,19 +662,28 @@ class Event
     }
 
     /**
-     * Adds `table` events for `collection` events.
+     * Adds table/collection counterpart events for backward compatibility.
      *
      * Example:
      *
      * `databases.*.collections.*.documents.*.update` →\
      * `[databases.*.collections.*.documents.*.update, databases.*.tables.*.rows.*.update]`
+     *
+     * `databases.*.tables.*.rows.*.update` →\
+     * `[databases.*.tables.*.rows.*.update, databases.*.collections.*.documents.*.update]`
      */
     private static function mirrorCollectionEvents(string $pattern, string $firstEvent, array $events): array
     {
-        $tableEventMap = [
+        $collectionsToTablesMap = [
             'documents'    => 'rows',
             'collections'  => 'tables',
             'attributes'   => 'columns',
+        ];
+
+        $tablesToCollectionsMap = [
+            'rows'         => 'documents',
+            'tables'       => 'collections',
+            'columns'      => 'attributes',
         ];
 
         $databasesEventMap = [
@@ -687,7 +696,10 @@ class Event
         if (
             (
                 str_contains($pattern, 'databases.') &&
-                str_contains($firstEvent, 'collections')
+                (
+                    str_contains($firstEvent, 'collections') ||
+                    str_contains($firstEvent, 'tables')
+                )
             ) ||
             (
                 str_contains($firstEvent, 'tablesdb.')
@@ -705,18 +717,25 @@ class Event
                     );
                     $pairedEvents[] = $databasesSideEvent;
                     $tableSideEvent = str_replace(
-                        array_keys($tableEventMap),
-                        array_values($tableEventMap),
+                        array_keys($collectionsToTablesMap),
+                        array_values($collectionsToTablesMap),
                         $databasesSideEvent
                     );
                     $pairedEvents[] = $tableSideEvent;
                 } elseif (str_contains($event, 'collections')) {
                     $tableSideEvent = str_replace(
-                        array_keys($tableEventMap),
-                        array_values($tableEventMap),
+                        array_keys($collectionsToTablesMap),
+                        array_values($collectionsToTablesMap),
                         $event
                     );
                     $pairedEvents[] = $tableSideEvent;
+                } elseif (str_contains($event, 'tables')) {
+                    $collectionSideEvent = str_replace(
+                        array_keys($tablesToCollectionsMap),
+                        array_values($tablesToCollectionsMap),
+                        $event
+                    );
+                    $pairedEvents[] = $collectionSideEvent;
                 }
             }
 
