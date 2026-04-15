@@ -2973,13 +2973,6 @@ Http::post('/v1/account/tokens/phone')
         if ($sendSMS) {
             $message = Template::fromFile(__DIR__ . '/../../config/locale/templates/sms-base.tpl');
 
-            $customTemplate =
-                $project->getAttribute('templates', [])['sms.login-' . $locale->default] ??
-                $project->getAttribute('templates', [])['sms.login-worldwide'] ?? [];
-            if (!empty($customTemplate)) {
-                $message = $customTemplate['message'] ?? $message;
-            }
-
             $projectName = $project->getAttribute('name');
             if ($project->getId() === 'console') {
                 $projectName = $platform['platformName'];
@@ -4343,13 +4336,6 @@ Http::post('/v1/account/verifications/phone')
 
         if ($sendSMS) {
             $message = Template::fromFile(__DIR__ . '/../../config/locale/templates/sms-base.tpl');
-
-            $customTemplate =
-                $project->getAttribute('templates', [])['sms.verification-' . $locale->default] ??
-                $project->getAttribute('templates', [])['sms.verification-worldwide'] ?? [];
-            if (!empty($customTemplate)) {
-                $message = $customTemplate['message'] ?? $message;
-            }
 
             $messageContent = Template::fromString($locale->getText("sms.verification.body"));
             $messageContent

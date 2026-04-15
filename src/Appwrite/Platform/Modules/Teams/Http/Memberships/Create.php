@@ -409,13 +409,6 @@ class Create extends Action
 
                 $message = Template::fromFile(APP_CE_CONFIG_DIR . '/locale/templates/sms-base.tpl');
 
-                $customTemplate =
-                    $project->getAttribute('templates', [])['sms.invitation-' . $locale->default] ??
-                    $project->getAttribute('templates', [])['sms.invitation-worldwide'] ?? [];
-                if (! empty($customTemplate)) {
-                    $message = $customTemplate['message'];
-                }
-
                 $message = $message->setParam('{{token}}', $url);
                 $message = $message->render();
 

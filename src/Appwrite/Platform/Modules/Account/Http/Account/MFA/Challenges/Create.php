@@ -170,13 +170,6 @@ class Create extends Action
 
                 $message = Template::fromFile($templatesPath . '/sms-base.tpl');
 
-                $customTemplate =
-                    $project->getAttribute('templates', [])['sms.mfaChallenge-' . $locale->default] ??
-                    $project->getAttribute('templates', [])['sms.mfaChallenge-worldwide'] ?? [];
-                if (!empty($customTemplate)) {
-                    $message = $customTemplate['message'] ?? $message;
-                }
-
                 $messageContent = Template::fromString($locale->getText("sms.verification.body"));
                 $messageContent
                     ->setParam('{{project}}', $projectName)
