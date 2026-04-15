@@ -3,6 +3,7 @@
 namespace Appwrite\Platform\Modules\Functions\Workers;
 
 use Ahc\Jwt\JWT;
+use Appwrite\Event\Message\Screenshot;
 use Appwrite\Event\Message\Usage as UsageMessage;
 use Appwrite\Event\Publisher\Usage as UsagePublisher;
 use Appwrite\Event\Realtime;
@@ -68,9 +69,11 @@ class Screenshots extends Action
             throw new \Exception('Missing payload');
         }
 
+        $screenshotMessage = Screenshot::fromArray($payload);
+
         Console::log('Site screenshot started');
 
-        $deploymentId = $payload['deploymentId'] ?? null;
+        $deploymentId = $screenshotMessage->deploymentId;
         $deployment = $dbForProject->getDocument('deployments', $deploymentId);
 
         if ($deployment->isEmpty()) {
