@@ -4887,6 +4887,8 @@ class RealtimeCustomClientTest extends Scope
         $this->assertContains('documentsdb.' . $databaseId . '.collections.' . $actorsId . '.documents', $response['data']['channels']);
         $this->assertContains('documentsdb.' . $databaseId . '.collections.' . $actorsId . '.documents.' . $documentId, $response['data']['channels']);
         $this->assertContains('documentsdb.' . $databaseId . '.collections.' . $actorsId . '.documents', $response['data']['channels']);
+        $this->assertContains("documentsdb.{$databaseId}.collections.{$actorsId}.documents.{$documentId}.create", $response['data']['events']);
+        $this->assertEmpty(array_filter($response['data']['events'], fn (string $event) => \str_starts_with($event, 'databases.') || \str_starts_with($event, 'tablesdb.')));
         $this->assertNotEmpty($response['data']['payload']);
         $this->assertEquals('Chris Evans', $response['data']['payload']['name']);
 
@@ -4918,6 +4920,8 @@ class RealtimeCustomClientTest extends Scope
         $this->assertContains('documents', $response['data']['channels']);
         $this->assertContains("documentsdb.{$databaseId}.collections.{$actorsId}.documents.{$documentId}", $response['data']['channels']);
         $this->assertContains("documentsdb.{$databaseId}.collections.{$actorsId}.documents", $response['data']['channels']);
+        $this->assertContains("documentsdb.{$databaseId}.collections.{$actorsId}.documents.{$documentId}.update", $response['data']['events']);
+        $this->assertEmpty(array_filter($response['data']['events'], fn (string $event) => \str_starts_with($event, 'databases.') || \str_starts_with($event, 'tablesdb.')));
         $this->assertNotEmpty($response['data']['payload']);
 
         $this->assertEquals('Chris Evans 2', $response['data']['payload']['name']);

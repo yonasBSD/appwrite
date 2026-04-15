@@ -5,6 +5,7 @@ namespace Tests\Unit\Event;
 use Appwrite\Event\Event;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
+use Utopia\Database\Document;
 
 require_once __DIR__ . '/../../../app/init.php';
 
@@ -159,32 +160,52 @@ class EventTest extends TestCase
 
     public function testGenerateMirrorEvents(): void
     {
+        $legacyDatabase = new Document(['type' => 'legacy']);
         $tableRowEvents = Event::generateEvents('databases.[databaseId].tables.[tableId].rows.[rowId].update', [
             'databaseId' => 'factory-db',
             'tableId' => 'assembly',
             'rowId' => 'row-123',
-        ]);
+        ], $legacyDatabase);
         $this->assertContains('databases.factory-db.collections.assembly.documents.row-123.update', $tableRowEvents);
 
         $collectionDocumentEvents = Event::generateEvents('databases.[databaseId].collections.[collectionId].documents.[documentId].update', [
             'databaseId' => 'factory-db',
             'collectionId' => 'assembly',
             'documentId' => 'doc-123',
-        ]);
+        ], $legacyDatabase);
         $this->assertContains('databases.factory-db.tables.assembly.rows.doc-123.update', $collectionDocumentEvents);
 
         $tableColumnEvents = Event::generateEvents('databases.[databaseId].tables.[tableId].columns.[columnId].create', [
             'databaseId' => 'factory-db',
             'tableId' => 'assembly',
             'columnId' => 'status',
-        ]);
+        ], $legacyDatabase);
         $this->assertContains('databases.factory-db.collections.assembly.attributes.status.create', $tableColumnEvents);
 
         $collectionAttributeEvents = Event::generateEvents('databases.[databaseId].collections.[collectionId].attributes.[attributeId].create', [
             'databaseId' => 'factory-db',
             'collectionId' => 'assembly',
             'attributeId' => 'status',
-        ]);
+        ], $legacyDatabase);
         $this->assertContains('databases.factory-db.tables.assembly.columns.status.create', $collectionAttributeEvents);
+
+        $tablesDb = new Document(['type' => 'tablesdb']);
+        $tablesDbEvents = Event::generateEvents('databases.[databaseId].tables.[tableId].rows.[rowId].update', [
+            'databaseId' => 'factory-db',
+            'tableId' => 'assembly',
+            'rowId' => 'row-123',
+        ], $tablesDb);
+        $this->assertContains('databases.factory-db.collections.assembly.documents.row-123.update', $tablesDbEvents);
+        $this->assertContains('tablesdb.factory-db.tables.assembly.rows.row-123.update', $tablesDbEvents);
+
+        $documentsDb = new Document(['type' => 'documentsdb']);
+        $documentsDbEvents = Event::generateEvents('databases.[databaseId].collections.[collectionId].documents.[documentId].update', [
+            'databaseId' => 'factory-db',
+            'collectionId' => 'assembly',
+            'documentId' => 'doc-123',
+        ], $documentsDb);
+        $this->assertContains('documentsdb.factory-db.collections.assembly.documents.doc-123.update', $documentsDbEvents);
+        $this->assertNotContains('documentsdb.factory-db.tables.assembly.rows.doc-123.update', $documentsDbEvents);
+        $this->assertNotContains('databases.factory-db.collections.assembly.documents.doc-123.update', $documentsDbEvents);
     }
 }

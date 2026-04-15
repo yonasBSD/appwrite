@@ -637,9 +637,11 @@ class Event
          */
         $eventValues = \array_values($events);
 
-        /**
-         * Return a combined list of table, collection events and if tablesdb present then include all for backward compatibility
-        */
+        $databaseType = $database?->getAttribute('type', 'legacy');
+        if ($database !== null && !\in_array($databaseType, ['legacy', 'tablesdb'], true)) {
+            return $eventValues;
+        }
+
         return Event::mirrorCollectionEvents($pattern, $eventValues[0], $eventValues);
     }
 
