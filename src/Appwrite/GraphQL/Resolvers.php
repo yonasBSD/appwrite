@@ -6,7 +6,6 @@ use Appwrite\GraphQL\Exception as GQLException;
 use Appwrite\Promises\Swoole;
 use Appwrite\Utopia\Request;
 use Appwrite\Utopia\Response;
-use Swoole\Coroutine;
 use Utopia\DI\Container;
 use Utopia\Http\Exception;
 use Utopia\Http\Http;
@@ -82,43 +81,6 @@ class Resolvers
         }
 
         return self::$locks[$key];
-    }
-
-    /**
-     * Acquire the request-scoped resolver lock. Re-entering from the
-     * same coroutine only increments depth to avoid self-deadlock.
-     */
-    private static function acquireLock(ResolverLock $lock): void
-    {
-        $cid = Coroutine::getCid();
-
-        if ($lock->owner === $cid) {
-            $lock->depth++;
-            return;
-        }
-
-        $lock->channel->push(true);
-        $lock->owner = $cid;
-        $lock->depth = 1;
-    }
-
-    /**
-     * Release the request-scoped resolver lock.
-     */
-    private static function releaseLock(ResolverLock $lock): void
-    {
-        if ($lock->owner !== Coroutine::getCid()) {
-            return;
-        }
-
-        $lock->depth--;
-
-        if ($lock->depth > 0) {
-            return;
-        }
-
-        $lock->owner = null;
-        $lock->channel->pop();
     }
 
     /**
@@ -407,7 +369,7 @@ class Resolvers
     ): void {
         $lock = self::getLock($utopia);
 
-        self::acquireLock($lock);
+        $lock->acquire();
 
         $original = $utopia->getRoute();
         try {
@@ -456,7 +418,7 @@ class Resolvers
                 $utopia->setRoute($original);
             }
 
-            self::releaseLock($lock);
+            $lock->release();
             unset(self::$locks[\spl_object_hash($utopia)]);
         }
 
