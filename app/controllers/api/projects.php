@@ -852,12 +852,13 @@ Http::get('/v1/projects/:projectId/templates/email/:type/:locale')
     ))
     ->param('projectId', '', fn (Database $dbForPlatform) => new UID($dbForPlatform->getAdapter()->getMaxUIDLength()), 'Project unique ID.', false, ['dbForPlatform'])
     ->param('type', '', new WhiteList(Config::getParam('locale-templates')['email'] ?? [], true), 'Template type')
-    ->param('locale', null, fn ($localeCodes) => new Nullable(new WhiteList($localeCodes)), 'Template locale', true, ['localeCodes'])
+    ->param('locale', 'worldwide', fn ($localeCodes) => new WhiteList(\array_merge([
+        ...$localeCodes,
+        'worldwide'
+    ])), 'Template locale', true, ['localeCodes'])
     ->inject('response')
     ->inject('dbForPlatform')
     ->action(function (string $projectId, string $type, ?string $locale, Response $response, Database $dbForPlatform) {
-        $locale = $locale ?? 'worldwide';
-
         $project = $dbForPlatform->getDocument('projects', $projectId);
 
         if ($project->isEmpty()) {
@@ -928,7 +929,7 @@ Http::get('/v1/projects/:projectId/templates/email/:type/:locale')
         }
 
         $template['type'] = $type;
-        $template['locale'] = $locale === 'worldwide' ? null : $locale;
+        $template['locale'] = $locale;
 
         $response->dynamic(new Document($template), Response::MODEL_EMAIL_TEMPLATE);
     });
@@ -961,8 +962,6 @@ Http::patch('/v1/projects/:projectId/templates/email/:type/:locale')
     ->inject('response')
     ->inject('dbForPlatform')
     ->action(function (string $projectId, string $type, ?string $locale, string $subject, string $message, string $senderName, string $senderEmail, string $replyTo, Response $response, Database $dbForPlatform) {
-        $locale = $locale ?? 'worldwide';
-
         $project = $dbForPlatform->getDocument('projects', $projectId);
 
         if ($project->isEmpty()) {
@@ -982,7 +981,7 @@ Http::patch('/v1/projects/:projectId/templates/email/:type/:locale')
 
         $response->dynamic(new Document([
             'type' => $type,
-            'locale' => $locale === 'worldwide' ? null : $locale,
+            'locale' => $locale,
             'senderName' => $senderName,
             'senderEmail' => $senderEmail,
             'subject' => $subject,
@@ -1011,12 +1010,13 @@ Http::delete('/v1/projects/:projectId/templates/email/:type/:locale')
     ))
     ->param('projectId', '', fn (Database $dbForPlatform) => new UID($dbForPlatform->getAdapter()->getMaxUIDLength()), 'Project unique ID.', false, ['dbForPlatform'])
     ->param('type', '', new WhiteList(Config::getParam('locale-templates')['email'] ?? [], true), 'Template type')
-    ->param('locale', null, fn ($localeCodes) => new Nullable(new WhiteList($localeCodes)), 'Template locale', true, ['localeCodes'])
+    ->param('locale', 'worldwide', fn ($localeCodes) => new WhiteList(\array_merge([
+        ...$localeCodes,
+        'worldwide'
+    ])), 'Template locale', true, ['localeCodes'])
     ->inject('response')
     ->inject('dbForPlatform')
-    ->action(function (string $projectId, string $type, ?string $locale, Response $response, Database $dbForPlatform) {
-        $locale = $locale ?? 'worldwide';
-
+    ->action(function (string $projectId, string $type, string $locale, Response $response, Database $dbForPlatform) {
         $project = $dbForPlatform->getDocument('projects', $projectId);
 
         if ($project->isEmpty()) {
@@ -1036,7 +1036,7 @@ Http::delete('/v1/projects/:projectId/templates/email/:type/:locale')
 
         $response->dynamic(new Document([
             'type' => $type,
-            'locale' => $locale === 'worldwide' ? null : $locale,
+            'locale' => $locale,
             'senderName' => $template['senderName'],
             'senderEmail' => $template['senderEmail'],
             'subject' => $template['subject'],
