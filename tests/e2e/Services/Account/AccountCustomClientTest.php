@@ -4160,15 +4160,4 @@ class AccountCustomClientTest extends Scope
 
         $this->assertEquals(401, $verification3['headers']['status-code']);
     }
-
-    /**
-     * Test that a new email/password session is immediately usable even when
-     * a concurrent request re-populates the user cache between the cache purge
-     * and session creation.
-     *
-     * Regression test for: purging the user cache BEFORE persisting the session
-     * allows a concurrent request (from a different Swoole worker) to re-cache
-     * a stale user document that lacks the new session, causing sessionVerify
-     * to fail with 401 on subsequent requests using the new session.
-     */
 }
