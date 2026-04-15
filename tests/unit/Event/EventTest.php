@@ -116,7 +116,7 @@ class EventTest extends TestCase
             'rowId' => 'prolog',
         ]);
 
-        $this->assertCount(22, $event);
+        $this->assertCount(42, $event);
         $this->assertContains('databases.chaptersDB.tables.chapters.rows.prolog.create', $event);
         $this->assertContains('databases.chaptersDB.tables.chapters.rows.prolog', $event);
         $this->assertContains('databases.chaptersDB.tables.chapters.rows.*.create', $event);
