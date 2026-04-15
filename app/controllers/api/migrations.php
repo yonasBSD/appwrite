@@ -87,13 +87,15 @@ Http::post('/v1/migrations/appwrite')
     ->param('endpoint', '', new URL(), 'Source Appwrite endpoint')
     ->param('projectId', '', fn (Database $dbForProject) => new UID($dbForProject->getAdapter()->getMaxUIDLength()), 'Source Project ID', false, ['dbForProject'])
     ->param('apiKey', '', new Text(512), 'Source API Key')
+    ->param('overwrite', false, new Boolean(), 'When true, replace existing rows by calling upsertDocuments instead of createDocuments. Rows with matching IDs will be updated with the imported values.', true)
+    ->param('skip', false, new Boolean(), 'When true, silently ignore rows whose IDs already exist in the destination. Existing rows are preserved unchanged.', true)
     ->inject('response')
     ->inject('dbForProject')
     ->inject('project')
     ->inject('platform')
     ->inject('queueForEvents')
     ->inject('publisherForMigrations')
-    ->action(function (array $resources, string $endpoint, string $projectId, string $apiKey, Response $response, Database $dbForProject, Document $project, array $platform, Event $queueForEvents, MigrationPublisher $publisherForMigrations) {
+    ->action(function (array $resources, string $endpoint, string $projectId, string $apiKey, bool $overwrite, bool $skip, Response $response, Database $dbForProject, Document $project, array $platform, Event $queueForEvents, MigrationPublisher $publisherForMigrations) {
         $migration = $dbForProject->createDocument('migrations', new Document([
             '$id' => ID::unique(),
             'status' => 'pending',
@@ -109,6 +111,10 @@ Http::post('/v1/migrations/appwrite')
             'statusCounters' => '{}',
             'resourceData' => '{}',
             'errors' => [],
+            'options' => [
+                'overwrite' => $overwrite,
+                'skip' => $skip,
+            ],
         ]));
 
         $queueForEvents->setParam('migrationId', $migration->getId());
@@ -352,6 +358,8 @@ Http::post('/v1/migrations/csv/imports')
     ->param('fileId', '', fn (Database $dbForProject) => new UID($dbForProject->getAdapter()->getMaxUIDLength()), 'File ID.', false, ['dbForProject'])
     ->param('resourceId', null, new CompoundUID(), 'Composite ID in the format {databaseId:collectionId}, identifying a collection within a database.')
     ->param('internalFile', false, new Boolean(), 'Is the file stored in an internal bucket?', true)
+    ->param('overwrite', false, new Boolean(), 'When true, replace existing rows by calling upsertDocuments instead of createDocuments. Rows with matching IDs will be updated with the imported values.', true)
+    ->param('skip', false, new Boolean(), 'When true, silently ignore rows whose IDs already exist in the destination. Existing rows are preserved unchanged.', true)
     ->inject('response')
     ->inject('dbForProject')
     ->inject('dbForPlatform')
@@ -367,6 +375,8 @@ Http::post('/v1/migrations/csv/imports')
         string $fileId,
         string $resourceId,
         bool $internalFile,
+        bool $overwrite,
+        bool $skip,
         Response $response,
         Database $dbForProject,
         Database $dbForPlatform,
@@ -467,6 +477,8 @@ Http::post('/v1/migrations/csv/imports')
             'options' => [
                 'path' => $newPath,
                 'size' => $fileSize,
+                'overwrite' => $overwrite,
+                'skip' => $skip,
             ],
         ]));
 
@@ -656,6 +668,8 @@ Http::post('/v1/migrations/json/imports')
     ->param('fileId', '', new UID(), 'File ID.')
     ->param('resourceId', null, new CompoundUID(), 'Composite ID in the format {databaseId:collectionId}, identifying a collection within a database.')
     ->param('internalFile', false, new Boolean(), 'Is the file stored in an internal bucket?', true)
+    ->param('overwrite', false, new Boolean(), 'When true, replace existing rows by calling upsertDocuments instead of createDocuments. Rows with matching IDs will be updated with the imported values.', true)
+    ->param('skip', false, new Boolean(), 'When true, silently ignore rows whose IDs already exist in the destination. Existing rows are preserved unchanged.', true)
     ->inject('response')
     ->inject('dbForProject')
     ->inject('dbForPlatform')
@@ -671,6 +685,8 @@ Http::post('/v1/migrations/json/imports')
         string $fileId,
         string $resourceId,
         bool $internalFile,
+        bool $overwrite,
+        bool $skip,
         Response $response,
         Database $dbForProject,
         Database $dbForPlatform,
@@ -770,6 +786,8 @@ Http::post('/v1/migrations/json/imports')
             'options' => [
                 'path' => $newPath,
                 'size' => $fileSize,
+                'overwrite' => $overwrite,
+                'skip' => $skip,
             ],
         ]));
 

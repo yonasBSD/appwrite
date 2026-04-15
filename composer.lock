@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "f6a87c1012b316e614258f8f57a28e48",
+    "content-hash": "0cabf47b85d8fac9a1f78df82b0add1f",
     "packages": [
         {
             "name": "adhocore/jwt",
@@ -2887,7 +2887,7 @@
         },
         {
             "name": "symfony/polyfill-mbstring",
-            "version": "v1.34.0",
+            "version": "v1.35.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/polyfill-mbstring.git",
@@ -2948,7 +2948,7 @@
                 "shim"
             ],
             "support": {
-                "source": "https://github.com/symfony/polyfill-mbstring/tree/v1.34.0"
+                "source": "https://github.com/symfony/polyfill-mbstring/tree/v1.35.0"
             },
             "funding": [
                 {
@@ -2972,7 +2972,7 @@
         },
         {
             "name": "symfony/polyfill-php82",
-            "version": "v1.34.0",
+            "version": "v1.35.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/polyfill-php82.git",
@@ -3028,7 +3028,7 @@
                 "shim"
             ],
             "support": {
-                "source": "https://github.com/symfony/polyfill-php82/tree/v1.34.0"
+                "source": "https://github.com/symfony/polyfill-php82/tree/v1.35.0"
             },
             "funding": [
                 {
@@ -3052,7 +3052,7 @@
         },
         {
             "name": "symfony/polyfill-php83",
-            "version": "v1.34.0",
+            "version": "v1.35.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/polyfill-php83.git",
@@ -3108,7 +3108,7 @@
                 "shim"
             ],
             "support": {
-                "source": "https://github.com/symfony/polyfill-php83/tree/v1.34.0"
+                "source": "https://github.com/symfony/polyfill-php83/tree/v1.35.0"
             },
             "funding": [
                 {
@@ -3132,7 +3132,7 @@
         },
         {
             "name": "symfony/polyfill-php85",
-            "version": "v1.34.0",
+            "version": "v1.35.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/polyfill-php85.git",
@@ -3188,7 +3188,7 @@
                 "shim"
             ],
             "support": {
-                "source": "https://github.com/symfony/polyfill-php85/tree/v1.34.0"
+                "source": "https://github.com/symfony/polyfill-php85/tree/v1.35.0"
             },
             "funding": [
                 {
@@ -3850,16 +3850,16 @@
         },
         {
             "name": "utopia-php/database",
-            "version": "5.3.21",
+            "version": "dev-csv-import-upsert-v2",
             "source": {
                 "type": "git",
                 "url": "https://github.com/utopia-php/database.git",
-                "reference": "ee2d7d4c87b3a3fae954089ad7494ceb454f619d"
+                "reference": "52b189bded7ef409bb978483a7231d779051b510"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/utopia-php/database/zipball/ee2d7d4c87b3a3fae954089ad7494ceb454f619d",
-                "reference": "ee2d7d4c87b3a3fae954089ad7494ceb454f619d",
+                "url": "https://api.github.com/repos/utopia-php/database/zipball/52b189bded7ef409bb978483a7231d779051b510",
+                "reference": "52b189bded7ef409bb978483a7231d779051b510",
                 "shasum": ""
             },
             "require": {
@@ -3903,9 +3903,9 @@
             ],
             "support": {
                 "issues": "https://github.com/utopia-php/database/issues",
-                "source": "https://github.com/utopia-php/database/tree/5.3.21"
+                "source": "https://github.com/utopia-php/database/tree/csv-import-upsert-v2"
             },
-            "time": "2026-04-10T12:38:57+00:00"
+            "time": "2026-04-15T10:53:53+00:00"
         },
         {
             "name": "utopia-php/detector",
@@ -4526,16 +4526,16 @@
         },
         {
             "name": "utopia-php/migration",
-            "version": "1.9.1",
+            "version": "dev-feat/skip-duplicates",
             "source": {
                 "type": "git",
                 "url": "https://github.com/utopia-php/migration.git",
-                "reference": "7a86aeadf182b63a9f4ceba7e137588b31c5d2e2"
+                "reference": "2012cda162ad0ab79678c924d7534de6f3ec85ad"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/utopia-php/migration/zipball/7a86aeadf182b63a9f4ceba7e137588b31c5d2e2",
-                "reference": "7a86aeadf182b63a9f4ceba7e137588b31c5d2e2",
+                "url": "https://api.github.com/repos/utopia-php/migration/zipball/2012cda162ad0ab79678c924d7534de6f3ec85ad",
+                "reference": "2012cda162ad0ab79678c924d7534de6f3ec85ad",
                 "shasum": ""
             },
             "require": {
@@ -4544,7 +4544,7 @@
                 "ext-openssl": "*",
                 "halaxa/json-machine": "^1.2",
                 "php": ">=8.1",
-                "utopia-php/database": "5.*",
+                "utopia-php/database": "dev-csv-import-upsert-v2 as 5.99.0",
                 "utopia-php/dsn": "0.2.*",
                 "utopia-php/storage": "1.0.*"
             },
@@ -4575,9 +4575,9 @@
             ],
             "support": {
                 "issues": "https://github.com/utopia-php/migration/issues",
-                "source": "https://github.com/utopia-php/migration/tree/1.9.1"
+                "source": "https://github.com/utopia-php/migration/tree/feat/skip-duplicates"
             },
-            "time": "2026-03-25T07:05:27+00:00"
+            "time": "2026-04-15T12:36:51+00:00"
         },
         {
             "name": "utopia-php/mongo",
@@ -7778,7 +7778,7 @@
         },
         {
             "name": "symfony/polyfill-ctype",
-            "version": "v1.34.0",
+            "version": "v1.35.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/polyfill-ctype.git",
@@ -7837,7 +7837,7 @@
                 "portable"
             ],
             "support": {
-                "source": "https://github.com/symfony/polyfill-ctype/tree/v1.34.0"
+                "source": "https://github.com/symfony/polyfill-ctype/tree/v1.35.0"
             },
             "funding": [
                 {
@@ -8028,7 +8028,7 @@
         },
         {
             "name": "symfony/polyfill-php81",
-            "version": "v1.34.0",
+            "version": "v1.35.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/polyfill-php81.git",
@@ -8084,7 +8084,7 @@
                 "shim"
             ],
             "support": {
-                "source": "https://github.com/symfony/polyfill-php81/tree/v1.34.0"
+                "source": "https://github.com/symfony/polyfill-php81/tree/v1.35.0"
             },
             "funding": [
                 {
@@ -8440,9 +8440,25 @@
             "time": "2024-11-07T12:36:22+00:00"
         }
     ],
-    "aliases": [],
+    "aliases": [
+        {
+            "package": "utopia-php/database",
+            "version": "dev-csv-import-upsert-v2",
+            "alias": "5.99.0",
+            "alias_normalized": "5.99.0.0"
+        },
+        {
+            "package": "utopia-php/migration",
+            "version": "dev-feat/skip-duplicates",
+            "alias": "1.9.99",
+            "alias_normalized": "1.9.99.0"
+        }
+    ],
     "minimum-stability": "dev",
-    "stability-flags": {},
+    "stability-flags": {
+        "utopia-php/database": 20,
+        "utopia-php/migration": 20
+    },
     "prefer-stable": true,
     "prefer-lowest": false,
     "platform": {
