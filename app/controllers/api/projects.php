@@ -857,7 +857,7 @@ Http::get('/v1/projects/:projectId/templates/email/:type/:locale')
     ->inject('dbForPlatform')
     ->action(function (string $projectId, string $type, ?string $locale, Response $response, Database $dbForPlatform) {
         $locale = $locale ?? 'worldwide';
-        
+
         $project = $dbForPlatform->getDocument('projects', $projectId);
 
         if ($project->isEmpty()) {
@@ -1017,7 +1017,7 @@ Http::delete('/v1/projects/:projectId/templates/email/:type/:locale')
     ->inject('dbForPlatform')
     ->action(function (string $projectId, string $type, ?string $locale, Response $response, Database $dbForPlatform) {
         $locale = $locale ?? 'worldwide';
-        
+
         $project = $dbForPlatform->getDocument('projects', $projectId);
 
         if ($project->isEmpty()) {
