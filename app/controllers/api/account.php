@@ -2267,8 +2267,8 @@ Http::post('/v1/account/tokens/magic-url')
         $preview = $locale->getText("emails.magicSession.preview");
         
         $customTemplate =
-            $project->getAttribute('templates', [])['email.magicSession-' . $locale->default] ?? 
-            $project->getAttribute('templates', [])['email.magicSession-' . 'worldwide'] ?? [];
+            $project->getAttribute('templates', [])['email.magicSession-' . $locale->default] ??
+            $project->getAttribute('templates', [])['email.magicSession-worldwide'] ?? [];
 
         $detector = new Detector($request->getUserAgent('UNKNOWN'));
         $agentOs = $detector->getOS();
