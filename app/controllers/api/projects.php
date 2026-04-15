@@ -953,7 +953,10 @@ Http::patch('/v1/projects/:projectId/templates/email/:type/:locale')
     ))
     ->param('projectId', '', fn (Database $dbForPlatform) => new UID($dbForPlatform->getAdapter()->getMaxUIDLength()), 'Project unique ID.', false, ['dbForPlatform'])
     ->param('type', '', new WhiteList(Config::getParam('locale-templates')['email'] ?? [], true), 'Template type')
-    ->param('locale', null, fn ($localeCodes) => new Nullable(new WhiteList($localeCodes)), 'Template locale', true, ['localeCodes'])
+    ->param('locale', 'worldwide', fn ($localeCodes) => new WhiteList(\array_merge([
+        ...$localeCodes,
+        'worldwide'
+    ])), 'Template locale', true, ['localeCodes'])
     ->param('subject', '', new Text(255), 'Email Subject')
     ->param('message', '', new Text(0), 'Template message')
     ->param('senderName', '', new Text(255, 0), 'Name of the email sender', true)
@@ -961,7 +964,7 @@ Http::patch('/v1/projects/:projectId/templates/email/:type/:locale')
     ->param('replyTo', '', new Email(), 'Reply to email', true)
     ->inject('response')
     ->inject('dbForPlatform')
-    ->action(function (string $projectId, string $type, ?string $locale, string $subject, string $message, string $senderName, string $senderEmail, string $replyTo, Response $response, Database $dbForPlatform) {
+    ->action(function (string $projectId, string $type, string $locale, string $subject, string $message, string $senderName, string $senderEmail, string $replyTo, Response $response, Database $dbForPlatform) {
         $project = $dbForPlatform->getDocument('projects', $projectId);
 
         if ($project->isEmpty()) {

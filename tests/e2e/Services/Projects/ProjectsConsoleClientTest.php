@@ -1254,6 +1254,138 @@ class ProjectsConsoleClientTest extends Scope
         $this->assertNotEquals('Worldwide verify subject', $response['body']['subject']);
     }
 
+    #[Group('smtpAndTemplates')]
+    public function testWorldwideFallbackOnMagicURL(): void
+    {
+        $smtpHost = System::getEnv('_APP_SMTP_HOST', 'maildev');
+        $smtpPort = intval(System::getEnv('_APP_SMTP_PORT', '1025'));
+        $smtpUsername = System::getEnv('_APP_SMTP_USERNAME', 'user');
+        $smtpPassword = System::getEnv('_APP_SMTP_PASSWORD', 'password');
+
+        /** Create a dedicated project for this test */
+        $team = $this->client->call(Client::METHOD_POST, '/teams', array_merge([
+            'content-type' => 'application/json',
+            'x-appwrite-project' => $this->getProject()['$id'],
+        ], $this->getHeaders()), [
+            'teamId' => ID::unique(),
+            'name' => 'Worldwide Fallback Test Team',
+        ]);
+        $this->assertEquals(201, $team['headers']['status-code']);
+
+        $project = $this->client->call(Client::METHOD_POST, '/projects', array_merge([
+            'content-type' => 'application/json',
+            'x-appwrite-project' => $this->getProject()['$id'],
+        ], $this->getHeaders()), [
+            'projectId' => ID::unique(),
+            'name' => 'Worldwide Fallback Test',
+            'teamId' => $team['body']['$id'],
+            'region' => System::getEnv('_APP_REGION', 'default'),
+        ]);
+        $this->assertEquals(201, $project['headers']['status-code']);
+        $projectId = $project['body']['$id'];
+
+        /** Enable SMTP on the project pointing to maildev */
+        $response = $this->client->call(Client::METHOD_PATCH, '/projects/' . $projectId . '/smtp', array_merge([
+            'content-type' => 'application/json',
+            'x-appwrite-project' => $this->getProject()['$id'],
+        ], $this->getHeaders()), [
+            'enabled' => true,
+            'senderEmail' => 'mailer@appwrite.io',
+            'senderName' => 'Mailer',
+            'host' => $smtpHost,
+            'port' => $smtpPort,
+            'username' => $smtpUsername,
+            'password' => $smtpPassword,
+        ]);
+        $this->assertEquals(200, $response['headers']['status-code']);
+
+        /** Set worldwide magicSession template */
+        $response = $this->client->call(Client::METHOD_PATCH, '/projects/' . $projectId . '/templates/email/magicSession/worldwide', array_merge([
+            'content-type' => 'application/json',
+            'x-appwrite-project' => $this->getProject()['$id'],
+        ], $this->getHeaders()), [
+            'subject' => 'Worldwide Magic Login',
+            'message' => 'Worldwide magic link: {{url}}',
+            'senderName' => 'Worldwide Mailer',
+            'senderEmail' => 'worldwide@appwrite.io',
+        ]);
+        $this->assertEquals(200, $response['headers']['status-code']);
+        $this->assertEquals('Worldwide Magic Login', $response['body']['subject']);
+
+        /** Set German (de) magicSession template */
+        $response = $this->client->call(Client::METHOD_PATCH, '/projects/' . $projectId . '/templates/email/magicSession/de', array_merge([
+            'content-type' => 'application/json',
+            'x-appwrite-project' => $this->getProject()['$id'],
+        ], $this->getHeaders()), [
+            'subject' => 'German Magic Login',
+            'message' => 'German magic link: {{url}}',
+            'senderName' => 'German Mailer',
+            'senderEmail' => 'german@appwrite.io',
+        ]);
+        $this->assertEquals(200, $response['headers']['status-code']);
+        $this->assertEquals('German Magic Login', $response['body']['subject']);
+
+        /** Trigger magic URL with English locale — should use worldwide fallback */
+        $emailEn = 'magic-en-' . uniqid() . '@appwrite.io';
+        $response = $this->client->call(Client::METHOD_POST, '/account/tokens/magic-url', [
+            'origin' => 'http://localhost',
+            'content-type' => 'application/json',
+            'x-appwrite-project' => $projectId,
+            'x-appwrite-locale' => 'en',
+        ], [
+            'userId' => ID::unique(),
+            'email' => $emailEn,
+        ]);
+        $this->assertEquals(201, $response['headers']['status-code']);
+
+        /** Trigger magic URL with German locale — should use German template */
+        $emailDe = 'magic-de-' . uniqid() . '@appwrite.io';
+        $response = $this->client->call(Client::METHOD_POST, '/account/tokens/magic-url', [
+            'origin' => 'http://localhost',
+            'content-type' => 'application/json',
+            'x-appwrite-project' => $projectId,
+            'x-appwrite-locale' => 'de',
+        ], [
+            'userId' => ID::unique(),
+            'email' => $emailDe,
+        ]);
+        $this->assertEquals(201, $response['headers']['status-code']);
+
+        /** Trigger magic URL with Polish locale — should use worldwide fallback */
+        $emailPl = 'magic-pl-' . uniqid() . '@appwrite.io';
+        $response = $this->client->call(Client::METHOD_POST, '/account/tokens/magic-url', [
+            'origin' => 'http://localhost',
+            'content-type' => 'application/json',
+            'x-appwrite-project' => $projectId,
+            'x-appwrite-locale' => 'pl',
+        ], [
+            'userId' => ID::unique(),
+            'email' => $emailPl,
+        ]);
+        $this->assertEquals(201, $response['headers']['status-code']);
+
+        /** Verify English email uses worldwide fallback template */
+        $lastEmailEn = $this->getLastEmailByAddress($emailEn);
+        $this->assertEquals('Worldwide Magic Login', $lastEmailEn['subject']);
+        $this->assertEquals('worldwide@appwrite.io', $lastEmailEn['from'][0]['address']);
+        $this->assertEquals('Worldwide Mailer', $lastEmailEn['from'][0]['name']);
+        $this->assertStringContainsString('Worldwide magic link:', $lastEmailEn['html']);
+
+        /** Verify German email uses the German-specific template */
+        $lastEmailDe = $this->getLastEmailByAddress($emailDe);
+        $this->assertEquals('German Magic Login', $lastEmailDe['subject']);
+        $this->assertEquals('german@appwrite.io', $lastEmailDe['from'][0]['address']);
+        $this->assertEquals('German Mailer', $lastEmailDe['from'][0]['name']);
+        $this->assertStringContainsString('German magic link:', $lastEmailDe['html']);
+
+        /** Verify Polish email uses worldwide fallback template */
+        $lastEmailPl = $this->getLastEmailByAddress($emailPl);
+        $this->assertEquals('Worldwide Magic Login', $lastEmailPl['subject']);
+        $this->assertEquals('worldwide@appwrite.io', $lastEmailPl['from'][0]['address']);
+        $this->assertEquals('Worldwide Mailer', $lastEmailPl['from'][0]['name']);
+        $this->assertStringContainsString('Worldwide magic link:', $lastEmailPl['html']);
+    }
+
     public function testUpdateProjectAuthDuration(): void
     {
         $data = $this->setupProjectData();
