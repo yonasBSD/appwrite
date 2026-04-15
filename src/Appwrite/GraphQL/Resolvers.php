@@ -378,7 +378,7 @@ class Resolvers
             $container->set('request', static fn () => $request);
             $container->set('response', static fn () => $resolverResponse);
             $resolverResponse->setContentType(Response::CONTENT_TYPE_NULL);
-            $resolverResponse->clearSent();
+            $resolverResponse->setSent(false);
 
             $route = $utopia->match($request, fresh: true);
             $request->setRoute($route);
@@ -390,7 +390,7 @@ class Resolvers
             if ($resolverResponse->isSent()) {
                 $response
                     ->setStatusCode($resolverResponse->getStatusCode())
-                    ->markSent();
+                    ->setSent(true);
 
                 $resolve(null);
                 return;

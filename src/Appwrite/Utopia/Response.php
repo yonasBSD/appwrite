@@ -629,23 +629,12 @@ class Response extends SwooleResponse
     }
 
     /**
-     * Reset the sent flag so the response can be reused for another
-     * action execution (e.g. batched GraphQL queries that share one
-     * Response instance).
+     * Set the sent flag on the response. Pass false to allow reuse
+     * (e.g. batched GraphQL queries), true to prevent further writes.
      */
-    public function clearSent(): static
+    public function setSent(bool $sent): static
     {
-        $this->sent = false;
-        return $this;
-    }
-
-    /**
-     * Mark the response as already sent so later callers do not attempt to
-     * write a second payload to the same underlying Swoole response.
-     */
-    public function markSent(): static
-    {
-        $this->sent = true;
+        $this->sent = $sent;
         return $this;
     }
 
