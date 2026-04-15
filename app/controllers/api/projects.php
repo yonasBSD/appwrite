@@ -928,7 +928,7 @@ Http::get('/v1/projects/:projectId/templates/email/:type/:locale')
         }
 
         $template['type'] = $type;
-        $template['locale'] = $locale;
+        $template['locale'] = $locale === 'worldwide' ? null : $locale;
 
         $response->dynamic(new Document($template), Response::MODEL_EMAIL_TEMPLATE);
     });
@@ -982,7 +982,7 @@ Http::patch('/v1/projects/:projectId/templates/email/:type/:locale')
 
         $response->dynamic(new Document([
             'type' => $type,
-            'locale' => $locale,
+            'locale' => $locale === 'worldwide' ? null : $locale,
             'senderName' => $senderName,
             'senderEmail' => $senderEmail,
             'subject' => $subject,
@@ -1036,7 +1036,7 @@ Http::delete('/v1/projects/:projectId/templates/email/:type/:locale')
 
         $response->dynamic(new Document([
             'type' => $type,
-            'locale' => $locale,
+            'locale' => $locale === 'worldwide' ? null : $locale,
             'senderName' => $template['senderName'],
             'senderEmail' => $template['senderEmail'],
             'subject' => $template['subject'],
