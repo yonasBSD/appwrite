@@ -420,6 +420,8 @@ class Resolvers
         $lock = self::getLock($utopia);
 
         self::acquireLock($lock);
+
+        $original = $utopia->getRoute();
         try {
             $request = clone $request;
 
@@ -461,6 +463,10 @@ class Resolvers
             $reject($e);
             return;
         } finally {
+            if ($original !== null) {
+                $utopia->setRoute($original);
+            }
+
             self::releaseLock($lock);
         }
 

@@ -118,6 +118,8 @@ class Update extends Action
 
         $queueForEvents->setParam('webhookId', $webhook->getId());
 
+        $webhook->removeAttribute('signatureKey');
+
         $response->dynamic($webhook, Response::MODEL_WEBHOOK);
     }
 }
