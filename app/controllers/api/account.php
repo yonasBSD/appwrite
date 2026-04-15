@@ -2265,7 +2265,10 @@ Http::post('/v1/account/tokens/magic-url')
 
         $subject = $locale->getText("emails.magicSession.subject");
         $preview = $locale->getText("emails.magicSession.preview");
-        $customTemplate = $project->getAttribute('templates', [])['email.magicSession-' . $locale->default] ?? [];
+        
+        $customTemplate =
+            $project->getAttribute('templates', [])['email.magicSession-' . $locale->default] ?? 
+            $project->getAttribute('templates', [])['email.magicSession-' . 'worldwide'] ?? [];
 
         $detector = new Detector($request->getUserAgent('UNKNOWN'));
         $agentOs = $detector->getOS();
@@ -2575,7 +2578,9 @@ Http::post('/v1/account/tokens/email')
         $preview = $locale->getText("emails.otpSession.preview");
         $heading = $locale->getText("emails.otpSession.heading");
 
-        $customTemplate = $project->getAttribute('templates', [])['email.otpSession-' . $locale->default] ?? [];
+        $customTemplate =
+            $project->getAttribute('templates', [])['email.otpSession-' . $locale->default] ??
+            $project->getAttribute('templates', [])['email.otpSession-worldwide'] ?? [];
         $smtpBaseTemplate = $project->getAttribute('smtpBaseTemplate', 'email-base');
 
         $validator = new FileName();
@@ -2968,7 +2973,9 @@ Http::post('/v1/account/tokens/phone')
         if ($sendSMS) {
             $message = Template::fromFile(__DIR__ . '/../../config/locale/templates/sms-base.tpl');
 
-            $customTemplate = $project->getAttribute('templates', [])['sms.login-' . $locale->default] ?? [];
+            $customTemplate =
+                $project->getAttribute('templates', [])['sms.login-' . $locale->default] ??
+                $project->getAttribute('templates', [])['sms.login-worldwide'] ?? [];
             if (!empty($customTemplate)) {
                 $message = $customTemplate['message'] ?? $message;
             }
@@ -3726,7 +3733,9 @@ Http::post('/v1/account/recovery')
         $body = $locale->getText("emails.recovery.body");
         $subject = $locale->getText("emails.recovery.subject");
         $preview = $locale->getText("emails.recovery.preview");
-        $customTemplate = $project->getAttribute('templates', [])['email.recovery-' . $locale->default] ?? [];
+        $customTemplate =
+            $project->getAttribute('templates', [])['email.recovery-' . $locale->default] ??
+            $project->getAttribute('templates', [])['email.recovery-worldwide'] ?? [];
 
         $message = Template::fromFile(__DIR__ . '/../../config/locale/templates/email-inner-base.tpl');
         $message
@@ -4034,7 +4043,9 @@ Http::post('/v1/account/verifications/email')
         $subject = $locale->getText("emails.verification.subject");
         $heading = $locale->getText("emails.verification.heading");
 
-        $customTemplate = $project->getAttribute('templates', [])['email.verification-' . $locale->default] ?? [];
+        $customTemplate =
+            $project->getAttribute('templates', [])['email.verification-' . $locale->default] ??
+            $project->getAttribute('templates', [])['email.verification-worldwide'] ?? [];
         $smtpBaseTemplate = $project->getAttribute('smtpBaseTemplate', 'email-base');
 
         $validator = new FileName();
@@ -4333,7 +4344,9 @@ Http::post('/v1/account/verifications/phone')
         if ($sendSMS) {
             $message = Template::fromFile(__DIR__ . '/../../config/locale/templates/sms-base.tpl');
 
-            $customTemplate = $project->getAttribute('templates', [])['sms.verification-' . $locale->default] ?? [];
+            $customTemplate =
+                $project->getAttribute('templates', [])['sms.verification-' . $locale->default] ??
+                $project->getAttribute('templates', [])['sms.verification-worldwide'] ?? [];
             if (!empty($customTemplate)) {
                 $message = $customTemplate['message'] ?? $message;
             }
