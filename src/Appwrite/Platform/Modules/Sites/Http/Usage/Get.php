@@ -87,6 +87,8 @@ class Get extends Base
             str_replace(['{resourceType}', '{resourceInternalId}'], [RESOURCE_TYPE_SITES, $site->getSequence()], METRIC_RESOURCE_TYPE_ID_EXECUTIONS_MB_SECONDS),
             str_replace(['{resourceType}', '{resourceInternalId}'], [RESOURCE_TYPE_SITES, $site->getSequence()], METRIC_RESOURCE_TYPE_ID_BUILDS_SUCCESS),
             str_replace(['{resourceType}', '{resourceInternalId}'], [RESOURCE_TYPE_SITES, $site->getSequence()], METRIC_RESOURCE_TYPE_ID_BUILDS_FAILED),
+            str_replace(['{resourceType}', '{resourceInternalId}'], [RESOURCE_TYPE_SITES, $site->getSequence()], METRIC_RESOURCE_TYPE_ID_SCREENSHOTS_SUCCESS),
+            str_replace(['{resourceType}', '{resourceInternalId}'], [RESOURCE_TYPE_SITES, $site->getSequence()], METRIC_RESOURCE_TYPE_ID_SCREENSHOTS_FAILED),
             str_replace(['{siteInternalId}'], [$site->getSequence()], METRIC_SITES_ID_REQUESTS),
             str_replace(['{siteInternalId}'], [$site->getSequence()], METRIC_SITES_ID_INBOUND),
             str_replace(['{siteInternalId}'], [$site->getSequence()], METRIC_SITES_ID_OUTBOUND),
@@ -139,6 +141,9 @@ class Get extends Base
 
         $buildsTimeTotal = $usage[$metrics[4]]['total'] ?? 0;
         $buildsTotal = $usage[$metrics[2]]['total'] ?? 0;
+        $screenshotsSuccessTotal = $usage[$metrics[11]]['total'] ?? 0;
+        $screenshotsFailedTotal = $usage[$metrics[12]]['total'] ?? 0;
+        $screenshotsTotal = $screenshotsSuccessTotal + $screenshotsFailedTotal;
         $response->dynamic(new Document([
             'range' => $range,
             'deploymentsTotal' => $usage[$metrics[0]]['total'],
@@ -153,9 +158,12 @@ class Get extends Base
             'executionsMbSecondsTotal' => $usage[$metrics[8]]['total'],
             'buildsSuccessTotal' => $usage[$metrics[9]]['total'],
             'buildsFailedTotal' => $usage[$metrics[10]]['total'],
-            'requestsTotal' => $usage[$metrics[11]]['total'],
-            'inboundTotal' => $usage[$metrics[12]]['total'],
-            'outboundTotal' => $usage[$metrics[13]]['total'],
+            'screenshotsSuccessTotal' => $screenshotsSuccessTotal,
+            'screenshotsFailedTotal' => $screenshotsFailedTotal,
+            'screenshotsSuccessRate' => $screenshotsTotal === 0 ? 0 : $screenshotsSuccessTotal / $screenshotsTotal,
+            'requestsTotal' => $usage[$metrics[13]]['total'],
+            'inboundTotal' => $usage[$metrics[14]]['total'],
+            'outboundTotal' => $usage[$metrics[15]]['total'],
             'deployments' => $usage[$metrics[0]]['data'],
             'deploymentsStorage' => $usage[$metrics[1]]['data'],
             'builds' => $usage[$metrics[2]]['data'],
@@ -167,9 +175,11 @@ class Get extends Base
             'executionsMbSeconds' => $usage[$metrics[8]]['data'],
             'buildsSuccess' => $usage[$metrics[9]]['data'],
             'buildsFailed' => $usage[$metrics[10]]['data'],
-            'requests' => $usage[$metrics[11]]['data'],
-            'inbound' => $usage[$metrics[12]]['data'],
-            'outbound' => $usage[$metrics[13]]['data'],
+            'screenshotsSuccess' => $usage[$metrics[11]]['data'],
+            'screenshotsFailed' => $usage[$metrics[12]]['data'],
+            'requests' => $usage[$metrics[13]]['data'],
+            'inbound' => $usage[$metrics[14]]['data'],
+            'outbound' => $usage[$metrics[15]]['data'],
         ]), Response::MODEL_USAGE_SITE);
     }
 }

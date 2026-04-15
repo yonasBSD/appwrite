@@ -3,9 +3,12 @@
 namespace Appwrite\Platform\Modules\Functions\Workers;
 
 use Ahc\Jwt\JWT;
+use Appwrite\Event\Message\Usage as UsageMessage;
+use Appwrite\Event\Publisher\Usage as UsagePublisher;
 use Appwrite\Event\Realtime;
 use Appwrite\Permission;
 use Appwrite\Role;
+use Appwrite\Usage\Context;
 use Exception;
 use Utopia\Compression\Compression;
 use Utopia\Config\Config;
@@ -43,6 +46,7 @@ class Screenshots extends Action
             ->inject('dbForProject')
             ->inject('project')
             ->inject('deviceForFiles')
+            ->inject('publisherForUsage')
             ->callback($this->action(...));
     }
 
@@ -52,7 +56,8 @@ class Screenshots extends Action
         Database $dbForPlatform,
         Database $dbForProject,
         Document $project,
-        Device $deviceForFiles
+        Device $deviceForFiles,
+        UsagePublisher $publisherForUsage
     ): void {
         Console::log('Screenshot action started');
 
@@ -257,6 +262,13 @@ class Screenshots extends Action
                 'deploymentScreenshotDark' => $deployment->getAttribute('screenshotDark', ''),
                 'deploymentScreenshotLight' => $deployment->getAttribute('screenshotLight', ''),
             ]));
+
+            $this->publishUsage(
+                project: $project,
+                site: $site,
+                publisherForUsage: $publisherForUsage,
+                metric: METRIC_SCREENSHOTS_SUCCESS
+            );
         } catch (\Throwable $th) {
             Console::warning("Screenshot failed to generate:");
             Console::warning($th->getMessage());
@@ -265,8 +277,49 @@ class Screenshots extends Action
             $date = \date('H:i:s');
             $this->appendToLogs($dbForProject, $deployment->getId(), $queueForRealtime, "[90m[$date] [90m[[0mappwrite[90m][33m Screenshot capturing failed. Deployment will continue. [0m\n");
 
+            $this->publishUsage(
+                project: $project,
+                site: $site,
+                publisherForUsage: $publisherForUsage,
+                metric: METRIC_SCREENSHOTS_FAILED
+            );
+
             throw $th;
         }
+    }
+
+    protected function publishUsage(
+        Document $project,
+        Document $site,
+        UsagePublisher $publisherForUsage,
+        string $metric
+    ): void {
+        [$resourceMetric, $resourceIdMetric] = match ($metric) {
+            METRIC_SCREENSHOTS_SUCCESS => [
+                METRIC_RESOURCE_TYPE_SCREENSHOTS_SUCCESS,
+                METRIC_RESOURCE_TYPE_ID_SCREENSHOTS_SUCCESS,
+            ],
+            METRIC_SCREENSHOTS_FAILED => [
+                METRIC_RESOURCE_TYPE_SCREENSHOTS_FAILED,
+                METRIC_RESOURCE_TYPE_ID_SCREENSHOTS_FAILED,
+            ],
+            default => throw new \InvalidArgumentException('Unknown screenshot metric: ' . $metric),
+        };
+
+        $usage = (new Context())
+            ->addMetric($metric, 1)
+            ->addMetric(str_replace('{resourceType}', RESOURCE_TYPE_SITES, $resourceMetric), 1)
+            ->addMetric(str_replace(
+                ['{resourceType}', '{resourceInternalId}'],
+                [RESOURCE_TYPE_SITES, $site->getSequence()],
+                $resourceIdMetric
+            ), 1);
+
+        $publisherForUsage->enqueue(new UsageMessage(
+            project: $project,
+            metrics: $usage->getMetrics(),
+            reduce: $usage->getReduce()
+        ));
     }
 
     protected function appendToLogs(Database $dbForProject, string $deploymentId, Realtime $queueForRealtime, string $logs)

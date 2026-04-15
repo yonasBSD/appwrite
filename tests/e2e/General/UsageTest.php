@@ -1675,11 +1675,14 @@ class UsageTest extends Scope
             );
 
             $this->assertEquals(200, $response['headers']['status-code']);
-            $this->assertEquals(30, count($response['body']));
+            $this->assertEquals(35, count($response['body']));
             $this->assertEquals('30d', $response['body']['range']);
             $this->assertIsArray($response['body']['deployments']);
             $this->assertEquals($deploymentsSuccess, $response['body']['buildsSuccessTotal']);
             $this->assertEquals($deploymentsFailed, $response['body']['buildsFailedTotal']);
+            $this->assertGreaterThanOrEqual(1, $response['body']['screenshotsSuccessTotal']);
+            $this->assertEquals(0, $response['body']['screenshotsFailedTotal']);
+            $this->assertEquals(1.0, $response['body']['screenshotsSuccessRate']);
             $this->assertIsArray($response['body']['deploymentsStorage']);
             $this->assertIsNumeric($response['body']['deploymentsStorageTotal']);
             $this->assertIsNumeric($response['body']['buildsMbSecondsTotal']);
@@ -1692,6 +1695,8 @@ class UsageTest extends Scope
             $this->assertIsArray($response['body']['executionsMbSeconds']);
             $this->assertIsArray($response['body']['buildsSuccess']);
             $this->assertIsArray($response['body']['buildsFailed']);
+            $this->assertIsArray($response['body']['screenshotsSuccess']);
+            $this->assertIsArray($response['body']['screenshotsFailed']);
             $this->assertIsArray($response['body']['requests']);
             $this->assertIsArray($response['body']['inbound']);
             $this->assertIsArray($response['body']['outbound']);
@@ -1709,7 +1714,7 @@ class UsageTest extends Scope
             );
 
             $this->assertEquals(200, $response['headers']['status-code']);
-            $this->assertEquals(31, count($response['body']));
+            $this->assertEquals(36, count($response['body']));
             $this->assertEquals($response['body']['range'], '30d');
             $this->assertIsArray($response['body']['sites']);
             $this->assertIsArray($response['body']['deployments']);
@@ -1722,6 +1727,11 @@ class UsageTest extends Scope
             $this->assertIsArray($response['body']['executionsMbSeconds']);
             $this->assertIsArray($response['body']['buildsSuccess']);
             $this->assertIsArray($response['body']['buildsFailed']);
+            $this->assertGreaterThanOrEqual(1, $response['body']['screenshotsSuccessTotal']);
+            $this->assertEquals(0, $response['body']['screenshotsFailedTotal']);
+            $this->assertEquals(1.0, $response['body']['screenshotsSuccessRate']);
+            $this->assertIsArray($response['body']['screenshotsSuccess']);
+            $this->assertIsArray($response['body']['screenshotsFailed']);
             $this->assertIsArray($response['body']['requests']);
             $this->assertIsArray($response['body']['inbound']);
             $this->assertIsArray($response['body']['outbound']);
