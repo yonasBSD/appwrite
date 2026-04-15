@@ -23,18 +23,6 @@ class Resolvers
     private static array $locks = [];
 
     /**
-     * Clone the shared GraphQL response so each resolver writes into an
-     * isolated payload and status buffer.
-     */
-    private static function createResolverResponse(Http $utopia): Response
-    {
-        /** @var Response $response */
-        $response = clone $utopia->getResource('response');
-
-        return $response;
-    }
-
-    /**
      * Preserve response side effects that callers depend on, such as session
      * cookies created by account auth routes.
      */
@@ -434,7 +422,8 @@ class Resolvers
                 $prepareRequest($request);
             }
 
-            $resolverResponse = self::createResolverResponse($utopia);
+            /** @var Response $resolverResponse */
+            $resolverResponse = clone $utopia->getResource('response');
             $container = self::getResolverContainer($utopia);
             $container->set('request', static fn () => $request);
             $container->set('response', static fn () => $resolverResponse);
