@@ -1163,6 +1163,97 @@ class ProjectsConsoleClientTest extends Scope
         $this->assertEquals('Please verify your email {{url}}', $response['body']['message']);
     }
 
+    #[Group('smtpAndTemplates')]
+    public function testWorldwideTemplates(): void
+    {
+        $data = $this->setupProjectData();
+        $id = $data['projectId'];
+
+        /** Get default template without locale (should default to worldwide) */
+        $response = $this->client->call(Client::METHOD_GET, '/projects/' . $id . '/templates/email/verification', array_merge([
+            'content-type' => 'application/json',
+            'x-appwrite-project' => $this->getProject()['$id'],
+        ], $this->getHeaders()));
+
+        $this->assertEquals(200, $response['headers']['status-code']);
+        $this->assertEquals('verification', $response['body']['type']);
+        $this->assertEquals('worldwide', $response['body']['locale']);
+
+        /** Get default template with explicit worldwide locale */
+        $response = $this->client->call(Client::METHOD_GET, '/projects/' . $id . '/templates/email/verification/worldwide', array_merge([
+            'content-type' => 'application/json',
+            'x-appwrite-project' => $this->getProject()['$id'],
+        ], $this->getHeaders()));
+
+        $this->assertEquals(200, $response['headers']['status-code']);
+        $this->assertEquals('verification', $response['body']['type']);
+        $this->assertEquals('worldwide', $response['body']['locale']);
+
+        /** Set a worldwide email template */
+        $response = $this->client->call(Client::METHOD_PATCH, '/projects/' . $id . '/templates/email/verification/worldwide', array_merge([
+            'content-type' => 'application/json',
+            'x-appwrite-project' => $this->getProject()['$id'],
+        ], $this->getHeaders()), [
+            'subject' => 'Worldwide verify subject',
+            'message' => 'Worldwide verify message {{url}}',
+            'senderName' => 'Worldwide Sender',
+            'senderEmail' => 'worldwide@appwrite.io',
+        ]);
+
+        $this->assertEquals(200, $response['headers']['status-code']);
+        $this->assertEquals('Worldwide verify subject', $response['body']['subject']);
+        $this->assertEquals('Worldwide verify message {{url}}', $response['body']['message']);
+        $this->assertEquals('Worldwide Sender', $response['body']['senderName']);
+        $this->assertEquals('worldwide@appwrite.io', $response['body']['senderEmail']);
+        $this->assertEquals('verification', $response['body']['type']);
+
+        /** Get the worldwide template back */
+        $response = $this->client->call(Client::METHOD_GET, '/projects/' . $id . '/templates/email/verification/worldwide', array_merge([
+            'content-type' => 'application/json',
+            'x-appwrite-project' => $this->getProject()['$id'],
+        ], $this->getHeaders()));
+
+        $this->assertEquals(200, $response['headers']['status-code']);
+        $this->assertEquals('Worldwide verify subject', $response['body']['subject']);
+        $this->assertEquals('Worldwide verify message {{url}}', $response['body']['message']);
+        $this->assertEquals('Worldwide Sender', $response['body']['senderName']);
+        $this->assertEquals('worldwide@appwrite.io', $response['body']['senderEmail']);
+        $this->assertEquals('verification', $response['body']['type']);
+        $this->assertEquals('worldwide', $response['body']['locale']);
+
+        /** Locale-specific template should still return default (not worldwide custom) */
+        $response = $this->client->call(Client::METHOD_GET, '/projects/' . $id . '/templates/email/verification/en-us', array_merge([
+            'content-type' => 'application/json',
+            'x-appwrite-project' => $this->getProject()['$id'],
+        ], $this->getHeaders()));
+
+        $this->assertEquals(200, $response['headers']['status-code']);
+        $this->assertEquals('verification', $response['body']['type']);
+        $this->assertEquals('en-us', $response['body']['locale']);
+        // en-us template was not customized, so it should return the default subject
+        $this->assertEquals('Account Verification for {{project}}', $response['body']['subject']);
+
+        /** Delete the worldwide template */
+        $response = $this->client->call(Client::METHOD_DELETE, '/projects/' . $id . '/templates/email/verification/worldwide', array_merge([
+            'content-type' => 'application/json',
+            'x-appwrite-project' => $this->getProject()['$id'],
+        ], $this->getHeaders()));
+
+        $this->assertEquals(200, $response['headers']['status-code']);
+
+        /** After deletion, worldwide GET should return default template */
+        $response = $this->client->call(Client::METHOD_GET, '/projects/' . $id . '/templates/email/verification/worldwide', array_merge([
+            'content-type' => 'application/json',
+            'x-appwrite-project' => $this->getProject()['$id'],
+        ], $this->getHeaders()));
+
+        $this->assertEquals(200, $response['headers']['status-code']);
+        $this->assertEquals('verification', $response['body']['type']);
+        $this->assertEquals('worldwide', $response['body']['locale']);
+        // Should be back to default (no custom subject)
+        $this->assertNotEquals('Worldwide verify subject', $response['body']['subject']);
+    }
+
     public function testUpdateProjectAuthDuration(): void
     {
         $data = $this->setupProjectData();
