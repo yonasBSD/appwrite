@@ -18,9 +18,9 @@ class Resolvers
     /**
      * Request-scoped locks keyed by the per-request GraphQL Http instance.
      *
-     * @var \WeakMap<Http, ResolverLock>|null
+     * @var array<string, ResolverLock>
      */
-    private static ?\WeakMap $locks = null;
+    private static array $locks = [];
 
     /**
      * Clone the shared GraphQL response so each resolver writes into an
@@ -88,12 +88,12 @@ class Resolvers
      */
     private static function getLock(Http $utopia): ResolverLock
     {
-        self::$locks ??= new \WeakMap();
-        if (!isset(self::$locks[$utopia])) {
-            self::$locks[$utopia] = new ResolverLock();
+        $key = \spl_object_hash($utopia);
+        if (!isset(self::$locks[$key])) {
+            self::$locks[$key] = new ResolverLock();
         }
 
-        return self::$locks[$utopia];
+        return self::$locks[$key];
     }
 
     /**
@@ -468,6 +468,7 @@ class Resolvers
             }
 
             self::releaseLock($lock);
+            unset(self::$locks[\spl_object_hash($utopia)]);
         }
 
         if ($statusCode < 200 || $statusCode >= 400) {
