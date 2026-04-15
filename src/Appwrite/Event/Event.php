@@ -712,31 +712,15 @@ class Event
                 $pairedEvents[] = $event;
                 // tablesdb needs databases event with tables and collections
                 if (str_contains($event, 'tablesdb')) {
-                    $databasesSideEvent = str_replace(
-                        array_keys($databasesEventMap),
-                        array_values($databasesEventMap),
-                        $event
-                    );
+                    $databasesSideEvent = self::replaceEventSegments($event, $databasesEventMap);
                     $pairedEvents[] = $databasesSideEvent;
-                    $tableSideEvent = str_replace(
-                        array_keys($collectionsToTablesMap),
-                        array_values($collectionsToTablesMap),
-                        $databasesSideEvent
-                    );
+                    $tableSideEvent = self::replaceEventSegments($databasesSideEvent, $collectionsToTablesMap);
                     $pairedEvents[] = $tableSideEvent;
                 } elseif (str_contains($event, 'collections')) {
-                    $tableSideEvent = str_replace(
-                        array_keys($collectionsToTablesMap),
-                        array_values($collectionsToTablesMap),
-                        $event
-                    );
+                    $tableSideEvent = self::replaceEventSegments($event, $collectionsToTablesMap);
                     $pairedEvents[] = $tableSideEvent;
                 } elseif (str_contains($event, 'tables')) {
-                    $collectionSideEvent = str_replace(
-                        array_keys($tablesToCollectionsMap),
-                        array_values($tablesToCollectionsMap),
-                        $event
-                    );
+                    $collectionSideEvent = self::replaceEventSegments($event, $tablesToCollectionsMap);
                     $pairedEvents[] = $collectionSideEvent;
                 }
             }
@@ -747,6 +731,20 @@ class Event
         // array unique can turns list to hasmap in case duplicates present
         // so forcing array value will turn this to array list always
         return array_values(array_unique($events));
+    }
+
+    /**
+     * Replace only exact event path segments, never partial substrings.
+     */
+    private static function replaceEventSegments(string $event, array $map): string
+    {
+        $parts = \explode('.', $event);
+        $parts = \array_map(
+            fn (string $part) => $map[$part] ?? $part,
+            $parts
+        );
+
+        return \implode('.', $parts);
     }
 
     /**

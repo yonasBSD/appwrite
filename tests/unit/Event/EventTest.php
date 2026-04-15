@@ -197,6 +197,13 @@ class EventTest extends TestCase
         ], $tablesDb);
         $this->assertContains('databases.factory-db.collections.assembly.documents.row-123.update', $tablesDbEvents);
         $this->assertContains('tablesdb.factory-db.tables.assembly.rows.row-123.update', $tablesDbEvents);
+        $tableIdWithReservedWordEvents = Event::generateEvents('databases.[databaseId].tables.[tableId].rows.[rowId].update', [
+            'databaseId' => 'factory-db',
+            'tableId' => 'rows-archive',
+            'rowId' => 'row-123',
+        ], $legacyDatabase);
+        $this->assertContains('databases.factory-db.collections.rows-archive.documents.row-123.update', $tableIdWithReservedWordEvents);
+        $this->assertNotContains('databases.factory-db.collections.documents-archive.documents.row-123.update', $tableIdWithReservedWordEvents);
 
         $documentsDb = new Document(['type' => 'documentsdb']);
         $documentsDbEvents = Event::generateEvents('databases.[databaseId].collections.[collectionId].documents.[documentId].update', [
