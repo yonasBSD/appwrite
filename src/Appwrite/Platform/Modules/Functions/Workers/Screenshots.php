@@ -62,6 +62,7 @@ class Screenshots extends Action
         Console::log('Screenshot action started');
 
         $payload = $message->getPayload() ?? [];
+        $screenshotCompleted = false;
 
         if (empty($payload)) {
             throw new \Exception('Missing payload');
@@ -262,13 +263,7 @@ class Screenshots extends Action
                 'deploymentScreenshotDark' => $deployment->getAttribute('screenshotDark', ''),
                 'deploymentScreenshotLight' => $deployment->getAttribute('screenshotLight', ''),
             ]));
-
-            $this->publishUsage(
-                project: $project,
-                site: $site,
-                publisherForUsage: $publisherForUsage,
-                metric: METRIC_SCREENSHOTS_SUCCESS
-            );
+            $screenshotCompleted = true;
         } catch (\Throwable $th) {
             Console::warning("Screenshot failed to generate:");
             Console::warning($th->getMessage());
@@ -277,15 +272,24 @@ class Screenshots extends Action
             $date = \date('H:i:s');
             $this->appendToLogs($dbForProject, $deployment->getId(), $queueForRealtime, "[90m[$date] [90m[[0mappwrite[90m][33m Screenshot capturing failed. Deployment will continue. [0m\n");
 
-            $this->publishUsage(
-                project: $project,
-                site: $site,
-                publisherForUsage: $publisherForUsage,
-                metric: METRIC_SCREENSHOTS_FAILED
-            );
+            if (!$screenshotCompleted) {
+                $this->publishUsage(
+                    project: $project,
+                    site: $site,
+                    publisherForUsage: $publisherForUsage,
+                    metric: METRIC_SCREENSHOTS_FAILED
+                );
+            }
 
             throw $th;
         }
+
+        $this->publishUsage(
+            project: $project,
+            site: $site,
+            publisherForUsage: $publisherForUsage,
+            metric: METRIC_SCREENSHOTS_SUCCESS
+        );
     }
 
     protected function publishUsage(

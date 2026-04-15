@@ -83,6 +83,36 @@ class UsageSites extends Model
                 'default' => 0,
                 'example' => 0,
             ])
+            ->addRule('buildsSuccessTotal', [
+                'type' => self::TYPE_INTEGER,
+                'description' => 'Total aggregated number of successful site builds.',
+                'default' => 0,
+                'example' => 0,
+            ])
+            ->addRule('buildsFailedTotal', [
+                'type' => self::TYPE_INTEGER,
+                'description' => 'Total aggregated number of failed site builds.',
+                'default' => 0,
+                'example' => 0,
+            ])
+            ->addRule('screenshotsSuccessTotal', [
+                'type' => self::TYPE_INTEGER,
+                'description' => 'Total aggregated number of successful site screenshots.',
+                'default' => 0,
+                'example' => 0,
+            ])
+            ->addRule('screenshotsFailedTotal', [
+                'type' => self::TYPE_INTEGER,
+                'description' => 'Total aggregated number of failed site screenshots.',
+                'default' => 0,
+                'example' => 0,
+            ])
+            ->addRule('screenshotsSuccessRate', [
+                'type' => self::TYPE_FLOAT,
+                'description' => 'Success rate of site screenshots from 0 to 1.',
+                'default' => 0,
+                'example' => 0,
+            ])
             ->addRule('requestsTotal', [
                 'type' => self::TYPE_INTEGER,
                 'description' => 'Total aggregated number of requests.',
@@ -122,38 +152,6 @@ class UsageSites extends Model
                 'example' => [],
                 'array' => true
             ])
-            ->addRule('screenshotsSuccessTotal', [
-                'type' => self::TYPE_INTEGER,
-                'description' => 'Total aggregated number of successful site screenshots.',
-                'default' => 0,
-                'example' => 0,
-            ])
-            ->addRule('screenshotsFailedTotal', [
-                'type' => self::TYPE_INTEGER,
-                'description' => 'Total aggregated number of failed site screenshots.',
-                'default' => 0,
-                'example' => 0,
-            ])
-            ->addRule('screenshotsSuccessRate', [
-                'type' => self::TYPE_FLOAT,
-                'description' => 'Success rate of site screenshots from 0 to 1.',
-                'default' => 0,
-                'example' => 0,
-            ])
-            ->addRule('screenshotsSuccess', [
-                'type' => Response::MODEL_METRIC,
-                'description' => 'Aggregated number of successful site screenshots per period.',
-                'default' => [],
-                'example' => [],
-                'array' => true
-            ])
-            ->addRule('screenshotsFailed', [
-                'type' => Response::MODEL_METRIC,
-                'description' => 'Aggregated number of failed site screenshots per period.',
-                'default' => [],
-                'example' => [],
-                'array' => true
-            ])
             ->addRule('deployments', [
                 'type' => Response::MODEL_METRIC,
                 'description' => 'Aggregated number of sites deployment per period.',
@@ -167,18 +165,6 @@ class UsageSites extends Model
                 'default' => [],
                 'example' => [],
                 'array' => true
-            ])
-            ->addRule('buildsSuccessTotal', [
-                'type' => self::TYPE_INTEGER,
-                'description' => 'Total aggregated number of successful site builds.',
-                'default' => 0,
-                'example' => 0,
-            ])
-            ->addRule('buildsFailedTotal', [
-                'type' => self::TYPE_INTEGER,
-                'description' => 'Total aggregated number of failed site builds.',
-                'default' => 0,
-                'example' => 0,
             ])
             ->addRule('builds', [
                 'type' => Response::MODEL_METRIC,
@@ -208,6 +194,34 @@ class UsageSites extends Model
                 'example' => [],
                 'array' => true
             ])
+            ->addRule('buildsSuccess', [
+                'type' => Response::MODEL_METRIC,
+                'description' => 'Aggregated number of successful site builds per period.',
+                'default' => [],
+                'example' => [],
+                'array' => true
+            ])
+            ->addRule('buildsFailed', [
+                'type' => Response::MODEL_METRIC,
+                'description' => 'Aggregated number of failed site builds per period.',
+                'default' => [],
+                'example' => [],
+                'array' => true
+            ])
+            ->addRule('screenshotsSuccess', [
+                'type' => Response::MODEL_METRIC,
+                'description' => 'Aggregated number of successful site screenshots per period.',
+                'default' => [],
+                'example' => [],
+                'array' => true
+            ])
+            ->addRule('screenshotsFailed', [
+                'type' => Response::MODEL_METRIC,
+                'description' => 'Aggregated number of failed site screenshots per period.',
+                'default' => [],
+                'example' => [],
+                'array' => true
+            ])
             ->addRule('executions', [
                 'type' => Response::MODEL_METRIC,
                 'description' => 'Aggregated number of  sites execution per period.',
@@ -225,20 +239,6 @@ class UsageSites extends Model
             ->addRule('executionsMbSeconds', [
                 'type' => Response::MODEL_METRIC,
                 'description' => 'Aggregated number of sites mbSeconds per period.',
-                'default' => [],
-                'example' => [],
-                'array' => true
-            ])
-            ->addRule('buildsSuccess', [
-                'type' => Response::MODEL_METRIC,
-                'description' => 'Aggregated number of successful site builds per period.',
-                'default' => [],
-                'example' => [],
-                'array' => true
-            ])
-            ->addRule('buildsFailed', [
-                'type' => Response::MODEL_METRIC,
-                'description' => 'Aggregated number of failed site builds per period.',
                 'default' => [],
                 'example' => [],
                 'array' => true
