@@ -273,12 +273,16 @@ class Screenshots extends Action
             $this->appendToLogs($dbForProject, $deployment->getId(), $queueForRealtime, "[90m[$date] [90m[[0mappwrite[90m][33m Screenshot capturing failed. Deployment will continue. [0m\n");
 
             if (!$screenshotCompleted) {
-                $this->publishUsage(
-                    project: $project,
-                    site: $site,
-                    publisherForUsage: $publisherForUsage,
-                    metric: METRIC_SCREENSHOTS_FAILED
-                );
+                try {
+                    $this->publishUsage(
+                        project: $project,
+                        site: $site,
+                        publisherForUsage: $publisherForUsage,
+                        metric: METRIC_SCREENSHOTS_FAILED
+                    );
+                } catch (\Throwable) {
+                    // Usage publish is best-effort; preserve the original screenshot exception.
+                }
             }
 
             throw $th;
