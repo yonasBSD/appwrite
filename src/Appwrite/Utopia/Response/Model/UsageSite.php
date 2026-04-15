@@ -10,38 +10,6 @@ class UsageSite extends UsageFunction
     {
         parent::__construct();
         $this
-            ->addRule('screenshotsSuccessTotal', [
-                'type' => self::TYPE_INTEGER,
-                'description' => 'Total aggregated number of successful site screenshots.',
-                'default' => 0,
-                'example' => 0,
-            ])
-            ->addRule('screenshotsFailedTotal', [
-                'type' => self::TYPE_INTEGER,
-                'description' => 'Total aggregated number of failed site screenshots.',
-                'default' => 0,
-                'example' => 0,
-            ])
-            ->addRule('screenshotsSuccessRate', [
-                'type' => self::TYPE_FLOAT,
-                'description' => 'Success rate of site screenshots from 0 to 1.',
-                'default' => 0,
-                'example' => 0,
-            ])
-            ->addRule('screenshotsSuccess', [
-                'type' => Response::MODEL_METRIC,
-                'description' => 'Aggregated number of successful site screenshots per period.',
-                'default' => [],
-                'example' => [],
-                'array' => true
-            ])
-            ->addRule('screenshotsFailed', [
-                'type' => Response::MODEL_METRIC,
-                'description' => 'Aggregated number of failed site screenshots per period.',
-                'default' => [],
-                'example' => [],
-                'array' => true
-            ])
             ->addRule('requestsTotal', [
                 'type' => self::TYPE_INTEGER,
                 'description' => 'Total aggregated number of requests.',

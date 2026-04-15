@@ -74,8 +74,6 @@ class XList extends Base
             str_replace("{resourceType}", RESOURCE_TYPE_SITES, METRIC_RESOURCE_TYPE_EXECUTIONS_MB_SECONDS),
             str_replace("{resourceType}", RESOURCE_TYPE_SITES, METRIC_RESOURCE_TYPE_BUILDS_SUCCESS),
             str_replace("{resourceType}", RESOURCE_TYPE_SITES, METRIC_RESOURCE_TYPE_BUILDS_FAILED),
-            str_replace("{resourceType}", RESOURCE_TYPE_SITES, METRIC_RESOURCE_TYPE_SCREENSHOTS_SUCCESS),
-            str_replace("{resourceType}", RESOURCE_TYPE_SITES, METRIC_RESOURCE_TYPE_SCREENSHOTS_FAILED),
             METRIC_SITES_REQUESTS,
             METRIC_SITES_INBOUND,
             METRIC_SITES_OUTBOUND,
@@ -124,10 +122,6 @@ class XList extends Base
                 ];
             }
         }
-        $screenshotsSuccessTotal = $usage[$metrics[12]]['total'] ?? 0;
-        $screenshotsFailedTotal = $usage[$metrics[13]]['total'] ?? 0;
-        $screenshotsTotal = $screenshotsSuccessTotal + $screenshotsFailedTotal;
-
         $response->dynamic(new Document([
             'range' => $range,
             'sitesTotal' => $usage[$metrics[0]]['total'],
@@ -142,12 +136,9 @@ class XList extends Base
             'executionsMbSecondsTotal' => $usage[$metrics[9]]['total'],
             'buildsSuccessTotal' => $usage[$metrics[10]]['total'],
             'buildsFailedTotal' => $usage[$metrics[11]]['total'],
-            'screenshotsSuccessTotal' => $screenshotsSuccessTotal,
-            'screenshotsFailedTotal' => $screenshotsFailedTotal,
-            'screenshotsSuccessRate' => $screenshotsTotal === 0 ? 0 : $screenshotsSuccessTotal / $screenshotsTotal,
-            'requestsTotal' => $usage[$metrics[14]]['total'],
-            'inboundTotal' => $usage[$metrics[15]]['total'],
-            'outboundTotal' => $usage[$metrics[16]]['total'],
+            'requestsTotal' => $usage[$metrics[12]]['total'],
+            'inboundTotal' => $usage[$metrics[13]]['total'],
+            'outboundTotal' => $usage[$metrics[14]]['total'],
             'sites' => $usage[$metrics[0]]['data'],
             'deployments' => $usage[$metrics[1]]['data'],
             'deploymentsStorage' => $usage[$metrics[2]]['data'],
@@ -160,11 +151,9 @@ class XList extends Base
             'executionsMbSeconds' => $usage[$metrics[9]]['data'],
             'buildsSuccess' => $usage[$metrics[10]]['data'],
             'buildsFailed' => $usage[$metrics[11]]['data'],
-            'screenshotsSuccess' => $usage[$metrics[12]]['data'],
-            'screenshotsFailed' => $usage[$metrics[13]]['data'],
-            'requests' => $usage[$metrics[14]]['data'],
-            'inbound' => $usage[$metrics[15]]['data'],
-            'outbound' => $usage[$metrics[16]]['data'],
+            'requests' => $usage[$metrics[12]]['data'],
+            'inbound' => $usage[$metrics[13]]['data'],
+            'outbound' => $usage[$metrics[14]]['data'],
         ]), Response::MODEL_USAGE_SITES);
     }
 }

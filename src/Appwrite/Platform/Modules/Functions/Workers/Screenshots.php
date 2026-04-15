@@ -4,12 +4,9 @@ namespace Appwrite\Platform\Modules\Functions\Workers;
 
 use Ahc\Jwt\JWT;
 use Appwrite\Event\Message\Screenshot;
-use Appwrite\Event\Message\Usage as UsageMessage;
-use Appwrite\Event\Publisher\Usage as UsagePublisher;
 use Appwrite\Event\Realtime;
 use Appwrite\Permission;
 use Appwrite\Role;
-use Appwrite\Usage\Context;
 use Exception;
 use Utopia\Compression\Compression;
 use Utopia\Config\Config;
@@ -23,6 +20,7 @@ use Utopia\Platform\Action;
 use Utopia\Queue\Message;
 use Utopia\Storage\Device;
 use Utopia\System\System;
+use Utopia\Telemetry\Adapter as Telemetry;
 
 use function Swoole\Coroutine\batch;
 
@@ -47,7 +45,7 @@ class Screenshots extends Action
             ->inject('dbForProject')
             ->inject('project')
             ->inject('deviceForFiles')
-            ->inject('publisherForUsage')
+            ->inject('telemetry')
             ->callback($this->action(...));
     }
 
@@ -58,12 +56,11 @@ class Screenshots extends Action
         Database $dbForProject,
         Document $project,
         Device $deviceForFiles,
-        UsagePublisher $publisherForUsage
+        Telemetry $telemetry
     ): void {
         Console::log('Screenshot action started');
 
         $payload = $message->getPayload() ?? [];
-        $screenshotCompleted = false;
 
         if (empty($payload)) {
             throw new \Exception('Missing payload');
@@ -266,7 +263,6 @@ class Screenshots extends Action
                 'deploymentScreenshotDark' => $deployment->getAttribute('screenshotDark', ''),
                 'deploymentScreenshotLight' => $deployment->getAttribute('screenshotLight', ''),
             ]));
-            $screenshotCompleted = true;
         } catch (\Throwable $th) {
             Console::warning("Screenshot failed to generate:");
             Console::warning($th->getMessage());
@@ -275,62 +271,26 @@ class Screenshots extends Action
             $date = \date('H:i:s');
             $this->appendToLogs($dbForProject, $deployment->getId(), $queueForRealtime, "[90m[$date] [90m[[0mappwrite[90m][33m Screenshot capturing failed. Deployment will continue. [0m\n");
 
-            if (!$screenshotCompleted) {
-                try {
-                    $this->publishUsage(
-                        project: $project,
-                        site: $site,
-                        publisherForUsage: $publisherForUsage,
-                        metric: METRIC_SCREENSHOTS_FAILED
-                    );
-                } catch (\Throwable) {
-                    // Usage publish is best-effort; preserve the original screenshot exception.
-                }
-            }
+            $this->recordTelemetry($telemetry, 'failure');
 
             throw $th;
         }
 
-        $this->publishUsage(
-            project: $project,
-            site: $site,
-            publisherForUsage: $publisherForUsage,
-            metric: METRIC_SCREENSHOTS_SUCCESS
-        );
+        $this->recordTelemetry($telemetry, 'success');
     }
 
-    protected function publishUsage(
-        Document $project,
-        Document $site,
-        UsagePublisher $publisherForUsage,
-        string $metric
-    ): void {
-        [$resourceMetric, $resourceIdMetric] = match ($metric) {
-            METRIC_SCREENSHOTS_SUCCESS => [
-                METRIC_RESOURCE_TYPE_SCREENSHOTS_SUCCESS,
-                METRIC_RESOURCE_TYPE_ID_SCREENSHOTS_SUCCESS,
-            ],
-            METRIC_SCREENSHOTS_FAILED => [
-                METRIC_RESOURCE_TYPE_SCREENSHOTS_FAILED,
-                METRIC_RESOURCE_TYPE_ID_SCREENSHOTS_FAILED,
-            ],
-            default => throw new \InvalidArgumentException('Unknown screenshot metric: ' . $metric),
-        };
-
-        $usage = (new Context())
-            ->addMetric($metric, 1)
-            ->addMetric(str_replace('{resourceType}', RESOURCE_TYPE_SITES, $resourceMetric), 1)
-            ->addMetric(str_replace(
-                ['{resourceType}', '{resourceInternalId}'],
-                [RESOURCE_TYPE_SITES, $site->getSequence()],
-                $resourceIdMetric
-            ), 1);
-
-        $publisherForUsage->enqueue(new UsageMessage(
-            project: $project,
-            metrics: $usage->getMetrics(),
-            reduce: $usage->getReduce()
-        ));
+    protected function recordTelemetry(Telemetry $telemetry, string $result): void
+    {
+        try {
+            $telemetry
+                ->createCounter('worker.screenshots.capture')
+                ->add(1, [
+                    'resourceType' => RESOURCE_TYPE_SITES,
+                    'result' => $result,
+                ]);
+        } catch (\Throwable) {
+            // Telemetry should never affect screenshot processing.
+        }
     }
 
     protected function appendToLogs(Database $dbForProject, string $deploymentId, Realtime $queueForRealtime, string $logs)
