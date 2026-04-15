@@ -19,7 +19,7 @@ abstract class Template extends Model
                 'type' => self::TYPE_STRING,
                 'description' => 'Template locale',
                 'default' => '',
-                'example' => 'en_us',
+                'example' => 'worldwide',
             ])
             ->addRule('message', [
                 'type' => self::TYPE_STRING,
