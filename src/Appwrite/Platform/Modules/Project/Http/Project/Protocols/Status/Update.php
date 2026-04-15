@@ -33,8 +33,8 @@ class Update extends Action
             ->desc('Update project protocol status')
             ->groups(['api', 'project'])
             ->label('scope', 'project.write')
-            ->label('event', 'protocols.[protocol].update')
-            ->label('audits.event', 'project.protocols.[protocol].update')
+            ->label('event', 'protocols.[protocolId].update')
+            ->label('audits.event', 'project.protocols.[protocolId].update')
             ->label('audits.resource', 'project.protocols/{response.$id}')
             ->label('sdk', new Method(
                 namespace: 'project',
