@@ -865,8 +865,7 @@ Http::get('/v1/projects/:projectId/templates/email/:type/:locale')
         }
 
         $templates = $project->getAttribute('templates', []);
-        $template  = $templates['email.' . $type . '-' . $locale]
-            ?? ($locale !== 'worldwide' ? ($templates['email.' . $type . '-worldwide'] ?? null) : null);
+        $template  = $templates['email.' . $type . '-' . $locale] ?? null;
 
         $localeObj = new Locale($locale);
         $localeObj->setFallback(System::getEnv('_APP_LOCALE', 'en'));
