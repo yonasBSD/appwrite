@@ -75,9 +75,9 @@ class DatabasesNumericTypesTest extends Scope
         $this->client->call(Client::METHOD_POST, '/tablesdb/' . $databaseId . '/tables/' . $tableId . '/columns/bigint', $headers, [
             'key' => 'bigint_field',
             'required' => false,
-            'min' => -900719925,
-            'max' => 900719925,
-            'default' => 123,
+            'min' => -9007199254740991,
+            'max' => 9007199254740991,
+            'default' => 9007199254740000,
         ]);
 
         // Cache before waiting so that if waitForAllAttributes times out,
@@ -139,9 +139,9 @@ class DatabasesNumericTypesTest extends Scope
         $this->client->call(Client::METHOD_POST, '/tablesdb/' . $databaseId . '/tables/' . $tableId . '/columns/bigint', $headers, [
             'key' => 'bigint_field',
             'required' => false,
-            'min' => -900719925,
-            'max' => 900719925,
-            'default' => 123,
+            'min' => -9007199254740991,
+            'max' => 9007199254740991,
+            'default' => 9007199254740000,
         ]);
 
         $this->waitForAllAttributes($databaseId, $tableId);
@@ -213,9 +213,9 @@ class DatabasesNumericTypesTest extends Scope
         $this->assertEquals('bigint', $bigintColumn['body']['type']);
         $this->assertEquals(false, $bigintColumn['body']['required']);
         $this->assertEquals(false, $bigintColumn['body']['array']);
-        $this->assertEquals(-900719925, $bigintColumn['body']['min']);
-        $this->assertEquals(900719925, $bigintColumn['body']['max']);
-        $this->assertEquals(123, $bigintColumn['body']['default']);
+        $this->assertEquals(-9007199254740991, $bigintColumn['body']['min']);
+        $this->assertEquals(9007199254740991, $bigintColumn['body']['max']);
+        $this->assertEquals(9007199254740000, $bigintColumn['body']['default']);
     }
 
     public function testListColumnsWithNumericTypes(): void

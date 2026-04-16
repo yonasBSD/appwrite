@@ -277,9 +277,6 @@ class Create extends Action
         $key = $attribute['key'];
         $type = $attribute['type'];
         switch ($type) {
-            case Database::VAR_INTEGER:
-                $size = 4;
-                break;
             case Database::VAR_BIGINT:
                 $size = 8;
                 break;
