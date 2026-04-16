@@ -21,7 +21,7 @@ class ProviderRepositoryRuntimeList extends BaseList
 
         $this->addRule('type', [
             'type' => self::TYPE_ENUM,
-            'description' => 'Repository detection type.',
+            'description' => 'Provider repository list type.',
             'default' => 'runtime',
             'example' => 'runtime',
             'enum' => ['runtime', 'framework'],

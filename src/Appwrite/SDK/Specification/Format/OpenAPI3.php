@@ -318,7 +318,7 @@ class OpenAPI3 extends Format
                                 $produces => [
                                     'schema' => \array_filter([
                                         'oneOf' => \array_map(fn ($m) => ['$ref' => '#/components/schemas/' . $m->getType()], $model),
-                                        'discriminator' => $this->getDisciminator($model, '#/components/schemas/'),
+                                        'discriminator' => $this->getDiscriminator($model, '#/components/schemas/'),
                                     ]),
                                 ],
                             ],
@@ -906,16 +906,8 @@ class OpenAPI3 extends Format
                                     'anyOf' => \array_map(function ($type) {
                                         return ['$ref' => '#/components/schemas/' . $type];
                                     }, $rule['type']),
-                                    'discriminator' => $this->getDisciminator(
-                                        \array_map(function (string $type) {
-                                            foreach ($this->models as $model) {
-                                                if ($model->getType() === $type) {
-                                                    return $model;
-                                                }
-                                            }
-
-                                            throw new \RuntimeException("Unresolved model '{$type}'. Ensure the model is registered.");
-                                        }, $rule['type']),
+                                    'discriminator' => $this->getDiscriminator(
+                                        $this->resolveModels($rule['type']),
                                         '#/components/schemas/'
                                     ),
                                 ]);
@@ -924,16 +916,8 @@ class OpenAPI3 extends Format
                                     'oneOf' => \array_map(function ($type) {
                                         return ['$ref' => '#/components/schemas/' . $type];
                                     }, $rule['type']),
-                                    'discriminator' => $this->getDisciminator(
-                                        \array_map(function (string $type) {
-                                            foreach ($this->models as $model) {
-                                                if ($model->getType() === $type) {
-                                                    return $model;
-                                                }
-                                            }
-
-                                            throw new \RuntimeException("Unresolved model '{$type}'. Ensure the model is registered.");
-                                        }, $rule['type']),
+                                    'discriminator' => $this->getDiscriminator(
+                                        $this->resolveModels($rule['type']),
                                         '#/components/schemas/'
                                     ),
                                 ]);

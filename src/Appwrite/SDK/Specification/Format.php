@@ -264,10 +264,27 @@ abstract class Format
     }
 
     /**
+     * @param array<string> $types
+     * @return array<Model>
+     */
+    protected function resolveModels(array $types): array
+    {
+        return \array_map(function (string $type) {
+            foreach ($this->models as $model) {
+                if ($model->getType() === $type) {
+                    return $model;
+                }
+            }
+
+            throw new \RuntimeException("Unresolved model '{$type}'. Ensure the model is registered.");
+        }, $types);
+    }
+
+    /**
      * @param array<Model> $models
      * @return array<string, mixed>|null
      */
-    protected function getDisciminator(array $models, string $refPrefix): ?array
+    protected function getDiscriminator(array $models, string $refPrefix): ?array
     {
         if (\count($models) < 2) {
             return null;

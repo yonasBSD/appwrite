@@ -21,7 +21,7 @@ class ProviderRepositoryFrameworkList extends BaseList
 
         $this->addRule('type', [
             'type' => self::TYPE_ENUM,
-            'description' => 'Repository detection type.',
+            'description' => 'Provider repository list type.',
             'default' => 'framework',
             'example' => 'framework',
             'enum' => ['runtime', 'framework'],

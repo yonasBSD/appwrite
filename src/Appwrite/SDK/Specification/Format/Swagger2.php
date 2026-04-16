@@ -326,7 +326,7 @@ class Swagger2 extends Format
                                 'x-oneOf' => \array_map(function ($m) {
                                     return ['$ref' => '#/definitions/' . $m->getType()];
                                 }, $model),
-                                'x-discriminator' => $this->getDisciminator($model, '#/definitions/'),
+                                'x-discriminator' => $this->getDiscriminator($model, '#/definitions/'),
                             ]),
                         ];
                     } else {
@@ -884,32 +884,16 @@ class Swagger2 extends Format
                             if ($rule['array']) {
                                 $items = \array_filter([
                                     'x-anyOf' => \array_map(fn ($type) =>  ['$ref' => '#/definitions/' . $type], $rule['type']),
-                                    'x-discriminator' => $this->getDisciminator(
-                                        \array_map(function (string $type) {
-                                            foreach ($this->models as $model) {
-                                                if ($model->getType() === $type) {
-                                                    return $model;
-                                                }
-                                            }
-
-                                            throw new \RuntimeException("Unresolved model '{$type}'. Ensure the model is registered.");
-                                        }, $rule['type']),
+                                    'x-discriminator' => $this->getDiscriminator(
+                                        $this->resolveModels($rule['type']),
                                         '#/definitions/'
                                     ),
                                 ]);
                             } else {
                                 $items = \array_filter([
                                     'x-oneOf' => \array_map(fn ($type) => ['$ref' => '#/definitions/' . $type], $rule['type']),
-                                    'x-discriminator' => $this->getDisciminator(
-                                        \array_map(function (string $type) {
-                                            foreach ($this->models as $model) {
-                                                if ($model->getType() === $type) {
-                                                    return $model;
-                                                }
-                                            }
-
-                                            throw new \RuntimeException("Unresolved model '{$type}'. Ensure the model is registered.");
-                                        }, $rule['type']),
+                                    'x-discriminator' => $this->getDiscriminator(
+                                        $this->resolveModels($rule['type']),
                                         '#/definitions/'
                                     ),
                                 ]);
