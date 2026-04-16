@@ -287,13 +287,7 @@ abstract class Format
         $candidateKeys = null;
 
         foreach ($models as $model) {
-            $keys = [];
-
-            foreach ($model->conditions as $key => $condition) {
-                if ($this->isDiscriminatorConditionSupported($condition)) {
-                    $keys[] = $key;
-                }
-            }
+            $keys = \array_keys($model->conditions);
 
             $candidateKeys = $candidateKeys === null
                 ? $keys
@@ -316,7 +310,25 @@ abstract class Format
                 }
 
                 $condition = $model->conditions[$key];
-                $values = \is_array($condition) ? $condition : [$condition];
+                if (!\is_array($condition)) {
+                    if (!\is_scalar($condition)) {
+                        continue 2;
+                    }
+
+                    $values = [$condition];
+                } else {
+                    if ($condition === []) {
+                        continue 2;
+                    }
+
+                    $values = $condition;
+
+                    foreach ($values as $value) {
+                        if (!\is_scalar($value)) {
+                            continue 3;
+                        }
+                    }
+                }
 
                 if (isset($rules[$key]['enum']) && \is_array($rules[$key]['enum'])) {
                     $values = \array_values(\array_filter(
@@ -353,25 +365,6 @@ abstract class Format
         }
 
         return null;
-    }
-
-    protected function isDiscriminatorConditionSupported(mixed $condition): bool
-    {
-        if (\is_scalar($condition) || \is_bool($condition)) {
-            return true;
-        }
-
-        if (!\is_array($condition) || $condition === []) {
-            return false;
-        }
-
-        foreach ($condition as $value) {
-            if (!(\is_scalar($value) || \is_bool($value))) {
-                return false;
-            }
-        }
-
-        return true;
     }
 
     protected function getRequestEnumName(string $service, string $method, string $param): ?string
