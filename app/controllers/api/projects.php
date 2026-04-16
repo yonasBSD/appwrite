@@ -868,8 +868,9 @@ Http::get('/v1/projects/:projectId/templates/email/:type/:locale')
         $templates = $project->getAttribute('templates', []);
         $template  = $templates['email.' . $type . '-' . $locale] ?? null;
 
-        $localeObj = new Locale($locale);
-        $localeObj->setFallback(System::getEnv('_APP_LOCALE', 'en'));
+        $fallbackLocale = System::getEnv('_APP_LOCALE', 'en');
+        $localeObj = new Locale($locale === 'worldwide' ? $fallbackLocale : $locale);
+        $localeObj->setFallback($fallbackLocale);
 
         if (is_null($template)) {
             /**

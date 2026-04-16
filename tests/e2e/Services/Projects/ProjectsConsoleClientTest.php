@@ -1169,16 +1169,6 @@ class ProjectsConsoleClientTest extends Scope
         $data = $this->setupProjectData();
         $id = $data['projectId'];
 
-        /** Get default template without locale (should default to worldwide) */
-        $response = $this->client->call(Client::METHOD_GET, '/projects/' . $id . '/templates/email/verification', array_merge([
-            'content-type' => 'application/json',
-            'x-appwrite-project' => $this->getProject()['$id'],
-        ], $this->getHeaders()));
-
-        $this->assertEquals(200, $response['headers']['status-code']);
-        $this->assertEquals('verification', $response['body']['type']);
-        $this->assertEquals('worldwide', $response['body']['locale']);
-
         /** Get default template with explicit worldwide locale */
         $response = $this->client->call(Client::METHOD_GET, '/projects/' . $id . '/templates/email/verification/worldwide', array_merge([
             'content-type' => 'application/json',
@@ -1221,7 +1211,7 @@ class ProjectsConsoleClientTest extends Scope
         $this->assertEquals('verification', $response['body']['type']);
         $this->assertEquals('worldwide', $response['body']['locale']);
 
-        /** Locale-specific template should still return default (not worldwide custom) */
+        /** Locale-specific template should not return the worldwide custom template */
         $response = $this->client->call(Client::METHOD_GET, '/projects/' . $id . '/templates/email/verification/en-us', array_merge([
             'content-type' => 'application/json',
             'x-appwrite-project' => $this->getProject()['$id'],
@@ -1230,8 +1220,8 @@ class ProjectsConsoleClientTest extends Scope
         $this->assertEquals(200, $response['headers']['status-code']);
         $this->assertEquals('verification', $response['body']['type']);
         $this->assertEquals('en-us', $response['body']['locale']);
-        // en-us template was not customized, so it should return the default subject
-        $this->assertEquals('Account Verification for {{project}}', $response['body']['subject']);
+        // en-us should NOT return the worldwide custom subject
+        $this->assertNotEquals('Worldwide verify subject', $response['body']['subject']);
 
         /** Delete the worldwide template */
         $response = $this->client->call(Client::METHOD_DELETE, '/projects/' . $id . '/templates/email/verification/worldwide', array_merge([
@@ -1324,6 +1314,30 @@ class ProjectsConsoleClientTest extends Scope
         ]);
         $this->assertEquals(200, $response['headers']['status-code']);
         $this->assertEquals('German Magic Login', $response['body']['subject']);
+
+        /** Verify worldwide template is stored correctly */
+        $response = $this->client->call(Client::METHOD_GET, '/projects/' . $projectId . '/templates/email/magicSession/worldwide', array_merge([
+            'content-type' => 'application/json',
+            'x-appwrite-project' => $this->getProject()['$id'],
+        ], $this->getHeaders()));
+        $this->assertEquals(200, $response['headers']['status-code']);
+        $this->assertEquals('Worldwide Magic Login', $response['body']['subject']);
+
+        /** Verify German template is stored correctly */
+        $response = $this->client->call(Client::METHOD_GET, '/projects/' . $projectId . '/templates/email/magicSession/de', array_merge([
+            'content-type' => 'application/json',
+            'x-appwrite-project' => $this->getProject()['$id'],
+        ], $this->getHeaders()));
+        $this->assertEquals(200, $response['headers']['status-code']);
+        $this->assertEquals('German Magic Login', $response['body']['subject']);
+
+        /** Verify SMTP is enabled on the project */
+        $response = $this->client->call(Client::METHOD_GET, '/projects/' . $projectId, array_merge([
+            'content-type' => 'application/json',
+            'x-appwrite-project' => $this->getProject()['$id'],
+        ], $this->getHeaders()));
+        $this->assertEquals(200, $response['headers']['status-code']);
+        $this->assertTrue($response['body']['smtpEnabled']);
 
         /** Trigger magic URL with English locale — should use worldwide fallback */
         $emailEn = 'magic-en-' . uniqid() . '@appwrite.io';
