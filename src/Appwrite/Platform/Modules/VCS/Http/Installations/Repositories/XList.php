@@ -313,7 +313,6 @@ class XList extends Action
         }, $repos);
 
         $response->dynamic(new Document([
-            'type' => $type,
             $type === 'framework' ? 'frameworkProviderRepositories' : 'runtimeProviderRepositories' => $repos,
             'total' => $total,
         ]), ($type === 'framework') ? Response::MODEL_PROVIDER_REPOSITORY_FRAMEWORK_LIST : Response::MODEL_PROVIDER_REPOSITORY_RUNTIME_LIST);
