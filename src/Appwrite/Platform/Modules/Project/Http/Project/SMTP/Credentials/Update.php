@@ -1,6 +1,6 @@
 <?php
 
-namespace Appwrite\Platform\Modules\Project\Http\Project\SMTP;
+namespace Appwrite\Platform\Modules\Project\Http\Project\SMTP\Credentials;
 
 use Appwrite\Extend\Exception;
 use Appwrite\Platform\Action;
@@ -28,14 +28,14 @@ class Update extends Action
 
     public static function getName()
     {
-        return 'updateProjectSMTP';
+        return 'updateProjectSMTPCredentials';
     }
 
     public function __construct()
     {
         $this
             ->setHttpMethod(Action::HTTP_REQUEST_METHOD_PATCH)
-            ->setHttpPath('/v1/project/smtp')
+            ->setHttpPath('/v1/project/smtp/credentials')
             ->httpAlias('/v1/projects/:projectId/smtp')
             ->desc('Update project SMTP details')
             ->groups(['api', 'project'])
@@ -46,7 +46,7 @@ class Update extends Action
             ->label('sdk', new Method(
                 namespace: 'project',
                 group: 'smtp',
-                name: 'updateSMTP',
+                name: 'updateSMTPCredentials',
                 description: <<<EOT
                 Update the SMTP configuration for your project. Use this endpoint to configure your project's SMTP provider with your custom settings for sending transactional emails.
                 EOT,

@@ -24,9 +24,9 @@ use Appwrite\Platform\Modules\Project\Http\Project\Platforms\Windows\Update as U
 use Appwrite\Platform\Modules\Project\Http\Project\Platforms\XList as ListPlatforms;
 use Appwrite\Platform\Modules\Project\Http\Project\Protocols\Status\Update as UpdateProjectProtocolStatus;
 use Appwrite\Platform\Modules\Project\Http\Project\Services\Status\Update as UpdateProjectServiceStatus;
+use Appwrite\Platform\Modules\Project\Http\Project\SMTP\Credentials\Update as UpdateSMTPCredentials;
 use Appwrite\Platform\Modules\Project\Http\Project\SMTP\Status\Update as UpdateSMTPStatus;
-use Appwrite\Platform\Modules\Project\Http\Project\SMTP\Test\Create as CreateSMTPTest;
-use Appwrite\Platform\Modules\Project\Http\Project\SMTP\Update as UpdateSMTP;
+use Appwrite\Platform\Modules\Project\Http\Project\SMTP\Tests\Create as CreateSMTPTest;
 use Appwrite\Platform\Modules\Project\Http\Project\Variables\Create as CreateVariable;
 use Appwrite\Platform\Modules\Project\Http\Project\Variables\Delete as DeleteVariable;
 use Appwrite\Platform\Modules\Project\Http\Project\Variables\Get as GetVariable;
@@ -49,7 +49,7 @@ class Http extends Service
         $this->addAction(UpdateProjectServiceStatus::getName(), new UpdateProjectServiceStatus());
 
         // SMTP
-        $this->addAction(UpdateSMTP::getName(), new UpdateSMTP());
+        $this->addAction(UpdateSMTPCredentials::getName(), new UpdateSMTPCredentials());
         $this->addAction(UpdateSMTPStatus::getName(), new UpdateSMTPStatus());
         $this->addAction(CreateSMTPTest::getName(), new CreateSMTPTest());
 

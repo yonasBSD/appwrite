@@ -1,6 +1,6 @@
 <?php
 
-namespace Appwrite\Platform\Modules\Project\Http\Project\SMTP\Test;
+namespace Appwrite\Platform\Modules\Project\Http\Project\SMTP\Tests;
 
 use Appwrite\Event\Mail;
 use Appwrite\Extend\Exception as Exception;
