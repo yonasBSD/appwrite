@@ -858,7 +858,7 @@ Http::get('/v1/projects/:projectId/templates/email/:type/:locale')
     ])), 'Template locale', true, ['localeCodes'])
     ->inject('response')
     ->inject('dbForPlatform')
-    ->action(function (string $projectId, string $type, ?string $locale, Response $response, Database $dbForPlatform) {
+    ->action(function (string $projectId, string $type, string $locale, Response $response, Database $dbForPlatform) {
         $project = $dbForPlatform->getDocument('projects', $projectId);
 
         if ($project->isEmpty()) {

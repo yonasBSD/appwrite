@@ -1169,6 +1169,16 @@ class ProjectsConsoleClientTest extends Scope
         $data = $this->setupProjectData();
         $id = $data['projectId'];
 
+        /** Get default template without locale (should default to worldwide) */
+        $response = $this->client->call(Client::METHOD_GET, '/projects/' . $id . '/templates/email/verification', array_merge([
+            'content-type' => 'application/json',
+            'x-appwrite-project' => $this->getProject()['$id'],
+        ], $this->getHeaders()));
+
+        $this->assertEquals(200, $response['headers']['status-code']);
+        $this->assertEquals('verification', $response['body']['type']);
+        $this->assertEquals('worldwide', $response['body']['locale']);
+
         /** Get default template with explicit worldwide locale */
         $response = $this->client->call(Client::METHOD_GET, '/projects/' . $id . '/templates/email/verification/worldwide', array_merge([
             'content-type' => 'application/json',
@@ -1247,10 +1257,10 @@ class ProjectsConsoleClientTest extends Scope
     #[Group('smtpAndTemplates')]
     public function testWorldwideFallbackOnMagicURL(): void
     {
-        $smtpHost = System::getEnv('_APP_SMTP_HOST', 'maildev');
-        $smtpPort = intval(System::getEnv('_APP_SMTP_PORT', '1025'));
-        $smtpUsername = System::getEnv('_APP_SMTP_USERNAME', 'user');
-        $smtpPassword = System::getEnv('_APP_SMTP_PASSWORD', 'password');
+        $smtpHost = 'maildev';
+        $smtpPort = 1025;
+        $smtpUsername = 'user';
+        $smtpPassword = 'password';
 
         /** Create a dedicated project for this test */
         $team = $this->client->call(Client::METHOD_POST, '/teams', array_merge([
