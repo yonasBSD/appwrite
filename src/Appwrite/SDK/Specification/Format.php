@@ -434,8 +434,8 @@ abstract class Format
         return \array_filter([
             'propertyName' => $primaryKey,
             'mapping' => !empty($primaryMapping) ? $primaryMapping : null,
-            'x-discriminator-properties' => $allKeys,
-            'x-union-typemap' => $compoundMapping,
+            'x-propertyNames' => $allKeys,
+            'x-mapping' => $compoundMapping,
         ]);
     }
 
