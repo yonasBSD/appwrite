@@ -15,7 +15,7 @@ abstract class Detection extends Model
                 'description' => 'Repository detection type.',
                 'default' => $type,
                 'example' => $type,
-                'enum' => ['runtime', 'framework'],
+                'enum' => [$type],
             ])
             ->addRule('variables', [
                 'type' => Response::MODEL_DETECTION_VARIABLE,
