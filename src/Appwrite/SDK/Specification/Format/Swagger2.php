@@ -885,7 +885,15 @@ class Swagger2 extends Format
                                 $items = \array_filter([
                                     'x-anyOf' => \array_map(fn ($type) =>  ['$ref' => '#/definitions/' . $type], $rule['type']),
                                     'x-discriminator' => $this->getDisciminator(
-                                        \array_map(fn (string $type) => $this->getRegisteredModel($type), $rule['type']),
+                                        \array_map(function (string $type) {
+                                            foreach ($this->models as $model) {
+                                                if ($model->getType() === $type) {
+                                                    return $model;
+                                                }
+                                            }
+
+                                            throw new \RuntimeException("Unresolved model '{$type}'. Ensure the model is registered.");
+                                        }, $rule['type']),
                                         '#/definitions/'
                                     ),
                                 ]);
@@ -893,7 +901,15 @@ class Swagger2 extends Format
                                 $items = \array_filter([
                                     'x-oneOf' => \array_map(fn ($type) => ['$ref' => '#/definitions/' . $type], $rule['type']),
                                     'x-discriminator' => $this->getDisciminator(
-                                        \array_map(fn (string $type) => $this->getRegisteredModel($type), $rule['type']),
+                                        \array_map(function (string $type) {
+                                            foreach ($this->models as $model) {
+                                                if ($model->getType() === $type) {
+                                                    return $model;
+                                                }
+                                            }
+
+                                            throw new \RuntimeException("Unresolved model '{$type}'. Ensure the model is registered.");
+                                        }, $rule['type']),
                                         '#/definitions/'
                                     ),
                                 ]);

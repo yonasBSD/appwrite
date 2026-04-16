@@ -263,17 +263,6 @@ abstract class Format
         return $contents;
     }
 
-    protected function getRegisteredModel(string $type): Model
-    {
-        foreach ($this->models as $model) {
-            if ($model->getType() === $type) {
-                return $model;
-            }
-        }
-
-        throw new \RuntimeException("Unresolved model '{$type}'. Ensure the model is registered.");
-    }
-
     /**
      * @param array<Model> $models
      * @return array<string, mixed>|null
