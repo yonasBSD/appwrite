@@ -278,20 +278,16 @@ abstract class Format
      * @param array<Model> $models
      * @return array<string, mixed>|null
      */
-    protected function getUnionDiscriminator(array $models, string $refPrefix): ?array
+    protected function getDisciminator(array $models, string $refPrefix): ?array
     {
         if (\count($models) < 2) {
             return null;
         }
 
-        $candidateKeys = null;
+        $candidateKeys = \array_keys($models[0]->conditions);
 
-        foreach ($models as $model) {
-            $keys = \array_keys($model->conditions);
-
-            $candidateKeys = $candidateKeys === null
-                ? $keys
-                : \array_values(\array_intersect($candidateKeys, $keys));
+        foreach (\array_slice($models, 1) as $model) {
+            $candidateKeys = \array_values(\array_intersect($candidateKeys, \array_keys($model->conditions)));
         }
 
         if (empty($candidateKeys)) {
@@ -300,33 +296,43 @@ abstract class Format
 
         foreach ($candidateKeys as $key) {
             $mapping = [];
-            $matchedModels = [];
+            $isValid = true;
 
             foreach ($models as $model) {
                 $rules = $model->getRules();
+                $condition = $model->conditions[$key] ?? null;
 
                 if (!isset($rules[$key]) || ($rules[$key]['required'] ?? false) !== true) {
-                    continue 2;
+                    $isValid = false;
+                    break;
                 }
 
-                $condition = $model->conditions[$key];
                 if (!\is_array($condition)) {
                     if (!\is_scalar($condition)) {
-                        continue 2;
+                        $isValid = false;
+                        break;
                     }
 
                     $values = [$condition];
                 } else {
                     if ($condition === []) {
-                        continue 2;
+                        $isValid = false;
+                        break;
                     }
 
                     $values = $condition;
+                    $hasInvalidValue = false;
 
                     foreach ($values as $value) {
                         if (!\is_scalar($value)) {
-                            continue 3;
+                            $hasInvalidValue = true;
+                            break;
                         }
+                    }
+
+                    if ($hasInvalidValue) {
+                        $isValid = false;
+                        break;
                     }
                 }
 
@@ -338,23 +344,29 @@ abstract class Format
                 }
 
                 if ($values === []) {
-                    continue 2;
+                    $isValid = false;
+                    break;
                 }
+
+                $ref = $refPrefix . $model->getType();
 
                 foreach ($values as $value) {
                     $mappingKey = \is_bool($value) ? ($value ? 'true' : 'false') : (string) $value;
 
-                    if (isset($mapping[$mappingKey]) && $mapping[$mappingKey] !== $refPrefix . $model->getType()) {
-                        continue 2;
+                    if (isset($mapping[$mappingKey]) && $mapping[$mappingKey] !== $ref) {
+                        $isValid = false;
+                        break;
                     }
 
-                    $mapping[$mappingKey] = $refPrefix . $model->getType();
+                    $mapping[$mappingKey] = $ref;
                 }
 
-                $matchedModels[$model->getType()] = true;
+                if (!$isValid) {
+                    break;
+                }
             }
 
-            if (\count($matchedModels) !== \count($models)) {
+            if (!$isValid || $mapping === []) {
                 continue;
             }
 

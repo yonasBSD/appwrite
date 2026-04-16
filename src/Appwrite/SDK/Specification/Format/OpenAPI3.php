@@ -318,7 +318,7 @@ class OpenAPI3 extends Format
                                 $produces => [
                                     'schema' => \array_filter([
                                         'oneOf' => \array_map(fn ($m) => ['$ref' => '#/components/schemas/' . $m->getType()], $model),
-                                        'discriminator' => $this->getUnionDiscriminator($model, '#/components/schemas/'),
+                                        'discriminator' => $this->getDisciminator($model, '#/components/schemas/'),
                                     ]),
                                 ],
                             ],
@@ -906,7 +906,7 @@ class OpenAPI3 extends Format
                                     'anyOf' => \array_map(function ($type) {
                                         return ['$ref' => '#/components/schemas/' . $type];
                                     }, $rule['type']),
-                                    'discriminator' => $this->getUnionDiscriminator(
+                                    'discriminator' => $this->getDisciminator(
                                         \array_map(fn (string $type) => $this->getRegisteredModel($type), $rule['type']),
                                         '#/components/schemas/'
                                     ),
@@ -916,7 +916,7 @@ class OpenAPI3 extends Format
                                     'oneOf' => \array_map(function ($type) {
                                         return ['$ref' => '#/components/schemas/' . $type];
                                     }, $rule['type']),
-                                    'discriminator' => $this->getUnionDiscriminator(
+                                    'discriminator' => $this->getDisciminator(
                                         \array_map(fn (string $type) => $this->getRegisteredModel($type), $rule['type']),
                                         '#/components/schemas/'
                                     ),

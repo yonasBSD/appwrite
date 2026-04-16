@@ -326,7 +326,7 @@ class Swagger2 extends Format
                                 'x-oneOf' => \array_map(function ($m) {
                                     return ['$ref' => '#/definitions/' . $m->getType()];
                                 }, $model),
-                                'x-discriminator' => $this->getUnionDiscriminator($model, '#/definitions/'),
+                                'x-discriminator' => $this->getDisciminator($model, '#/definitions/'),
                             ]),
                         ];
                     } else {
@@ -884,7 +884,7 @@ class Swagger2 extends Format
                             if ($rule['array']) {
                                 $items = \array_filter([
                                     'x-anyOf' => \array_map(fn ($type) =>  ['$ref' => '#/definitions/' . $type], $rule['type']),
-                                    'x-discriminator' => $this->getUnionDiscriminator(
+                                    'x-discriminator' => $this->getDisciminator(
                                         \array_map(fn (string $type) => $this->getRegisteredModel($type), $rule['type']),
                                         '#/definitions/'
                                     ),
@@ -892,7 +892,7 @@ class Swagger2 extends Format
                             } else {
                                 $items = \array_filter([
                                     'x-oneOf' => \array_map(fn ($type) => ['$ref' => '#/definitions/' . $type], $rule['type']),
-                                    'x-discriminator' => $this->getUnionDiscriminator(
+                                    'x-discriminator' => $this->getDisciminator(
                                         \array_map(fn (string $type) => $this->getRegisteredModel($type), $rule['type']),
                                         '#/definitions/'
                                     ),
