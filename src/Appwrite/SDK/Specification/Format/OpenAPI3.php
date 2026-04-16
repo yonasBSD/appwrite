@@ -907,7 +907,15 @@ class OpenAPI3 extends Format
                                         return ['$ref' => '#/components/schemas/' . $type];
                                     }, $rule['type']),
                                     'discriminator' => $this->getDiscriminator(
-                                        $this->resolveModels($rule['type']),
+                                        \array_map(function (string $type) {
+                                            foreach ($this->models as $model) {
+                                                if ($model->getType() === $type) {
+                                                    return $model;
+                                                }
+                                            }
+
+                                            throw new \RuntimeException("Unresolved model '{$type}'. Ensure the model is registered.");
+                                        }, $rule['type']),
                                         '#/components/schemas/'
                                     ),
                                 ]);
@@ -917,7 +925,15 @@ class OpenAPI3 extends Format
                                         return ['$ref' => '#/components/schemas/' . $type];
                                     }, $rule['type']),
                                     'discriminator' => $this->getDiscriminator(
-                                        $this->resolveModels($rule['type']),
+                                        \array_map(function (string $type) {
+                                            foreach ($this->models as $model) {
+                                                if ($model->getType() === $type) {
+                                                    return $model;
+                                                }
+                                            }
+
+                                            throw new \RuntimeException("Unresolved model '{$type}'. Ensure the model is registered.");
+                                        }, $rule['type']),
                                         '#/components/schemas/'
                                     ),
                                 ]);
