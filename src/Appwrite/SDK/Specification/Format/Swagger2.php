@@ -322,17 +322,12 @@ class Swagger2 extends Format
                         }
                         $temp['responses'][(string)$response->getCode() ?? '500'] = [
                             'description' => $modelDescription,
-                            'schema' => (function () use ($model) {
-                                $discriminator = $this->getDiscriminator($model, '#/definitions/');
-
-                                return \array_filter([
-                                    'x-oneOf' => \array_map(function ($m) {
-                                        return ['$ref' => '#/definitions/' . $m->getType()];
-                                    }, $model),
-                                    'discriminator' => $discriminator['propertyName'] ?? null,
-                                    'x-discriminator-mapping' => $discriminator['mapping'] ?? null,
-                                ]);
-                            })(),
+                            'schema' => \array_filter([
+                                'x-oneOf' => \array_map(function ($m) {
+                                    return ['$ref' => '#/definitions/' . $m->getType()];
+                                }, $model),
+                                'x-discriminator' => $this->getDiscriminator($model, '#/definitions/'),
+                            ]),
                         ];
                     } else {
                         // Response definition using one type
@@ -886,39 +881,26 @@ class Swagger2 extends Format
                         $rule['type'] = ($rule['type']) ?: 'none';
 
                         if (\is_array($rule['type'])) {
-                            if ($rule['array']) {
-                                $resolvedModels = \array_map(function (string $type) {
-                                    foreach ($this->models as $model) {
-                                        if ($model->getType() === $type) {
-                                            return $model;
-                                        }
+                            $resolvedModels = \array_map(function (string $type) {
+                                foreach ($this->models as $model) {
+                                    if ($model->getType() === $type) {
+                                        return $model;
                                     }
+                                }
 
-                                    throw new \RuntimeException("Unresolved model '{$type}'. Ensure the model is registered.");
-                                }, $rule['type']);
-                                $discriminator = $this->getDiscriminator($resolvedModels, '#/definitions/');
+                                throw new \RuntimeException("Unresolved model '{$type}'. Ensure the model is registered.");
+                            }, $rule['type']);
+                            $xDiscriminator = $this->getDiscriminator($resolvedModels, '#/definitions/');
 
+                            if ($rule['array']) {
                                 $items = \array_filter([
                                     'x-anyOf' => \array_map(fn ($type) =>  ['$ref' => '#/definitions/' . $type], $rule['type']),
-                                    'discriminator' => $discriminator['propertyName'] ?? null,
-                                    'x-discriminator-mapping' => $discriminator['mapping'] ?? null,
+                                    'x-discriminator' => $xDiscriminator,
                                 ]);
                             } else {
-                                $resolvedModels = \array_map(function (string $type) {
-                                    foreach ($this->models as $model) {
-                                        if ($model->getType() === $type) {
-                                            return $model;
-                                        }
-                                    }
-
-                                    throw new \RuntimeException("Unresolved model '{$type}'. Ensure the model is registered.");
-                                }, $rule['type']);
-                                $discriminator = $this->getDiscriminator($resolvedModels, '#/definitions/');
-
                                 $items = \array_filter([
                                     'x-oneOf' => \array_map(fn ($type) => ['$ref' => '#/definitions/' . $type], $rule['type']),
-                                    'discriminator' => $discriminator['propertyName'] ?? null,
-                                    'x-discriminator-mapping' => $discriminator['mapping'] ?? null,
+                                    'x-discriminator' => $xDiscriminator,
                                 ]);
                             }
                         } else {

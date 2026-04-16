@@ -365,7 +365,78 @@ abstract class Format
             ];
         }
 
-        return null;
+        // Single-key failed — try compound discriminator
+        return $this->getCompoundDiscriminator($models, $refPrefix);
+    }
+
+    /**
+     * @param array<Model> $models
+     * @return array<string, mixed>|null
+     */
+    private function getCompoundDiscriminator(array $models, string $refPrefix): ?array
+    {
+        $allKeys = [];
+        foreach ($models as $model) {
+            foreach (\array_keys($model->conditions) as $key) {
+                if (!\in_array($key, $allKeys, true)) {
+                    $allKeys[] = $key;
+                }
+            }
+        }
+
+        if (\count($allKeys) < 2) {
+            return null;
+        }
+
+        $primaryKey = $allKeys[0];
+        $primaryMapping = [];
+        $compoundMapping = [];
+
+        foreach ($models as $model) {
+            $rules = $model->getRules();
+            $conditions = [];
+
+            foreach ($model->conditions as $key => $condition) {
+                if (!isset($rules[$key]) || ($rules[$key]['required'] ?? false) !== true) {
+                    return null;
+                }
+
+                if (!\is_scalar($condition)) {
+                    return null;
+                }
+
+                $conditions[$key] = \is_bool($condition) ? ($condition ? 'true' : 'false') : (string) $condition;
+            }
+
+            if (empty($conditions)) {
+                return null;
+            }
+
+            $ref = $refPrefix . $model->getType();
+            $compoundMapping[$ref] = $conditions;
+
+            // Best-effort single-key mapping — last model with this value wins (fallback)
+            if (isset($conditions[$primaryKey])) {
+                $primaryMapping[$conditions[$primaryKey]] = $ref;
+            }
+        }
+
+        // Verify compound uniqueness
+        $seen = [];
+        foreach ($compoundMapping as $conditions) {
+            $sig = \json_encode($conditions, JSON_THROW_ON_ERROR);
+            if (isset($seen[$sig])) {
+                return null;
+            }
+            $seen[$sig] = true;
+        }
+
+        return \array_filter([
+            'propertyName' => $primaryKey,
+            'mapping' => !empty($primaryMapping) ? $primaryMapping : null,
+            'x-propertyNames' => $allKeys,
+            'x-mapping' => $compoundMapping,
+        ]);
     }
 
     protected function getRequestEnumName(string $service, string $method, string $param): ?string

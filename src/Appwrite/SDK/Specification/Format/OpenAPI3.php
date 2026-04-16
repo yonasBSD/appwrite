@@ -901,41 +901,29 @@ class OpenAPI3 extends Format
                         $rule['type'] = ($rule['type']) ? $rule['type'] : 'none';
 
                         if (\is_array($rule['type'])) {
+                            $resolvedModels = \array_map(function (string $type) {
+                                foreach ($this->models as $model) {
+                                    if ($model->getType() === $type) {
+                                        return $model;
+                                    }
+                                }
+
+                                throw new \RuntimeException("Unresolved model '{$type}'. Ensure the model is registered.");
+                            }, $rule['type']);
+
                             if ($rule['array']) {
                                 $items = \array_filter([
                                     'anyOf' => \array_map(function ($type) {
                                         return ['$ref' => '#/components/schemas/' . $type];
                                     }, $rule['type']),
-                                    'discriminator' => $this->getDiscriminator(
-                                        \array_map(function (string $type) {
-                                            foreach ($this->models as $model) {
-                                                if ($model->getType() === $type) {
-                                                    return $model;
-                                                }
-                                            }
-
-                                            throw new \RuntimeException("Unresolved model '{$type}'. Ensure the model is registered.");
-                                        }, $rule['type']),
-                                        '#/components/schemas/'
-                                    ),
+                                    'discriminator' => $this->getDiscriminator($resolvedModels, '#/components/schemas/'),
                                 ]);
                             } else {
                                 $items = \array_filter([
                                     'oneOf' => \array_map(function ($type) {
                                         return ['$ref' => '#/components/schemas/' . $type];
                                     }, $rule['type']),
-                                    'discriminator' => $this->getDiscriminator(
-                                        \array_map(function (string $type) {
-                                            foreach ($this->models as $model) {
-                                                if ($model->getType() === $type) {
-                                                    return $model;
-                                                }
-                                            }
-
-                                            throw new \RuntimeException("Unresolved model '{$type}'. Ensure the model is registered.");
-                                        }, $rule['type']),
-                                        '#/components/schemas/'
-                                    ),
+                                    'discriminator' => $this->getDiscriminator($resolvedModels, '#/components/schemas/'),
                                 ]);
                             }
                         } else {
