@@ -263,6 +263,117 @@ abstract class Format
         return $contents;
     }
 
+    protected function getRegisteredModel(string $type): Model
+    {
+        foreach ($this->models as $model) {
+            if ($model->getType() === $type) {
+                return $model;
+            }
+        }
+
+        throw new \RuntimeException("Unresolved model '{$type}'. Ensure the model is registered.");
+    }
+
+    /**
+     * @param array<Model> $models
+     * @return array<string, mixed>|null
+     */
+    protected function getUnionDiscriminator(array $models, string $refPrefix): ?array
+    {
+        if (\count($models) < 2) {
+            return null;
+        }
+
+        $candidateKeys = null;
+
+        foreach ($models as $model) {
+            $keys = [];
+
+            foreach ($model->conditions as $key => $condition) {
+                if ($this->isDiscriminatorConditionSupported($condition)) {
+                    $keys[] = $key;
+                }
+            }
+
+            $candidateKeys = $candidateKeys === null
+                ? $keys
+                : \array_values(\array_intersect($candidateKeys, $keys));
+        }
+
+        if (empty($candidateKeys)) {
+            return null;
+        }
+
+        foreach ($candidateKeys as $key) {
+            $mapping = [];
+            $matchedModels = [];
+
+            foreach ($models as $model) {
+                $rules = $model->getRules();
+
+                if (!isset($rules[$key]) || ($rules[$key]['required'] ?? false) !== true) {
+                    continue 2;
+                }
+
+                $condition = $model->conditions[$key];
+                $values = \is_array($condition) ? $condition : [$condition];
+
+                if (isset($rules[$key]['enum']) && \is_array($rules[$key]['enum'])) {
+                    $values = \array_values(\array_filter(
+                        $values,
+                        fn (mixed $value) => \in_array($value, $rules[$key]['enum'], true)
+                    ));
+                }
+
+                if ($values === []) {
+                    continue 2;
+                }
+
+                foreach ($values as $value) {
+                    $mappingKey = \is_bool($value) ? ($value ? 'true' : 'false') : (string) $value;
+
+                    if (isset($mapping[$mappingKey]) && $mapping[$mappingKey] !== $refPrefix . $model->getType()) {
+                        continue 2;
+                    }
+
+                    $mapping[$mappingKey] = $refPrefix . $model->getType();
+                }
+
+                $matchedModels[$model->getType()] = true;
+            }
+
+            if (\count($matchedModels) !== \count($models)) {
+                continue;
+            }
+
+            return [
+                'propertyName' => $key,
+                'mapping' => $mapping,
+            ];
+        }
+
+        return null;
+    }
+
+    protected function isDiscriminatorConditionSupported(mixed $condition): bool
+    {
+        if (\is_scalar($condition) || \is_bool($condition)) {
+            return true;
+        }
+
+        if (!\is_array($condition) || $condition === []) {
+            return false;
+        }
+
+        foreach ($condition as $value) {
+            if (!(\is_scalar($value) || \is_bool($value))) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     protected function getRequestEnumName(string $service, string $method, string $param): ?string
     {
         /* `$service` is `$namespace` */

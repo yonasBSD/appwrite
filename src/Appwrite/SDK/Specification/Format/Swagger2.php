@@ -322,11 +322,12 @@ class Swagger2 extends Format
                         }
                         $temp['responses'][(string)$response->getCode() ?? '500'] = [
                             'description' => $modelDescription,
-                            'schema' => [
+                            'schema' => \array_filter([
                                 'x-oneOf' => \array_map(function ($m) {
                                     return ['$ref' => '#/definitions/' . $m->getType()];
-                                }, $model)
-                            ],
+                                }, $model),
+                                'x-discriminator' => $this->getUnionDiscriminator($model, '#/definitions/'),
+                            ]),
                         ];
                     } else {
                         // Response definition using one type
@@ -881,13 +882,21 @@ class Swagger2 extends Format
 
                         if (\is_array($rule['type'])) {
                             if ($rule['array']) {
-                                $items = [
-                                    'x-anyOf' => \array_map(fn ($type) =>  ['$ref' => '#/definitions/' . $type], $rule['type'])
-                                ];
+                                $items = \array_filter([
+                                    'x-anyOf' => \array_map(fn ($type) =>  ['$ref' => '#/definitions/' . $type], $rule['type']),
+                                    'x-discriminator' => $this->getUnionDiscriminator(
+                                        \array_map(fn (string $type) => $this->getRegisteredModel($type), $rule['type']),
+                                        '#/definitions/'
+                                    ),
+                                ]);
                             } else {
-                                $items = [
-                                    'x-oneOf' => \array_map(fn ($type) => ['$ref' => '#/definitions/' . $type], $rule['type'])
-                                ];
+                                $items = \array_filter([
+                                    'x-oneOf' => \array_map(fn ($type) => ['$ref' => '#/definitions/' . $type], $rule['type']),
+                                    'x-discriminator' => $this->getUnionDiscriminator(
+                                        \array_map(fn (string $type) => $this->getRegisteredModel($type), $rule['type']),
+                                        '#/definitions/'
+                                    ),
+                                ]);
                             }
                         } else {
                             $items = [

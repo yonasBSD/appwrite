@@ -316,9 +316,10 @@ class OpenAPI3 extends Format
                             'description' => $modelDescription,
                             'content' => [
                                 $produces => [
-                                    'schema' => [
-                                        'oneOf' => \array_map(fn ($m) => ['$ref' => '#/components/schemas/' . $m->getType()], $model)
-                                    ],
+                                    'schema' => \array_filter([
+                                        'oneOf' => \array_map(fn ($m) => ['$ref' => '#/components/schemas/' . $m->getType()], $model),
+                                        'discriminator' => $this->getUnionDiscriminator($model, '#/components/schemas/'),
+                                    ]),
                                 ],
                             ],
                         ];
@@ -901,17 +902,25 @@ class OpenAPI3 extends Format
 
                         if (\is_array($rule['type'])) {
                             if ($rule['array']) {
-                                $items = [
+                                $items = \array_filter([
                                     'anyOf' => \array_map(function ($type) {
                                         return ['$ref' => '#/components/schemas/' . $type];
-                                    }, $rule['type'])
-                                ];
+                                    }, $rule['type']),
+                                    'discriminator' => $this->getUnionDiscriminator(
+                                        \array_map(fn (string $type) => $this->getRegisteredModel($type), $rule['type']),
+                                        '#/components/schemas/'
+                                    ),
+                                ]);
                             } else {
-                                $items = [
+                                $items = \array_filter([
                                     'oneOf' => \array_map(function ($type) {
                                         return ['$ref' => '#/components/schemas/' . $type];
-                                    }, $rule['type'])
-                                ];
+                                    }, $rule['type']),
+                                    'discriminator' => $this->getUnionDiscriminator(
+                                        \array_map(fn (string $type) => $this->getRegisteredModel($type), $rule['type']),
+                                        '#/components/schemas/'
+                                    ),
+                                ]);
                             }
                         } else {
                             $items = [
