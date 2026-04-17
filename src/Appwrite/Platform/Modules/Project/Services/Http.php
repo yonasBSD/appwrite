@@ -24,6 +24,9 @@ use Appwrite\Platform\Modules\Project\Http\Project\Platforms\Windows\Update as U
 use Appwrite\Platform\Modules\Project\Http\Project\Platforms\XList as ListPlatforms;
 use Appwrite\Platform\Modules\Project\Http\Project\Protocols\Update as UpdateProjectProtocol;
 use Appwrite\Platform\Modules\Project\Http\Project\Services\Update as UpdateProjectService;
+use Appwrite\Platform\Modules\Project\Http\Project\Templates\Email\Delete as DeleteTemplate;
+use Appwrite\Platform\Modules\Project\Http\Project\Templates\Email\Get as GetTemplate;
+use Appwrite\Platform\Modules\Project\Http\Project\Templates\Email\Update as UpdateTemplate;
 use Appwrite\Platform\Modules\Project\Http\Project\Variables\Create as CreateVariable;
 use Appwrite\Platform\Modules\Project\Http\Project\Variables\Delete as DeleteVariable;
 use Appwrite\Platform\Modules\Project\Http\Project\Variables\Get as GetVariable;
@@ -44,6 +47,11 @@ class Http extends Service
         $this->addAction(UpdateProjectLabels::getName(), new UpdateProjectLabels());
         $this->addAction(UpdateProjectProtocol::getName(), new UpdateProjectProtocol());
         $this->addAction(UpdateProjectService::getName(), new UpdateProjectService());
+
+        // Templates
+        $this->addAction(GetTemplate::getName(), new GetTemplate());
+        $this->addAction(DeleteTemplate::getName(), new DeleteTemplate());
+        $this->addAction(UpdateTemplate::getName(), new UpdateTemplate());
 
         // Variables
         $this->addAction(CreateVariable::getName(), new CreateVariable());
