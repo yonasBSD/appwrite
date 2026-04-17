@@ -596,8 +596,7 @@ class Builds extends Action
             $memory = max($spec['memory'] ?? APP_COMPUTE_MEMORY_DEFAULT, $minMemory);
             $timeout = $buildTimeout;
 
-            $jwtExpiry = $timeout;
-            $jwtObj = new JWT(System::getEnv('_APP_OPENSSL_KEY_V1'), 'HS256', $jwtExpiry, 0);
+            $jwtObj = new JWT(System::getEnv('_APP_OPENSSL_KEY_V1'), 'HS256', $timeout, 0);
 
             $apiKey = $jwtObj->encode([
                 'projectId' => $project->getId(),
