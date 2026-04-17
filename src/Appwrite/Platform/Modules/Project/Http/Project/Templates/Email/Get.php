@@ -99,7 +99,7 @@ class Get extends Action
                 'placeholders' => ['buttonText', 'body', 'footer']
             ];
 
-            $templateString = file_get_contents(APP_CE_CONFIG_DIR . '/../../config/locale/templates/' . $config['file']);
+            $templateString = file_get_contents(APP_CE_CONFIG_DIR . '/locale/templates/' . $config['file']);
 
             // We use `fromString` due to the replace above
             $message = Template::fromString($templateString);
