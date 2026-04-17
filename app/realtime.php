@@ -600,6 +600,24 @@ $server->onWorkerStart(function (int $workerId) use ($server, $register, $stats,
                             METRIC_REALTIME_CONNECTIONS_MESSAGES_SENT => $total,
                         ];
 
+                        $updatedAt = $event['data']['payload']['$updatedAt'] ?? null;
+                        if (\is_string($updatedAt)) {
+                            try {
+                                $updatedAtDate = new \DateTimeImmutable($updatedAt);
+                                $now = new \DateTimeImmutable('now', new \DateTimeZone('UTC'));
+                                $updatedAtTimestampMs = (float) $updatedAtDate->format('U.u') * 1000;
+                                $nowTimestampMs = (float) $now->format('U.u') * 1000;
+                                $delayMs = (int) \max(
+                                    0,
+                                    $nowTimestampMs - $updatedAtTimestampMs
+                                );
+
+                                $metrics[METRIC_REALTIME_DELIVERY_DELAY] = $delayMs;
+                            } catch (\Throwable) {
+                                // Ignore invalid timestamp payloads.
+                            }
+                        }
+
                         if ($outboundBytes > 0) {
                             $metrics[METRIC_REALTIME_OUTBOUND] = $outboundBytes;
                         }
