@@ -2,16 +2,13 @@
 
 namespace Appwrite\Platform\Modules\Project\Http\Project\Templates\Email;
 
-use Appwrite\Event\Event as QueueEvent;
 use Appwrite\SDK\AuthType;
 use Appwrite\SDK\Method;
 use Appwrite\SDK\Response as SDKResponse;
 use Appwrite\Template\Template;
 use Appwrite\Utopia\Response;
 use Utopia\Config\Config;
-use Utopia\Database\Database;
 use Utopia\Database\Document;
-use Utopia\Database\Validator\Authorization;
 use Utopia\Locale\Locale;
 use Utopia\Platform\Action;
 use Utopia\Platform\Scope\HTTP;
@@ -53,9 +50,6 @@ class Get extends Action
             ->param('type', '', new WhiteList(Config::getParam('locale-templates')['email'] ?? [], true), 'Custom email template type. Can be one of: '.\implode(', ', Config::getParam('locale-templates')['email'] ?? []))
             ->param('locale', '', fn ($localeCodes) => new WhiteList($localeCodes), 'Custom email template locale.', optional: true, injections: ['localeCodes'])
             ->inject('response')
-            ->inject('queueForEvents')
-            ->inject('dbForPlatform')
-            ->inject('authorization')
             ->inject('project')
             ->inject('locale')
             ->callback($this->action(...));
@@ -65,9 +59,6 @@ class Get extends Action
         string $type,
         string $locale,
         Response $response,
-        QueueEvent $queueForEvents,
-        Database $dbForPlatform,
-        Authorization $authorization,
         Document $project,
         Locale $localeObject,
     ) {
@@ -108,7 +99,7 @@ class Get extends Action
                 'placeholders' => ['buttonText', 'body', 'footer']
             ];
 
-            $templateString = file_get_contents(__DIR__ . '/../../config/locale/templates/' . $config['file']);
+            $templateString = file_get_contents(APP_CE_CONFIG_DIR . '/../../config/locale/templates/' . $config['file']);
 
             // We use `fromString` due to the replace above
             $message = Template::fromString($templateString);
