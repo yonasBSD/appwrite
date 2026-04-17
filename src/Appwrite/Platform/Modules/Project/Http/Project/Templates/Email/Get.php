@@ -30,8 +30,7 @@ class Get extends Action
     public function __construct()
     {
         $this->setHttpMethod(Action::HTTP_REQUEST_METHOD_GET)
-            ->setHttpPath('/v1/project/templates/email')
-            ->httpAlias('/v1/projects/:projectId/templates/email')
+            ->setHttpPath('/v1/project/templates/email/:type')
             ->httpAlias('/v1/projects/:projectId/templates/email/:type/:locale')
             ->desc('Get project email template')
             ->groups(['api', 'project'])
