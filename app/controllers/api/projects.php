@@ -833,7 +833,8 @@ Http::post('/v1/projects/:projectId/smtp/tests')
         $response->noContent();
     });
 
-Http::get('/v1/projects/:projectId/templates/email/:type/:locale')
+Http::get('/v1/projects/:projectId/templates/email')
+    ->alias('/v1/projects/:projectId/templates/email/:type/:locale')
     ->desc('Get custom email template')
     ->groups(['api', 'projects'])
     ->label('scope', 'projects.write')
@@ -934,7 +935,8 @@ Http::get('/v1/projects/:projectId/templates/email/:type/:locale')
         $response->dynamic(new Document($template), Response::MODEL_EMAIL_TEMPLATE);
     });
 
-Http::patch('/v1/projects/:projectId/templates/email/:type/:locale')
+Http::patch('/v1/projects/:projectId/templates/email')
+    ->alias('/v1/projects/:projectId/templates/email/:type/:locale')
     ->desc('Update custom email templates')
     ->groups(['api', 'projects'])
     ->label('scope', 'projects.write')
@@ -993,7 +995,8 @@ Http::patch('/v1/projects/:projectId/templates/email/:type/:locale')
         ]), Response::MODEL_EMAIL_TEMPLATE);
     });
 
-Http::delete('/v1/projects/:projectId/templates/email/:type/:locale')
+Http::delete('/v1/projects/:projectId/templates/email')
+    ->alias('/v1/projects/:projectId/templates/email/:type/:locale')
     ->desc('Delete custom email template')
     ->groups(['api', 'projects'])
     ->label('scope', 'projects.write')
