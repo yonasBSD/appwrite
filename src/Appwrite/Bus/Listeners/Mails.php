@@ -73,7 +73,7 @@ class Mails extends Listener
 
         $customTemplate =
             $project->getAttribute('templates', [])["email.sessionAlert-$event->locale"] ??
-            $project->getAttribute('templates', [])['email.sessionAlert-worldwide'] ?? [];
+            $project->getAttribute('templates', [])['email.sessionAlert-' . $locale->fallback] ?? [];
         $isBranded = $smtpBaseTemplate === APP_BRANDED_EMAIL_BASE_TEMPLATE;
 
         $subject = $customTemplate['subject'] ?? $locale->getText('emails.sessionAlert.subject');

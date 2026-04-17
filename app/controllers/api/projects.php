@@ -852,13 +852,13 @@ Http::get('/v1/projects/:projectId/templates/email/:type/:locale')
     ))
     ->param('projectId', '', fn (Database $dbForPlatform) => new UID($dbForPlatform->getAdapter()->getMaxUIDLength()), 'Project unique ID.', false, ['dbForPlatform'])
     ->param('type', '', new WhiteList(Config::getParam('locale-templates')['email'] ?? [], true), 'Template type')
-    ->param('locale', 'worldwide', fn ($localeCodes) => new WhiteList(\array_merge([
-        ...$localeCodes,
-        'worldwide'
-    ])), 'Template locale', true, ['localeCodes'])
+    ->param('locale', '', fn ($localeCodes) => new WhiteList($localeCodes), 'Template locale', true, ['localeCodes'])
     ->inject('response')
     ->inject('dbForPlatform')
-    ->action(function (string $projectId, string $type, string $locale, Response $response, Database $dbForPlatform) {
+    ->inject('locale')
+    ->action(function (string $projectId, string $type, string $locale, Response $response, Database $dbForPlatform, Locale $localeObject) {
+        $locale = $locale ?: $localeObject->default ?: $localeObject->fallback ?: System::getEnv('_APP_LOCALE', 'en');
+
         $project = $dbForPlatform->getDocument('projects', $projectId);
 
         if ($project->isEmpty()) {
@@ -868,9 +868,8 @@ Http::get('/v1/projects/:projectId/templates/email/:type/:locale')
         $templates = $project->getAttribute('templates', []);
         $template  = $templates['email.' . $type . '-' . $locale] ?? null;
 
-        $fallbackLocale = System::getEnv('_APP_LOCALE', 'en');
-        $localeObj = new Locale($locale === 'worldwide' ? $fallbackLocale : $locale);
-        $localeObj->setFallback($fallbackLocale);
+        $localeObj = new Locale($locale);
+        $localeObj->setFallback(System::getEnv('_APP_LOCALE', 'en'));
 
         if (is_null($template)) {
             /**
@@ -954,10 +953,7 @@ Http::patch('/v1/projects/:projectId/templates/email/:type/:locale')
     ))
     ->param('projectId', '', fn (Database $dbForPlatform) => new UID($dbForPlatform->getAdapter()->getMaxUIDLength()), 'Project unique ID.', false, ['dbForPlatform'])
     ->param('type', '', new WhiteList(Config::getParam('locale-templates')['email'] ?? [], true), 'Template type')
-    ->param('locale', 'worldwide', fn ($localeCodes) => new WhiteList(\array_merge([
-        ...$localeCodes,
-        'worldwide'
-    ])), 'Template locale', true, ['localeCodes'])
+    ->param('locale', '', fn ($localeCodes) => new WhiteList($localeCodes), 'Template locale', true, ['localeCodes'])
     ->param('subject', '', new Text(255), 'Email Subject')
     ->param('message', '', new Text(0), 'Template message')
     ->param('senderName', '', new Text(255, 0), 'Name of the email sender', true)
@@ -965,7 +961,10 @@ Http::patch('/v1/projects/:projectId/templates/email/:type/:locale')
     ->param('replyTo', '', new Email(), 'Reply to email', true)
     ->inject('response')
     ->inject('dbForPlatform')
-    ->action(function (string $projectId, string $type, string $locale, string $subject, string $message, string $senderName, string $senderEmail, string $replyTo, Response $response, Database $dbForPlatform) {
+    ->inject('locale')
+    ->action(function (string $projectId, string $type, string $locale, string $subject, string $message, string $senderName, string $senderEmail, string $replyTo, Response $response, Database $dbForPlatform, Locale $localeObject) {
+        $locale = $locale ?: $localeObject->default ?: $localeObject->fallback ?: System::getEnv('_APP_LOCALE', 'en');
+
         $project = $dbForPlatform->getDocument('projects', $projectId);
 
         if ($project->isEmpty()) {
@@ -1014,13 +1013,13 @@ Http::delete('/v1/projects/:projectId/templates/email/:type/:locale')
     ))
     ->param('projectId', '', fn (Database $dbForPlatform) => new UID($dbForPlatform->getAdapter()->getMaxUIDLength()), 'Project unique ID.', false, ['dbForPlatform'])
     ->param('type', '', new WhiteList(Config::getParam('locale-templates')['email'] ?? [], true), 'Template type')
-    ->param('locale', 'worldwide', fn ($localeCodes) => new WhiteList(\array_merge([
-        ...$localeCodes,
-        'worldwide'
-    ])), 'Template locale', true, ['localeCodes'])
+    ->param('locale', '', fn ($localeCodes) => new WhiteList($localeCodes), 'Template locale', true, ['localeCodes'])
     ->inject('response')
     ->inject('dbForPlatform')
-    ->action(function (string $projectId, string $type, string $locale, Response $response, Database $dbForPlatform) {
+    ->inject('locale')
+    ->action(function (string $projectId, string $type, string $locale, Response $response, Database $dbForPlatform, Locale $localeObject) {
+        $locale = $locale ?: $localeObject->default ?: $localeObject->fallback ?: System::getEnv('_APP_LOCALE', 'en');
+
         $project = $dbForPlatform->getDocument('projects', $projectId);
 
         if ($project->isEmpty()) {

@@ -326,7 +326,7 @@ class Create extends Action
                 $subject = $locale->getText('emails.invitation.subject');
                 $customTemplate =
                     $project->getAttribute('templates', [])['email.invitation-' . $locale->default] ??
-                    $project->getAttribute('templates', [])['email.invitation-worldwide'] ?? [];
+                    $project->getAttribute('templates', [])['email.invitation-' . $locale->fallback] ?? [];
 
                 $message = Template::fromFile(APP_CE_CONFIG_DIR . '/locale/templates/email-inner-base.tpl');
                 $message

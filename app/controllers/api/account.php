@@ -2268,7 +2268,7 @@ Http::post('/v1/account/tokens/magic-url')
 
         $customTemplate =
             $project->getAttribute('templates', [])['email.magicSession-' . $locale->default] ??
-            $project->getAttribute('templates', [])['email.magicSession-worldwide'] ?? [];
+            $project->getAttribute('templates', [])['email.magicSession-' . $locale->fallback] ?? [];
 
         $detector = new Detector($request->getUserAgent('UNKNOWN'));
         $agentOs = $detector->getOS();
@@ -2580,7 +2580,7 @@ Http::post('/v1/account/tokens/email')
 
         $customTemplate =
             $project->getAttribute('templates', [])['email.otpSession-' . $locale->default] ??
-            $project->getAttribute('templates', [])['email.otpSession-worldwide'] ?? [];
+            $project->getAttribute('templates', [])['email.otpSession-' . $locale->fallback] ?? [];
         $smtpBaseTemplate = $project->getAttribute('smtpBaseTemplate', 'email-base');
 
         $validator = new FileName();
@@ -3728,7 +3728,7 @@ Http::post('/v1/account/recovery')
         $preview = $locale->getText("emails.recovery.preview");
         $customTemplate =
             $project->getAttribute('templates', [])['email.recovery-' . $locale->default] ??
-            $project->getAttribute('templates', [])['email.recovery-worldwide'] ?? [];
+            $project->getAttribute('templates', [])['email.recovery-' . $locale->fallback] ?? [];
 
         $message = Template::fromFile(__DIR__ . '/../../config/locale/templates/email-inner-base.tpl');
         $message
@@ -4038,7 +4038,7 @@ Http::post('/v1/account/verifications/email')
 
         $customTemplate =
             $project->getAttribute('templates', [])['email.verification-' . $locale->default] ??
-            $project->getAttribute('templates', [])['email.verification-worldwide'] ?? [];
+            $project->getAttribute('templates', [])['email.verification-' . $locale->fallback] ?? [];
         $smtpBaseTemplate = $project->getAttribute('smtpBaseTemplate', 'email-base');
 
         $validator = new FileName();

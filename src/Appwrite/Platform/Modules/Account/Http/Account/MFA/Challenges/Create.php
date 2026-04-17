@@ -220,7 +220,7 @@ class Create extends Action
 
                 $customTemplate =
                     $project->getAttribute('templates', [])['email.mfaChallenge-' . $locale->default] ??
-                    $project->getAttribute('templates', [])['email.mfaChallenge-worldwide'] ?? [];
+                    $project->getAttribute('templates', [])['email.mfaChallenge-' . $locale->fallback] ?? [];
                 $smtpBaseTemplate = $project->getAttribute('smtpBaseTemplate', 'email-base');
 
                 $validator = new FileName();
