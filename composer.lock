@@ -4325,16 +4325,16 @@
         },
         {
             "name": "utopia-php/image",
-            "version": "0.8.4",
+            "version": "0.8.5",
             "source": {
                 "type": "git",
                 "url": "https://github.com/utopia-php/image.git",
-                "reference": "ce788ff0121a79286fdbe3ef3eba566de646df65"
+                "reference": "9af2fcff028a42550465e2ccad88e3b31c3584f3"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/utopia-php/image/zipball/ce788ff0121a79286fdbe3ef3eba566de646df65",
-                "reference": "ce788ff0121a79286fdbe3ef3eba566de646df65",
+                "url": "https://api.github.com/repos/utopia-php/image/zipball/9af2fcff028a42550465e2ccad88e3b31c3584f3",
+                "reference": "9af2fcff028a42550465e2ccad88e3b31c3584f3",
                 "shasum": ""
             },
             "require": {
@@ -4343,10 +4343,12 @@
                 "php": ">=8.1"
             },
             "require-dev": {
-                "laravel/pint": "1.2.*",
-                "phpstan/phpstan": "^1.10.0",
-                "phpunit/phpunit": "^9.3",
-                "vimeo/psalm": "4.13.1"
+                "laravel/pint": "1.24.*",
+                "phpstan/phpstan": "2.1.*",
+                "phpunit/phpunit": "10.5.*"
+            },
+            "suggest": {
+                "ext-imagick": "Imagick extension is required for Imagick adapter"
             },
             "type": "library",
             "autoload": {
@@ -4368,9 +4370,9 @@
             ],
             "support": {
                 "issues": "https://github.com/utopia-php/image/issues",
-                "source": "https://github.com/utopia-php/image/tree/0.8.4"
+                "source": "https://github.com/utopia-php/image/tree/0.8.5"
             },
-            "time": "2025-06-03T08:32:20+00:00"
+            "time": "2026-04-17T15:02:49+00:00"
         },
         {
             "name": "utopia-php/locale",
