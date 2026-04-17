@@ -1180,6 +1180,7 @@ class ProjectsConsoleClientTest extends Scope
             'name' => 'Session Alert Locale Fallback Test Team',
         ]);
         $this->assertEquals(201, $team['headers']['status-code']);
+        $teamId = $team['body']['$id'];
 
         /** Create project */
         $project = $this->client->call(Client::METHOD_POST, '/projects', array_merge([
@@ -1188,7 +1189,7 @@ class ProjectsConsoleClientTest extends Scope
         ], $this->getHeaders()), [
             'projectId' => ID::unique(),
             'name' => 'Session Alert Locale Fallback Test',
-            'teamId' => $team['body']['$id'],
+            'teamId' => $teamId,
             'region' => System::getEnv('_APP_REGION', 'default'),
         ]);
         $this->assertEquals(201, $project['headers']['status-code']);
@@ -1307,9 +1308,17 @@ class ProjectsConsoleClientTest extends Scope
         ]);
         $this->assertEquals(201, $response['headers']['status-code']);
 
-        $lastEmail = $this->getLastEmailByAddress($userEmail);
+        /**
+         * Emails are delivered asynchronously via the mail queue, so maildev may
+         * still be catching up. The probe callback forces getLastEmailByAddress
+         * to keep polling until an email matching the expected `from` address
+         * appears — i.e. we await the new email rather than returning an older
+         * one already in the inbox from a previous session.
+         */
+        $lastEmail = $this->getLastEmailByAddress($userEmail, function ($email) {
+            $this->assertEquals('fallback@appwrite.io', $email['from'][0]['address']);
+        });
         $this->assertEquals('Fallback sign-in alert', $lastEmail['subject']);
-        $this->assertEquals('fallback@appwrite.io', $lastEmail['from'][0]['address']);
         $this->assertEquals('Fallback Mailer', $lastEmail['from'][0]['name']);
         $this->assertStringContainsString('Fallback sign-in alert body', $lastEmail['html']);
 
@@ -1325,9 +1334,11 @@ class ProjectsConsoleClientTest extends Scope
         ]);
         $this->assertEquals(201, $response['headers']['status-code']);
 
-        $lastEmail = $this->getLastEmailByAddress($userEmail);
+        /** Probe on `from` address ensures we await a fallback-shaped email */
+        $lastEmail = $this->getLastEmailByAddress($userEmail, function ($email) {
+            $this->assertEquals('fallback@appwrite.io', $email['from'][0]['address']);
+        });
         $this->assertEquals('Fallback sign-in alert', $lastEmail['subject']);
-        $this->assertEquals('fallback@appwrite.io', $lastEmail['from'][0]['address']);
         $this->assertEquals('Fallback Mailer', $lastEmail['from'][0]['name']);
         $this->assertStringContainsString('Fallback sign-in alert body', $lastEmail['html']);
 
@@ -1343,9 +1354,11 @@ class ProjectsConsoleClientTest extends Scope
         ]);
         $this->assertEquals(201, $response['headers']['status-code']);
 
-        $lastEmail = $this->getLastEmailByAddress($userEmail);
+        /** Probe on `from` address ensures we await the Slovak email specifically */
+        $lastEmail = $this->getLastEmailByAddress($userEmail, function ($email) {
+            $this->assertEquals('sk@appwrite.io', $email['from'][0]['address']);
+        });
         $this->assertEquals('Slovak sign-in alert', $lastEmail['subject']);
-        $this->assertEquals('sk@appwrite.io', $lastEmail['from'][0]['address']);
         $this->assertEquals('Slovak Mailer', $lastEmail['from'][0]['name']);
         $this->assertStringContainsString('Slovak sign-in alert body', $lastEmail['html']);
 
