@@ -410,7 +410,6 @@ const METRIC_REALTIME_CONNECTIONS = 'realtime.connections';
 const METRIC_REALTIME_CONNECTIONS_MESSAGES_SENT = 'realtime.messages.sent';
 const METRIC_REALTIME_INBOUND = 'realtime.inbound';
 const METRIC_REALTIME_OUTBOUND = 'realtime.outbound';
-const METRIC_REALTIME_DELIVERY_DELAY = 'realtime.delivery.delay';
 
 // Resource types
 const RESOURCE_TYPE_PROJECTS = 'projects';
