@@ -207,6 +207,32 @@ trait TemplatesBase
         $this->assertSame('en', $list['body']['templates'][0]['locale']);
     }
 
+    public function testListEmailTemplatesDefaultMatchesGet(): void
+    {
+        $get = $this->getEmailTemplate('verification', 'en');
+        $this->assertSame(200, $get['headers']['status-code']);
+        $this->assertFalse($get['body']['custom']);
+
+        $list = $this->listEmailTemplates([
+            Query::equal('type', ['verification'])->toString(),
+            Query::equal('locale', ['en'])->toString(),
+        ], true);
+
+        $this->assertSame(200, $list['headers']['status-code']);
+        $this->assertCount(1, $list['body']['templates']);
+
+        $listed = $list['body']['templates'][0];
+
+        $this->assertSame($get['body']['type'], $listed['type']);
+        $this->assertSame($get['body']['locale'], $listed['locale']);
+        $this->assertSame($get['body']['custom'], $listed['custom']);
+        $this->assertSame($get['body']['subject'], $listed['subject']);
+        $this->assertSame($get['body']['message'], $listed['message']);
+        $this->assertSame($get['body']['senderName'], $listed['senderName']);
+        $this->assertSame($get['body']['senderEmail'], $listed['senderEmail']);
+        $this->assertSame($get['body']['replyTo'], $listed['replyTo']);
+    }
+
     public function testListEmailTemplatesOrderByType(): void
     {
         $asc = $this->listEmailTemplates([
