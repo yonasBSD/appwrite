@@ -195,9 +195,16 @@ class Migrations extends Action
         $migrationOptions = $migration->getAttribute('options');
         /** @var Database|null $projectDB */
         $projectDB = null;
+        $useAppwriteApiSource = false;
         if ($credentials['projectId']) {
             $this->sourceProject = $this->dbForPlatform->getDocument('projects', $credentials['projectId']);
-            $projectDB = call_user_func($this->getProjectDB, $this->sourceProject);
+            $sourceRegion = $this->sourceProject->getAttribute('region', 'default');
+            $destinationRegion = $this->project->getAttribute('region', 'default');
+            $useAppwriteApiSource = $source === SourceAppwrite::getName()
+                && $sourceRegion !== $destinationRegion;
+            if (! $useAppwriteApiSource) {
+                $projectDB = call_user_func($this->getProjectDB, $this->sourceProject);
+            }
         }
         $getDatabasesDB = fn (Document $database): Database =>
                 $this->getDatabasesDBForProject($database);
@@ -233,7 +240,7 @@ class Migrations extends Action
                 $credentials['endpoint'],
                 $credentials['apiKey'],
                 $getDatabasesDB,
-                SourceAppwrite::SOURCE_DATABASE,
+                $useAppwriteApiSource ? SourceAppwrite::SOURCE_API : SourceAppwrite::SOURCE_DATABASE,
                 $projectDB,
                 $queries
             ),
