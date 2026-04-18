@@ -198,12 +198,18 @@ class Migrations extends Action
         $useAppwriteApiSource = false;
         if ($credentials['projectId']) {
             $this->sourceProject = $this->dbForPlatform->getDocument('projects', $credentials['projectId']);
-            $sourceRegion = $this->sourceProject->getAttribute('region', 'default');
-            $destinationRegion = $this->project->getAttribute('region', 'default');
-            $useAppwriteApiSource = $source === SourceAppwrite::getName()
-                && $sourceRegion !== $destinationRegion;
-            if (! $useAppwriteApiSource) {
-                $projectDB = call_user_func($this->getProjectDB, $this->sourceProject);
+            if ($this->sourceProject->isEmpty()) {
+                if ($source === SourceAppwrite::getName()) {
+                    $useAppwriteApiSource = true;
+                }
+            } else {
+                $sourceRegion = $this->sourceProject->getAttribute('region', 'default');
+                $destinationRegion = $this->project->getAttribute('region', 'default');
+                $useAppwriteApiSource = $source === SourceAppwrite::getName()
+                    && $sourceRegion !== $destinationRegion;
+                if (! $useAppwriteApiSource) {
+                    $projectDB = call_user_func($this->getProjectDB, $this->sourceProject);
+                }
             }
         }
         $getDatabasesDB = fn (Document $database): Database =>
@@ -585,9 +591,10 @@ class Migrations extends Action
 
     protected function getDatabasesDBForProject(Document $database)
     {
-        if ($this->sourceProject) {
+        if (isset($this->sourceProject) && ! $this->sourceProject->isEmpty()) {
             return ($this->getDatabasesDB)($database, $this->sourceProject);
         }
+
         return ($this->getDatabasesDB)($database);
     }
 
