@@ -39,7 +39,7 @@ class Delete extends Action
             ->label('scope', 'templates.write')
             ->label('event', 'templates.[templateType].delete')
             ->label('audits.event', 'project.template.delete')
-            ->label('audits.resource', 'project.template/{response.templateId}')
+            ->label('audits.resource', 'project.template/{request.templateId}')
             ->label('sdk', new Method(
                 namespace: 'project',
                 group: 'templates',
