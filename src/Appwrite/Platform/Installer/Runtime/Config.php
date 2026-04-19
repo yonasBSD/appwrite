@@ -222,7 +222,7 @@ final class Config
      */
     public function setEnabledDatabases(array $value): void
     {
-        $filtered = array_values(array_filter($value, fn ($v) => is_string($v) && $v !== ''));
+        $filtered = array_values(array_filter($value, fn ($v) => $v !== ''));
         if (!empty($filtered)) {
             $this->enabledDatabases = $filtered;
         }

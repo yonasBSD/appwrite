@@ -1535,7 +1535,7 @@ Http::patch('/v1/users/:userId/email')
                 Query::equal('identifier', [$email]),
             ]);
 
-            if ($target instanceof Document && !$target->isEmpty()) {
+            if (!$target->isEmpty()) {
                 throw new Exception(Exception::USER_TARGET_ALREADY_EXISTS);
             }
         }
@@ -1600,7 +1600,7 @@ Http::patch('/v1/users/:userId/email')
              */
             $oldTarget = $user->find('identifier', $oldEmail, 'targets');
 
-            if ($oldTarget instanceof Document && !$oldTarget->isEmpty()) {
+            if (!$oldTarget->isEmpty()) {
                 if (\strlen($email) !== 0) {
                     $dbForProject->updateDocument('targets', $oldTarget->getId(), new Document(['identifier' => $email]));
                     $oldTarget->setAttribute('identifier', $email);
@@ -1681,7 +1681,7 @@ Http::patch('/v1/users/:userId/phone')
                 Query::equal('identifier', [$number]),
             ]);
 
-            if ($target instanceof Document && !$target->isEmpty()) {
+            if (!$target->isEmpty()) {
                 throw new Exception(Exception::USER_TARGET_ALREADY_EXISTS);
             }
         }
@@ -1696,7 +1696,7 @@ Http::patch('/v1/users/:userId/phone')
              */
             $oldTarget = $user->find('identifier', $oldPhone, 'targets');
 
-            if ($oldTarget instanceof Document && !$oldTarget->isEmpty()) {
+            if (!$oldTarget->isEmpty()) {
                 if ($number !== '') {
                     $dbForProject->updateDocument('targets', $oldTarget->getId(), new Document(['identifier' => $number]));
                     $oldTarget->setAttribute('identifier', $number);
@@ -2842,6 +2842,7 @@ Http::get('/v1/users/usage')
         $format = match ($days['period']) {
             '1h' => 'Y-m-d\TH:00:00.000P',
             '1d' => 'Y-m-d\T00:00:00.000P',
+            default => throw new \LogicException('Unsupported period: ' . $days['period']),
         };
 
         foreach ($metrics as $metric) {

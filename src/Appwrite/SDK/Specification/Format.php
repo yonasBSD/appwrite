@@ -111,35 +111,23 @@ abstract class Format
 
         foreach (self::OAUTH_PROVIDER_BLACKLIST as $config) {
             foreach ($config['methods'] as $method) {
-                $entry = [
+                $blacklist[] = [
                     'namespace' => $config['namespace'],
                     'method' => $method,
                     'parameter' => $config['parameter'],
+                    'excludeKeys' => $config['excludeKeys'],
                 ];
-                if (isset($config['excludeKeys'])) {
-                    $entry['excludeKeys'] = $config['excludeKeys'];
-                }
-                if (isset($config['exclude'])) {
-                    $entry['exclude'] = $config['exclude'];
-                }
-                $blacklist[] = $entry;
             }
         }
 
         foreach (self::PROVIDER_USAGE_BLACKLIST as $config) {
             foreach ($config['methods'] as $method) {
-                $entry = [
+                $blacklist[] = [
                     'namespace' => $config['namespace'],
                     'method' => $method,
                     'parameter' => $config['parameter'],
+                    'exclude' => $config['exclude'],
                 ];
-                if (isset($config['excludeKeys'])) {
-                    $entry['excludeKeys'] = $config['excludeKeys'];
-                }
-                if (isset($config['exclude'])) {
-                    $entry['exclude'] = $config['exclude'];
-                }
-                $blacklist[] = $entry;
             }
         }
 
@@ -968,8 +956,7 @@ abstract class Format
                 continue;
             }
 
-            $config['required'] = $override['required'] ?? $config['required'];
-            $config['nullable'] = $override['nullable'] ?? $config['nullable'];
+            $config['required'] = $override['required'];
             break;
         }
 

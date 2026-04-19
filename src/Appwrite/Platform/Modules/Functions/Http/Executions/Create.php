@@ -3,7 +3,6 @@
 namespace Appwrite\Platform\Modules\Functions\Http\Executions;
 
 use Ahc\Jwt\JWT;
-use Appwrite\Event\Delete as DeleteEvent;
 use Appwrite\Event\Event;
 use Appwrite\Event\Func;
 use Appwrite\Extend\Exception;
@@ -101,8 +100,6 @@ class Create extends Base
             ->inject('executor')
             ->inject('platform')
             ->inject('authorization')
-            ->inject('queueForDeletes')
-            ->inject('executionsRetentionCount')
             ->callback($this->action(...));
     }
 
@@ -129,8 +126,6 @@ class Create extends Base
         Executor $executor,
         array $platform,
         Authorization $authorization,
-        DeleteEvent $queueForDeletes,
-        int $executionsRetentionCount,
     ) {
         $async = \strval($async) === 'true' || \strval($async) === '1';
 
@@ -145,21 +140,8 @@ class Create extends Base
             }
         }
 
-        /**
-         * @var array<string, mixed> $headers
-         */
-        $assocParams = ['headers'];
-        foreach ($assocParams as $assocParam) {
-            if (!empty('headers') && !is_array($$assocParam)) {
-                $$assocParam = \json_decode($$assocParam, true);
-            }
-        }
-
-        $booleanParams = ['async'];
-        foreach ($booleanParams as $booleamParam) {
-            if (!empty($$booleamParam) && !is_bool($$booleamParam)) {
-                $$booleamParam = $$booleamParam === "true" ? true : false;
-            }
+        if (!is_array($headers)) {
+            $headers = \json_decode($headers, true);
         }
 
         // 'headers' validator
@@ -349,15 +331,6 @@ class Create extends Base
                 $execution = $authorization->skip(fn () => $dbForProject->createDocument('executions', $execution));
             }
 
-            if ($executionsRetentionCount > 0 && ENABLE_EXECUTIONS_LIMIT_ON_ROUTE) {
-                $queueForDeletes
-                    ->setProject($project)
-                    ->setResource($function->getSequence())
-                    ->setResourceType(RESOURCE_TYPE_FUNCTIONS)
-                    ->setType(DELETE_TYPE_EXECUTIONS_LIMIT)
-                    ->trigger();
-            }
-
             $response->setStatusCode(Response::STATUS_CODE_ACCEPTED);
             $response->dynamic($execution, Response::MODEL_EXECUTION);
             return;
@@ -370,10 +343,10 @@ class Create extends Base
         // V2 vars
         if ($version === 'v2') {
             $vars = \array_merge($vars, [
-                'APPWRITE_FUNCTION_TRIGGER' => $headers['x-appwrite-trigger'] ?? '',
+                'APPWRITE_FUNCTION_TRIGGER' => $headers['x-appwrite-trigger'],
                 'APPWRITE_FUNCTION_DATA' => $body,
-                'APPWRITE_FUNCTION_USER_ID' => $headers['x-appwrite-user-id'] ?? '',
-                'APPWRITE_FUNCTION_JWT' => $headers['x-appwrite-user-jwt'] ?? ''
+                'APPWRITE_FUNCTION_USER_ID' => $headers['x-appwrite-user-id'],
+                'APPWRITE_FUNCTION_JWT' => $headers['x-appwrite-user-jwt']
             ]);
         }
 
@@ -534,15 +507,6 @@ class Create extends Base
                 $response->setContentType(Response::CONTENT_TYPE_MULTIPART);
                 break;
             }
-        }
-
-        if ($executionsRetentionCount > 0 && ENABLE_EXECUTIONS_LIMIT_ON_ROUTE) {
-            $queueForDeletes
-                ->setProject($project)
-                ->setResource($function->getSequence())
-                ->setResourceType(RESOURCE_TYPE_FUNCTIONS)
-                ->setType(DELETE_TYPE_EXECUTIONS_LIMIT)
-                ->trigger();
         }
 
         $response

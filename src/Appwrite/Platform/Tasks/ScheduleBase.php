@@ -102,7 +102,7 @@ abstract class ScheduleBase extends Action
             $this->collectSchedules($dbForPlatform, $getProjectDB, $lastSyncUpdate, $isResourceBlocked);
         });
 
-        while (true) {
+        for (;;) {
             try {
                 go(fn () => $this->enqueueResources($dbForPlatform, $getProjectDB));
                 $this->scheduleTelemetryCount->record(count($this->schedules), ['resourceType' => static::getSupportedResource()]);

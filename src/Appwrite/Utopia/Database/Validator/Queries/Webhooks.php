@@ -51,17 +51,15 @@ class Webhooks extends Base
      */
     public function isValid($value): bool
     {
-        if (\is_array($value)) {
-            foreach ($value as &$queryString) {
-                if (!\is_string($queryString)) {
-                    continue;
-                }
-                foreach (self::ATTRIBUTE_ALIASES as $alias => $dbName) {
-                    $queryString = \str_replace('"' . $alias . '"', '"' . $dbName . '"', $queryString);
-                }
+        foreach ($value as &$queryString) {
+            if (!\is_string($queryString)) {
+                continue;
             }
-            unset($queryString);
+            foreach (self::ATTRIBUTE_ALIASES as $alias => $dbName) {
+                $queryString = \str_replace('"' . $alias . '"', '"' . $dbName . '"', $queryString);
+            }
         }
+        unset($queryString);
 
         return parent::isValid($value);
     }

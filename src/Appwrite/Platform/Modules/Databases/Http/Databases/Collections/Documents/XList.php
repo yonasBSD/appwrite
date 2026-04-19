@@ -127,7 +127,7 @@ class XList extends Action
         }
 
         try {
-            $hasSelects = ! empty(Query::groupByType($queries)['selections'] ?? []);
+            $hasSelects = ! empty(Query::groupByType($queries)['selections']);
             $collectionTableId = 'database_' . $database->getSequence() . '_collection_' . $collection->getSequence();
             // When there are no select queries, relationship loading is skipped on the
             // underlying find() to avoid pulling related documents the caller did not ask for.
