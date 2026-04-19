@@ -357,6 +357,60 @@ trait TemplatesBase
         $this->assertFalse($after['body']['custom']);
     }
 
+    public function testDeleteEmailTemplateLegacyResponseFormat(): void
+    {
+        // Seed a custom template using the current API.
+        $update = $this->updateEmailTemplate('otpSession', 'en', 'Legacy OTP', 'Legacy OTP body');
+        $this->assertSame(200, $update['headers']['status-code']);
+
+        $headers = \array_merge([
+            'content-type' => 'application/json',
+            'x-appwrite-project' => $this->getProject()['$id'],
+            'x-appwrite-response-format' => '1.9.1',
+        ], $this->getHeaders());
+
+        // Request filter should accept legacy `type` and map it to `templateId`.
+        $delete = $this->client->call(
+            Client::METHOD_DELETE,
+            '/project/templates/email',
+            $headers,
+            [
+                'type' => 'otpSession',
+                'locale' => 'en',
+            ],
+        );
+
+        $this->assertSame(204, $delete['headers']['status-code']);
+        $this->assertEmpty($delete['body']);
+
+        // Verify reset back to default.
+        $after = $this->getEmailTemplate('otpSession', 'en');
+        $this->assertSame(200, $after['headers']['status-code']);
+        $this->assertFalse($after['body']['custom']);
+        $this->assertNotSame('Legacy OTP', $after['body']['subject']);
+    }
+
+    public function testDeleteEmailTemplateLegacyInvalidType(): void
+    {
+        $headers = \array_merge([
+            'content-type' => 'application/json',
+            'x-appwrite-project' => $this->getProject()['$id'],
+            'x-appwrite-response-format' => '1.9.1',
+        ], $this->getHeaders());
+
+        $delete = $this->client->call(
+            Client::METHOD_DELETE,
+            '/project/templates/email',
+            $headers,
+            [
+                'type' => 'notATemplate',
+                'locale' => 'en',
+            ],
+        );
+
+        $this->assertSame(400, $delete['headers']['status-code']);
+    }
+
     public function testUpdateEmailTemplateLegacyInvalidType(): void
     {
         $headers = \array_merge([
