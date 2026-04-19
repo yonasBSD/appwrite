@@ -1,3 +1,11 @@
+# Version 1.9.2
+
+### Notable changes
+
+### Fixes
+
+### Miscellaneous
+
 # Version 1.9.0
 
 ## What's Changed

@@ -15,7 +15,7 @@ trait TemplatesBase
         $template = $this->getEmailTemplate('verification', 'en');
 
         $this->assertSame(200, $template['headers']['status-code']);
-        $this->assertSame('verification', $template['body']['type']);
+        $this->assertSame('verification', $template['body']['templateId']);
         $this->assertSame('en', $template['body']['locale']);
         $this->assertFalse($template['body']['custom']);
         $this->assertNotEmpty($template['body']['subject']);
@@ -27,7 +27,7 @@ trait TemplatesBase
         $template = $this->getEmailTemplate('verification');
 
         $this->assertSame(200, $template['headers']['status-code']);
-        $this->assertSame('verification', $template['body']['type']);
+        $this->assertSame('verification', $template['body']['templateId']);
         $this->assertSame('en', $template['body']['locale']);
         $this->assertFalse($template['body']['custom']);
     }
@@ -40,7 +40,7 @@ trait TemplatesBase
         $get = $this->getEmailTemplate('magicSession', 'en');
 
         $this->assertSame(200, $get['headers']['status-code']);
-        $this->assertSame('magicSession', $get['body']['type']);
+        $this->assertSame('magicSession', $get['body']['templateId']);
         $this->assertSame('en', $get['body']['locale']);
         $this->assertTrue($get['body']['custom']);
         $this->assertSame('Magic Subject', $get['body']['subject']);
@@ -85,7 +85,7 @@ trait TemplatesBase
         );
 
         $this->assertSame(200, $update['headers']['status-code']);
-        $this->assertSame('verification', $update['body']['type']);
+        $this->assertSame('verification', $update['body']['templateId']);
         $this->assertSame('en', $update['body']['locale']);
         $this->assertSame('Please verify your email', $update['body']['subject']);
         $this->assertSame('Click here to verify: {{url}}', $update['body']['message']);
@@ -135,7 +135,7 @@ trait TemplatesBase
         );
 
         $this->assertSame(200, $update['headers']['status-code']);
-        $this->assertSame('sessionAlert', $update['body']['type']);
+        $this->assertSame('sessionAlert', $update['body']['templateId']);
         $this->assertSame('en', $update['body']['locale']);
 
         // Cleanup
@@ -282,6 +282,105 @@ trait TemplatesBase
     }
 
     // =========================================================================
+    // Legacy response format tests (request + response filters)
+    // =========================================================================
+
+    public function testGetEmailTemplateLegacyResponseFormat(): void
+    {
+        $headers = \array_merge([
+            'content-type' => 'application/json',
+            'x-appwrite-project' => $this->getProject()['$id'],
+            'x-appwrite-response-format' => '1.9.1',
+        ], $this->getHeaders());
+
+        $template = $this->client->call(
+            Client::METHOD_GET,
+            '/project/templates/email/verification',
+            $headers,
+        );
+
+        $this->assertSame(200, $template['headers']['status-code']);
+        // Response filter should rename templateId -> type for < 1.9.2 clients.
+        $this->assertArrayHasKey('type', $template['body']);
+        $this->assertArrayNotHasKey('templateId', $template['body']);
+        $this->assertSame('verification', $template['body']['type']);
+        $this->assertSame('en', $template['body']['locale']);
+    }
+
+    public function testUpdateEmailTemplateLegacyResponseFormat(): void
+    {
+        $headers = \array_merge([
+            'content-type' => 'application/json',
+            'x-appwrite-project' => $this->getProject()['$id'],
+            'x-appwrite-response-format' => '1.9.1',
+        ], $this->getHeaders());
+
+        // Request filter should accept legacy `type` and map it to `templateId`.
+        $update = $this->client->call(
+            Client::METHOD_PATCH,
+            '/project/templates/email',
+            $headers,
+            [
+                'type' => 'magicSession',
+                'locale' => 'en',
+                'subject' => 'Legacy Subject',
+                'message' => 'Legacy Body',
+            ],
+        );
+
+        $this->assertSame(200, $update['headers']['status-code']);
+        // Response filter should rename templateId -> type for < 1.9.2 clients.
+        $this->assertArrayHasKey('type', $update['body']);
+        $this->assertArrayNotHasKey('templateId', $update['body']);
+        $this->assertSame('magicSession', $update['body']['type']);
+        $this->assertSame('Legacy Subject', $update['body']['subject']);
+        $this->assertSame('Legacy Body', $update['body']['message']);
+        $this->assertTrue($update['body']['custom']);
+
+        // Verify persisted, then cleanup via legacy DELETE with `type`.
+        $get = $this->getEmailTemplate('magicSession', 'en');
+        $this->assertSame(200, $get['headers']['status-code']);
+        $this->assertTrue($get['body']['custom']);
+
+        $delete = $this->client->call(
+            Client::METHOD_DELETE,
+            '/project/templates/email',
+            $headers,
+            [
+                'type' => 'magicSession',
+                'locale' => 'en',
+            ],
+        );
+        $this->assertSame(204, $delete['headers']['status-code']);
+
+        $after = $this->getEmailTemplate('magicSession', 'en');
+        $this->assertFalse($after['body']['custom']);
+    }
+
+    public function testUpdateEmailTemplateLegacyInvalidType(): void
+    {
+        $headers = \array_merge([
+            'content-type' => 'application/json',
+            'x-appwrite-project' => $this->getProject()['$id'],
+            'x-appwrite-response-format' => '1.9.1',
+        ], $this->getHeaders());
+
+        $update = $this->client->call(
+            Client::METHOD_PATCH,
+            '/project/templates/email',
+            $headers,
+            [
+                'type' => 'notATemplate',
+                'locale' => 'en',
+                'subject' => 'Subject',
+                'message' => 'Message',
+            ],
+        );
+
+        $this->assertSame(400, $update['headers']['status-code']);
+    }
+
+    // =========================================================================
     // Helpers
     // =========================================================================
 
@@ -315,7 +414,7 @@ trait TemplatesBase
         bool $authenticated = true,
     ): mixed {
         $params = [
-            'type' => $type,
+            'templateId' => $type,
         ];
 
         if ($locale !== null) {
@@ -352,7 +451,7 @@ trait TemplatesBase
     protected function deleteEmailTemplate(string $type, ?string $locale = null, bool $authenticated = true): mixed
     {
         $params = [
-            'type' => $type,
+            'templateId' => $type,
         ];
 
         if ($locale !== null) {
