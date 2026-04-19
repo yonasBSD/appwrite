@@ -218,11 +218,11 @@ final class Config
     }
 
     /**
-     * @param string[] $value
+     * @param array<mixed> $value
      */
     public function setEnabledDatabases(array $value): void
     {
-        $filtered = array_values(array_filter($value, fn ($v) => $v !== ''));
+        $filtered = array_values(array_filter($value, fn ($v) => is_string($v) && $v !== ''));
         if (!empty($filtered)) {
             $this->enabledDatabases = $filtered;
         }

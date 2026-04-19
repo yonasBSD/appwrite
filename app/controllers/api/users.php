@@ -1595,12 +1595,9 @@ Http::patch('/v1/users/:userId/email')
                 'emailIsDisposable' => $user->getAttribute('emailIsDisposable'),
                 'emailIsFree' => $user->getAttribute('emailIsFree'),
             ]));
-            /**
-             * @var Document $oldTarget
-             */
             $oldTarget = $user->find('identifier', $oldEmail, 'targets');
 
-            if (!$oldTarget->isEmpty()) {
+            if ($oldTarget instanceof Document && !$oldTarget->isEmpty()) {
                 if (\strlen($email) !== 0) {
                     $dbForProject->updateDocument('targets', $oldTarget->getId(), new Document(['identifier' => $email]));
                     $oldTarget->setAttribute('identifier', $email);
@@ -1691,12 +1688,9 @@ Http::patch('/v1/users/:userId/phone')
                 'phone' => $phoneValue,
                 'phoneVerification' => $user->getAttribute('phoneVerification'),
             ]));
-            /**
-             * @var Document $oldTarget
-             */
             $oldTarget = $user->find('identifier', $oldPhone, 'targets');
 
-            if (!$oldTarget->isEmpty()) {
+            if ($oldTarget instanceof Document && !$oldTarget->isEmpty()) {
                 if ($number !== '') {
                     $dbForProject->updateDocument('targets', $oldTarget->getId(), new Document(['identifier' => $number]));
                     $oldTarget->setAttribute('identifier', $number);
