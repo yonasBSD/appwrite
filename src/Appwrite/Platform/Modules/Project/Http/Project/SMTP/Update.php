@@ -58,15 +58,15 @@ class Update extends Action
                     )
                 ],
             ))
-            ->param('host', '', new Nullable(new Hostname()), 'SMTP server hostname (domain)', optional: true)
-            ->param('port', 587, new Nullable(new Integer()), 'SMTP server port', optional: true)
-            ->param('username', '', new Nullable(new Text(256)), 'SMTP server username. Leave empty for no authorization.', optional: true)
-            ->param('password', '', new Nullable(new Text(256)), 'SMTP server password. Leave empty for no authorization. This property is stored securely and cannot be read in future (write-only).', optional: true)
-            ->param('senderEmail', '', new Nullable(new Email()), 'Email address shown in inbox as the sender of the email.', optional: true)
-            ->param('senderName', '', new Nullable(new Text(256)), 'Name shown in inbox as the sender of the email.', optional: true)
-            ->param('replyToEmail', '', new Nullable(new Email()), 'Email used when user replies to the email.', optional: true)
-            ->param('replyToName', '', new Nullable(new Text(256)), 'Name used when user replies to the email.', optional: true)
-            ->param('secure', '', new Nullable(new WhiteList(['tls', 'ssl'], true)), 'Configures if communication with SMTP server is encrypted. Allowed values are: tls, ssl. Leave empty for no encryption.', optional: true)
+            ->param('host', null, new Nullable(new Hostname()), 'SMTP server hostname (domain)', optional: true)
+            ->param('port', null, new Nullable(new Integer()), 'SMTP server port', optional: true)
+            ->param('username', null, new Nullable(new Text(256)), 'SMTP server username. Leave empty for no authorization.', optional: true)
+            ->param('password', null, new Nullable(new Text(256)), 'SMTP server password. Leave empty for no authorization. This property is stored securely and cannot be read in future (write-only).', optional: true)
+            ->param('senderEmail', null, new Nullable(new Email()), 'Email address shown in inbox as the sender of the email.', optional: true)
+            ->param('senderName', null, new Nullable(new Text(256)), 'Name shown in inbox as the sender of the email.', optional: true)
+            ->param('replyToEmail', null, new Nullable(new Email()), 'Email used when user replies to the email.', optional: true)
+            ->param('replyToName', null, new Nullable(new Text(256)), 'Name used when user replies to the email.', optional: true)
+            ->param('secure', null, new Nullable(new WhiteList(['tls', 'ssl'], true)), 'Configures if communication with SMTP server is encrypted. Allowed values are: tls, ssl. Leave empty for no encryption.', optional: true)
             ->param('enabled', null, new Nullable(new Boolean()), 'Enable or disable custom SMTP. Custom SMTP is useful for branding purposes, but also allows use of custom email templates.', optional: true)
             ->inject('response')
             ->inject('dbForPlatform')
@@ -117,7 +117,10 @@ class Update extends Action
         }
 
         // Validate SMTP credentials
-        if (\is_null($smtp['enabled'] ?? null) || $smtp['enabled'] === true) {
+        // Validate when the caller is explicitly enabling or hasn't expressed a preference
+        // (so a credentials-only PATCH can auto-enable). Skip only when the caller is
+        // explicitly keeping/turning SMTP off.
+        if (\is_null($enabled) || $enabled === true) {
             $mail = new PHPMailer(true);
             $mail->isSMTP();
 
