@@ -418,7 +418,7 @@ class Project extends Model
         $document->setAttribute('smtpEnabled', $smtp['enabled'] ?? false);
         $document->setAttribute('smtpSenderEmail', $smtp['senderEmail'] ?? '');
         $document->setAttribute('smtpSenderName', $smtp['senderName'] ?? '');
-        $document->setAttribute('smtpReplyToEmail', $smtp['replyToEmail'] ?? '');
+        $document->setAttribute('smtpReplyToEmail', $smtp['replyToEmail'] ?? $smtp['replyTo'] ?? ''); // Includes backwards compatibility
         $document->setAttribute('smtpReplyToName', $smtp['replyToName'] ?? '');
         $document->setAttribute('smtpHost', $smtp['host'] ?? '');
         $document->setAttribute('smtpPort', $smtp['port'] ?? '');

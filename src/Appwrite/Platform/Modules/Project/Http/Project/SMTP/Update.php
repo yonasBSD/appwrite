@@ -102,6 +102,9 @@ class Update extends Action
                 $smtp[$key] = ${$key};
             }
         }
+        
+        // Backwards compatibility
+        $smtp['replyToEmail'] = $smtp['replyToEmail'] ?? $smtp['replyTo'] ?? '';
 
         // Ensure required fields are set
         $requiredKeys = ['host', 'port', 'senderEmail'];
