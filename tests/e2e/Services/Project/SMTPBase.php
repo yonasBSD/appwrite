@@ -67,7 +67,8 @@ trait SMTPBase
         $this->assertArrayHasKey('smtpEnabled', $response['body']);
         $this->assertArrayHasKey('smtpSenderName', $response['body']);
         $this->assertArrayHasKey('smtpSenderEmail', $response['body']);
-        $this->assertArrayHasKey('smtpReplyTo', $response['body']);
+        $this->assertArrayHasKey('smtpReplyToEmail', $response['body']);
+        $this->assertArrayHasKey('smtpReplyToName', $response['body']);
         $this->assertArrayHasKey('smtpHost', $response['body']);
         $this->assertArrayHasKey('smtpPort', $response['body']);
         $this->assertArrayHasKey('smtpUsername', $response['body']);
@@ -115,14 +116,16 @@ trait SMTPBase
             senderEmail: 'sender@example.com',
             host: 'maildev',
             port: 1025,
-            replyTo: 'reply@example.com',
+            replyToEmail: 'reply@example.com',
+            replyToName: 'Full Reply',
         );
 
         $this->assertSame(200, $response['headers']['status-code']);
         $this->assertSame(true, $response['body']['smtpEnabled']);
         $this->assertSame('Full Sender', $response['body']['smtpSenderName']);
         $this->assertSame('sender@example.com', $response['body']['smtpSenderEmail']);
-        $this->assertSame('reply@example.com', $response['body']['smtpReplyTo']);
+        $this->assertSame('reply@example.com', $response['body']['smtpReplyToEmail']);
+        $this->assertSame('Full Reply', $response['body']['smtpReplyToName']);
         $this->assertSame('maildev', $response['body']['smtpHost']);
         $this->assertSame(1025, $response['body']['smtpPort']);
 
@@ -188,7 +191,8 @@ trait SMTPBase
         $this->assertArrayHasKey('smtpEnabled', $response['body']);
         $this->assertArrayHasKey('smtpSenderName', $response['body']);
         $this->assertArrayHasKey('smtpSenderEmail', $response['body']);
-        $this->assertArrayHasKey('smtpReplyTo', $response['body']);
+        $this->assertArrayHasKey('smtpReplyToEmail', $response['body']);
+        $this->assertArrayHasKey('smtpReplyToName', $response['body']);
         $this->assertArrayHasKey('smtpHost', $response['body']);
         $this->assertArrayHasKey('smtpPort', $response['body']);
         $this->assertArrayHasKey('smtpUsername', $response['body']);
@@ -279,7 +283,7 @@ trait SMTPBase
             senderEmail: 'sender@example.com',
             host: 'maildev',
             port: 1025,
-            replyTo: 'not-an-email',
+            replyToEmail: 'not-an-email',
         );
 
         $this->assertSame(400, $response['headers']['status-code']);
@@ -664,15 +668,17 @@ trait SMTPBase
         $senderName = 'SMTP Test Sender';
         $senderEmail = 'smtptest@appwrite.io';
         $replyToEmail = 'smtpreply@appwrite.io';
+        $replyToName = 'SMTP Reply Team';
         $recipientEmail = 'smtpdelivery-' . \uniqid() . '@appwrite.io';
 
-        // Configure SMTP with replyTo and auth credentials
+        // Configure SMTP with reply-to and auth credentials
         $response = $this->updateSMTPCredentials(
             senderName: $senderName,
             senderEmail: $senderEmail,
             host: 'maildev',
             port: 1025,
-            replyTo: $replyToEmail,
+            replyToEmail: $replyToEmail,
+            replyToName: $replyToName,
             username: 'user',
             password: 'password',
         );
@@ -693,7 +699,7 @@ trait SMTPBase
         $this->assertSame($senderEmail, $email['from'][0]['address']);
         $this->assertSame($senderName, $email['from'][0]['name']);
         $this->assertSame($replyToEmail, $email['replyTo'][0]['address']);
-        $this->assertSame($senderName, $email['replyTo'][0]['name']);
+        $this->assertSame($replyToName, $email['replyTo'][0]['name']);
         $this->assertSame('Custom SMTP email sample', $email['subject']);
         $this->assertStringContainsStringIgnoringCase('working correctly', $email['text']);
         $this->assertStringContainsStringIgnoringCase('working correctly', $email['html']);
@@ -769,7 +775,8 @@ trait SMTPBase
         string $senderEmail = '',
         string $host = '',
         int $port = 587,
-        ?string $replyTo = null,
+        ?string $replyToEmail = null,
+        ?string $replyToName = null,
         ?string $username = null,
         ?string $password = null,
         ?string $secure = null,
@@ -792,8 +799,12 @@ trait SMTPBase
             'port' => $port,
         ];
 
-        if (!\is_null($replyTo)) {
-            $params['replyTo'] = $replyTo;
+        if (!\is_null($replyToEmail)) {
+            $params['replyToEmail'] = $replyToEmail;
+        }
+
+        if (!\is_null($replyToName)) {
+            $params['replyToName'] = $replyToName;
         }
 
         if (!\is_null($username)) {

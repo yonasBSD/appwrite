@@ -2295,8 +2295,8 @@ Http::post('/v1/account/tokens/magic-url')
 
         $senderEmail = System::getEnv('_APP_SYSTEM_EMAIL_ADDRESS', APP_EMAIL_TEAM);
         $senderName = System::getEnv('_APP_SYSTEM_EMAIL_NAME', APP_NAME . ' Server');
-
-        $replyTo = "";
+        $replyToEmail = '';
+        $replyToName = '';
 
         if ($smtpEnabled) {
             if (!empty($smtp['senderEmail'])) {
@@ -2305,8 +2305,11 @@ Http::post('/v1/account/tokens/magic-url')
             if (!empty($smtp['senderName'])) {
                 $senderName = $smtp['senderName'];
             }
-            if (!empty($smtp['replyTo'])) {
-                $replyTo = $smtp['replyTo'];
+            if (!empty($smtp['replyToEmail'])) {
+                $replyToEmail = $smtp['replyToEmail'];
+            }
+            if (!empty($smtp['replyToName'])) {
+                $replyToName = $smtp['replyToName'];
             }
 
             $queueForMails
@@ -2323,8 +2326,11 @@ Http::post('/v1/account/tokens/magic-url')
                 if (!empty($customTemplate['senderName'])) {
                     $senderName = $customTemplate['senderName'];
                 }
-                if (!empty($customTemplate['replyTo'])) {
-                    $replyTo = $customTemplate['replyTo'];
+                if (!empty($customTemplate['replyToEmail'])) {
+                    $replyToEmail = $customTemplate['replyToEmail'];
+                }
+                if (!empty($customTemplate['replyToName'])) {
+                    $replyToName = $customTemplate['replyToName'];
                 }
 
                 $body = $customTemplate['message'] ?? '';
@@ -2332,7 +2338,8 @@ Http::post('/v1/account/tokens/magic-url')
             }
 
             $queueForMails
-                ->setSmtpReplyTo($replyTo)
+                ->setSmtpReplyToEmail($replyToEmail)
+                ->setSmtpReplyToName($replyToName)
                 ->setSmtpSenderEmail($senderEmail)
                 ->setSmtpSenderName($senderName);
         }
@@ -2611,7 +2618,8 @@ Http::post('/v1/account/tokens/email')
 
         $senderEmail = System::getEnv('_APP_SYSTEM_EMAIL_ADDRESS', APP_EMAIL_TEAM);
         $senderName = System::getEnv('_APP_SYSTEM_EMAIL_NAME', APP_NAME . ' Server');
-        $replyTo = "";
+        $replyToEmail = ''; 
+        $replyToName = ''; 
 
         if ($smtpEnabled) {
             if (!empty($smtp['senderEmail'])) {
@@ -2620,8 +2628,11 @@ Http::post('/v1/account/tokens/email')
             if (!empty($smtp['senderName'])) {
                 $senderName = $smtp['senderName'];
             }
-            if (!empty($smtp['replyTo'])) {
-                $replyTo = $smtp['replyTo'];
+            if (!empty($smtp['replyToEmail'])) { 
+                $replyToEmail = $smtp['replyToEmail']; 
+            } 
+            if (!empty($smtp['replyToName'])) {
+                $replyToName = $smtp['replyToName'];
             }
 
             $queueForMails
@@ -2638,8 +2649,11 @@ Http::post('/v1/account/tokens/email')
                 if (!empty($customTemplate['senderName'])) {
                     $senderName = $customTemplate['senderName'];
                 }
-                if (!empty($customTemplate['replyTo'])) {
-                    $replyTo = $customTemplate['replyTo'];
+                if (!empty($customTemplate['replyToEmail'])) { 
+                    $replyToEmail = $customTemplate['replyToEmail']; 
+                } 
+                if (!empty($customTemplate['replyToName'])) {
+                    $replyToName = $customTemplate['replyToName'];
                 }
 
                 $body = $customTemplate['message'] ?? '';
@@ -2647,7 +2661,8 @@ Http::post('/v1/account/tokens/email')
             }
 
             $queueForMails
-                ->setSmtpReplyTo($replyTo)
+                ->setSmtpReplyToEmail($replyToEmail) 
+                ->setSmtpReplyToName($replyToName)
                 ->setSmtpSenderEmail($senderEmail)
                 ->setSmtpSenderName($senderName);
         }
@@ -3743,7 +3758,8 @@ Http::post('/v1/account/recovery')
 
         $senderEmail = System::getEnv('_APP_SYSTEM_EMAIL_ADDRESS', APP_EMAIL_TEAM);
         $senderName = System::getEnv('_APP_SYSTEM_EMAIL_NAME', APP_NAME . ' Server');
-        $replyTo = "";
+        $replyToEmail = ''; 
+        $replyToName = ''; 
 
         if ($smtpEnabled) {
             if (!empty($smtp['senderEmail'])) {
@@ -3752,8 +3768,11 @@ Http::post('/v1/account/recovery')
             if (!empty($smtp['senderName'])) {
                 $senderName = $smtp['senderName'];
             }
-            if (!empty($smtp['replyTo'])) {
-                $replyTo = $smtp['replyTo'];
+            if (!empty($smtp['replyToEmail'])) { 
+                $replyToEmail = $smtp['replyToEmail']; 
+            } 
+            if (!empty($smtp['replyToName'])) {
+                $replyToName = $smtp['replyToName'];
             }
 
             $queueForMails
@@ -3770,8 +3789,11 @@ Http::post('/v1/account/recovery')
                 if (!empty($customTemplate['senderName'])) {
                     $senderName = $customTemplate['senderName'];
                 }
-                if (!empty($customTemplate['replyTo'])) {
-                    $replyTo = $customTemplate['replyTo'];
+                if (!empty($customTemplate['replyToEmail'])) { 
+                    $replyToEmail = $customTemplate['replyToEmail']; 
+                } 
+                if (!empty($customTemplate['replyToName'])) {
+                    $replyToName = $customTemplate['replyToName'];
                 }
 
                 $body = $customTemplate['message'] ?? '';
@@ -3779,7 +3801,8 @@ Http::post('/v1/account/recovery')
             }
 
             $queueForMails
-                ->setSmtpReplyTo($replyTo)
+                ->setSmtpReplyToEmail($replyToEmail) 
+                ->setSmtpReplyToName($replyToName)
                 ->setSmtpSenderEmail($senderEmail)
                 ->setSmtpSenderName($senderName);
         }
@@ -4060,7 +4083,8 @@ Http::post('/v1/account/verifications/email')
 
         $senderEmail = System::getEnv('_APP_SYSTEM_EMAIL_ADDRESS', APP_EMAIL_TEAM);
         $senderName = System::getEnv('_APP_SYSTEM_EMAIL_NAME', APP_NAME . ' Server');
-        $replyTo = "";
+        $replyToEmail = ''; 
+        $replyToName = ''; 
 
         if ($smtpEnabled) {
             if (!empty($smtp['senderEmail'])) {
@@ -4069,8 +4093,11 @@ Http::post('/v1/account/verifications/email')
             if (!empty($smtp['senderName'])) {
                 $senderName = $smtp['senderName'];
             }
-            if (!empty($smtp['replyTo'])) {
-                $replyTo = $smtp['replyTo'];
+            if (!empty($smtp['replyToEmail'])) { 
+                $replyToEmail = $smtp['replyToEmail']; 
+            } 
+            if (!empty($smtp['replyToName'])) {
+                $replyToName = $smtp['replyToName'];
             }
 
             $queueForMails
@@ -4087,8 +4114,11 @@ Http::post('/v1/account/verifications/email')
                 if (!empty($customTemplate['senderName'])) {
                     $senderName = $customTemplate['senderName'];
                 }
-                if (!empty($customTemplate['replyTo'])) {
-                    $replyTo = $customTemplate['replyTo'];
+                if (!empty($customTemplate['replyToEmail'])) { 
+                    $replyToEmail = $customTemplate['replyToEmail']; 
+                } 
+                if (!empty($customTemplate['replyToName'])) {
+                    $replyToName = $customTemplate['replyToName'];
                 }
 
                 $body = $customTemplate['message'] ?? '';
@@ -4096,7 +4126,8 @@ Http::post('/v1/account/verifications/email')
             }
 
             $queueForMails
-                ->setSmtpReplyTo($replyTo)
+                ->setSmtpReplyToEmail($replyToEmail) 
+                ->setSmtpReplyToName($replyToName)
                 ->setSmtpSenderEmail($senderEmail)
                 ->setSmtpSenderName($senderName);
         }

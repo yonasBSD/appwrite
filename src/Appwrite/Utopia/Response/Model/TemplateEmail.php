@@ -22,11 +22,17 @@ class TemplateEmail extends Template
                 'default' => '',
                 'example' => 'mail@appwrite.io',
             ])
-            ->addRule('replyTo', [
+            ->addRule('replyToEmail', [
                 'type' => self::TYPE_STRING,
                 'description' => 'Reply to email address',
                 'default' => '',
                 'example' => 'emails@appwrite.io',
+            ])
+            ->addRule('replyToName', [
+                'type' => self::TYPE_STRING,
+                'description' => 'Reply to name',
+                'default' => '',
+                'example' => 'Support Team',
             ])
             ->addRule('subject', [
                 'type' => self::TYPE_STRING,

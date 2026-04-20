@@ -131,7 +131,8 @@ class Mails extends Listener
                 ->setSmtpUsername($smtp['username'] ?? '')
                 ->setSmtpPassword($smtp['password'] ?? '')
                 ->setSmtpSecure($smtp['secure'] ?? '')
-                ->setSmtpReplyTo($customTemplate['replyTo'] ?? $smtp['replyTo'] ?? '')
+                ->setSmtpReplyToEmail($customTemplate['replyToEmail'] ?? $smtp['replyToEmail'] ?? '')
+                ->setSmtpReplyToName($customTemplate['replyToName'] ?? $smtp['replyToName'] ?? '')
                 ->setSmtpSenderEmail($customTemplate['senderEmail'] ?? $smtp['senderEmail'] ?? System::getEnv('_APP_SYSTEM_EMAIL_ADDRESS', APP_EMAIL_TEAM))
                 ->setSmtpSenderName($customTemplate['senderName'] ?? $smtp['senderName'] ?? System::getEnv('_APP_SYSTEM_EMAIL_NAME', APP_NAME . ' Server'));
         }

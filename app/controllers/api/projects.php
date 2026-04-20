@@ -772,7 +772,9 @@ Http::get('/v1/projects/:projectId/templates/email/:type/:locale')
                 'message' => $message,
                 'subject' => $localeObj->getText('emails.' . $type . '.subject'),
                 'senderEmail' => '',
-                'senderName' => ''
+                'senderName' => '',
+                'replyToEmail' => '',
+                'replyToName' => ''
             ];
         }
 
@@ -873,10 +875,11 @@ Http::patch('/v1/projects/:projectId/templates/email/:type/:locale')
     ->param('message', '', new Text(0), 'Template message')
     ->param('senderName', '', new Text(255, 0), 'Name of the email sender', true)
     ->param('senderEmail', '', new Email(), 'Email of the sender', true)
-    ->param('replyTo', '', new Email(), 'Reply to email', true)
+    ->param('replyToEmail', '', new Email(), 'Reply to email', true)
+    ->param('replyToName', '', new Text(255, 0), 'Reply to name', true)
     ->inject('response')
     ->inject('dbForPlatform')
-    ->action(function (string $projectId, string $type, string $locale, string $subject, string $message, string $senderName, string $senderEmail, string $replyTo, Response $response, Database $dbForPlatform) {
+    ->action(function (string $projectId, string $type, string $locale, string $subject, string $message, string $senderName, string $senderEmail, string $replyToEmail, string $replyToName, Response $response, Database $dbForPlatform) {
 
         $project = $dbForPlatform->getDocument('projects', $projectId);
 
@@ -889,7 +892,8 @@ Http::patch('/v1/projects/:projectId/templates/email/:type/:locale')
             'senderName' => $senderName,
             'senderEmail' => $senderEmail,
             'subject' => $subject,
-            'replyTo' => $replyTo,
+            'replyToEmail' => $replyToEmail,
+            'replyToName' => $replyToName,
             'message' => $message
         ];
 
@@ -901,7 +905,8 @@ Http::patch('/v1/projects/:projectId/templates/email/:type/:locale')
             'senderName' => $senderName,
             'senderEmail' => $senderEmail,
             'subject' => $subject,
-            'replyTo' => $replyTo,
+            'replyToEmail' => $replyToEmail,
+            'replyToName' => $replyToName,
             'message' => $message
         ]), Response::MODEL_EMAIL_TEMPLATE);
     });
@@ -1026,7 +1031,8 @@ Http::delete('/v1/projects/:projectId/templates/email/:type/:locale')
             'senderName' => $template['senderName'],
             'senderEmail' => $template['senderEmail'],
             'subject' => $template['subject'],
-            'replyTo' => $template['replyTo'],
+            'replyToEmail' => $template['replyToEmail'] ?? '',
+            'replyToName' => $template['replyToName'] ?? '',
             'message' => $template['message']
         ]), Response::MODEL_EMAIL_TEMPLATE);
     });

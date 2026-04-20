@@ -104,7 +104,8 @@ class Create extends Action
 
         $senderName = $paramSenderName ?: ($smtp['senderName'] ?? '');
         $senderEmail = $paramSenderEmail ?: ($smtp['senderEmail'] ?? '');
-        $replyTo = $paramReplyTo ?: ($smtp['replyTo'] ?? '');
+        $replyToEmail = $paramReplyTo ?: ($smtp['replyToEmail'] ?? '');
+        $replyToName = $smtp['replyToName'] ?? '';
         $host = $paramHost ?: ($smtp['host'] ?? '');
         $port = $paramPort ?? ($smtp['port'] ?? '');
         $username = $paramUsername ?: ($smtp['username'] ?? '');
@@ -127,13 +128,15 @@ class Create extends Action
             throw new Exception(Exception::GENERAL_ARGUMENT_INVALID, 'SMTP port must be configured on the project to send a test email.');
         }
 
-        $replyToEmail = !empty($replyTo) ? $replyTo : $senderEmail;
+        // Fallback to sender details when reply-to is not explicitly configured
+        $replyToEmailDisplay = !empty($replyToEmail) ? $replyToEmail : $senderEmail;
+        $replyToNameDisplay = !empty($replyToName) ? $replyToName : $senderName;
 
         $subject = 'Custom SMTP email sample';
         $template = Template::fromFile(APP_CE_CONFIG_DIR . '/locale/templates/email-smtp-test.tpl');
         $template
             ->setParam('{{from}}', "{$senderName} ({$senderEmail})")
-            ->setParam('{{replyTo}}', "{$senderName} ({$replyToEmail})")
+            ->setParam('{{replyTo}}', "{$replyToNameDisplay} ({$replyToEmailDisplay})")
             ->setParam('{{logoUrl}}', $plan['logoUrl'] ?? APP_EMAIL_LOGO_URL)
             ->setParam('{{accentColor}}', $plan['accentColor'] ?? APP_EMAIL_ACCENT_COLOR)
             ->setParam('{{twitterUrl}}', $plan['twitterUrl'] ?? APP_SOCIAL_TWITTER)
@@ -149,7 +152,8 @@ class Create extends Action
                 ->setSmtpUsername($username)
                 ->setSmtpPassword($password)
                 ->setSmtpSecure($secure)
-                ->setSmtpReplyTo($replyTo)
+                ->setSmtpReplyToEmail($replyToEmail)
+                ->setSmtpReplyToName($replyToName)
                 ->setSmtpSenderEmail($senderEmail)
                 ->setSmtpSenderName($senderName)
                 ->setRecipient($email)
