@@ -762,6 +762,96 @@ trait MigrationsBase
     }
 
     /**
+     * Appwrite → Appwrite row migration honoring onDuplicate=skip and onDuplicate=upsert.
+     * Exercises the row-buffer dispatch path via cross-project migration rather than CSV/JSON upload.
+     */
+    public function testAppwriteMigrationRowsOnDuplicate(): void
+    {
+        $sourceHeaders = [
+            'content-type' => 'application/json',
+            'x-appwrite-project' => $this->getProject()['$id'],
+            'x-appwrite-key' => $this->getProject()['apiKey'],
+        ];
+        $destHeaders = [
+            'content-type' => 'application/json',
+            'x-appwrite-project' => $this->getDestinationProject()['$id'],
+            'x-appwrite-key' => $this->getDestinationProject()['apiKey'],
+        ];
+
+        // Source setup: database + table + column + row
+        $data = $this->setupMigrationTable();
+        $databaseId = $data['databaseId'];
+        $tableId = $data['tableId'];
+
+        $row = $this->client->call(Client::METHOD_POST, '/tablesdb/' . $databaseId . '/tables/' . $tableId . '/rows', $sourceHeaders, [
+            'rowId' => ID::unique(),
+            'data' => ['name' => 'Original'],
+        ]);
+        $this->assertEquals(201, $row['headers']['status-code']);
+        $rowId = $row['body']['$id'];
+
+        $resources = [
+            Resource::TYPE_DATABASE,
+            Resource::TYPE_TABLE,
+            Resource::TYPE_COLUMN,
+            Resource::TYPE_ROW,
+        ];
+
+        // First migration: destination is empty, all resources copied
+        $first = $this->performMigrationSync([
+            'resources' => $resources,
+            'endpoint' => $this->webEndpoint,
+            'projectId' => $this->getProject()['$id'],
+            'apiKey' => $this->getProject()['apiKey'],
+        ]);
+        $this->assertEquals('completed', $first['status']);
+
+        // Mutate destination row so we can prove skip preserves it
+        $mutate = $this->client->call(Client::METHOD_PATCH, '/tablesdb/' . $databaseId . '/tables/' . $tableId . '/rows/' . $rowId, $destHeaders, [
+            'data' => ['name' => 'Mutated'],
+        ]);
+        $this->assertEquals(200, $mutate['headers']['status-code']);
+        $this->assertEquals('Mutated', $mutate['body']['name']);
+
+        // Second migration with onDuplicate=skip: destination row must keep 'Mutated'
+        $second = $this->performMigrationSync([
+            'resources' => $resources,
+            'endpoint' => $this->webEndpoint,
+            'projectId' => $this->getProject()['$id'],
+            'apiKey' => $this->getProject()['apiKey'],
+            'onDuplicate' => 'skip',
+        ]);
+        $this->assertEquals('completed', $second['status']);
+
+        $rowAfterSkip = $this->client->call(Client::METHOD_GET, '/tablesdb/' . $databaseId . '/tables/' . $tableId . '/rows/' . $rowId, $destHeaders);
+        $this->assertEquals(200, $rowAfterSkip['headers']['status-code']);
+        $this->assertEquals('Mutated', $rowAfterSkip['body']['name'], 'onDuplicate=skip must not overwrite destination row');
+
+        // Third migration with onDuplicate=upsert: destination row must be restored to 'Original'
+        $third = $this->performMigrationSync([
+            'resources' => $resources,
+            'endpoint' => $this->webEndpoint,
+            'projectId' => $this->getProject()['$id'],
+            'apiKey' => $this->getProject()['apiKey'],
+            'onDuplicate' => 'upsert',
+        ]);
+        $this->assertEquals('completed', $third['status']);
+
+        $rowAfterUpsert = $this->client->call(Client::METHOD_GET, '/tablesdb/' . $databaseId . '/tables/' . $tableId . '/rows/' . $rowId, $destHeaders);
+        $this->assertEquals(200, $rowAfterUpsert['headers']['status-code']);
+        $this->assertEquals('Original', $rowAfterUpsert['body']['name'], 'onDuplicate=upsert must restore source value');
+
+        // Cleanup on destination
+        $this->client->call(Client::METHOD_DELETE, '/databases/' . $databaseId, $destHeaders);
+
+        // Cleanup on source
+        $this->client->call(Client::METHOD_DELETE, '/databases/' . $databaseId, $sourceHeaders);
+
+        self::$cachedDatabaseData = [];
+        self::$cachedTableData = [];
+    }
+
+    /**
      * Storage
      */
     public function testAppwriteMigrationStorageBucket(): void
