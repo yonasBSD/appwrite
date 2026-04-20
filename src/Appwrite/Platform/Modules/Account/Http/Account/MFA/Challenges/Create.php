@@ -263,8 +263,10 @@ class Create extends Action
                     if (!empty($smtp['senderName'])) {
                         $senderName = $smtp['senderName'];
                     }
-                    if (!empty($smtp['replyToEmail'])) {
-                        $replyToEmail = $smtp['replyToEmail'];
+                    // Includes backwards compatibility: fall back to legacy `replyTo` key
+                    $smtpReplyToEmail = $smtp['replyToEmail'] ?? $smtp['replyTo'] ?? '';
+                    if (!empty($smtpReplyToEmail)) {
+                        $replyToEmail = $smtpReplyToEmail;
                     }
                     if (!empty($smtp['replyToName'])) {
                         $replyToName = $smtp['replyToName'];
@@ -284,8 +286,10 @@ class Create extends Action
                         if (!empty($customTemplate['senderName'])) {
                             $senderName = $customTemplate['senderName'];
                         }
-                        if (!empty($customTemplate['replyToEmail'])) {
-                            $replyToEmail = $customTemplate['replyToEmail'];
+                        // Includes backwards compatibility: fall back to legacy `replyTo` key
+                        $customReplyToEmail = $customTemplate['replyToEmail'] ?? $customTemplate['replyTo'] ?? '';
+                        if (!empty($customReplyToEmail)) {
+                            $replyToEmail = $customReplyToEmail;
                         }
                         if (!empty($customTemplate['replyToName'])) {
                             $replyToName = $customTemplate['replyToName'];

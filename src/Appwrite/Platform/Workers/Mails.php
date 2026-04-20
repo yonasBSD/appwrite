@@ -173,7 +173,9 @@ class Mails extends Action
             $replyTo = $customMailOptions['replyToEmail'] ?? $replyTo;
             $replyToName = $customMailOptions['replyToName'] ?? $replyToName;
         } elseif (!empty($smtp)) {
-            $replyTo = !empty($smtp['replyToEmail']) ? $smtp['replyToEmail'] : ($smtp['senderEmail'] ?? $replyTo);
+            // Includes backwards compatibility: fall back to legacy `replyTo` key
+            $smtpReplyToEmail = $smtp['replyToEmail'] ?? $smtp['replyTo'] ?? '';
+            $replyTo = !empty($smtpReplyToEmail) ? $smtpReplyToEmail : ($smtp['senderEmail'] ?? $replyTo);
             $replyToName = !empty($smtp['replyToName']) ? $smtp['replyToName'] : ($smtp['senderName'] ?? $replyToName);
         }
 

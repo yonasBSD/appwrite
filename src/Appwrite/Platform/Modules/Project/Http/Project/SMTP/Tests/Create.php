@@ -104,7 +104,7 @@ class Create extends Action
 
         $senderName = $paramSenderName ?: ($smtp['senderName'] ?? '');
         $senderEmail = $paramSenderEmail ?: ($smtp['senderEmail'] ?? '');
-        $replyToEmail = $paramReplyTo ?: ($smtp['replyToEmail'] ?? '');
+        $replyToEmail = $paramReplyTo ?: ($smtp['replyToEmail'] ?? $smtp['replyTo'] ?? ''); // Includes backwards compatibility
         $replyToName = $smtp['replyToName'] ?? '';
         $host = $paramHost ?: ($smtp['host'] ?? '');
         $port = $paramPort ?? ($smtp['port'] ?? '');

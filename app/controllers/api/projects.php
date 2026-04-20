@@ -716,6 +716,12 @@ Http::get('/v1/projects/:projectId/templates/email/:type/:locale')
         $templates = $project->getAttribute('templates', []);
         $template  = $templates['email.' . $type . '-' . $locale] ?? null;
 
+        // Includes backwards compatibility: fall back to legacy `replyTo` key
+        if (!is_null($template)) {
+            $template['replyToEmail'] = $template['replyToEmail'] ?? $template['replyTo'] ?? '';
+            $template['replyToName'] = $template['replyToName'] ?? '';
+        }
+
         $localeObj = new Locale($locale);
         $localeObj->setFallback(System::getEnv('_APP_LOCALE', 'en'));
 
@@ -1031,7 +1037,7 @@ Http::delete('/v1/projects/:projectId/templates/email/:type/:locale')
             'senderName' => $template['senderName'],
             'senderEmail' => $template['senderEmail'],
             'subject' => $template['subject'],
-            'replyToEmail' => $template['replyToEmail'] ?? '',
+            'replyToEmail' => $template['replyToEmail'] ?? $template['replyTo'] ?? '', // Includes backwards compatibility
             'replyToName' => $template['replyToName'] ?? '',
             'message' => $template['message']
         ]), Response::MODEL_EMAIL_TEMPLATE);
