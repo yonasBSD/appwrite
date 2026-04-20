@@ -313,7 +313,7 @@ trait SMTPBase
         $response = $this->updateSMTP(
             senderName: 'Test',
             senderEmail: 'sender@example.com',
-            host: 'not a valid host!@#',
+            host: 'https://myhost.com/v1',
             port: 1025,
         );
 

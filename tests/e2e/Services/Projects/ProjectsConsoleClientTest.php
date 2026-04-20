@@ -1131,7 +1131,7 @@ class ProjectsConsoleClientTest extends Scope
         $this->assertEquals('', $response['body']['senderEmail']);
         $this->assertEquals('verification', $response['body']['type']);
         $this->assertEquals('en-us', $response['body']['locale']);
-        
+
         /** Update Email template, fail due to SMTP disabled */
         $response = $this->client->call(Client::METHOD_PATCH, '/projects/' . $id . '/templates/email/verification/en-us', array_merge([
             'content-type' => 'application/json',
@@ -1145,7 +1145,7 @@ class ProjectsConsoleClientTest extends Scope
         ]);
 
         $this->assertEquals(400, $response['headers']['status-code']);
-        
+
         /** Configure custom SMTP pointing to maildev, so changing template is allowed */
         $smtpHost = 'maildev';
         $smtpPort = 1025;
