@@ -534,6 +534,104 @@ trait SMTPBase
         $this->assertSame('project_smtp_config_invalid', $response['body']['type']);
     }
 
+    public function testUpdateSMTPLegacyReplyToAndResponseFormat(): void
+    {
+        $headers = \array_merge([
+            'content-type' => 'application/json',
+            'x-appwrite-project' => $this->getProject()['$id'],
+            'x-appwrite-response-format' => '1.9.1',
+        ], $this->getHeaders());
+
+        // Legacy client sends `replyTo` (not `replyToEmail`). Request filter maps it.
+        $response = $this->client->call(
+            Client::METHOD_PATCH,
+            '/project/smtp',
+            $headers,
+            [
+                'enabled' => true,
+                'senderName' => 'Legacy Sender',
+                'senderEmail' => 'legacy-sender@example.com',
+                'host' => 'maildev',
+                'port' => 1025,
+                'replyTo' => 'legacy-reply@example.com',
+            ],
+        );
+
+        $this->assertSame(200, $response['headers']['status-code']);
+        $this->assertSame(true, $response['body']['smtpEnabled']);
+        $this->assertSame('Legacy Sender', $response['body']['smtpSenderName']);
+        $this->assertSame('legacy-sender@example.com', $response['body']['smtpSenderEmail']);
+
+        // Response filter must expose smtpReplyTo and strip smtpReplyToEmail / smtpReplyToName.
+        $this->assertArrayHasKey('smtpReplyTo', $response['body']);
+        $this->assertArrayNotHasKey('smtpReplyToEmail', $response['body']);
+        $this->assertArrayNotHasKey('smtpReplyToName', $response['body']);
+        $this->assertSame('legacy-reply@example.com', $response['body']['smtpReplyTo']);
+
+        // Sanity-check: a modern (non-legacy) read sees the new field names.
+        $modern = $this->updateSMTP(enabled: true);
+        $this->assertArrayHasKey('smtpReplyToEmail', $modern['body']);
+        $this->assertSame('legacy-reply@example.com', $modern['body']['smtpReplyToEmail']);
+
+        // Cleanup
+        $this->updateSMTP(enabled: false);
+    }
+
+    public function testCreateSMTPTestLegacyInlineParams(): void
+    {
+        // Seed the project with a distinct SMTP config so we can prove the
+        // inline (1.9.1-style) params take precedence over project config.
+        $this->updateSMTP(
+            senderName: 'Project Sender',
+            senderEmail: 'project-sender@example.com',
+            host: 'maildev',
+            port: 1025,
+            replyToEmail: 'project-reply@example.com',
+            replyToName: 'Project Reply',
+            enabled: false,
+        );
+
+        $recipient = 'legacy-smtp-' . \uniqid() . '@appwrite.io';
+
+        $headers = \array_merge([
+            'content-type' => 'application/json',
+            'x-appwrite-project' => $this->getProject()['$id'],
+            'x-appwrite-response-format' => '1.9.1',
+        ], $this->getHeaders());
+
+        $response = $this->client->call(
+            Client::METHOD_POST,
+            '/project/smtp/tests',
+            $headers,
+            [
+                'emails' => [$recipient],
+                'senderName' => 'Inline Legacy Sender',
+                'senderEmail' => 'inline-legacy@appwrite.io',
+                'replyTo' => 'inline-legacy-reply@appwrite.io',
+                'host' => 'maildev',
+                'port' => 1025,
+                'username' => 'user',
+                'password' => 'password',
+            ],
+        );
+
+        $this->assertSame(204, $response['headers']['status-code']);
+        $this->assertEmpty($response['body']);
+
+        // Verify the email was sent using the inline params (not project SMTP).
+        $email = $this->getLastEmailByAddress($recipient, function ($email) {
+            $this->assertSame('Custom SMTP email sample', $email['subject']);
+        });
+
+        $this->assertSame('inline-legacy@appwrite.io', $email['from'][0]['address']);
+        $this->assertSame('Inline Legacy Sender', $email['from'][0]['name']);
+        $this->assertSame('inline-legacy-reply@appwrite.io', $email['replyTo'][0]['address']);
+        $this->assertSame('Inline Legacy Sender', $email['replyTo'][0]['name']);
+
+        // Cleanup
+        $this->updateSMTP(enabled: false);
+    }
+
     public function testUpdateSMTPBackwardsCompatibilityDisable(): void
     {
         // First enable SMTP

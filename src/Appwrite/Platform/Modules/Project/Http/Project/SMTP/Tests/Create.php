@@ -90,7 +90,9 @@ class Create extends Action
         Mail $queueForMails,
         array $plan
     ): void {
-        // Backwards compatibility: use inline params if provided, otherwise fall back to project SMTP config
+        // Backwards compatibility: use inline params if provided, otherwise fall back to project SMTP config.
+        // When inline params are provided they are treated as self-contained — project config is ignored
+        // so legacy (1.9.1) callers do not get project state (e.g. replyToName) leaked into their request.
         $hasInlineParams = !empty($paramHost);
 
         $smtp = $project->getAttribute('smtp', []);
@@ -99,15 +101,27 @@ class Create extends Action
             throw new Exception(Exception::GENERAL_ARGUMENT_INVALID, 'SMTP must be enabled on the project to send a test email.');
         }
 
-        $senderName = $paramSenderName ?: ($smtp['senderName'] ?? '');
-        $senderEmail = $paramSenderEmail ?: ($smtp['senderEmail'] ?? '');
-        $replyToEmail = $paramReplyTo ?: ($smtp['replyToEmail'] ?? $smtp['replyTo'] ?? ''); // Includes backwards compatibility
-        $replyToName = $smtp['replyToName'] ?? '';
-        $host = $paramHost ?: ($smtp['host'] ?? '');
-        $port = $paramPort ?? ($smtp['port'] ?? '');
-        $username = $paramUsername ?: ($smtp['username'] ?? '');
-        $password = $paramPassword ?: ($smtp['password'] ?? '');
-        $secure = $paramSecure ?: ($smtp['secure'] ?? '');
+        if ($hasInlineParams) {
+            $senderName = $paramSenderName;
+            $senderEmail = $paramSenderEmail;
+            $replyToEmail = $paramReplyTo;
+            $replyToName = ''; // 1.9.1 inline params did not include replyToName
+            $host = $paramHost;
+            $port = $paramPort ?? 0;
+            $username = $paramUsername;
+            $password = $paramPassword;
+            $secure = $paramSecure;
+        } else {
+            $senderName = $smtp['senderName'] ?? '';
+            $senderEmail = $smtp['senderEmail'] ?? '';
+            $replyToEmail = $smtp['replyToEmail'] ?? $smtp['replyTo'] ?? ''; // Includes backwards compatibility
+            $replyToName = $smtp['replyToName'] ?? '';
+            $host = $smtp['host'] ?? '';
+            $port = $smtp['port'] ?? 0;
+            $username = $smtp['username'] ?? '';
+            $password = $smtp['password'] ?? '';
+            $secure = $smtp['secure'] ?? '';
+        }
 
         if (empty($senderName)) {
             throw new Exception(Exception::GENERAL_ARGUMENT_INVALID, 'SMTP sender name must be configured on the project to send a test email.');

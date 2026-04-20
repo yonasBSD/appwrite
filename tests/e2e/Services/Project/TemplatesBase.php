@@ -434,6 +434,102 @@ trait TemplatesBase
         $this->assertSame(400, $update['headers']['status-code']);
     }
 
+    public function testUpdateEmailTemplateLegacyReplyTo(): void
+    {
+        $headers = \array_merge([
+            'content-type' => 'application/json',
+            'x-appwrite-project' => $this->getProject()['$id'],
+            'x-appwrite-response-format' => '1.9.1',
+        ], $this->getHeaders());
+
+        // Legacy clients send replyTo (not replyToEmail) — request filter maps it.
+        $update = $this->client->call(
+            Client::METHOD_PATCH,
+            '/project/templates/email',
+            $headers,
+            [
+                'type' => 'invitation',
+                'locale' => 'en',
+                'subject' => 'Legacy reply-to subject',
+                'message' => 'Legacy reply-to body',
+                'senderName' => 'Legacy Sender',
+                'senderEmail' => 'legacy-sender@appwrite.io',
+                'replyTo' => 'legacy-reply@appwrite.io',
+            ],
+        );
+
+        $this->assertSame(200, $update['headers']['status-code']);
+        // Response filter should rename replyToEmail -> replyTo, strip replyToName / custom.
+        $this->assertArrayHasKey('replyTo', $update['body']);
+        $this->assertArrayNotHasKey('replyToEmail', $update['body']);
+        $this->assertArrayNotHasKey('replyToName', $update['body']);
+        $this->assertArrayNotHasKey('custom', $update['body']);
+        $this->assertSame('legacy-reply@appwrite.io', $update['body']['replyTo']);
+        $this->assertSame('Legacy Sender', $update['body']['senderName']);
+        $this->assertSame('legacy-sender@appwrite.io', $update['body']['senderEmail']);
+
+        // Verify value is persisted and readable via the legacy GET shape.
+        $get = $this->client->call(
+            Client::METHOD_GET,
+            '/project/templates/email/invitation',
+            $headers,
+            ['locale' => 'en'],
+        );
+        $this->assertSame(200, $get['headers']['status-code']);
+        $this->assertArrayHasKey('replyTo', $get['body']);
+        $this->assertArrayNotHasKey('replyToEmail', $get['body']);
+        $this->assertArrayNotHasKey('replyToName', $get['body']);
+        $this->assertArrayNotHasKey('custom', $get['body']);
+        $this->assertSame('legacy-reply@appwrite.io', $get['body']['replyTo']);
+
+        // Cleanup
+        $this->deleteEmailTemplate('invitation', 'en');
+    }
+
+    public function testGetEmailTemplateLegacyReplyTo(): void
+    {
+        // Seed a custom template using the current API (includes replyToEmail + replyToName).
+        $update = $this->updateEmailTemplate(
+            'otpSession',
+            'en',
+            'Legacy OTP',
+            'Legacy OTP body',
+            'Legacy Sender',
+            'legacy-sender@appwrite.io',
+            'legacy-reply@appwrite.io',
+            'Legacy Reply Team',
+        );
+        $this->assertSame(200, $update['headers']['status-code']);
+
+        $headers = \array_merge([
+            'content-type' => 'application/json',
+            'x-appwrite-project' => $this->getProject()['$id'],
+            'x-appwrite-response-format' => '1.9.1',
+        ], $this->getHeaders());
+
+        $get = $this->client->call(
+            Client::METHOD_GET,
+            '/project/templates/email/otpSession',
+            $headers,
+            ['locale' => 'en'],
+        );
+
+        $this->assertSame(200, $get['headers']['status-code']);
+        // Legacy fields present
+        $this->assertArrayHasKey('type', $get['body']);
+        $this->assertArrayHasKey('replyTo', $get['body']);
+        $this->assertSame('otpSession', $get['body']['type']);
+        $this->assertSame('legacy-reply@appwrite.io', $get['body']['replyTo']);
+        // New fields stripped
+        $this->assertArrayNotHasKey('templateId', $get['body']);
+        $this->assertArrayNotHasKey('replyToEmail', $get['body']);
+        $this->assertArrayNotHasKey('replyToName', $get['body']);
+        $this->assertArrayNotHasKey('custom', $get['body']);
+
+        // Cleanup
+        $this->deleteEmailTemplate('otpSession', 'en');
+    }
+
     // =========================================================================
     // Helpers
     // =========================================================================
