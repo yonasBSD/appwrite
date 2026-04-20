@@ -1554,7 +1554,7 @@ trait MigrationsBase
     }
 
     /**
-     * skip=true on re-import: duplicates are silently no-op'd, existing rows preserved unchanged.
+     * onDuplicate=skip on re-import: duplicates are silently no-op'd, existing rows preserved unchanged.
      */
     public function testCreateCSVImportSkipDuplicates(): void
     {
@@ -1586,12 +1586,12 @@ trait MigrationsBase
         $this->assertEquals(200, $mutate['headers']['status-code']);
         $this->assertEquals(22, $mutate['body']['age']);
 
-        // Second import with skip=true: no errors, mutated row preserved
+        // Second import with onDuplicate=skip: no errors, mutated row preserved
         $second = $this->performCsvMigration([
             'fileId' => $fileId,
             'bucketId' => $bucketId,
             'resourceId' => $databaseId . ':' . $tableId,
-            'skip' => true,
+            'onDuplicate' => 'skip',
         ]);
         $this->assertEventually(function () use ($second) {
             $migration = $this->client->call(Client::METHOD_GET, '/migrations/' . $second['body']['$id'], array_merge([
@@ -1608,7 +1608,7 @@ trait MigrationsBase
         ], $this->getHeaders()));
         $this->assertEquals(200, $row['headers']['status-code']);
         $this->assertEquals($originalName, $row['body']['name']);
-        $this->assertEquals(22, $row['body']['age'], 'skip=true must not overwrite mutated row');
+        $this->assertEquals(22, $row['body']['age'], 'onDuplicate=skip must not overwrite mutated row');
 
         // Row count still 100 (no duplicates created)
         $rows = $this->client->call(Client::METHOD_GET, '/tablesdb/' . $databaseId . '/tables/' . $tableId . '/rows', array_merge([
@@ -1621,7 +1621,7 @@ trait MigrationsBase
     }
 
     /**
-     * overwrite=true on re-import: existing rows are replaced with imported values.
+     * onDuplicate=upsert on re-import: existing rows are replaced with imported values.
      */
     public function testCreateCSVImportOverwrite(): void
     {
@@ -1642,7 +1642,7 @@ trait MigrationsBase
             $this->assertEquals(100, $migration['body']['statusCounters'][Resource::TYPE_ROW]['success']);
         }, 10_000, 500);
 
-        // Mutate one row so we can prove overwrite restores it to the CSV's original value
+        // Mutate one row so we can prove upsert restores it to the CSV's original value
         $mutate = $this->client->call(Client::METHOD_PATCH, '/tablesdb/' . $databaseId . '/tables/' . $tableId . '/rows/' . $rowId, [
             'content-type' => 'application/json',
             'x-appwrite-project' => $this->getProject()['$id'],
@@ -1653,12 +1653,12 @@ trait MigrationsBase
         $this->assertEquals(200, $mutate['headers']['status-code']);
         $this->assertEquals(22, $mutate['body']['age']);
 
-        // Second import with overwrite=true: mutated row restored to CSV value
+        // Second import with onDuplicate=upsert: mutated row restored to CSV value
         $second = $this->performCsvMigration([
             'fileId' => $fileId,
             'bucketId' => $bucketId,
             'resourceId' => $databaseId . ':' . $tableId,
-            'overwrite' => true,
+            'onDuplicate' => 'upsert',
         ]);
         $this->assertEventually(function () use ($second) {
             $migration = $this->client->call(Client::METHOD_GET, '/migrations/' . $second['body']['$id'], array_merge([
@@ -1668,14 +1668,14 @@ trait MigrationsBase
             $this->assertEquals('completed', $migration['body']['status']);
         }, 10_000, 500);
 
-        // Mutated row is back to CSV's original age (proving overwrite actually replaced the row)
+        // Mutated row is back to CSV's original age (proving upsert actually replaced the row)
         $row = $this->client->call(Client::METHOD_GET, '/tablesdb/' . $databaseId . '/tables/' . $tableId . '/rows/' . $rowId, array_merge([
             'content-type' => 'application/json',
             'x-appwrite-project' => $this->getProject()['$id'],
         ], $this->getHeaders()));
         $this->assertEquals(200, $row['headers']['status-code']);
         $this->assertEquals($originalName, $row['body']['name']);
-        $this->assertEquals($originalAge, $row['body']['age'], 'overwrite=true must restore row to imported value');
+        $this->assertEquals($originalAge, $row['body']['age'], 'onDuplicate=upsert must restore row to imported value');
 
         // Row count still 100 (no duplicates created)
         $rows = $this->client->call(Client::METHOD_GET, '/tablesdb/' . $databaseId . '/tables/' . $tableId . '/rows', array_merge([

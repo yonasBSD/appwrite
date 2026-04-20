@@ -26,6 +26,7 @@ use Utopia\Database\Validator\Queries\Documents;
 use Utopia\Database\Validator\Query\Cursor;
 use Utopia\Database\Validator\UID;
 use Utopia\Http\Http;
+use Utopia\Migration\Destinations\Appwrite as DestinationAppwrite;
 use Utopia\Migration\Resource;
 use Utopia\Migration\Sources\Appwrite;
 use Utopia\Migration\Sources\CSV;
@@ -87,15 +88,14 @@ Http::post('/v1/migrations/appwrite')
     ->param('endpoint', '', new URL(), 'Source Appwrite endpoint')
     ->param('projectId', '', fn (Database $dbForProject) => new UID($dbForProject->getAdapter()->getMaxUIDLength()), 'Source Project ID', false, ['dbForProject'])
     ->param('apiKey', '', new Text(512), 'Source API Key')
-    ->param('overwrite', false, new Boolean(), 'When true, replace existing rows by calling upsertDocuments instead of createDocuments. Rows with matching IDs will be updated with the imported values.', true)
-    ->param('skip', false, new Boolean(), 'When true, silently ignore rows whose IDs already exist in the destination. Existing rows are preserved unchanged.', true)
+    ->param('onDuplicate', DestinationAppwrite::ON_DUPLICATE_FAIL, new WhiteList(DestinationAppwrite::ON_DUPLICATES), 'Behavior when a row with an existing $id is encountered. "fail" (default): abort on first conflict. "skip": silently ignore. "upsert": replace existing row.', true)
     ->inject('response')
     ->inject('dbForProject')
     ->inject('project')
     ->inject('platform')
     ->inject('queueForEvents')
     ->inject('publisherForMigrations')
-    ->action(function (array $resources, string $endpoint, string $projectId, string $apiKey, bool $overwrite, bool $skip, Response $response, Database $dbForProject, Document $project, array $platform, Event $queueForEvents, MigrationPublisher $publisherForMigrations) {
+    ->action(function (array $resources, string $endpoint, string $projectId, string $apiKey, string $onDuplicate, Response $response, Database $dbForProject, Document $project, array $platform, Event $queueForEvents, MigrationPublisher $publisherForMigrations) {
         $migration = $dbForProject->createDocument('migrations', new Document([
             '$id' => ID::unique(),
             'status' => 'pending',
@@ -112,8 +112,7 @@ Http::post('/v1/migrations/appwrite')
             'resourceData' => '{}',
             'errors' => [],
             'options' => [
-                'overwrite' => $overwrite,
-                'skip' => $skip,
+                'onDuplicate' => $onDuplicate,
             ],
         ]));
 
@@ -358,8 +357,7 @@ Http::post('/v1/migrations/csv/imports')
     ->param('fileId', '', fn (Database $dbForProject) => new UID($dbForProject->getAdapter()->getMaxUIDLength()), 'File ID.', false, ['dbForProject'])
     ->param('resourceId', null, new CompoundUID(), 'Composite ID in the format {databaseId:collectionId}, identifying a collection within a database.')
     ->param('internalFile', false, new Boolean(), 'Is the file stored in an internal bucket?', true)
-    ->param('overwrite', false, new Boolean(), 'When true, replace existing rows by calling upsertDocuments instead of createDocuments. Rows with matching IDs will be updated with the imported values.', true)
-    ->param('skip', false, new Boolean(), 'When true, silently ignore rows whose IDs already exist in the destination. Existing rows are preserved unchanged.', true)
+    ->param('onDuplicate', DestinationAppwrite::ON_DUPLICATE_FAIL, new WhiteList(DestinationAppwrite::ON_DUPLICATES), 'Behavior when a row with an existing $id is encountered. "fail" (default): abort on first conflict. "skip": silently ignore. "upsert": replace existing row.', true)
     ->inject('response')
     ->inject('dbForProject')
     ->inject('dbForPlatform')
@@ -375,8 +373,7 @@ Http::post('/v1/migrations/csv/imports')
         string $fileId,
         string $resourceId,
         bool $internalFile,
-        bool $overwrite,
-        bool $skip,
+        string $onDuplicate,
         Response $response,
         Database $dbForProject,
         Database $dbForPlatform,
@@ -477,8 +474,7 @@ Http::post('/v1/migrations/csv/imports')
             'options' => [
                 'path' => $newPath,
                 'size' => $fileSize,
-                'overwrite' => $overwrite,
-                'skip' => $skip,
+                'onDuplicate' => $onDuplicate,
             ],
         ]));
 
@@ -668,8 +664,7 @@ Http::post('/v1/migrations/json/imports')
     ->param('fileId', '', new UID(), 'File ID.')
     ->param('resourceId', null, new CompoundUID(), 'Composite ID in the format {databaseId:collectionId}, identifying a collection within a database.')
     ->param('internalFile', false, new Boolean(), 'Is the file stored in an internal bucket?', true)
-    ->param('overwrite', false, new Boolean(), 'When true, replace existing rows by calling upsertDocuments instead of createDocuments. Rows with matching IDs will be updated with the imported values.', true)
-    ->param('skip', false, new Boolean(), 'When true, silently ignore rows whose IDs already exist in the destination. Existing rows are preserved unchanged.', true)
+    ->param('onDuplicate', DestinationAppwrite::ON_DUPLICATE_FAIL, new WhiteList(DestinationAppwrite::ON_DUPLICATES), 'Behavior when a row with an existing $id is encountered. "fail" (default): abort on first conflict. "skip": silently ignore. "upsert": replace existing row.', true)
     ->inject('response')
     ->inject('dbForProject')
     ->inject('dbForPlatform')
@@ -685,8 +680,7 @@ Http::post('/v1/migrations/json/imports')
         string $fileId,
         string $resourceId,
         bool $internalFile,
-        bool $overwrite,
-        bool $skip,
+        string $onDuplicate,
         Response $response,
         Database $dbForProject,
         Database $dbForPlatform,
@@ -786,8 +780,7 @@ Http::post('/v1/migrations/json/imports')
             'options' => [
                 'path' => $newPath,
                 'size' => $fileSize,
-                'overwrite' => $overwrite,
-                'skip' => $skip,
+                'onDuplicate' => $onDuplicate,
             ],
         ]));
 

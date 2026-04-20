@@ -276,8 +276,7 @@ class Migrations extends Action
                 $this->dbForProject,
                 $this->getDatabasesDB,
                 Config::getParam('collections', [])['databases']['collections'],
-                $options['overwrite'] ?? false,
-                $options['skip'] ?? false,
+                $options['onDuplicate'] ?? DestinationAppwrite::ON_DUPLICATE_FAIL,
             ),
             DestinationCSV::getName() => new DestinationCSV(
                 $this->deviceForFiles,
