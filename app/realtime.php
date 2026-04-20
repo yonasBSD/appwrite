@@ -396,6 +396,8 @@ $server->onWorkerStart(function (int $workerId) use ($server, $register, $stats,
     $telemetry = getTelemetry($workerId);
     $realtimeDelayBuckets = [100, 250, 500, 750, 1000, 1500, 2000, 3000, 5000, 7500, 10000, 15000, 30000];
     $register->set('telemetry', fn () => $telemetry);
+    $register->set('telemetry.workerCounter', fn () => $telemetry->createUpDownCounter('realtime.server.active_workers'));
+    $register->set('telemetry.workerClientCounter', fn () => $telemetry->createUpDownCounter('realtime.server.worker_clients'));
     $register->set('telemetry.connectionCounter', fn () => $telemetry->createUpDownCounter('realtime.server.open_connections'));
     $register->set('telemetry.connectionCreatedCounter', fn () => $telemetry->createCounter('realtime.server.connection.created'));
     $register->set('telemetry.messageSentCounter', fn () => $telemetry->createCounter('realtime.server.message.sent'));
@@ -409,6 +411,7 @@ $server->onWorkerStart(function (int $workerId) use ($server, $register, $stats,
         unit: 'ms',
         advisory: ['ExplicitBucketBoundaries' => $realtimeDelayBuckets],
     ));
+    $register->get('telemetry.workerCounter')->add(1);
 
     $attempts = 0;
     $start = time();
@@ -661,6 +664,16 @@ $server->onWorkerStart(function (int $workerId) use ($server, $register, $stats,
     Console::error('Failed to restart pub/sub...');
 });
 
+$server->onWorkerStop(function (int $workerId) use ($register) {
+    Console::warning('Worker ' . $workerId . ' stopping');
+
+    try {
+        $register->get('telemetry.workerCounter')->add(-1);
+    } catch (\Throwable $th) {
+        Console::error('Realtime onWorkerStop telemetry error: ' . $th->getMessage());
+    }
+});
+
 $server->onOpen(function (int $connection, SwooleRequest $request) use ($server, $register, $stats, &$realtime, $registerConnectionResources) {
     global $container;
     $request = new Request($request);
@@ -749,6 +762,7 @@ $server->onOpen(function (int $connection, SwooleRequest $request) use ($server,
 
         $updateStats = static function (string $projectId, ?string $teamId, string $payloadJson) use ($register, $stats): void {
             $register->get('telemetry.connectionCounter')->add(1);
+            $register->get('telemetry.workerClientCounter')->add(1);
             $register->get('telemetry.connectionCreatedCounter')->add(1);
 
             $stats->set($projectId, [
@@ -1161,6 +1175,7 @@ $server->onClose(function (int $connection) use ($realtime, $stats, $register) {
         if (array_key_exists($connection, $realtime->connections)) {
             $stats->decr($realtime->connections[$connection]['projectId'], 'connectionsTotal');
             $register->get('telemetry.connectionCounter')->add(-1);
+            $register->get('telemetry.workerClientCounter')->add(-1);
 
             $projectId = $realtime->connections[$connection]['projectId'];
 
