@@ -3,6 +3,7 @@
 namespace Tests\E2E\Services\Project;
 
 use Tests\E2E\Client;
+use Utopia\Database\Helpers\ID;
 
 trait TemplatesBase
 {
@@ -549,7 +550,15 @@ trait TemplatesBase
     public function testUpdateEmailTemplateBlockedWhenSMTPDisabled(): void
     {
         // Custom templates only make sense alongside a custom SMTP configuration.
-        $this->patchSMTP(['enabled' => false]);
+        $this->client->call(
+            Client::METHOD_PATCH,
+            '/project/smtp',
+            \array_merge([
+                'content-type' => 'application/json',
+                'x-appwrite-project' => $this->getProject()['$id'],
+            ], $this->getHeaders()),
+            ['enabled' => false],
+        );
 
         try {
             $response = $this->updateEmailTemplate(
@@ -656,6 +665,121 @@ trait TemplatesBase
         $this->assertSame(400, $response['headers']['status-code']);
     }
 
+    // Session alert integration
+
+    public function testSessionAlertUsesCustomTemplatePerLocale(): void
+    {
+        $this->ensureSMTPEnabled();
+
+        // session-alerts lives under /projects (console scope), so it's driven with the
+        // root console session rather than the current test's project-scoped headers.
+        $alertsResponse = $this->client->call(
+            Client::METHOD_PATCH,
+            '/projects/' . $this->getProject()['$id'] . '/auth/session-alerts',
+            [
+                'origin' => 'http://localhost',
+                'content-type' => 'application/json',
+                'x-appwrite-project' => 'console',
+                'cookie' => 'a_session_console=' . $this->getRoot()['session'],
+            ],
+            ['alerts' => true],
+        );
+        $this->assertSame(200, $alertsResponse['headers']['status-code'], 'failed to enable session alerts');
+
+        $runId = \uniqid();
+        $enSubject = "EN alert subject {$runId}";
+        $enMessage = "EN alert body marker {$runId}";
+        $skSubject = "SK alert subject {$runId}";
+        $skMessage = "SK alert body marker {$runId}";
+
+        // Configure custom EN template via the default-locale path (omit `locale`).
+        $enUpdate = $this->updateEmailTemplate(
+            templateId: 'sessionAlert',
+            locale: null,
+            subject: $enSubject,
+            message: $enMessage,
+        );
+        $this->assertSame(200, $enUpdate['headers']['status-code']);
+        $this->assertSame('en', $enUpdate['body']['locale']);
+
+        // Configure custom SK template explicitly.
+        $skUpdate = $this->updateEmailTemplate(
+            templateId: 'sessionAlert',
+            locale: 'sk',
+            subject: $skSubject,
+            message: $skMessage,
+        );
+        $this->assertSame(200, $skUpdate['headers']['status-code']);
+
+        // Matrix of request-time locales and the custom template each one must resolve to.
+        // `de` has no custom template stored, so it must fall back to the `en` custom template.
+        $cases = [
+            ['requestLocale' => 'en',  'expectedSubject' => $enSubject, 'expectedMessageMarker' => $enMessage],
+            ['requestLocale' => null,  'expectedSubject' => $enSubject, 'expectedMessageMarker' => $enMessage],
+            ['requestLocale' => 'sk',  'expectedSubject' => $skSubject, 'expectedMessageMarker' => $skMessage],
+            ['requestLocale' => 'de',  'expectedSubject' => $enSubject, 'expectedMessageMarker' => $enMessage],
+        ];
+
+        foreach ($cases as $case) {
+            $localeLabel = $case['requestLocale'] ?? 'none';
+            $email = "session-alert-{$runId}-{$localeLabel}@appwrite.io";
+            $password = 'password123';
+
+            // Fresh user per case so the session count starts at zero.
+            $create = $this->client->call(Client::METHOD_POST, '/account', [
+                'origin' => 'http://localhost',
+                'content-type' => 'application/json',
+                'x-appwrite-project' => $this->getProject()['$id'],
+                'x-appwrite-dev-key' => $this->getProject()['devKey'] ?? '',
+            ], [
+                'userId' => ID::unique(),
+                'email' => $email,
+                'password' => $password,
+                'name' => 'Session Alert ' . $localeLabel,
+            ]);
+            $this->assertSame(201, $create['headers']['status-code'], "create user ({$localeLabel})");
+
+            // First session must NOT trigger an alert (count === 1 returns early).
+            $first = $this->client->call(Client::METHOD_POST, '/account/sessions/email', [
+                'origin' => 'http://localhost',
+                'content-type' => 'application/json',
+                'x-appwrite-project' => $this->getProject()['$id'],
+            ], [
+                'email' => $email,
+                'password' => $password,
+            ]);
+            $this->assertSame(201, $first['headers']['status-code'], "first session ({$localeLabel})");
+
+            // Second session — this one triggers the alert, with the test's request locale.
+            $headers = [
+                'origin' => 'http://localhost',
+                'content-type' => 'application/json',
+                'x-appwrite-project' => $this->getProject()['$id'],
+            ];
+            if ($case['requestLocale'] !== null) {
+                $headers['x-appwrite-locale'] = $case['requestLocale'];
+            }
+            $second = $this->client->call(Client::METHOD_POST, '/account/sessions/email', $headers, [
+                'email' => $email,
+                'password' => $password,
+            ]);
+            $this->assertSame(201, $second['headers']['status-code'], "second session ({$localeLabel})");
+
+            // The custom subject is uniquely tagged per run, so matching it proves both
+            // that an alert was sent and that the correct locale template was resolved.
+            $received = $this->getLastEmailByAddress($email, function ($mail) use ($case) {
+                $this->assertSame($case['expectedSubject'], $mail['subject']);
+            });
+
+            $this->assertSame($case['expectedSubject'], $received['subject'], "subject ({$localeLabel})");
+            $this->assertStringContainsString(
+                $case['expectedMessageMarker'],
+                $received['text'] . $received['html'],
+                "message marker ({$localeLabel})",
+            );
+        }
+    }
+
     // Helpers
 
     protected function getEmailTemplate(string $templateId, ?string $locale = null, bool $authenticated = true): mixed
@@ -710,22 +834,6 @@ trait TemplatesBase
 
     protected function ensureSMTPEnabled(): void
     {
-        $this->patchSMTP([
-            'enabled' => true,
-            'senderName' => 'Mailer',
-            'senderEmail' => 'mailer@appwrite.io',
-            'host' => 'maildev',
-            'port' => 1025,
-            'username' => 'user',
-            'password' => 'password',
-        ]);
-    }
-
-    /**
-     * @param array<string, mixed> $params
-     */
-    protected function patchSMTP(array $params): void
-    {
         $this->client->call(
             Client::METHOD_PATCH,
             '/project/smtp',
@@ -733,8 +841,15 @@ trait TemplatesBase
                 'content-type' => 'application/json',
                 'x-appwrite-project' => $this->getProject()['$id'],
             ], $this->getHeaders()),
-            $params,
+            [
+                'enabled' => true,
+                'senderName' => 'Mailer',
+                'senderEmail' => 'mailer@appwrite.io',
+                'host' => 'maildev',
+                'port' => 1025,
+                'username' => 'user',
+                'password' => 'password',
+            ],
         );
     }
-
 }
