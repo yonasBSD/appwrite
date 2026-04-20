@@ -11,21 +11,33 @@ trait SMTPBase
 
     public function testUpdateSMTPStatusEnable(): void
     {
-        $response = $this->updateSMTPStatus(true);
+        $response = $this->updateSMTP(
+            senderName: 'Test Sender',
+            senderEmail: 'sender@example.com',
+            host: 'maildev',
+            port: 1025,
+            enabled: true,
+        );
 
         $this->assertSame(200, $response['headers']['status-code']);
         $this->assertNotEmpty($response['body']['$id']);
         $this->assertSame(true, $response['body']['smtpEnabled']);
 
         // Cleanup
-        $this->updateSMTPStatus(false);
+        $this->updateSMTP(enabled: false);
     }
 
     public function testUpdateSMTPStatusDisable(): void
     {
-        $this->updateSMTPStatus(true);
+        $this->updateSMTP(
+            senderName: 'Test Sender',
+            senderEmail: 'sender@example.com',
+            host: 'maildev',
+            port: 1025,
+            enabled: true,
+        );
 
-        $response = $this->updateSMTPStatus(false);
+        $response = $this->updateSMTP(enabled: false);
 
         $this->assertSame(200, $response['headers']['status-code']);
         $this->assertNotEmpty($response['body']['$id']);
@@ -34,32 +46,50 @@ trait SMTPBase
 
     public function testUpdateSMTPStatusEnableIdempotent(): void
     {
-        $first = $this->updateSMTPStatus(true);
+        $first = $this->updateSMTP(
+            senderName: 'Test Sender',
+            senderEmail: 'sender@example.com',
+            host: 'maildev',
+            port: 1025,
+            enabled: true,
+        );
         $this->assertSame(200, $first['headers']['status-code']);
         $this->assertSame(true, $first['body']['smtpEnabled']);
 
-        $second = $this->updateSMTPStatus(true);
+        $second = $this->updateSMTP(enabled: true);
         $this->assertSame(200, $second['headers']['status-code']);
         $this->assertSame(true, $second['body']['smtpEnabled']);
 
         // Cleanup
-        $this->updateSMTPStatus(false);
+        $this->updateSMTP(enabled: false);
     }
 
     public function testUpdateSMTPStatusDisableIdempotent(): void
     {
-        $first = $this->updateSMTPStatus(false);
+        $first = $this->updateSMTP(
+            senderName: 'Test Sender',
+            senderEmail: 'sender@example.com',
+            host: 'maildev',
+            port: 1025,
+            enabled: false,
+        );
         $this->assertSame(200, $first['headers']['status-code']);
         $this->assertSame(false, $first['body']['smtpEnabled']);
 
-        $second = $this->updateSMTPStatus(false);
+        $second = $this->updateSMTP(enabled: false);
         $this->assertSame(200, $second['headers']['status-code']);
         $this->assertSame(false, $second['body']['smtpEnabled']);
     }
 
     public function testUpdateSMTPStatusResponseModel(): void
     {
-        $response = $this->updateSMTPStatus(true);
+        $response = $this->updateSMTP(
+            senderName: 'Test Sender',
+            senderEmail: 'sender@example.com',
+            host: 'maildev',
+            port: 1025,
+            enabled: true,
+        );
 
         $this->assertSame(200, $response['headers']['status-code']);
         $this->assertArrayHasKey('$id', $response['body']);
@@ -76,12 +106,12 @@ trait SMTPBase
         $this->assertArrayHasKey('smtpSecure', $response['body']);
 
         // Cleanup
-        $this->updateSMTPStatus(false);
+        $this->updateSMTP(enabled: false);
     }
 
     public function testUpdateSMTPStatusWithoutAuthentication(): void
     {
-        $response = $this->updateSMTPStatus(true, false);
+        $response = $this->updateSMTP(enabled: true, authenticated: false);
 
         $this->assertSame(401, $response['headers']['status-code']);
     }
@@ -90,7 +120,7 @@ trait SMTPBase
 
     public function testUpdateSMTPCredentials(): void
     {
-        $response = $this->updateSMTPCredentials(
+        $response = $this->updateSMTP(
             senderName: 'Test Sender',
             senderEmail: 'sender@example.com',
             host: 'maildev',
@@ -106,12 +136,12 @@ trait SMTPBase
         $this->assertSame(1025, $response['body']['smtpPort']);
 
         // Cleanup
-        $this->updateSMTPStatus(false);
+        $this->updateSMTP(enabled: false);
     }
 
     public function testUpdateSMTPWithOptionalReplyTo(): void
     {
-        $response = $this->updateSMTPCredentials(
+        $response = $this->updateSMTP(
             senderName: 'Full Sender',
             senderEmail: 'sender@example.com',
             host: 'maildev',
@@ -130,19 +160,19 @@ trait SMTPBase
         $this->assertSame(1025, $response['body']['smtpPort']);
 
         // Cleanup
-        $this->updateSMTPStatus(false);
+        $this->updateSMTP(enabled: false);
     }
 
     public function testUpdateSMTPOverwritesPreviousSettings(): void
     {
-        $this->updateSMTPCredentials(
+        $this->updateSMTP(
             senderName: 'First Sender',
             senderEmail: 'first@example.com',
             host: 'maildev',
             port: 1025,
         );
 
-        $response = $this->updateSMTPCredentials(
+        $response = $this->updateSMTP(
             senderName: 'Second Sender',
             senderEmail: 'second@example.com',
             host: 'maildev',
@@ -154,15 +184,21 @@ trait SMTPBase
         $this->assertSame('second@example.com', $response['body']['smtpSenderEmail']);
 
         // Cleanup
-        $this->updateSMTPStatus(false);
+        $this->updateSMTP(enabled: false);
     }
 
     public function testUpdateSMTPEnablesSMTP(): void
     {
         // Ensure SMTP is disabled
-        $this->updateSMTPStatus(false);
+        $this->updateSMTP(
+            senderName: 'Test Sender',
+            senderEmail: 'sender@example.com',
+            host: 'maildev',
+            port: 1025,
+            enabled: false,
+        );
 
-        $response = $this->updateSMTPCredentials(
+        $response = $this->updateSMTP(
             senderName: 'Test Sender',
             senderEmail: 'sender@example.com',
             host: 'maildev',
@@ -173,12 +209,12 @@ trait SMTPBase
         $this->assertSame(true, $response['body']['smtpEnabled']);
 
         // Cleanup
-        $this->updateSMTPStatus(false);
+        $this->updateSMTP(enabled: false);
     }
 
     public function testUpdateSMTPResponseModel(): void
     {
-        $response = $this->updateSMTPCredentials(
+        $response = $this->updateSMTP(
             senderName: 'Test Sender',
             senderEmail: 'sender@example.com',
             host: 'maildev',
@@ -200,12 +236,12 @@ trait SMTPBase
         $this->assertArrayHasKey('smtpSecure', $response['body']);
 
         // Cleanup
-        $this->updateSMTPStatus(false);
+        $this->updateSMTP(enabled: false);
     }
 
     public function testUpdateSMTPWithoutAuthentication(): void
     {
-        $response = $this->updateSMTPCredentials(
+        $response = $this->updateSMTP(
             senderName: 'Test',
             senderEmail: 'sender@example.com',
             host: 'maildev',
@@ -218,7 +254,7 @@ trait SMTPBase
 
     public function testUpdateSMTPInvalidSenderEmail(): void
     {
-        $response = $this->updateSMTPCredentials(
+        $response = $this->updateSMTP(
             senderName: 'Test',
             senderEmail: 'not-an-email',
             host: 'maildev',
@@ -230,7 +266,7 @@ trait SMTPBase
 
     public function testUpdateSMTPEmptySenderName(): void
     {
-        $response = $this->updateSMTPCredentials(
+        $response = $this->updateSMTP(
             senderName: '',
             senderEmail: 'sender@example.com',
             host: 'maildev',
@@ -242,7 +278,7 @@ trait SMTPBase
 
     public function testUpdateSMTPEmptySenderEmail(): void
     {
-        $response = $this->updateSMTPCredentials(
+        $response = $this->updateSMTP(
             senderName: 'Test',
             senderEmail: '',
             host: 'maildev',
@@ -254,7 +290,7 @@ trait SMTPBase
 
     public function testUpdateSMTPEmptyHost(): void
     {
-        $response = $this->updateSMTPCredentials(
+        $response = $this->updateSMTP(
             senderName: 'Test',
             senderEmail: 'sender@example.com',
             host: '',
@@ -266,7 +302,7 @@ trait SMTPBase
 
     public function testUpdateSMTPInvalidHost(): void
     {
-        $response = $this->updateSMTPCredentials(
+        $response = $this->updateSMTP(
             senderName: 'Test',
             senderEmail: 'sender@example.com',
             host: 'not a valid host!@#',
@@ -278,7 +314,7 @@ trait SMTPBase
 
     public function testUpdateSMTPInvalidReplyToEmail(): void
     {
-        $response = $this->updateSMTPCredentials(
+        $response = $this->updateSMTP(
             senderName: 'Test',
             senderEmail: 'sender@example.com',
             host: 'maildev',
@@ -291,7 +327,7 @@ trait SMTPBase
 
     public function testUpdateSMTPInvalidSecure(): void
     {
-        $response = $this->updateSMTPCredentials(
+        $response = $this->updateSMTP(
             senderName: 'Test',
             senderEmail: 'sender@example.com',
             host: 'maildev',
@@ -304,7 +340,7 @@ trait SMTPBase
 
     public function testUpdateSMTPSenderNameMinLength(): void
     {
-        $response = $this->updateSMTPCredentials(
+        $response = $this->updateSMTP(
             senderName: 'A',
             senderEmail: 'sender@example.com',
             host: 'maildev',
@@ -315,13 +351,13 @@ trait SMTPBase
         $this->assertSame('A', $response['body']['smtpSenderName']);
 
         // Cleanup
-        $this->updateSMTPStatus(false);
+        $this->updateSMTP(enabled: false);
     }
 
     public function testUpdateSMTPSenderNameMaxLength(): void
     {
         $name = str_repeat('a', 256);
-        $response = $this->updateSMTPCredentials(
+        $response = $this->updateSMTP(
             senderName: $name,
             senderEmail: 'sender@example.com',
             host: 'maildev',
@@ -332,12 +368,12 @@ trait SMTPBase
         $this->assertSame($name, $response['body']['smtpSenderName']);
 
         // Cleanup
-        $this->updateSMTPStatus(false);
+        $this->updateSMTP(enabled: false);
     }
 
     public function testUpdateSMTPSenderNameTooLong(): void
     {
-        $response = $this->updateSMTPCredentials(
+        $response = $this->updateSMTP(
             senderName: str_repeat('a', 257),
             senderEmail: 'sender@example.com',
             host: 'maildev',
@@ -349,7 +385,7 @@ trait SMTPBase
 
     public function testUpdateSMTPUsernameMinLength(): void
     {
-        $response = $this->updateSMTPCredentials(
+        $response = $this->updateSMTP(
             senderName: 'Test',
             senderEmail: 'sender@example.com',
             host: 'maildev',
@@ -361,13 +397,13 @@ trait SMTPBase
         $this->assertSame('u', $response['body']['smtpUsername']);
 
         // Cleanup
-        $this->updateSMTPStatus(false);
+        $this->updateSMTP(enabled: false);
     }
 
     public function testUpdateSMTPUsernameMaxLength(): void
     {
         $username = str_repeat('a', 256);
-        $response = $this->updateSMTPCredentials(
+        $response = $this->updateSMTP(
             senderName: 'Test',
             senderEmail: 'sender@example.com',
             host: 'maildev',
@@ -379,12 +415,12 @@ trait SMTPBase
         $this->assertSame($username, $response['body']['smtpUsername']);
 
         // Cleanup
-        $this->updateSMTPStatus(false);
+        $this->updateSMTP(enabled: false);
     }
 
     public function testUpdateSMTPUsernameTooLong(): void
     {
-        $response = $this->updateSMTPCredentials(
+        $response = $this->updateSMTP(
             senderName: 'Test',
             senderEmail: 'sender@example.com',
             host: 'maildev',
@@ -397,7 +433,7 @@ trait SMTPBase
 
     public function testUpdateSMTPUsernameEmpty(): void
     {
-        $response = $this->updateSMTPCredentials(
+        $response = $this->updateSMTP(
             senderName: 'Test',
             senderEmail: 'sender@example.com',
             host: 'maildev',
@@ -410,7 +446,7 @@ trait SMTPBase
 
     public function testUpdateSMTPPasswordMinLength(): void
     {
-        $response = $this->updateSMTPCredentials(
+        $response = $this->updateSMTP(
             senderName: 'Test',
             senderEmail: 'sender@example.com',
             host: 'maildev',
@@ -422,13 +458,13 @@ trait SMTPBase
         $this->assertSame('p', $response['body']['smtpPassword']);
 
         // Cleanup
-        $this->updateSMTPStatus(false);
+        $this->updateSMTP(enabled: false);
     }
 
     public function testUpdateSMTPPasswordMaxLength(): void
     {
         $password = str_repeat('a', 256);
-        $response = $this->updateSMTPCredentials(
+        $response = $this->updateSMTP(
             senderName: 'Test',
             senderEmail: 'sender@example.com',
             host: 'maildev',
@@ -440,12 +476,12 @@ trait SMTPBase
         $this->assertSame($password, $response['body']['smtpPassword']);
 
         // Cleanup
-        $this->updateSMTPStatus(false);
+        $this->updateSMTP(enabled: false);
     }
 
     public function testUpdateSMTPPasswordTooLong(): void
     {
-        $response = $this->updateSMTPCredentials(
+        $response = $this->updateSMTP(
             senderName: 'Test',
             senderEmail: 'sender@example.com',
             host: 'maildev',
@@ -458,7 +494,7 @@ trait SMTPBase
 
     public function testUpdateSMTPPasswordEmpty(): void
     {
-        $response = $this->updateSMTPCredentials(
+        $response = $this->updateSMTP(
             senderName: 'Test',
             senderEmail: 'sender@example.com',
             host: 'maildev',
@@ -471,7 +507,7 @@ trait SMTPBase
 
     public function testUpdateSMTPWithoutSecure(): void
     {
-        $response = $this->updateSMTPCredentials(
+        $response = $this->updateSMTP(
             senderName: 'Test Sender',
             senderEmail: 'sender@example.com',
             host: 'maildev',
@@ -482,12 +518,12 @@ trait SMTPBase
         $this->assertSame('', $response['body']['smtpSecure']);
 
         // Cleanup
-        $this->updateSMTPStatus(false);
+        $this->updateSMTP(enabled: false);
     }
 
     public function testUpdateSMTPInvalidConnectionRefused(): void
     {
-        $response = $this->updateSMTPCredentials(
+        $response = $this->updateSMTP(
             senderName: 'Test',
             senderEmail: 'sender@example.com',
             host: 'localhost',
@@ -501,10 +537,16 @@ trait SMTPBase
     public function testUpdateSMTPBackwardsCompatibilityDisable(): void
     {
         // First enable SMTP
-        $this->updateSMTPStatus(true);
+        $this->updateSMTP(
+            senderName: 'Test',
+            senderEmail: 'sender@example.com',
+            host: 'maildev',
+            port: 1025,
+            enabled: true,
+        );
 
         // Use the deprecated enabled=false parameter to disable
-        $response = $this->updateSMTPCredentials(
+        $response = $this->updateSMTP(
             senderName: 'Test',
             senderEmail: 'sender@example.com',
             host: 'maildev',
@@ -521,7 +563,7 @@ trait SMTPBase
     public function testCreateSMTPTest(): void
     {
         // First configure SMTP
-        $this->updateSMTPCredentials(
+        $this->updateSMTP(
             senderName: 'Test Sender',
             senderEmail: 'sender@example.com',
             host: 'maildev',
@@ -534,13 +576,13 @@ trait SMTPBase
         $this->assertEmpty($response['body']);
 
         // Cleanup
-        $this->updateSMTPStatus(false);
+        $this->updateSMTP(enabled: false);
     }
 
     public function testCreateSMTPTestMultipleRecipients(): void
     {
         // First configure SMTP
-        $this->updateSMTPCredentials(
+        $this->updateSMTP(
             senderName: 'Test Sender',
             senderEmail: 'sender@example.com',
             host: 'maildev',
@@ -557,13 +599,19 @@ trait SMTPBase
         $this->assertEmpty($response['body']);
 
         // Cleanup
-        $this->updateSMTPStatus(false);
+        $this->updateSMTP(enabled: false);
     }
 
     public function testCreateSMTPTestWhenSMTPDisabled(): void
     {
         // Ensure SMTP is disabled
-        $this->updateSMTPStatus(false);
+        $this->updateSMTP(
+            senderName: 'Test Sender',
+            senderEmail: 'sender@example.com',
+            host: 'maildev',
+            port: 1025,
+            enabled: false,
+        );
 
         $response = $this->createSMTPTest(['recipient@example.com']);
 
@@ -580,7 +628,7 @@ trait SMTPBase
     public function testCreateSMTPTestEmptyEmails(): void
     {
         // First configure SMTP
-        $this->updateSMTPCredentials(
+        $this->updateSMTP(
             senderName: 'Test Sender',
             senderEmail: 'sender@example.com',
             host: 'maildev',
@@ -593,13 +641,13 @@ trait SMTPBase
         $this->assertEmpty($response['body']);
 
         // Cleanup
-        $this->updateSMTPStatus(false);
+        $this->updateSMTP(enabled: false);
     }
 
     public function testCreateSMTPTestInvalidEmail(): void
     {
         // First configure SMTP
-        $this->updateSMTPCredentials(
+        $this->updateSMTP(
             senderName: 'Test Sender',
             senderEmail: 'sender@example.com',
             host: 'maildev',
@@ -611,13 +659,13 @@ trait SMTPBase
         $this->assertSame(400, $response['headers']['status-code']);
 
         // Cleanup
-        $this->updateSMTPStatus(false);
+        $this->updateSMTP(enabled: false);
     }
 
     public function testCreateSMTPTestExceedsMaxEmails(): void
     {
         // First configure SMTP
-        $this->updateSMTPCredentials(
+        $this->updateSMTP(
             senderName: 'Test Sender',
             senderEmail: 'sender@example.com',
             host: 'maildev',
@@ -634,13 +682,13 @@ trait SMTPBase
         $this->assertSame(400, $response['headers']['status-code']);
 
         // Cleanup
-        $this->updateSMTPStatus(false);
+        $this->updateSMTP(enabled: false);
     }
 
     public function testCreateSMTPTestMaxEmails(): void
     {
         // First configure SMTP
-        $this->updateSMTPCredentials(
+        $this->updateSMTP(
             senderName: 'Test Sender',
             senderEmail: 'sender@example.com',
             host: 'maildev',
@@ -658,7 +706,7 @@ trait SMTPBase
         $this->assertEmpty($response['body']);
 
         // Cleanup
-        $this->updateSMTPStatus(false);
+        $this->updateSMTP(enabled: false);
     }
 
     // Integration tests
@@ -672,7 +720,7 @@ trait SMTPBase
         $recipientEmail = 'smtpdelivery-' . \uniqid() . '@appwrite.io';
 
         // Configure SMTP with reply-to and auth credentials
-        $response = $this->updateSMTPCredentials(
+        $response = $this->updateSMTP(
             senderName: $senderName,
             senderEmail: $senderEmail,
             host: 'maildev',
@@ -705,7 +753,7 @@ trait SMTPBase
         $this->assertStringContainsStringIgnoringCase('working correctly', $email['html']);
 
         // Cleanup
-        $this->updateSMTPStatus(false);
+        $this->updateSMTP(enabled: false);
     }
 
     public function testMagicURLLoginUsesCustomSMTP(): void
@@ -715,7 +763,7 @@ trait SMTPBase
         $recipientEmail = 'magicurl-' . \uniqid() . '@appwrite.io';
 
         // Configure custom SMTP with auth credentials
-        $response = $this->updateSMTPCredentials(
+        $response = $this->updateSMTP(
             senderName: $senderName,
             senderEmail: $senderEmail,
             host: 'maildev',
@@ -749,32 +797,16 @@ trait SMTPBase
         $this->assertSame($this->getProject()['name'] . ' Login', $email['subject']);
 
         // Cleanup
-        $this->updateSMTPStatus(false);
+        $this->updateSMTP(enabled: false);
     }
 
     // Helpers
 
-    protected function updateSMTPStatus(bool $enabled, bool $authenticated = true): mixed
-    {
-        $headers = [
-            'content-type' => 'application/json',
-            'x-appwrite-project' => $this->getProject()['$id'],
-        ];
-
-        if ($authenticated) {
-            $headers = array_merge($headers, $this->getHeaders());
-        }
-
-        return $this->client->call(Client::METHOD_PATCH, '/project/smtp/status', $headers, [
-            'enabled' => $enabled,
-        ]);
-    }
-
-    protected function updateSMTPCredentials(
-        string $senderName = '',
-        string $senderEmail = '',
-        string $host = '',
-        int $port = 587,
+    protected function updateSMTP(
+        ?string $senderName = null,
+        ?string $senderEmail = null,
+        ?string $host = null,
+        ?int $port = null,
         ?string $replyToEmail = null,
         ?string $replyToName = null,
         ?string $username = null,
@@ -792,38 +824,15 @@ trait SMTPBase
             $headers = array_merge($headers, $this->getHeaders());
         }
 
-        $params = [
-            'senderName' => $senderName,
-            'senderEmail' => $senderEmail,
-            'host' => $host,
-            'port' => $port,
-        ];
+        $params = [];
 
-        if (!\is_null($replyToEmail)) {
-            $params['replyToEmail'] = $replyToEmail;
+        foreach (['senderName', 'senderEmail', 'host', 'port', 'replyToEmail', 'replyToName', 'username', 'password', 'secure', 'enabled'] as $key) {
+            if (!\is_null(${$key})) {
+                $params[$key] = ${$key};
+            }
         }
 
-        if (!\is_null($replyToName)) {
-            $params['replyToName'] = $replyToName;
-        }
-
-        if (!\is_null($username)) {
-            $params['username'] = $username;
-        }
-
-        if (!\is_null($password)) {
-            $params['password'] = $password;
-        }
-
-        if (!\is_null($secure)) {
-            $params['secure'] = $secure;
-        }
-
-        if (!\is_null($enabled)) {
-            $params['enabled'] = $enabled;
-        }
-
-        return $this->client->call(Client::METHOD_PATCH, '/project/smtp/credentials', $headers, $params);
+        return $this->client->call(Client::METHOD_PATCH, '/project/smtp', $headers, $params);
     }
 
     /**
