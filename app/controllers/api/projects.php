@@ -3,6 +3,7 @@
 use Ahc\Jwt\JWT;
 use Appwrite\Auth\Validator\MockNumber;
 use Appwrite\Event\Delete;
+use Appwrite\Event\Mail;
 use Appwrite\Extend\Exception;
 use Appwrite\SDK\AuthType;
 use Appwrite\SDK\ContentType;
@@ -12,6 +13,7 @@ use Appwrite\SDK\Response as SDKResponse;
 use Appwrite\Template\Template;
 use Appwrite\Utopia\Database\Validator\Queries\Keys;
 use Appwrite\Utopia\Response;
+use PHPMailer\PHPMailer\PHPMailer;
 use Utopia\Config\Config;
 use Utopia\Database\Database;
 use Utopia\Database\Document;
@@ -22,6 +24,8 @@ use Utopia\Locale\Locale;
 use Utopia\System\System;
 use Utopia\Validator\ArrayList;
 use Utopia\Validator\Boolean;
+use Utopia\Validator\Hostname;
+use Utopia\Validator\Integer;
 use Utopia\Validator\Nullable;
 use Utopia\Validator\Range;
 use Utopia\Validator\Text;
@@ -615,51 +619,57 @@ Http::post('/v1/projects/:projectId/jwts')
             ])]), Response::MODEL_JWT);
     });
 
-Http::get('/v1/projects/:projectId/templates/sms/:type/:locale')
-    ->desc('Get custom SMS template')
+// CUSTOM SMTP and Templates
+Http::patch('/v1/projects/:projectId/smtp')
+    ->desc('Update SMTP')
     ->groups(['api', 'projects'])
     ->label('scope', 'projects.write')
     ->label('sdk', [
         new Method(
             namespace: 'projects',
             group: 'templates',
-            name: 'getSmsTemplate',
-            description: '/docs/references/projects/get-sms-template.md',
+            name: 'updateSmtp',
+            description: '/docs/references/projects/update-smtp.md',
             auth: [AuthType::ADMIN],
             responses: [
                 new SDKResponse(
                     code: Response::STATUS_CODE_OK,
-                    model: Response::MODEL_SMS_TEMPLATE,
+                    model: Response::MODEL_PROJECT,
                 )
             ],
             deprecated: new Deprecated(
                 since: '1.8.0',
-                replaceWith: 'projects.getSMSTemplate',
+                replaceWith: 'projects.updateSMTP',
             ),
             public: false,
         ),
         new Method(
             namespace: 'projects',
             group: 'templates',
-            name: 'getSMSTemplate',
-            description: '/docs/references/projects/get-sms-template.md',
+            name: 'updateSMTP',
+            description: '/docs/references/projects/update-smtp.md',
             auth: [AuthType::ADMIN],
             responses: [
                 new SDKResponse(
                     code: Response::STATUS_CODE_OK,
-                    model: Response::MODEL_SMS_TEMPLATE,
+                    model: Response::MODEL_PROJECT,
                 )
             ]
         )
     ])
     ->param('projectId', '', fn (Database $dbForPlatform) => new UID($dbForPlatform->getAdapter()->getMaxUIDLength()), 'Project unique ID.', false, ['dbForPlatform'])
-    ->param('type', '', new WhiteList(Config::getParam('locale-templates')['sms'] ?? [], true), 'Template type')
-    ->param('locale', '', fn ($localeCodes) => new WhiteList($localeCodes), 'Template locale', false, ['localeCodes'])
+    ->param('enabled', false, new Boolean(), 'Enable custom SMTP service')
+    ->param('senderName', '', new Text(255, 0), 'Name of the email sender', true)
+    ->param('senderEmail', '', new Email(), 'Email of the sender', true)
+    ->param('replyTo', '', new Email(), 'Reply to email', true)
+    ->param('host', '', new HostName(), 'SMTP server host name', true)
+    ->param('port', 587, new Integer(), 'SMTP server port', true)
+    ->param('username', '', new Text(0, 0), 'SMTP server username', true)
+    ->param('password', '', new Text(0, 0), 'SMTP server password', true)
+    ->param('secure', '', new WhiteList(['tls', 'ssl'], true), 'Does SMTP server use secure connection', true)
     ->inject('response')
     ->inject('dbForPlatform')
-    ->action(function (string $projectId, string $type, string $locale, Response $response, Database $dbForPlatform) {
-
-        throw new Exception(Exception::GENERAL_NOT_IMPLEMENTED);
+    ->action(function (string $projectId, bool $enabled, string $senderName, string $senderEmail, string $replyTo, string $host, int $port, string $username, string $password, string $secure, Response $response, Database $dbForPlatform) {
 
         $project = $dbForPlatform->getDocument('projects', $projectId);
 
@@ -667,23 +677,164 @@ Http::get('/v1/projects/:projectId/templates/sms/:type/:locale')
             throw new Exception(Exception::PROJECT_NOT_FOUND);
         }
 
-        $templates = $project->getAttribute('templates', []);
-        $template  = $templates['sms.' . $type . '-' . $locale] ?? null;
+        // Ensure required params for when enabling SMTP
+        if ($enabled) {
+            if (empty($senderName)) {
+                throw new Exception(Exception::GENERAL_ARGUMENT_INVALID, 'Sender name is required when enabling SMTP.');
+            } elseif (empty($senderEmail)) {
+                throw new Exception(Exception::GENERAL_ARGUMENT_INVALID, 'Sender email is required when enabling SMTP.');
+            } elseif (empty($host)) {
+                throw new Exception(Exception::GENERAL_ARGUMENT_INVALID, 'Host is required when enabling SMTP.');
+            } elseif (empty($port)) {
+                throw new Exception(Exception::GENERAL_ARGUMENT_INVALID, 'Port is required when enabling SMTP.');
+            }
+        }
 
-        if (is_null($template)) {
-            $template = [
-                'message' => Template::fromFile(__DIR__ . '/../../config/locale/templates/sms-base.tpl')->render(),
+        // validate SMTP settings
+        if ($enabled) {
+            $mail = new PHPMailer(true);
+            $mail->isSMTP();
+            $mail->SMTPAuth = (!empty($username) && !empty($password));
+            $mail->Username = $username;
+            $mail->Password = $password;
+            $mail->Host = $host;
+            $mail->Port = $port;
+            $mail->SMTPSecure = $secure;
+            $mail->SMTPAutoTLS = false;
+            $mail->Timeout = 5;
+
+            try {
+                $valid = $mail->SmtpConnect();
+
+                if (!$valid) {
+                    throw new Exception('Connection is not valid.');
+                }
+            } catch (Throwable $error) {
+                throw new Exception(Exception::PROJECT_SMTP_CONFIG_INVALID, $error->getMessage());
+            }
+        }
+
+        // Save SMTP settings
+        if ($enabled) {
+            $smtp = [
+                'enabled' => $enabled,
+                'senderName' => $senderName,
+                'senderEmail' => $senderEmail,
+                'replyTo' => $replyTo,
+                'host' => $host,
+                'port' => $port,
+                'username' => $username,
+                'password' => $password,
+                'secure' => $secure,
+            ];
+        } else {
+            $smtp = [
+                'enabled' => false
             ];
         }
 
-        $template['type'] = $type;
-        $template['locale'] = $locale;
+        $project = $dbForPlatform->updateDocument('projects', $project->getId(), $project->setAttribute('smtp', $smtp));
 
-        $response->dynamic(new Document($template), Response::MODEL_SMS_TEMPLATE);
+        $response->dynamic($project, Response::MODEL_PROJECT);
     });
 
+Http::post('/v1/projects/:projectId/smtp/tests')
+    ->desc('Create SMTP test')
+    ->groups(['api', 'projects'])
+    ->label('scope', 'projects.write')
+    ->label('sdk', [
+        new Method(
+            namespace: 'projects',
+            group: 'templates',
+            name: 'createSmtpTest',
+            description: '/docs/references/projects/create-smtp-test.md',
+            auth: [AuthType::ADMIN],
+            responses: [
+                new SDKResponse(
+                    code: Response::STATUS_CODE_NOCONTENT,
+                    model: Response::MODEL_NONE,
+                )
+            ],
+            deprecated: new Deprecated(
+                since: '1.8.0',
+                replaceWith: 'projects.createSMTPTest',
+            ),
+            public: false,
+        ),
+        new Method(
+            namespace: 'projects',
+            group: 'templates',
+            name: 'createSMTPTest',
+            description: '/docs/references/projects/create-smtp-test.md',
+            auth: [AuthType::ADMIN],
+            responses: [
+                new SDKResponse(
+                    code: Response::STATUS_CODE_NOCONTENT,
+                    model: Response::MODEL_NONE,
+                )
+            ]
+        )
+    ])
+    ->param('projectId', '', fn (Database $dbForPlatform) => new UID($dbForPlatform->getAdapter()->getMaxUIDLength()), 'Project unique ID.', false, ['dbForPlatform'])
+    ->param('emails', [], new ArrayList(new Email(), 10), 'Array of emails to send test email to. Maximum of 10 emails are allowed.')
+    ->param('senderName', System::getEnv('_APP_SYSTEM_EMAIL_NAME', APP_NAME . ' Server'), new Text(255, 0), 'Name of the email sender')
+    ->param('senderEmail', System::getEnv('_APP_SYSTEM_EMAIL_ADDRESS', APP_EMAIL_TEAM), new Email(), 'Email of the sender')
+    ->param('replyTo', '', new Email(), 'Reply to email', true)
+    ->param('host', '', new HostName(), 'SMTP server host name')
+    ->param('port', 587, new Integer(), 'SMTP server port', true)
+    ->param('username', '', new Text(0, 0), 'SMTP server username', true)
+    ->param('password', '', new Text(0, 0), 'SMTP server password', true)
+    ->param('secure', '', new WhiteList(['tls', 'ssl'], true), 'Does SMTP server use secure connection', true)
+    ->inject('response')
+    ->inject('dbForPlatform')
+    ->inject('queueForMails')
+    ->inject('plan')
+    ->action(function (string $projectId, array $emails, string $senderName, string $senderEmail, string $replyTo, string $host, int $port, string $username, string $password, string $secure, Response $response, Database $dbForPlatform, Mail $queueForMails, array $plan) {
+        $project = $dbForPlatform->getDocument('projects', $projectId);
 
-Http::get('/v1/projects/:projectId/templates/email/:type/:locale')
+        if ($project->isEmpty()) {
+            throw new Exception(Exception::PROJECT_NOT_FOUND);
+        }
+
+        $replyToEmail = !empty($replyTo) ? $replyTo : $senderEmail;
+
+        $subject = 'Custom SMTP email sample';
+        $template = Template::fromFile(__DIR__ . '/../../config/locale/templates/email-smtp-test.tpl');
+        $template
+            ->setParam('{{from}}', "{$senderName} ({$senderEmail})")
+            ->setParam('{{replyTo}}', "{$senderName} ({$replyToEmail})")
+            ->setParam('{{logoUrl}}', $plan['logoUrl'] ?? APP_EMAIL_LOGO_URL)
+            ->setParam('{{accentColor}}', $plan['accentColor'] ?? APP_EMAIL_ACCENT_COLOR)
+            ->setParam('{{twitterUrl}}', $plan['twitterUrl'] ?? APP_SOCIAL_TWITTER)
+            ->setParam('{{discordUrl}}', $plan['discordUrl'] ?? APP_SOCIAL_DISCORD)
+            ->setParam('{{githubUrl}}', $plan['githubUrl'] ?? APP_SOCIAL_GITHUB_APPWRITE)
+            ->setParam('{{termsUrl}}', $plan['termsUrl'] ?? APP_EMAIL_TERMS_URL)
+            ->setParam('{{privacyUrl}}', $plan['privacyUrl'] ?? APP_EMAIL_PRIVACY_URL);
+
+        foreach ($emails as $email) {
+            $queueForMails
+                ->setSmtpHost($host)
+                ->setSmtpPort($port)
+                ->setSmtpUsername($username)
+                ->setSmtpPassword($password)
+                ->setSmtpSecure($secure)
+                ->setSmtpReplyTo($replyTo)
+                ->setSmtpSenderEmail($senderEmail)
+                ->setSmtpSenderName($senderName)
+                ->setRecipient($email)
+                ->setName('')
+                ->setBodyTemplate(__DIR__ . '/../../config/locale/templates/email-base-styled.tpl')
+                ->setBody($template->render())
+                ->setVariables([])
+                ->setSubject($subject)
+                ->trigger();
+        }
+
+        $response->noContent();
+    });
+
+Http::get('/v1/projects/:projectId/templates/email')
+    ->alias('/v1/projects/:projectId/templates/email/:type/:locale')
     ->desc('Get custom email template')
     ->groups(['api', 'projects'])
     ->label('scope', 'projects.write')
@@ -702,10 +853,12 @@ Http::get('/v1/projects/:projectId/templates/email/:type/:locale')
     ))
     ->param('projectId', '', fn (Database $dbForPlatform) => new UID($dbForPlatform->getAdapter()->getMaxUIDLength()), 'Project unique ID.', false, ['dbForPlatform'])
     ->param('type', '', new WhiteList(Config::getParam('locale-templates')['email'] ?? [], true), 'Template type')
-    ->param('locale', '', fn ($localeCodes) => new WhiteList($localeCodes), 'Template locale', false, ['localeCodes'])
+    ->param('locale', '', fn ($localeCodes) => new WhiteList($localeCodes), 'Template locale', true, ['localeCodes'])
     ->inject('response')
     ->inject('dbForPlatform')
-    ->action(function (string $projectId, string $type, string $locale, Response $response, Database $dbForPlatform) {
+    ->inject('locale')
+    ->action(function (string $projectId, string $type, string $locale, Response $response, Database $dbForPlatform, Locale $localeObject) {
+        $locale = $locale ?: $localeObject->default ?: $localeObject->fallback ?: System::getEnv('_APP_LOCALE', 'en');
 
         $project = $dbForPlatform->getDocument('projects', $projectId);
 
@@ -715,12 +868,6 @@ Http::get('/v1/projects/:projectId/templates/email/:type/:locale')
 
         $templates = $project->getAttribute('templates', []);
         $template  = $templates['email.' . $type . '-' . $locale] ?? null;
-
-        // Includes backwards compatibility: fall back to legacy `replyTo` key
-        if (!is_null($template)) {
-            $template['replyToEmail'] = $template['replyToEmail'] ?? $template['replyTo'] ?? '';
-            $template['replyToName'] = $template['replyToName'] ?? '';
-        }
 
         $localeObj = new Locale($locale);
         $localeObj->setFallback(System::getEnv('_APP_LOCALE', 'en'));
@@ -778,9 +925,7 @@ Http::get('/v1/projects/:projectId/templates/email/:type/:locale')
                 'message' => $message,
                 'subject' => $localeObj->getText('emails.' . $type . '.subject'),
                 'senderEmail' => '',
-                'senderName' => '',
-                'replyToEmail' => '',
-                'replyToName' => ''
+                'senderName' => ''
             ];
         }
 
@@ -790,74 +935,8 @@ Http::get('/v1/projects/:projectId/templates/email/:type/:locale')
         $response->dynamic(new Document($template), Response::MODEL_EMAIL_TEMPLATE);
     });
 
-Http::patch('/v1/projects/:projectId/templates/sms/:type/:locale')
-    ->desc('Update custom SMS template')
-    ->groups(['api', 'projects'])
-    ->label('scope', 'projects.write')
-    ->label('sdk', [
-        new Method(
-            namespace: 'projects',
-            group: 'templates',
-            name: 'updateSmsTemplate',
-            description: '/docs/references/projects/update-sms-template.md',
-            auth: [AuthType::ADMIN],
-            responses: [
-                new SDKResponse(
-                    code: Response::STATUS_CODE_OK,
-                    model: Response::MODEL_SMS_TEMPLATE,
-                )
-            ],
-            deprecated: new Deprecated(
-                since: '1.8.0',
-                replaceWith: 'projects.updateSMSTemplate',
-            ),
-            public: false,
-        ),
-        new Method(
-            namespace: 'projects',
-            group: 'templates',
-            name: 'updateSMSTemplate',
-            description: '/docs/references/projects/update-sms-template.md',
-            auth: [AuthType::ADMIN],
-            responses: [
-                new SDKResponse(
-                    code: Response::STATUS_CODE_OK,
-                    model: Response::MODEL_SMS_TEMPLATE,
-                )
-            ]
-        )
-    ])
-    ->param('projectId', '', fn (Database $dbForPlatform) => new UID($dbForPlatform->getAdapter()->getMaxUIDLength()), 'Project unique ID.', false, ['dbForPlatform'])
-    ->param('type', '', new WhiteList(Config::getParam('locale-templates')['sms'] ?? [], true), 'Template type')
-    ->param('locale', '', fn ($localeCodes) => new WhiteList($localeCodes), 'Template locale', false, ['localeCodes'])
-    ->param('message', '', new Text(0), 'Template message')
-    ->inject('response')
-    ->inject('dbForPlatform')
-    ->action(function (string $projectId, string $type, string $locale, string $message, Response $response, Database $dbForPlatform) {
-
-        throw new Exception(Exception::GENERAL_NOT_IMPLEMENTED);
-
-        $project = $dbForPlatform->getDocument('projects', $projectId);
-
-        if ($project->isEmpty()) {
-            throw new Exception(Exception::PROJECT_NOT_FOUND);
-        }
-
-        $templates = $project->getAttribute('templates', []);
-        $templates['sms.' . $type . '-' . $locale] = [
-            'message' => $message
-        ];
-
-        $project = $dbForPlatform->updateDocument('projects', $project->getId(), $project->setAttribute('templates', $templates));
-
-        $response->dynamic(new Document([
-            'message' => $message,
-            'type' => $type,
-            'locale' => $locale,
-        ]), Response::MODEL_SMS_TEMPLATE);
-    });
-
-Http::patch('/v1/projects/:projectId/templates/email/:type/:locale')
+Http::patch('/v1/projects/:projectId/templates/email')
+    ->alias('/v1/projects/:projectId/templates/email/:type/:locale')
     ->desc('Update custom email templates')
     ->groups(['api', 'projects'])
     ->label('scope', 'projects.write')
@@ -876,16 +955,17 @@ Http::patch('/v1/projects/:projectId/templates/email/:type/:locale')
     ))
     ->param('projectId', '', fn (Database $dbForPlatform) => new UID($dbForPlatform->getAdapter()->getMaxUIDLength()), 'Project unique ID.', false, ['dbForPlatform'])
     ->param('type', '', new WhiteList(Config::getParam('locale-templates')['email'] ?? [], true), 'Template type')
-    ->param('locale', '', fn ($localeCodes) => new WhiteList($localeCodes), 'Template locale', false, ['localeCodes'])
+    ->param('locale', '', fn ($localeCodes) => new WhiteList($localeCodes), 'Template locale', true, ['localeCodes'])
     ->param('subject', '', new Text(255), 'Email Subject')
     ->param('message', '', new Text(0), 'Template message')
     ->param('senderName', '', new Text(255, 0), 'Name of the email sender', true)
     ->param('senderEmail', '', new Email(), 'Email of the sender', true)
-    ->param('replyToEmail', '', new Email(), 'Reply to email', true)
-    ->param('replyToName', '', new Text(255, 0), 'Reply to name', true)
+    ->param('replyTo', '', new Email(), 'Reply to email', true)
     ->inject('response')
     ->inject('dbForPlatform')
-    ->action(function (string $projectId, string $type, string $locale, string $subject, string $message, string $senderName, string $senderEmail, string $replyToEmail, string $replyToName, Response $response, Database $dbForPlatform) {
+    ->inject('locale')
+    ->action(function (string $projectId, string $type, string $locale, string $subject, string $message, string $senderName, string $senderEmail, string $replyTo, Response $response, Database $dbForPlatform, Locale $localeObject) {
+        $locale = $locale ?: $localeObject->default ?: $localeObject->fallback ?: System::getEnv('_APP_LOCALE', 'en');
 
         $project = $dbForPlatform->getDocument('projects', $projectId);
 
@@ -898,8 +978,7 @@ Http::patch('/v1/projects/:projectId/templates/email/:type/:locale')
             'senderName' => $senderName,
             'senderEmail' => $senderEmail,
             'subject' => $subject,
-            'replyToEmail' => $replyToEmail,
-            'replyToName' => $replyToName,
+            'replyTo' => $replyTo,
             'message' => $message
         ];
 
@@ -911,85 +990,13 @@ Http::patch('/v1/projects/:projectId/templates/email/:type/:locale')
             'senderName' => $senderName,
             'senderEmail' => $senderEmail,
             'subject' => $subject,
-            'replyToEmail' => $replyToEmail,
-            'replyToName' => $replyToName,
+            'replyTo' => $replyTo,
             'message' => $message
         ]), Response::MODEL_EMAIL_TEMPLATE);
     });
 
-Http::delete('/v1/projects/:projectId/templates/sms/:type/:locale')
-    ->desc('Reset custom SMS template')
-    ->groups(['api', 'projects'])
-    ->label('scope', 'projects.write')
-    ->label('sdk', [
-        new Method(
-            namespace: 'projects',
-            group: 'templates',
-            name: 'deleteSmsTemplate',
-            description: '/docs/references/projects/delete-sms-template.md',
-            auth: [AuthType::ADMIN],
-            responses: [
-                new SDKResponse(
-                    code: Response::STATUS_CODE_OK,
-                    model: Response::MODEL_SMS_TEMPLATE,
-                )
-            ],
-            contentType: ContentType::JSON,
-            deprecated: new Deprecated(
-                since: '1.8.0',
-                replaceWith: 'projects.deleteSMSTemplate',
-            ),
-            public: false,
-        ),
-        new Method(
-            namespace: 'projects',
-            group: 'templates',
-            name: 'deleteSMSTemplate',
-            description: '/docs/references/projects/delete-sms-template.md',
-            auth: [AuthType::ADMIN],
-            responses: [
-                new SDKResponse(
-                    code: Response::STATUS_CODE_OK,
-                    model: Response::MODEL_SMS_TEMPLATE,
-                )
-            ],
-            contentType: ContentType::JSON
-        )
-    ])
-    ->param('projectId', '', fn (Database $dbForPlatform) => new UID($dbForPlatform->getAdapter()->getMaxUIDLength()), 'Project unique ID.', false, ['dbForPlatform'])
-    ->param('type', '', new WhiteList(Config::getParam('locale-templates')['sms'] ?? [], true), 'Template type')
-    ->param('locale', '', fn ($localeCodes) => new WhiteList($localeCodes), 'Template locale', false, ['localeCodes'])
-    ->inject('response')
-    ->inject('dbForPlatform')
-    ->action(function (string $projectId, string $type, string $locale, Response $response, Database $dbForPlatform) {
-
-        throw new Exception(Exception::GENERAL_NOT_IMPLEMENTED);
-
-        $project = $dbForPlatform->getDocument('projects', $projectId);
-
-        if ($project->isEmpty()) {
-            throw new Exception(Exception::PROJECT_NOT_FOUND);
-        }
-
-        $templates = $project->getAttribute('templates', []);
-        $template  = $templates['sms.' . $type . '-' . $locale] ?? null;
-
-        if (is_null($template)) {
-            throw new Exception(Exception::PROJECT_TEMPLATE_DEFAULT_DELETION);
-        }
-
-        unset($template['sms.' . $type . '-' . $locale]);
-
-        $project = $dbForPlatform->updateDocument('projects', $project->getId(), $project->setAttribute('templates', $templates));
-
-        $response->dynamic(new Document([
-            'type' => $type,
-            'locale' => $locale,
-            'message' => $template['message']
-        ]), Response::MODEL_SMS_TEMPLATE);
-    });
-
-Http::delete('/v1/projects/:projectId/templates/email/:type/:locale')
+Http::delete('/v1/projects/:projectId/templates/email')
+    ->alias('/v1/projects/:projectId/templates/email/:type/:locale')
     ->desc('Delete custom email template')
     ->groups(['api', 'projects'])
     ->label('scope', 'projects.write')
@@ -1009,10 +1016,12 @@ Http::delete('/v1/projects/:projectId/templates/email/:type/:locale')
     ))
     ->param('projectId', '', fn (Database $dbForPlatform) => new UID($dbForPlatform->getAdapter()->getMaxUIDLength()), 'Project unique ID.', false, ['dbForPlatform'])
     ->param('type', '', new WhiteList(Config::getParam('locale-templates')['email'] ?? [], true), 'Template type')
-    ->param('locale', '', fn ($localeCodes) => new WhiteList($localeCodes), 'Template locale', false, ['localeCodes'])
+    ->param('locale', '', fn ($localeCodes) => new WhiteList($localeCodes), 'Template locale', true, ['localeCodes'])
     ->inject('response')
     ->inject('dbForPlatform')
-    ->action(function (string $projectId, string $type, string $locale, Response $response, Database $dbForPlatform) {
+    ->inject('locale')
+    ->action(function (string $projectId, string $type, string $locale, Response $response, Database $dbForPlatform, Locale $localeObject) {
+        $locale = $locale ?: $localeObject->default ?: $localeObject->fallback ?: System::getEnv('_APP_LOCALE', 'en');
 
         $project = $dbForPlatform->getDocument('projects', $projectId);
 
@@ -1037,8 +1046,7 @@ Http::delete('/v1/projects/:projectId/templates/email/:type/:locale')
             'senderName' => $template['senderName'],
             'senderEmail' => $template['senderEmail'],
             'subject' => $template['subject'],
-            'replyToEmail' => $template['replyToEmail'] ?? $template['replyTo'] ?? '', // Includes backwards compatibility
-            'replyToName' => $template['replyToName'] ?? '',
+            'replyTo' => $template['replyTo'],
             'message' => $template['message']
         ]), Response::MODEL_EMAIL_TEMPLATE);
     });
