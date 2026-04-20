@@ -26,7 +26,7 @@ use Utopia\Database\Validator\Queries\Documents;
 use Utopia\Database\Validator\Query\Cursor;
 use Utopia\Database\Validator\UID;
 use Utopia\Http\Http;
-use Utopia\Migration\Destinations\Appwrite as DestinationAppwrite;
+use Utopia\Migration\Destinations\OnDuplicate;
 use Utopia\Migration\Resource;
 use Utopia\Migration\Sources\Appwrite;
 use Utopia\Migration\Sources\CSV;
@@ -88,7 +88,7 @@ Http::post('/v1/migrations/appwrite')
     ->param('endpoint', '', new URL(), 'Source Appwrite endpoint')
     ->param('projectId', '', fn (Database $dbForProject) => new UID($dbForProject->getAdapter()->getMaxUIDLength()), 'Source Project ID', false, ['dbForProject'])
     ->param('apiKey', '', new Text(512), 'Source API Key')
-    ->param('onDuplicate', DestinationAppwrite::ON_DUPLICATE_FAIL, new WhiteList(DestinationAppwrite::ON_DUPLICATES), 'Behavior when a row with an existing $id is encountered. "fail" (default): abort on first conflict. "skip": silently ignore. "upsert": replace existing row.', true)
+    ->param('onDuplicate', OnDuplicate::Fail->value, new WhiteList(OnDuplicate::values()), 'Behavior when a row with an existing $id is encountered. "fail" (default): abort on first conflict. "skip": silently ignore. "upsert": replace existing row.', true)
     ->inject('response')
     ->inject('dbForProject')
     ->inject('project')
@@ -357,7 +357,7 @@ Http::post('/v1/migrations/csv/imports')
     ->param('fileId', '', fn (Database $dbForProject) => new UID($dbForProject->getAdapter()->getMaxUIDLength()), 'File ID.', false, ['dbForProject'])
     ->param('resourceId', null, new CompoundUID(), 'Composite ID in the format {databaseId:collectionId}, identifying a collection within a database.')
     ->param('internalFile', false, new Boolean(), 'Is the file stored in an internal bucket?', true)
-    ->param('onDuplicate', DestinationAppwrite::ON_DUPLICATE_FAIL, new WhiteList(DestinationAppwrite::ON_DUPLICATES), 'Behavior when a row with an existing $id is encountered. "fail" (default): abort on first conflict. "skip": silently ignore. "upsert": replace existing row.', true)
+    ->param('onDuplicate', OnDuplicate::Fail->value, new WhiteList(OnDuplicate::values()), 'Behavior when a row with an existing $id is encountered. "fail" (default): abort on first conflict. "skip": silently ignore. "upsert": replace existing row.', true)
     ->inject('response')
     ->inject('dbForProject')
     ->inject('dbForPlatform')
@@ -664,7 +664,7 @@ Http::post('/v1/migrations/json/imports')
     ->param('fileId', '', new UID(), 'File ID.')
     ->param('resourceId', null, new CompoundUID(), 'Composite ID in the format {databaseId:collectionId}, identifying a collection within a database.')
     ->param('internalFile', false, new Boolean(), 'Is the file stored in an internal bucket?', true)
-    ->param('onDuplicate', DestinationAppwrite::ON_DUPLICATE_FAIL, new WhiteList(DestinationAppwrite::ON_DUPLICATES), 'Behavior when a row with an existing $id is encountered. "fail" (default): abort on first conflict. "skip": silently ignore. "upsert": replace existing row.', true)
+    ->param('onDuplicate', OnDuplicate::Fail->value, new WhiteList(OnDuplicate::values()), 'Behavior when a row with an existing $id is encountered. "fail" (default): abort on first conflict. "skip": silently ignore. "upsert": replace existing row.', true)
     ->inject('response')
     ->inject('dbForProject')
     ->inject('dbForPlatform')

@@ -30,6 +30,7 @@ use Utopia\Migration\Destination;
 use Utopia\Migration\Destinations\Appwrite as DestinationAppwrite;
 use Utopia\Migration\Destinations\CSV as DestinationCSV;
 use Utopia\Migration\Destinations\JSON as DestinationJSON;
+use Utopia\Migration\Destinations\OnDuplicate;
 use Utopia\Migration\Exception as MigrationException;
 use Utopia\Migration\Resource;
 use Utopia\Migration\Resources\Database\Database as ResourceDatabase;
@@ -276,7 +277,7 @@ class Migrations extends Action
                 $this->dbForProject,
                 $this->getDatabasesDB,
                 Config::getParam('collections', [])['databases']['collections'],
-                $options['onDuplicate'] ?? DestinationAppwrite::ON_DUPLICATE_FAIL,
+                OnDuplicate::tryFrom($options['onDuplicate'] ?? '') ?? OnDuplicate::Fail,
             ),
             DestinationCSV::getName() => new DestinationCSV(
                 $this->deviceForFiles,
