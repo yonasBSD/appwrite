@@ -198,14 +198,11 @@ class Migrations extends Action
         $useAppwriteApiSource = false;
         if ($credentials['projectId']) {
             $this->sourceProject = $this->dbForPlatform->getDocument('projects', $credentials['projectId']);
-            if ($this->sourceProject->isEmpty()) {
-                if ($source === SourceAppwrite::getName()) {
-                    $useAppwriteApiSource = true;
-                }
-            } else {
+            if (! $this->sourceProject->isEmpty()) {
                 $sourceRegion = $this->sourceProject->getAttribute('region', 'default');
                 $destinationRegion = $this->project->getAttribute('region', 'default');
                 $useAppwriteApiSource = $source === SourceAppwrite::getName()
+                    && $destination === DestinationAppwrite::getName()
                     && $sourceRegion !== $destinationRegion;
                 if (! $useAppwriteApiSource) {
                     $projectDB = call_user_func($this->getProjectDB, $this->sourceProject);
