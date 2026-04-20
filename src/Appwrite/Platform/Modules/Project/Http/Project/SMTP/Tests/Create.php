@@ -123,10 +123,6 @@ class Create extends Action
             $secure = $smtp['secure'] ?? '';
         }
 
-        if (empty($senderName)) {
-            throw new Exception(Exception::GENERAL_ARGUMENT_INVALID, 'SMTP sender name must be configured on the project to send a test email.');
-        }
-
         if (empty($senderEmail)) {
             throw new Exception(Exception::GENERAL_ARGUMENT_INVALID, 'SMTP sender email must be configured on the project to send a test email.');
         }

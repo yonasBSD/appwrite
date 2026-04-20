@@ -115,7 +115,7 @@ class Update extends Action
         }
 
         // Validate SMTP credentials
-        if ($smtp['enabled'] === true) {
+        if (\is_null($smtp['enabled'] ?? null) || $smtp['enabled'] === true) {
             $mail = new PHPMailer(true);
             $mail->isSMTP();
 
@@ -150,7 +150,9 @@ class Update extends Action
                     $smtp['enabled'] = true;
                 }
             } catch (Throwable $error) {
-                throw new Exception(Exception::PROJECT_SMTP_CONFIG_INVALID, $error->getMessage());
+                if (($smtp['enabled'] ?? null) === true) {
+                    throw new Exception(Exception::PROJECT_SMTP_CONFIG_INVALID, $error->getMessage());
+                }
             }
         }
 

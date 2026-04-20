@@ -656,6 +656,156 @@ trait SMTPBase
         $this->assertSame(false, $response['body']['smtpEnabled']);
     }
 
+    public function testUpdateSMTPRequiredFieldsOptionalAfterConfigured(): void
+    {
+        // Seed with a known configuration so required fields (host, port, senderEmail) are stored.
+        $this->updateSMTP(
+            senderName: 'Initial Sender',
+            senderEmail: 'initial@example.com',
+            host: 'maildev',
+            port: 1025,
+            enabled: true,
+        );
+
+        // Partial update: only update senderName, omitting host/port/senderEmail.
+        // Required fields should not be re-required because they are already stored.
+        $response = $this->updateSMTP(senderName: 'Updated Sender');
+
+        $this->assertSame(200, $response['headers']['status-code']);
+        $this->assertSame('Updated Sender', $response['body']['smtpSenderName']);
+        $this->assertSame('initial@example.com', $response['body']['smtpSenderEmail']);
+        $this->assertSame('maildev', $response['body']['smtpHost']);
+        $this->assertSame(1025, $response['body']['smtpPort']);
+
+        // Cleanup
+        $this->updateSMTP(enabled: false);
+    }
+
+    public function testUpdateSMTPAllParamsOptionalAfterConfigured(): void
+    {
+        // Seed a configuration so all fields are stored.
+        $this->updateSMTP(
+            senderName: 'Test Sender',
+            senderEmail: 'sender@example.com',
+            host: 'maildev',
+            port: 1025,
+            enabled: true,
+        );
+
+        // Issue a PATCH with no params at all. Once previously configured, this must succeed.
+        $response = $this->updateSMTP();
+
+        $this->assertSame(200, $response['headers']['status-code']);
+        // Previously-set values are preserved
+        $this->assertSame('Test Sender', $response['body']['smtpSenderName']);
+        $this->assertSame('sender@example.com', $response['body']['smtpSenderEmail']);
+        $this->assertSame('maildev', $response['body']['smtpHost']);
+        $this->assertSame(1025, $response['body']['smtpPort']);
+
+        // Cleanup
+        $this->updateSMTP(enabled: false);
+    }
+
+    public function testUpdateSMTPEnabledTrueWithInvalidCredentials(): void
+    {
+        // Explicitly enabling SMTP with unreachable host/port must throw.
+        $response = $this->updateSMTP(
+            senderName: 'Test',
+            senderEmail: 'sender@example.com',
+            host: 'localhost',
+            port: 12345,
+            enabled: true,
+        );
+
+        $this->assertSame(400, $response['headers']['status-code']);
+        $this->assertSame('project_smtp_config_invalid', $response['body']['type']);
+    }
+
+    public function testUpdateSMTPEnabledFalseWithInvalidCredentials(): void
+    {
+        // enabled=false means SMTP is not in use, so invalid credentials must be accepted.
+        $response = $this->updateSMTP(
+            senderName: 'Test',
+            senderEmail: 'sender@example.com',
+            host: 'localhost',
+            port: 12345,
+            enabled: false,
+        );
+
+        $this->assertSame(200, $response['headers']['status-code']);
+        $this->assertSame(false, $response['body']['smtpEnabled']);
+        $this->assertSame('localhost', $response['body']['smtpHost']);
+        $this->assertSame(12345, $response['body']['smtpPort']);
+
+        // Cleanup (restore valid disabled config)
+        $this->updateSMTP(
+            senderName: 'Test Sender',
+            senderEmail: 'sender@example.com',
+            host: 'maildev',
+            port: 1025,
+            enabled: false,
+        );
+    }
+
+    public function testUpdateSMTPEnabledNullWithInvalidCredentialsDoesNotThrow(): void
+    {
+        // Ensure SMTP is currently disabled so we aren't enforcing validation on an enabled config.
+        $this->updateSMTP(
+            senderName: 'Test',
+            senderEmail: 'sender@example.com',
+            host: 'maildev',
+            port: 1025,
+            enabled: false,
+        );
+
+        // With enabled omitted (null) and invalid credentials, the request must not throw.
+        // SMTP remains disabled because the credentials could not be validated.
+        $response = $this->updateSMTP(
+            senderName: 'Test',
+            senderEmail: 'sender@example.com',
+            host: 'localhost',
+            port: 12345,
+        );
+
+        $this->assertSame(200, $response['headers']['status-code']);
+        $this->assertSame(false, $response['body']['smtpEnabled']);
+
+        // Cleanup (restore valid disabled config)
+        $this->updateSMTP(
+            senderName: 'Test Sender',
+            senderEmail: 'sender@example.com',
+            host: 'maildev',
+            port: 1025,
+            enabled: false,
+        );
+    }
+
+    public function testUpdateSMTPEnabledNullWithValidCredentialsAutoEnables(): void
+    {
+        // Start from a disabled state.
+        $this->updateSMTP(
+            senderName: 'Test Sender',
+            senderEmail: 'sender@example.com',
+            host: 'maildev',
+            port: 1025,
+            enabled: false,
+        );
+
+        // With enabled omitted (null) and valid credentials, SMTP must be auto-enabled.
+        $response = $this->updateSMTP(
+            senderName: 'Test Sender',
+            senderEmail: 'sender@example.com',
+            host: 'maildev',
+            port: 1025,
+        );
+
+        $this->assertSame(200, $response['headers']['status-code']);
+        $this->assertSame(true, $response['body']['smtpEnabled']);
+
+        // Cleanup
+        $this->updateSMTP(enabled: false);
+    }
+
     // Create SMTP test tests
 
     public function testCreateSMTPTest(): void
