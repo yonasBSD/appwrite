@@ -102,7 +102,7 @@ class Update extends Action
                 $smtp[$key] = ${$key};
             }
         }
-        
+
         // Backwards compatibility
         $smtp['replyToEmail'] = $smtp['replyToEmail'] ?? $smtp['replyTo'] ?? '';
 
@@ -110,7 +110,7 @@ class Update extends Action
         $requiredKeys = ['host', 'port', 'senderEmail'];
         foreach ($requiredKeys as $key) {
             if (empty($smtp[$key])) {
-                throw new \Exception('"' . $key . '" is required. Please provide a value.');
+                throw new Exception(Exception::GENERAL_ARGUMENT_INVALID, '"' . $key . '" is required. Please provide a value.');
             }
         }
 
@@ -142,6 +142,12 @@ class Update extends Action
 
                 if (!$valid) {
                     throw new \Exception('Connection is not valid.');
+                }
+                
+                // Auto-enable if configuration is valid
+                // Dont do this if specifically request to mark disabled
+                if(\is_null($enabled)) {
+                    $smtp['enabled'] = true;
                 }
             } catch (Throwable $error) {
                 throw new Exception(Exception::PROJECT_SMTP_CONFIG_INVALID, $error->getMessage());

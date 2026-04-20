@@ -24,8 +24,8 @@ use Appwrite\Platform\Modules\Project\Http\Project\Platforms\Windows\Update as U
 use Appwrite\Platform\Modules\Project\Http\Project\Platforms\XList as ListPlatforms;
 use Appwrite\Platform\Modules\Project\Http\Project\Protocols\Status\Update as UpdateProjectProtocolStatus;
 use Appwrite\Platform\Modules\Project\Http\Project\Services\Status\Update as UpdateProjectServiceStatus;
-use Appwrite\Platform\Modules\Project\Http\Project\SMTP\Update as UpdateSMTP;
 use Appwrite\Platform\Modules\Project\Http\Project\SMTP\Tests\Create as CreateSMTPTest;
+use Appwrite\Platform\Modules\Project\Http\Project\SMTP\Update as UpdateSMTP;
 use Appwrite\Platform\Modules\Project\Http\Project\Variables\Create as CreateVariable;
 use Appwrite\Platform\Modules\Project\Http\Project\Variables\Delete as DeleteVariable;
 use Appwrite\Platform\Modules\Project\Http\Project\Variables\Get as GetVariable;
