@@ -971,7 +971,8 @@ class ProjectsConsoleClientTest extends Scope
         $this->assertEquals($smtpHost, $response['body']['smtpHost']);
         $this->assertEquals($smtpPort, $response['body']['smtpPort']);
         $this->assertEquals($smtpUsername, $response['body']['smtpUsername']);
-        $this->assertEquals($smtpPassword, $response['body']['smtpPassword']);
+        // smtpPassword is write-only: the stored password must never leak in responses
+        $this->assertEquals('', $response['body']['smtpPassword']);
         $this->assertEquals('', $response['body']['smtpSecure']);
 
         // Check the project
@@ -987,7 +988,8 @@ class ProjectsConsoleClientTest extends Scope
         $this->assertEquals($smtpHost, $response['body']['smtpHost']);
         $this->assertEquals($smtpPort, $response['body']['smtpPort']);
         $this->assertEquals($smtpUsername, $response['body']['smtpUsername']);
-        $this->assertEquals($smtpPassword, $response['body']['smtpPassword']);
+        // smtpPassword is write-only: the stored password must never leak in responses
+        $this->assertEquals('', $response['body']['smtpPassword']);
         $this->assertEquals('', $response['body']['smtpSecure']);
 
         /**

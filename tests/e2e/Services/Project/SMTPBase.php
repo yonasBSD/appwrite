@@ -88,6 +88,8 @@ trait SMTPBase
             senderEmail: 'sender@example.com',
             host: 'maildev',
             port: 1025,
+            username: 'user',
+            password: 'password',
             enabled: true,
         );
 
@@ -103,6 +105,8 @@ trait SMTPBase
         $this->assertArrayHasKey('smtpPort', $response['body']);
         $this->assertArrayHasKey('smtpUsername', $response['body']);
         $this->assertArrayHasKey('smtpPassword', $response['body']);
+        // smtpPassword is write-only: the stored password must never leak in responses
+        $this->assertSame('', $response['body']['smtpPassword']);
         $this->assertArrayHasKey('smtpSecure', $response['body']);
 
         // Cleanup
@@ -219,6 +223,8 @@ trait SMTPBase
             senderEmail: 'sender@example.com',
             host: 'maildev',
             port: 1025,
+            username: 'user',
+            password: 'password',
         );
 
         $this->assertSame(200, $response['headers']['status-code']);
@@ -233,6 +239,8 @@ trait SMTPBase
         $this->assertArrayHasKey('smtpPort', $response['body']);
         $this->assertArrayHasKey('smtpUsername', $response['body']);
         $this->assertArrayHasKey('smtpPassword', $response['body']);
+        // smtpPassword is write-only: the stored password must never leak in responses
+        $this->assertSame('', $response['body']['smtpPassword']);
         $this->assertArrayHasKey('smtpSecure', $response['body']);
 
         // Cleanup
@@ -455,7 +463,8 @@ trait SMTPBase
         );
 
         $this->assertSame(200, $response['headers']['status-code']);
-        $this->assertSame('p', $response['body']['smtpPassword']);
+        // smtpPassword is write-only: the accepted password must not be echoed back
+        $this->assertSame('', $response['body']['smtpPassword']);
 
         // Cleanup
         $this->updateSMTP(enabled: false);
@@ -473,7 +482,8 @@ trait SMTPBase
         );
 
         $this->assertSame(200, $response['headers']['status-code']);
-        $this->assertSame($password, $response['body']['smtpPassword']);
+        // smtpPassword is write-only: the accepted password must not be echoed back
+        $this->assertSame('', $response['body']['smtpPassword']);
 
         // Cleanup
         $this->updateSMTP(enabled: false);

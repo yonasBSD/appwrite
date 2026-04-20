@@ -277,15 +277,12 @@ class Project extends Model
                 'default' => '',
                 'example' => 'emailuser',
             ])
-            /*
-            We intentionally do not expose SMTP password - it's write-only property.
             ->addRule('smtpPassword', [
                 'type' => self::TYPE_STRING,
-                'description' => 'SMTP server password',
+                'description' => 'SMTP server password. This property is write-only and always returned empty.',
                 'default' => '',
-                'example' => 'securepassword',
+                'example' => '',
             ])
-            */
             ->addRule('smtpSecure', [
                 'type' => self::TYPE_STRING,
                 'description' => 'SMTP server secure protocol',
@@ -423,7 +420,7 @@ class Project extends Model
         $document->setAttribute('smtpHost', $smtp['host'] ?? '');
         $document->setAttribute('smtpPort', $smtp['port'] ?? '');
         $document->setAttribute('smtpUsername', $smtp['username'] ?? '');
-        $document->setAttribute('smtpPassword', $smtp['password'] ?? '');
+        $document->setAttribute('smtpPassword', ''); // Write-only: never expose the stored value
         $document->setAttribute('smtpSecure', $smtp['secure'] ?? '');
     }
 
