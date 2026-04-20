@@ -94,7 +94,7 @@ class Update extends Action
     ): void {
         // Fetch current configuration
         $smtp = $project->getAttribute('smtp', []);
-        
+
         // Apply changes
         $keys = ['host', 'port', 'username', 'password', 'senderEmail', 'senderName', 'replyToEmail', 'replyToName', 'secure', 'enabled'];
         foreach ($keys as $key) {
@@ -102,7 +102,7 @@ class Update extends Action
                 $smtp[$key] = ${$key};
             }
         }
-        
+
         // Ensure required fields are set
         $requiredKeys = ['host', 'port', 'senderEmail'];
         foreach ($requiredKeys as $key) {
@@ -110,33 +110,33 @@ class Update extends Action
                 throw new \Exception('"' . $key . '" is required. Please provide a value.');
             }
         }
-        
+
         // Validate SMTP credentials
-        if($smtp['enabled'] === true) {
+        if ($smtp['enabled'] === true) {
             $mail = new PHPMailer(true);
             $mail->isSMTP();
-            
+
             $mail->Host = $smtp['host'] ?? '';
             $mail->Port = $smtp['port'] ?? '';
             $mail->SMTPSecure = $smtp['secure'] ?? '';
             $mail->setFrom($smtp['senderEmail'], $smtp['senderName'] ?? '');
-            
-            if(!empty($smtp['username'] ?? '')) {
+
+            if (!empty($smtp['username'] ?? '')) {
                 $mail->SMTPAuth = true;
                 $mail->Username = $smtp['username'];
                 $mail->Password = $smtp['password'] ?? '';
             }
-            
-            if(!empty($smtp['replyToEmail'] ?? '')) {
+
+            if (!empty($smtp['replyToEmail'] ?? '')) {
                 $mail->addReplyTo($smtp['replyToEmail'], $smtp['replyToName'] ?? '');
             }
-            
+
             $mail->SMTPAutoTLS = false;
             $mail->Timeout = 5;
-            
+
             try {
                 $valid = $mail->SmtpConnect();
-    
+
                 if (!$valid) {
                     throw new \Exception('Connection is not valid.');
                 }
@@ -149,7 +149,7 @@ class Update extends Action
         $updates = new Document([
             'smtp' => $smtp,
         ]);
-        
+
         $project = $authorization->skip(fn () => $dbForPlatform->updateDocument('projects', $project->getId(), $updates));
 
         $response->dynamic($project, Response::MODEL_PROJECT);
