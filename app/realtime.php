@@ -398,6 +398,11 @@ $server->onWorkerStart(function (int $workerId) use ($server, $register, $stats,
     $register->set('telemetry.connectionCounter', fn () => $telemetry->createUpDownCounter('realtime.server.open_connections'));
     $register->set('telemetry.connectionCreatedCounter', fn () => $telemetry->createCounter('realtime.server.connection.created'));
     $register->set('telemetry.messageSentCounter', fn () => $telemetry->createCounter('realtime.server.message.sent'));
+    $register->set('telemetry.deliveryDelayHistogram', fn () => $telemetry->createHistogram(
+        name: 'realtime.server.delivery_delay',
+        unit: 'ms',
+        advisory: ['ExplicitBucketBoundaries' => [100, 250, 500, 750, 1000, 1500, 2000, 3000, 5000, 7500, 10000, 15000, 30000]],
+    ));
 
     $attempts = 0;
     $start = time();
@@ -592,6 +597,20 @@ $server->onWorkerStart(function (int $workerId) use ($server, $register, $stats,
                 if ($total > 0) {
                     $register->get('telemetry.messageSentCounter')->add($total);
                     $stats->incr($event['project'], 'messages', $total);
+                    $updatedAt = $event['data']['payload']['$updatedAt'] ?? null;
+                    if (\is_string($updatedAt)) {
+                        try {
+                            $updatedAtDate = new \DateTimeImmutable($updatedAt);
+                            $now = new \DateTimeImmutable('now', new \DateTimeZone('UTC'));
+                            $updatedAtTimestampMs = (float) $updatedAtDate->format('U.u') * 1000;
+                            $nowTimestampMs = (float) $now->format('U.u') * 1000;
+                            $delayMs = (int) \max(0, $nowTimestampMs - $updatedAtTimestampMs);
+
+                            $register->get('telemetry.deliveryDelayHistogram')->record($delayMs);
+                        } catch (\Throwable) {
+                            // Ignore invalid timestamp payloads.
+                        }
+                    }
 
                     $projectId = $event['project'] ?? null;
 
@@ -1051,9 +1070,6 @@ $server->onMessage(function (int $connection, string $message) use ($server, $re
                     $realtime->subscribe($projectId, $connection, $subscriptionId, $roles, $channels, $queries);
                 }
 
-                // subscribe() overwrites the connection entry; restore auth so later onMessage uses the same context.
-                $realtime->connections[$connection]['authorization'] = $authorization;
-
                 $responsePayload = json_encode([
                     'type' => 'response',
                     'data' => [
@@ -1077,6 +1093,58 @@ $server->onMessage(function (int $connection, string $message) use ($server, $re
                     if ($subscribeOutboundBytes > 0) {
                         triggerStats([
                             METRIC_REALTIME_OUTBOUND => $subscribeOutboundBytes,
+                        ], $project->getId());
+                    }
+                }
+
+                break;
+
+            case 'unsubscribe':
+                if (!\is_array($message['data']) || !\array_is_list($message['data'])) {
+                    throw new Exception(Exception::REALTIME_MESSAGE_FORMAT_INVALID, 'Payload is not valid.');
+                }
+
+                // Validate every payload before executing any removal so an invalid entry
+                // later in the batch does not leave earlier entries half-applied on the server.
+                $validatedIds = [];
+                foreach ($message['data'] as $payload) {
+                    if (
+                        !\is_array($payload)
+                        || !\array_key_exists('subscriptionId', $payload)
+                        || !\is_string($payload['subscriptionId'])
+                        || $payload['subscriptionId'] === ''
+                    ) {
+                        throw new Exception(Exception::REALTIME_MESSAGE_FORMAT_INVALID, 'Each unsubscribe payload must include a non-empty subscriptionId.');
+                    }
+                    $validatedIds[] = $payload['subscriptionId'];
+                }
+
+                $unsubscribeResults = [];
+                foreach ($validatedIds as $subscriptionId) {
+                    $wasRemoved = $realtime->unsubscribeSubscription($connection, $subscriptionId);
+                    $unsubscribeResults[] = [
+                        'subscriptionId' => $subscriptionId,
+                        'removed' => $wasRemoved,
+                    ];
+                }
+
+                $unsubscribeResponsePayload = json_encode([
+                    'type' => 'response',
+                    'data' => [
+                        'to' => 'unsubscribe',
+                        'success' => true,
+                        'subscriptions' => $unsubscribeResults,
+                    ],
+                ]);
+
+                $server->send([$connection], $unsubscribeResponsePayload);
+
+                if ($project !== null && !$project->isEmpty()) {
+                    $unsubscribeOutboundBytes = \strlen($unsubscribeResponsePayload);
+
+                    if ($unsubscribeOutboundBytes > 0) {
+                        triggerStats([
+                            METRIC_REALTIME_OUTBOUND => $unsubscribeOutboundBytes,
                         ], $project->getId());
                     }
                 }
