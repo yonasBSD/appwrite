@@ -3,13 +3,31 @@
 namespace Appwrite\Utopia\Response\Model;
 
 use Appwrite\Utopia\Response;
+use Appwrite\Utopia\Response\Model;
 
-class TemplateEmail extends Template
+class TemplateEmail extends Model
 {
     public function __construct()
     {
-        parent::__construct();
         $this
+            ->addRule('templateId', [
+                'type' => self::TYPE_STRING,
+                'description' => 'Template type',
+                'default' => '',
+                'example' => 'verification',
+            ])
+            ->addRule('locale', [
+                'type' => self::TYPE_STRING,
+                'description' => 'Template locale',
+                'default' => '',
+                'example' => 'en_us',
+            ])
+            ->addRule('message', [
+                'type' => self::TYPE_STRING,
+                'description' => 'Template message',
+                'default' => '',
+                'example' => 'Click on the link to verify your account.',
+            ])
             ->addRule('senderName', [
                 'type' => self::TYPE_STRING,
                 'description' => 'Name of the sender',
@@ -39,6 +57,12 @@ class TemplateEmail extends Template
                 'description' => 'Email subject',
                 'default' => '',
                 'example' => 'Please verify your email address',
+            ])
+            ->addRule('custom', [
+                'type' => self::TYPE_BOOLEAN,
+                'description' => 'Whether the template has been customized for the project. Non-custom templates render from defaults.',
+                'default' => false,
+                'example' => false,
             ])
         ;
     }

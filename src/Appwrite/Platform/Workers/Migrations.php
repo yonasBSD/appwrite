@@ -376,6 +376,8 @@ class Migrations extends Action
                 'keys.write',
                 'platforms.read',
                 'platforms.write',
+                'templates.read',
+                'templates.write',
             ]
         ]);
 

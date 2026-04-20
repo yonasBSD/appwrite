@@ -453,7 +453,7 @@ Http::delete('/v1/account')
     ->groups(['api', 'account'])
     ->label('scope', 'account')
     ->label('audits.event', 'user.delete')
-    ->label('audits.resource', 'user/{response.$id}')
+    ->label('audits.resource', 'user/{user.$id}')
     ->label('sdk', new Method(
         namespace: 'account',
         group: 'account',
@@ -4665,7 +4665,7 @@ Http::delete('/v1/account/targets/:targetId/push')
     ->groups(['api', 'account'])
     ->label('scope', 'targets.write')
     ->label('audits.event', 'target.delete')
-    ->label('audits.resource', 'target/response.$id')
+    ->label('audits.resource', 'target/{request.targetId}')
     ->label('event', 'users.[userId].targets.[targetId].delete')
     ->label('sdk', new Method(
         namespace: 'account',
