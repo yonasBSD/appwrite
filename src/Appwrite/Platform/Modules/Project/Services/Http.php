@@ -25,7 +25,6 @@ use Appwrite\Platform\Modules\Project\Http\Project\Platforms\XList as ListPlatfo
 use Appwrite\Platform\Modules\Project\Http\Project\Protocols\Status\Update as UpdateProjectProtocolStatus;
 use Appwrite\Platform\Modules\Project\Http\Project\Services\Status\Update as UpdateProjectServiceStatus;
 use Appwrite\Platform\Modules\Project\Http\Project\SMTP\Credentials\Update as UpdateSMTPCredentials;
-use Appwrite\Platform\Modules\Project\Http\Project\SMTP\Status\Update as UpdateSMTPStatus;
 use Appwrite\Platform\Modules\Project\Http\Project\SMTP\Tests\Create as CreateSMTPTest;
 use Appwrite\Platform\Modules\Project\Http\Project\Variables\Create as CreateVariable;
 use Appwrite\Platform\Modules\Project\Http\Project\Variables\Delete as DeleteVariable;
@@ -50,7 +49,6 @@ class Http extends Service
 
         // SMTP
         $this->addAction(UpdateSMTPCredentials::getName(), new UpdateSMTPCredentials());
-        $this->addAction(UpdateSMTPStatus::getName(), new UpdateSMTPStatus());
         $this->addAction(CreateSMTPTest::getName(), new CreateSMTPTest());
 
         // Variables

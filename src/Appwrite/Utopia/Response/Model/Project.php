@@ -247,7 +247,13 @@ class Project extends Model
                 'default' => '',
                 'example' => 'john@appwrite.io',
             ])
-            ->addRule('smtpReplyTo', [
+            ->addRule('smtpReplyToName', [
+                'type' => self::TYPE_STRING,
+                'description' => 'SMTP reply to name',
+                'default' => '',
+                'example' => 'Support Team',
+            ])
+            ->addRule('smtpReplyToEmail', [
                 'type' => self::TYPE_STRING,
                 'description' => 'SMTP reply to email',
                 'default' => '',
@@ -271,12 +277,15 @@ class Project extends Model
                 'default' => '',
                 'example' => 'emailuser',
             ])
+            /*
+            We intentionally do not expose SMTP password - it's write-only property.
             ->addRule('smtpPassword', [
                 'type' => self::TYPE_STRING,
                 'description' => 'SMTP server password',
                 'default' => '',
                 'example' => 'securepassword',
             ])
+            */
             ->addRule('smtpSecure', [
                 'type' => self::TYPE_STRING,
                 'description' => 'SMTP server secure protocol',
@@ -409,7 +418,8 @@ class Project extends Model
         $document->setAttribute('smtpEnabled', $smtp['enabled'] ?? false);
         $document->setAttribute('smtpSenderEmail', $smtp['senderEmail'] ?? '');
         $document->setAttribute('smtpSenderName', $smtp['senderName'] ?? '');
-        $document->setAttribute('smtpReplyTo', $smtp['replyTo'] ?? '');
+        $document->setAttribute('smtpReplyToEmail', $smtp['replyToEmail'] ?? '');
+        $document->setAttribute('smtpReplyToName', $smtp['replyToName'] ?? '');
         $document->setAttribute('smtpHost', $smtp['host'] ?? '');
         $document->setAttribute('smtpPort', $smtp['port'] ?? '');
         $document->setAttribute('smtpUsername', $smtp['username'] ?? '');
