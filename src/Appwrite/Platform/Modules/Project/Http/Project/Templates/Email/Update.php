@@ -38,7 +38,7 @@ class Update extends Action
             ->desc('Update project email template')
             ->groups(['api', 'project'])
             ->label('scope', 'templates.write')
-            ->label('event', 'templates.[templateType].update')
+            ->label('event', 'templates.[templateId].update')
             ->label('audits.event', 'project.template.update')
             ->label('audits.resource', 'project.template/{response.templateId}')
             ->label('sdk', new Method(
@@ -126,17 +126,17 @@ class Update extends Action
 
         $project = $authorization->skip(fn () => $dbForPlatform->updateDocument('projects', $project->getId(), $updates));
 
-        $queueForEvents->setParam('templateType', $templateId);
+        $queueForEvents->setParam('templateId', $templateId);
 
         $response->dynamic(new Document([
             'templateId' => $templateId,
             'locale' => $locale,
-            'senderName' => $template['senderName'],
-            'senderEmail' => $template['senderEmail'],
             'subject' => $template['subject'],
-            'replyToEmail' => $template['replyToEmail'],
-            'replyToName' => $template['replyToName'],
             'message' => $template['message'],
+            'senderName' => $template['senderName'] ?? '',
+            'senderEmail' => $template['senderEmail'] ?? '',
+            'replyToEmail' => $template['replyToEmail'] ?? '',
+            'replyToName' => $template['replyToName'] ?? '',
         ]), Response::MODEL_EMAIL_TEMPLATE);
     }
 }
