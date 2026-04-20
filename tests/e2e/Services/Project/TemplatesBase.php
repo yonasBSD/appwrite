@@ -550,7 +550,7 @@ trait TemplatesBase
     public function testUpdateEmailTemplateBlockedWhenSMTPDisabled(): void
     {
         // Custom templates only make sense alongside a custom SMTP configuration.
-        $this->client->call(
+        $response = $this->client->call(
             Client::METHOD_PATCH,
             '/project/smtp',
             \array_merge([
@@ -559,6 +559,9 @@ trait TemplatesBase
             ], $this->getHeaders()),
             ['enabled' => false],
         );
+
+        $this->assertSame(200, $response['headers']['status-code']);
+        $this->assertSame(false, $response['body']['smtpEnabled']);
 
         try {
             $response = $this->updateEmailTemplate(

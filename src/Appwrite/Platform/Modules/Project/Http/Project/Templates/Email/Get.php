@@ -78,16 +78,16 @@ class Get extends Action
         $defaultMessage = $this->getDefaultMessage($templateId, $localeObj);
 
         // Apply defaults if needed
-        if (\is_null($template['message'])) {
+        if (\is_null($template['message'] ?? null)) {
             $template['message'] = $defaultMessage;
         }
 
-        if (\is_null($template['subject'])) {
+        if (\is_null($template['subject'] ?? null)) {
             $template['subject'] = $defaultSubject;
         }
 
         // Backwards compatibility
-        if (!\is_null($template['replyTo'])) {
+        if (!\is_null($template['replyTo'] ?? null)) {
             $template['replyToEmail'] = $template['replyToEmail'] ?? $template['replyTo'] ?? '';
         }
 

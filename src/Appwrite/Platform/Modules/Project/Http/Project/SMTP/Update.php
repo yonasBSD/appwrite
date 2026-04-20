@@ -40,7 +40,7 @@ class Update extends Action
             ->desc('Update project SMTP configuration')
             ->groups(['api', 'project'])
             ->label('scope', 'project.write')
-            ->label('event', 'project.smtp.update')
+            // ->label('event', 'project.smtp.update')
             ->label('audits.event', 'project.smtp.update')
             ->label('audits.resource', 'project.smtp/{response.$id}')
             ->label('sdk', new Method(
@@ -106,11 +106,13 @@ class Update extends Action
         // Backwards compatibility
         $smtp['replyToEmail'] = $smtp['replyToEmail'] ?? $smtp['replyTo'] ?? '';
 
-        // Ensure required fields are set
-        $requiredKeys = ['host', 'port', 'senderEmail'];
-        foreach ($requiredKeys as $key) {
-            if (empty($smtp[$key])) {
-                throw new Exception(Exception::GENERAL_ARGUMENT_INVALID, '"' . $key . '" is required. Please provide a value.');
+        if (($smtp['enabled'] ?? false) === true) {
+            // Ensure required fields are set
+            $requiredKeys = ['host', 'port', 'senderEmail'];
+            foreach ($requiredKeys as $key) {
+                if (empty($smtp[$key])) {
+                    throw new Exception(Exception::GENERAL_ARGUMENT_INVALID, 'Param "' . $key . '" is not optional.');
+                }
             }
         }
 

@@ -58,12 +58,12 @@ class Update extends Action
             ))
             ->param('templateId', '', new WhiteList(Config::getParam('locale-templates')['email'] ?? [], true), 'Custom email template type. Can be one of: '.\implode(', ', Config::getParam('locale-templates')['email'] ?? []))
             ->param('locale', '', fn ($localeCodes) => new WhiteList($localeCodes), 'Custom email template locale. If left empty, the fallback locale (en) will be used.', optional: true, injections: ['localeCodes'])
-            ->param('subject', null, new Nullable(new Text(255)), 'Subject of the email template. Can be up to 255 characters.')
-            ->param('message', null, new Nullable(new Text(10485760)), 'Plain or HTML body of the email template message. Can be up to 10MB of content.')
-            ->param('senderName', null, new Nullable(new Text(255, 0)), 'Name of the email sender.', true)
-            ->param('senderEmail', null, new Nullable(new Email()), 'Email of the sender.', true)
-            ->param('replyToEmail', null, new Nullable(new Email()), 'Reply to email.', true)
-            ->param('replyToName', null, new Nullable(new Text(255, 0)), 'Reply to name.', true)
+            ->param('subject', null, new Nullable(new Text(255)), 'Subject of the email template. Can be up to 255 characters.', optional: true)
+            ->param('message', null, new Nullable(new Text(10485760)), 'Plain or HTML body of the email template message. Can be up to 10MB of content.', optional: true)
+            ->param('senderName', null, new Nullable(new Text(255, 0)), 'Name of the email sender.', optional: true)
+            ->param('senderEmail', null, new Nullable(new Email()), 'Email of the sender.', optional: true)
+            ->param('replyToEmail', null, new Nullable(new Email()), 'Reply to email.', optional: true)
+            ->param('replyToName', null, new Nullable(new Text(255, 0)), 'Reply to name.', optional: true)
             ->inject('response')
             ->inject('queueForEvents')
             ->inject('dbForPlatform')
@@ -108,7 +108,9 @@ class Update extends Action
         }
 
         // Backwards compatibility
-        $template['replyToEmail'] = $template['replyToEmail'] ?? $template['replyTo'] ?? '';
+        if (!\is_null($template['replyTo'] ?? null)) {
+            $template['replyToEmail'] = $template['replyToEmail'] ?? $template['replyTo'] ?? '';
+        }
 
         // Ensure required fields are set
         $requiredKeys = ['subject', 'message'];

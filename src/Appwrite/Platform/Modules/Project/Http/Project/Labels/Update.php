@@ -32,7 +32,7 @@ class Update extends Action
             ->desc('Update project labels')
             ->groups(['api', 'project'])
             ->label('scope', 'project.write')
-            ->label('event', 'project.labels.update')
+            // ->label('event', 'project.labels.update')
             ->label('audits.event', 'project.labels.update')
             ->label('audits.resource', 'project.labels/{response.$id}')
             ->label('sdk', new Method(
