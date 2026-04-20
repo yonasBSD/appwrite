@@ -5,7 +5,6 @@ namespace Appwrite\Platform\Modules\Project\Http\Project\Templates\Email;
 use Appwrite\Event\Event as QueueEvent;
 use Appwrite\Extend\Exception;
 use Appwrite\SDK\AuthType;
-use Appwrite\SDK\ContentType;
 use Appwrite\SDK\Method;
 use Appwrite\SDK\Response as SDKResponse;
 use Appwrite\Utopia\Response;
@@ -50,11 +49,10 @@ class Delete extends Action
                 auth: [AuthType::ADMIN, AuthType::KEY],
                 responses: [
                     new SDKResponse(
-                        code: Response::STATUS_CODE_NOCONTENT,
-                        model: Response::MODEL_NONE,
+                        code: Response::STATUS_CODE_OK,
+                        model: Response::MODEL_EMAIL_TEMPLATE,
                     )
-                ],
-                contentType: ContentType::NONE
+                ]
             ))
             ->param('templateId', '', new WhiteList(Config::getParam('locale-templates')['email'] ?? [], true), 'Custom email template type. Can be one of: '.\implode(', ', Config::getParam('locale-templates')['email'] ?? []))
             ->param('locale', '', fn ($localeCodes) => new WhiteList($localeCodes), 'Custom email template locale. If left empty, the fallback locale (en) will be used.', optional: true, injections: ['localeCodes'])
@@ -96,6 +94,16 @@ class Delete extends Action
 
         $queueForEvents->setParam('templateType', $templateId);
 
-        $response->noContent();
+        $response->dynamic(new Document([
+            'templateId' => $templateId,
+            'locale' => $locale,
+            'senderName' => $template['senderName'] ?? '',
+            'senderEmail' => $template['senderEmail'] ?? '',
+            'subject' => $template['subject'] ?? '',
+            'replyToEmail' => $template['replyToEmail'] ?? $template['replyTo'] ?? '', // Includes backwards compatibility
+            'replyToName' => $template['replyToName'] ?? '',
+            'message' => $template['message'] ?? '',
+            'custom' => true,
+        ]), Response::MODEL_EMAIL_TEMPLATE);
     }
 }

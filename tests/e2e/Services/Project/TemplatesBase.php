@@ -119,7 +119,7 @@ trait TemplatesBase
         $this->assertSame('You have been invited', $update['body']['message']);
         $this->assertSame('Appwrite Team', $update['body']['senderName']);
         $this->assertSame('team@appwrite.io', $update['body']['senderEmail']);
-        $this->assertSame('reply@appwrite.io', $update['body']['replyTo']);
+        $this->assertSame('reply@appwrite.io', $update['body']['replyToEmail']);
 
         // Cleanup
         $this->deleteEmailTemplate('invitation', 'en');
@@ -464,7 +464,8 @@ trait TemplatesBase
         ?string $message,
         ?string $senderName = null,
         ?string $senderEmail = null,
-        ?string $replyTo = null,
+        ?string $replyToEmail = null,
+        ?string $replyToName = null,
         bool $authenticated = true,
     ): mixed {
         $params = [
@@ -486,8 +487,11 @@ trait TemplatesBase
         if ($senderEmail !== null) {
             $params['senderEmail'] = $senderEmail;
         }
-        if ($replyTo !== null) {
-            $params['replyTo'] = $replyTo;
+        if ($replyToEmail !== null) {
+            $params['replyToEmail'] = $replyToEmail;
+        }
+        if ($replyToName !== null) {
+            $params['replyToName'] = $replyToName;
         }
 
         $headers = [

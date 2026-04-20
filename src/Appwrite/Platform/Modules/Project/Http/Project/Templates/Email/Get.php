@@ -67,6 +67,12 @@ class Get extends Action
         $templates = $project->getAttribute('templates', []);
         $template  = $templates['email.' . $templateId . '-' . $locale] ?? null;
 
+        // Includes backwards compatibility: fall back to legacy `replyTo` key
+        if (!is_null($template)) {
+            $template['replyToEmail'] = $template['replyToEmail'] ?? $template['replyTo'] ?? '';
+            $template['replyToName'] = $template['replyToName'] ?? '';
+        }
+
         $localeObj = new Locale($locale);
         $localeObj->setFallback(System::getEnv('_APP_LOCALE', 'en'));
 
@@ -124,6 +130,8 @@ class Get extends Action
                 'subject' => $localeObj->getText('emails.' . $templateId . '.subject'),
                 'senderEmail' => '',
                 'senderName' => '',
+                'replyToEmail' => '',
+                'replyToName' => '',
                 'custom' => false,
             ];
         } else {
