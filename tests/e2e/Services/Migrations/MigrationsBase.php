@@ -1528,6 +1528,16 @@ trait MigrationsBase
         ]);
         $this->assertEquals(202, $response['headers']['status-code']);
 
+        // Columns are created async (202). Wait for both to be `available`
+        // before proceeding so the migration worker doesn't race the schema.
+        foreach (['name', 'age'] as $column) {
+            $this->assertEventually(function () use ($databaseId, $tableId, $column, $headers) {
+                $response = $this->client->call(Client::METHOD_GET, '/tablesdb/' . $databaseId . '/tables/' . $tableId . '/columns/' . $column, $headers);
+                $this->assertEquals(200, $response['headers']['status-code']);
+                $this->assertEquals('available', $response['body']['status']);
+            }, 5000, 500);
+        }
+
         // bucket
         $response = $this->client->call(Client::METHOD_POST, '/storage/buckets', $headers, [
             'bucketId' => ID::unique(),
@@ -1733,6 +1743,246 @@ trait MigrationsBase
             'x-appwrite-key' => $this->getProject()['apiKey'],
             'x-appwrite-project' => $this->getProject()['$id'],
         ], $body);
+    }
+
+    /**
+     * Set up a database + table + bucket + uploaded JSON for the skip/overwrite tests.
+     * Mirrors prepareCsvImportFixture but uploads documents.json instead.
+     *
+     * @return array{string,string,string,string,string,string,int}
+     */
+    private function prepareJsonImportFixture(string $testLabel): array
+    {
+        $headers = [
+            'content-type' => 'application/json',
+            'x-appwrite-project' => $this->getProject()['$id'],
+            'x-appwrite-key' => $this->getProject()['apiKey']
+        ];
+
+        // database
+        $response = $this->client->call(Client::METHOD_POST, '/databases', $headers, [
+            'databaseId' => ID::unique(),
+            'name' => 'Test JSON DB ' . $testLabel,
+        ]);
+        $this->assertEquals(201, $response['headers']['status-code']);
+        $databaseId = $response['body']['$id'];
+
+        // table
+        $response = $this->client->call(Client::METHOD_POST, '/tablesdb/' . $databaseId . '/tables', $headers, [
+            'name' => 'Test JSON table ' . $testLabel,
+            'tableId' => ID::unique(),
+        ]);
+        $this->assertEquals(201, $response['headers']['status-code']);
+        $tableId = $response['body']['$id'];
+
+        // columns: name, age (match documents.json fixture)
+        $response = $this->client->call(Client::METHOD_POST, '/tablesdb/' . $databaseId . '/tables/' . $tableId . '/columns/string', $headers, [
+            'key' => 'name',
+            'size' => 256,
+            'required' => true,
+        ]);
+        $this->assertEquals(202, $response['headers']['status-code']);
+
+        $response = $this->client->call(Client::METHOD_POST, '/tablesdb/' . $databaseId . '/tables/' . $tableId . '/columns/integer', $headers, [
+            'key' => 'age',
+            'min' => 18,
+            'max' => 65,
+            'required' => true,
+        ]);
+        $this->assertEquals(202, $response['headers']['status-code']);
+
+        foreach (['name', 'age'] as $column) {
+            $this->assertEventually(function () use ($databaseId, $tableId, $column, $headers) {
+                $response = $this->client->call(Client::METHOD_GET, '/tablesdb/' . $databaseId . '/tables/' . $tableId . '/columns/' . $column, $headers);
+                $this->assertEquals(200, $response['headers']['status-code']);
+                $this->assertEquals('available', $response['body']['status']);
+            }, 5000, 500);
+        }
+
+        // bucket
+        $response = $this->client->call(Client::METHOD_POST, '/storage/buckets', $headers, [
+            'bucketId' => ID::unique(),
+            'name' => 'JSON Bucket ' . $testLabel,
+            'maximumFileSize' => 2000000,
+            'allowedFileExtensions' => ['json'],
+        ]);
+        $this->assertEquals(201, $response['headers']['status-code']);
+        $bucketId = $response['body']['$id'];
+
+        // upload documents.json (same row shape as documents.csv)
+        $response = $this->client->call(Client::METHOD_POST, '/storage/buckets/' . $bucketId . '/files', array_merge([
+            'content-type' => 'multipart/form-data',
+            'x-appwrite-project' => $this->getProject()['$id'],
+        ], $this->getHeaders()), [
+            'fileId' => ID::unique(),
+            'file' => new CURLFile(realpath(__DIR__ . '/../../../resources/json/documents.json'), 'application/json', 'documents.json'),
+        ]);
+        $this->assertEquals(201, $response['headers']['status-code']);
+        $fileId = $response['body']['$id'];
+
+        // first row in documents.json: hxfcwpcas5xokpwe, Diamond Mendez, 56
+        return [$databaseId, $tableId, $bucketId, $fileId, 'hxfcwpcas5xokpwe', 'Diamond Mendez', 56];
+    }
+
+    /**
+     * onDuplicate=skip on JSON re-import: duplicates silently no-op, existing rows preserved unchanged.
+     */
+    public function testCreateJSONImportSkipDuplicates(): void
+    {
+        [$databaseId, $tableId, $bucketId, $fileId, $rowId, $originalName, $originalAge] = $this->prepareJsonImportFixture('skip');
+
+        $first = $this->performJsonMigration([
+            'fileId' => $fileId,
+            'bucketId' => $bucketId,
+            'resourceId' => $databaseId . ':' . $tableId,
+        ]);
+        $this->assertEventually(function () use ($first) {
+            $migration = $this->client->call(Client::METHOD_GET, '/migrations/' . $first['body']['$id'], array_merge([
+                'content-type' => 'application/json',
+                'x-appwrite-project' => $this->getProject()['$id'],
+            ], $this->getHeaders()));
+            $this->assertEquals('completed', $migration['body']['status']);
+            $this->assertEquals(100, $migration['body']['statusCounters'][Resource::TYPE_ROW]['success']);
+        }, 10_000, 500);
+
+        // Mutate one row so we can prove skip does NOT overwrite it
+        $mutate = $this->client->call(Client::METHOD_PATCH, '/tablesdb/' . $databaseId . '/tables/' . $tableId . '/rows/' . $rowId, [
+            'content-type' => 'application/json',
+            'x-appwrite-project' => $this->getProject()['$id'],
+            'x-appwrite-key' => $this->getProject()['apiKey'],
+        ], [
+            'data' => ['age' => 22],
+        ]);
+        $this->assertEquals(200, $mutate['headers']['status-code']);
+        $this->assertEquals(22, $mutate['body']['age']);
+
+        $second = $this->performJsonMigration([
+            'fileId' => $fileId,
+            'bucketId' => $bucketId,
+            'resourceId' => $databaseId . ':' . $tableId,
+            'onDuplicate' => 'skip',
+        ]);
+        $this->assertEventually(function () use ($second) {
+            $migration = $this->client->call(Client::METHOD_GET, '/migrations/' . $second['body']['$id'], array_merge([
+                'content-type' => 'application/json',
+                'x-appwrite-project' => $this->getProject()['$id'],
+            ], $this->getHeaders()));
+            $this->assertEquals('completed', $migration['body']['status']);
+        }, 10_000, 500);
+
+        $row = $this->client->call(Client::METHOD_GET, '/tablesdb/' . $databaseId . '/tables/' . $tableId . '/rows/' . $rowId, array_merge([
+            'content-type' => 'application/json',
+            'x-appwrite-project' => $this->getProject()['$id'],
+        ], $this->getHeaders()));
+        $this->assertEquals(200, $row['headers']['status-code']);
+        $this->assertEquals($originalName, $row['body']['name']);
+        $this->assertEquals(22, $row['body']['age'], 'onDuplicate=skip must not overwrite mutated row');
+
+        $rows = $this->client->call(Client::METHOD_GET, '/tablesdb/' . $databaseId . '/tables/' . $tableId . '/rows', array_merge([
+            'content-type' => 'application/json',
+            'x-appwrite-project' => $this->getProject()['$id'],
+        ], $this->getHeaders()), [
+            'queries' => [Query::limit(150)->toString()],
+        ]);
+        $this->assertEquals(100, $rows['body']['total']);
+    }
+
+    /**
+     * onDuplicate=upsert on JSON re-import: existing rows replaced with imported values.
+     */
+    public function testCreateJSONImportOverwrite(): void
+    {
+        [$databaseId, $tableId, $bucketId, $fileId, $rowId, $originalName, $originalAge] = $this->prepareJsonImportFixture('overwrite');
+
+        $first = $this->performJsonMigration([
+            'fileId' => $fileId,
+            'bucketId' => $bucketId,
+            'resourceId' => $databaseId . ':' . $tableId,
+        ]);
+        $this->assertEventually(function () use ($first) {
+            $migration = $this->client->call(Client::METHOD_GET, '/migrations/' . $first['body']['$id'], array_merge([
+                'content-type' => 'application/json',
+                'x-appwrite-project' => $this->getProject()['$id'],
+            ], $this->getHeaders()));
+            $this->assertEquals('completed', $migration['body']['status']);
+            $this->assertEquals(100, $migration['body']['statusCounters'][Resource::TYPE_ROW]['success']);
+        }, 10_000, 500);
+
+        $mutate = $this->client->call(Client::METHOD_PATCH, '/tablesdb/' . $databaseId . '/tables/' . $tableId . '/rows/' . $rowId, [
+            'content-type' => 'application/json',
+            'x-appwrite-project' => $this->getProject()['$id'],
+            'x-appwrite-key' => $this->getProject()['apiKey'],
+        ], [
+            'data' => ['age' => 22],
+        ]);
+        $this->assertEquals(200, $mutate['headers']['status-code']);
+        $this->assertEquals(22, $mutate['body']['age']);
+
+        $second = $this->performJsonMigration([
+            'fileId' => $fileId,
+            'bucketId' => $bucketId,
+            'resourceId' => $databaseId . ':' . $tableId,
+            'onDuplicate' => 'upsert',
+        ]);
+        $this->assertEventually(function () use ($second) {
+            $migration = $this->client->call(Client::METHOD_GET, '/migrations/' . $second['body']['$id'], array_merge([
+                'content-type' => 'application/json',
+                'x-appwrite-project' => $this->getProject()['$id'],
+            ], $this->getHeaders()));
+            $this->assertEquals('completed', $migration['body']['status']);
+        }, 10_000, 500);
+
+        $row = $this->client->call(Client::METHOD_GET, '/tablesdb/' . $databaseId . '/tables/' . $tableId . '/rows/' . $rowId, array_merge([
+            'content-type' => 'application/json',
+            'x-appwrite-project' => $this->getProject()['$id'],
+        ], $this->getHeaders()));
+        $this->assertEquals(200, $row['headers']['status-code']);
+        $this->assertEquals($originalName, $row['body']['name']);
+        $this->assertEquals($originalAge, $row['body']['age'], 'onDuplicate=upsert must restore row to imported value');
+
+        $rows = $this->client->call(Client::METHOD_GET, '/tablesdb/' . $databaseId . '/tables/' . $tableId . '/rows', array_merge([
+            'content-type' => 'application/json',
+            'x-appwrite-project' => $this->getProject()['$id'],
+        ], $this->getHeaders()), [
+            'queries' => [Query::limit(150)->toString()],
+        ]);
+        $this->assertEquals(100, $rows['body']['total']);
+    }
+
+    /**
+     * Default (no onDuplicate) on JSON re-import: regression guard, must fail on duplicate ids.
+     */
+    public function testCreateJSONImportDefaultFailsOnDuplicate(): void
+    {
+        [$databaseId, $tableId, $bucketId, $fileId] = $this->prepareJsonImportFixture('default');
+
+        $first = $this->performJsonMigration([
+            'fileId' => $fileId,
+            'bucketId' => $bucketId,
+            'resourceId' => $databaseId . ':' . $tableId,
+        ]);
+        $this->assertEventually(function () use ($first) {
+            $migration = $this->client->call(Client::METHOD_GET, '/migrations/' . $first['body']['$id'], array_merge([
+                'content-type' => 'application/json',
+                'x-appwrite-project' => $this->getProject()['$id'],
+            ], $this->getHeaders()));
+            $this->assertEquals('completed', $migration['body']['status']);
+        }, 10_000, 500);
+
+        $second = $this->performJsonMigration([
+            'fileId' => $fileId,
+            'bucketId' => $bucketId,
+            'resourceId' => $databaseId . ':' . $tableId,
+        ]);
+        $this->assertEventually(function () use ($second) {
+            $migration = $this->client->call(Client::METHOD_GET, '/migrations/' . $second['body']['$id'], array_merge([
+                'content-type' => 'application/json',
+                'x-appwrite-project' => $this->getProject()['$id'],
+            ], $this->getHeaders()));
+            $this->assertEquals('finished', $migration['body']['stage']);
+            $this->assertEquals('failed', $migration['body']['status']);
+            $this->assertNotEmpty($migration['body']['errors']);
+        }, 60_000, 500);
     }
 
     /**
