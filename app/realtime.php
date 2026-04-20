@@ -394,6 +394,7 @@ $server->onWorkerStart(function (int $workerId) use ($server, $register, $stats,
     Console::success('Worker ' . $workerId . ' started successfully');
 
     $telemetry = getTelemetry($workerId);
+    $realtimeDelayBuckets = [100, 250, 500, 750, 1000, 1500, 2000, 3000, 5000, 7500, 10000, 15000, 30000];
     $register->set('telemetry', fn () => $telemetry);
     $register->set('telemetry.connectionCounter', fn () => $telemetry->createUpDownCounter('realtime.server.open_connections'));
     $register->set('telemetry.connectionCreatedCounter', fn () => $telemetry->createCounter('realtime.server.connection.created'));
@@ -401,7 +402,12 @@ $server->onWorkerStart(function (int $workerId) use ($server, $register, $stats,
     $register->set('telemetry.deliveryDelayHistogram', fn () => $telemetry->createHistogram(
         name: 'realtime.server.delivery_delay',
         unit: 'ms',
-        advisory: ['ExplicitBucketBoundaries' => [100, 250, 500, 750, 1000, 1500, 2000, 3000, 5000, 7500, 10000, 15000, 30000]],
+        advisory: ['ExplicitBucketBoundaries' => $realtimeDelayBuckets],
+    ));
+    $register->set('telemetry.arrivalDelayHistogram', fn () => $telemetry->createHistogram(
+        name: 'realtime.server.arrival_delay',
+        unit: 'ms',
+        advisory: ['ExplicitBucketBoundaries' => $realtimeDelayBuckets],
     ));
 
     $attempts = 0;
@@ -518,6 +524,21 @@ $server->onWorkerStart(function (int $workerId) use ($server, $register, $stats,
 
             $pubsub->subscribe(['realtime'], function (mixed $redis, string $channel, string $payload) use ($server, $workerId, $stats, $register, $realtime) {
                 $event = json_decode($payload, true);
+
+                $eventTimestamp = $event['data']['timestamp'] ?? null;
+                if (\is_string($eventTimestamp)) {
+                    try {
+                        $eventDate = new \DateTimeImmutable($eventTimestamp);
+                        $now = new \DateTimeImmutable('now', new \DateTimeZone('UTC'));
+                        $eventTimestampMs = (float) $eventDate->format('U.u') * 1000;
+                        $nowTimestampMs = (float) $now->format('U.u') * 1000;
+                        $arrivalDelayMs = (int) \max(0, $nowTimestampMs - $eventTimestampMs);
+
+                        $register->get('telemetry.arrivalDelayHistogram')->record($arrivalDelayMs);
+                    } catch (\Throwable) {
+                        // Ignore invalid timestamp payloads.
+                    }
+                }
 
                 if ($event['permissionsChanged'] && isset($event['userId'])) {
                     $projectId = $event['project'];
