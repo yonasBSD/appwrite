@@ -143,10 +143,10 @@ class Update extends Action
                 if (!$valid) {
                     throw new \Exception('Connection is not valid.');
                 }
-                
+
                 // Auto-enable if configuration is valid
                 // Dont do this if specifically request to mark disabled
-                if(\is_null($enabled)) {
+                if (\is_null($enabled)) {
                     $smtp['enabled'] = true;
                 }
             } catch (Throwable $error) {
