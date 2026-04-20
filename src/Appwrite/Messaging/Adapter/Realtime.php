@@ -266,8 +266,13 @@ class Realtime extends MessagingAdapter
     }
 
     /**
-     * Recomputes the cached channels/roles on the connection entry from the subscriptions tree.
-     * Called after per-subscription removal so stale entries do not linger for later reads.
+     * Recomputes the cached channels on the connection entry from the subscriptions tree.
+     * Called after per-subscription removal so stale channel entries do not linger for later reads.
+     *
+     * Roles are deliberately NOT recomputed here. They represent the connection's authorization
+     * context (set at onOpen, replaced on `authentication` / permission-change) and must survive
+     * per-subscription removal — otherwise a client that unsubscribes every subscription and then
+     * resubscribes would subscribe with an empty roles array and silently receive nothing.
      *
      * @param mixed $connection
      * @return void
@@ -280,18 +285,15 @@ class Realtime extends MessagingAdapter
 
         $projectId = $this->connections[$connection]['projectId'] ?? '';
         $channels = [];
-        $roles = [];
 
-        foreach ($this->subscriptions[$projectId] ?? [] as $role => $byChannel) {
+        foreach ($this->subscriptions[$projectId] ?? [] as $byChannel) {
             foreach ($byChannel as $channel => $byConnection) {
                 if (isset($byConnection[$connection])) {
-                    $roles[$role] = true;
                     $channels[$channel] = true;
                 }
             }
         }
 
-        $this->connections[$connection]['roles'] = \array_keys($roles);
         $this->connections[$connection]['channels'] = \array_keys($channels);
     }
 
