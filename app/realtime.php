@@ -534,7 +534,7 @@ $server->onWorkerStart(function (int $workerId) use ($server, $register, $stats,
                 $eventTimestamp = $event['data']['timestamp'] ?? null;
                 if (\is_string($eventTimestamp)) {
                     try {
-                        $eventDate = new \DateTimeImmutable($eventTimestamp);
+                        $eventDate = new \DateTimeImmutable($eventTimestamp, new \DateTimeZone('UTC'));
                         $now = new \DateTimeImmutable('now', new \DateTimeZone('UTC'));
                         $eventTimestampMs = (float) $eventDate->format('U.u') * 1000;
                         $nowTimestampMs = (float) $now->format('U.u') * 1000;
@@ -634,7 +634,7 @@ $server->onWorkerStart(function (int $workerId) use ($server, $register, $stats,
                     $updatedAt = $event['data']['payload']['$updatedAt'] ?? null;
                     if (\is_string($updatedAt)) {
                         try {
-                            $updatedAtDate = new \DateTimeImmutable($updatedAt);
+                            $updatedAtDate = new \DateTimeImmutable($updatedAt, new \DateTimeZone('UTC'));
                             $now = new \DateTimeImmutable('now', new \DateTimeZone('UTC'));
                             $updatedAtTimestampMs = (float) $updatedAtDate->format('U.u') * 1000;
                             $nowTimestampMs = (float) $now->format('U.u') * 1000;
