@@ -303,6 +303,7 @@ class Exception extends \Exception
     public const string ACCOUNT_KEY_EXPIRED = 'account_key_expired';
 
     public const string PROJECT_SMTP_CONFIG_INVALID = 'project_smtp_config_invalid';
+    public const string PROJECT_TEMPLATE_CONFIG_INVALID = 'project_template_config_invalid';
 
     public const string PROJECT_TEMPLATE_DEFAULT_DELETION = 'project_template_default_deletion';
 

@@ -26,7 +26,6 @@ use Appwrite\Platform\Modules\Project\Http\Project\Protocols\Update as UpdatePro
 use Appwrite\Platform\Modules\Project\Http\Project\Services\Update as UpdateProjectService;
 use Appwrite\Platform\Modules\Project\Http\Project\SMTP\Tests\Create as CreateSMTPTest;
 use Appwrite\Platform\Modules\Project\Http\Project\SMTP\Update as UpdateSMTP;
-use Appwrite\Platform\Modules\Project\Http\Project\Templates\Email\Delete as DeleteTemplate;
 use Appwrite\Platform\Modules\Project\Http\Project\Templates\Email\Get as GetTemplate;
 use Appwrite\Platform\Modules\Project\Http\Project\Templates\Email\Update as UpdateTemplate;
 use Appwrite\Platform\Modules\Project\Http\Project\Variables\Create as CreateVariable;
@@ -56,7 +55,6 @@ class Http extends Service
 
         // Templates
         $this->addAction(GetTemplate::getName(), new GetTemplate());
-        $this->addAction(DeleteTemplate::getName(), new DeleteTemplate());
         $this->addAction(UpdateTemplate::getName(), new UpdateTemplate());
 
         // Variables

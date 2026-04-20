@@ -58,12 +58,6 @@ class TemplateEmail extends Model
                 'default' => '',
                 'example' => 'Please verify your email address',
             ])
-            ->addRule('custom', [
-                'type' => self::TYPE_BOOLEAN,
-                'description' => 'Whether the template has been customized for the project. Non-custom templates render from defaults.',
-                'default' => false,
-                'example' => false,
-            ])
         ;
     }
 

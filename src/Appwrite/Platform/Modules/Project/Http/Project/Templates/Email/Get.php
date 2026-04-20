@@ -51,7 +51,6 @@ class Get extends Action
             ->param('locale', '', fn ($localeCodes) => new WhiteList($localeCodes), 'Custom email template locale. If left empty, the fallback locale (en) will be used.', optional: true, injections: ['localeCodes'])
             ->inject('response')
             ->inject('project')
-            ->inject('locale')
             ->callback($this->action(...));
     }
 
@@ -60,87 +59,84 @@ class Get extends Action
         string $locale,
         Response $response,
         Document $project,
-        Locale $localeObject,
     ) {
         $locale = $locale ?: System::getEnv('_APP_LOCALE', 'en');
 
+        // Get custom template if available
         $templates = $project->getAttribute('templates', []);
-        $template  = $templates['email.' . $templateId . '-' . $locale] ?? null;
+        $template = $templates['email.' . $templateId . '-' . $locale] ?? [];
 
-        // Includes backwards compatibility: fall back to legacy `replyTo` key
-        if (!is_null($template)) {
-            $template['replyToEmail'] = $template['replyToEmail'] ?? $template['replyTo'] ?? '';
-            $template['replyToName'] = $template['replyToName'] ?? '';
-        }
-
-        $localeObj = new Locale($locale);
-        $localeObj->setFallback(System::getEnv('_APP_LOCALE', 'en'));
-
-        if (is_null($template)) {
-            /**
-             * different templates, different placeholders.
-             */
-            $templateConfigs = [
-                'magicSession' => [
-                    'file' => 'email-magic-url.tpl',
-                    'placeholders' => ['optionButton', 'buttonText', 'optionUrl', 'clientInfo', 'securityPhrase']
-                ],
-                'mfaChallenge' => [
-                    'file' => 'email-mfa-challenge.tpl',
-                    'placeholders' => ['description', 'clientInfo']
-                ],
-                'otpSession' => [
-                    'file' => 'email-otp.tpl',
-                    'placeholders' => ['description', 'clientInfo', 'securityPhrase']
-                ],
-                'sessionAlert' => [
-                    'file' => 'email-session-alert.tpl',
-                    'placeholders' => ['body', 'listDevice', 'listIpAddress', 'listCountry', 'footer']
-                ],
-            ];
-
-            // fallback to the base template.
-            $config = $templateConfigs[$templateId] ?? [
-                'file' => 'email-inner-base.tpl',
-                'placeholders' => ['buttonText', 'body', 'footer']
-            ];
-
-            $templateString = file_get_contents(APP_CE_CONFIG_DIR . '/locale/templates/' . $config['file']);
-
-            // We use `fromString` due to the replace above
-            $message = Template::fromString($templateString);
-
-            // Set type-specific parameters
-            foreach ($config['placeholders'] as $param) {
-                $escapeHtml = !in_array($param, ['clientInfo', 'body', 'footer', 'description']);
-                $message->setParam("{{{$param}}}", $localeObj->getText("emails.{$templateId}.{$param}"), escapeHtml: $escapeHtml);
-            }
-
-            $message
-                // common placeholders on all the templates
-                ->setParam('{{hello}}', $localeObj->getText("emails.{$templateId}.hello"))
-                ->setParam('{{thanks}}', $localeObj->getText("emails.{$templateId}.thanks"))
-                ->setParam('{{signature}}', $localeObj->getText("emails.{$templateId}.signature"));
-
-            // `useContent: false` will strip new lines!
-            $message = $message->render(useContent: true);
-
-            $template = [
-                'message' => $message,
-                'subject' => $localeObj->getText('emails.' . $templateId . '.subject'),
-                'senderEmail' => '',
-                'senderName' => '',
-                'replyToEmail' => '',
-                'replyToName' => '',
-                'custom' => false,
-            ];
-        } else {
-            $template['custom'] = true;
-        }
-
+        // Enforced params
         $template['templateId'] = $templateId;
         $template['locale'] = $locale;
 
+        // Prepare default tempaltes
+        $localeObj = new Locale($locale);
+        $localeObj->setFallback(System::getEnv('_APP_LOCALE', 'en'));
+
+        $defaultSubject = $localeObj->getText('emails.' . $templateId . '.subject');
+        $defaultMessage = $this->getDefaultMessage($templateId, $localeObj);
+
+        // Apply defaults if needed
+        if (\is_null($template['message'])) {
+            $template['message'] = $defaultMessage;
+        }
+
+        if (\is_null($template['subject'])) {
+            $template['subject'] = $defaultSubject;
+        }
+
+        // Backwards compatibility
+        if (!\is_null($template['replyTo'])) {
+            $template['replyToEmail'] = $template['replyToEmail'] ?? $template['replyTo'] ?? '';
+        }
+
         $response->dynamic(new Document($template), Response::MODEL_EMAIL_TEMPLATE);
+    }
+
+    protected function getDefaultMessage(string $templateId, Locale $localeObj): string
+    {
+        $templateConfigs = [
+            'magicSession' => [
+                'file' => 'email-magic-url.tpl',
+                'placeholders' => ['optionButton', 'buttonText', 'optionUrl', 'clientInfo', 'securityPhrase']
+            ],
+            'mfaChallenge' => [
+                'file' => 'email-mfa-challenge.tpl',
+                'placeholders' => ['description', 'clientInfo']
+            ],
+            'otpSession' => [
+                'file' => 'email-otp.tpl',
+                'placeholders' => ['description', 'clientInfo', 'securityPhrase']
+            ],
+            'sessionAlert' => [
+                'file' => 'email-session-alert.tpl',
+                'placeholders' => ['body', 'listDevice', 'listIpAddress', 'listCountry', 'footer']
+            ],
+        ];
+
+        // fallback to the base template.
+        $config = $templateConfigs[$templateId] ?? [
+            'file' => 'email-inner-base.tpl',
+            'placeholders' => ['buttonText', 'body', 'footer']
+        ];
+
+        $templateString = file_get_contents(APP_CE_CONFIG_DIR . '/locale/templates/' . $config['file']);
+        $message = Template::fromString($templateString);
+
+        // Set type-specific parameters
+        foreach ($config['placeholders'] as $param) {
+            $escapeHtml = !in_array($param, ['clientInfo', 'body', 'footer', 'description']);
+            $message->setParam("{{{$param}}}", $localeObj->getText("emails.{$templateId}.{$param}"), escapeHtml: $escapeHtml);
+        }
+
+        $message
+            ->setParam('{{hello}}', $localeObj->getText("emails.{$templateId}.hello"))
+            ->setParam('{{thanks}}', $localeObj->getText("emails.{$templateId}.thanks"))
+            ->setParam('{{signature}}', $localeObj->getText("emails.{$templateId}.signature"));
+
+        $message = $message->render(useContent: true);
+
+        return $message;
     }
 }

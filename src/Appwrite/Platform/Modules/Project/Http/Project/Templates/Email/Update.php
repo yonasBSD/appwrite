@@ -3,6 +3,7 @@
 namespace Appwrite\Platform\Modules\Project\Http\Project\Templates\Email;
 
 use Appwrite\Event\Event as QueueEvent;
+use Appwrite\Extend\Exception;
 use Appwrite\SDK\AuthType;
 use Appwrite\SDK\Method;
 use Appwrite\SDK\Response as SDKResponse;
@@ -12,10 +13,10 @@ use Utopia\Database\Database;
 use Utopia\Database\Document;
 use Utopia\Database\Validator\Authorization;
 use Utopia\Emails\Validator\Email;
-use Utopia\Locale\Locale;
 use Utopia\Platform\Action;
 use Utopia\Platform\Scope\HTTP;
 use Utopia\System\System;
+use Utopia\Validator\Nullable;
 use Utopia\Validator\Text;
 use Utopia\Validator\WhiteList;
 
@@ -57,51 +58,68 @@ class Update extends Action
             ))
             ->param('templateId', '', new WhiteList(Config::getParam('locale-templates')['email'] ?? [], true), 'Custom email template type. Can be one of: '.\implode(', ', Config::getParam('locale-templates')['email'] ?? []))
             ->param('locale', '', fn ($localeCodes) => new WhiteList($localeCodes), 'Custom email template locale. If left empty, the fallback locale (en) will be used.', optional: true, injections: ['localeCodes'])
-            ->param('subject', '', new Text(255), 'Subject of the email template. Can be up to 255 characters.')
-            ->param('message', '', new Text(10485760), 'Plain or HTML body of the email template message. Can be up to 10MB of content.')
-            ->param('senderName', '', new Text(255, 0), 'Name of the email sender.', true)
-            ->param('senderEmail', '', new Email(), 'Email of the sender.', true)
-            ->param('replyToEmail', '', new Email(), 'Reply to email.', true)
-            ->param('replyToName', '', new Text(255, 0), 'Reply to name.', true)
+            ->param('subject', null, new Nullable(new Text(255)), 'Subject of the email template. Can be up to 255 characters.')
+            ->param('message', null, new Nullable(new Text(10485760)), 'Plain or HTML body of the email template message. Can be up to 10MB of content.')
+            ->param('senderName', null, new Nullable(new Text(255, 0)), 'Name of the email sender.', true)
+            ->param('senderEmail', null, new Nullable(new Email()), 'Email of the sender.', true)
+            ->param('replyToEmail', null, new Nullable(new Email()), 'Reply to email.', true)
+            ->param('replyToName', null, new Nullable(new Text(255, 0)), 'Reply to name.', true)
             ->inject('response')
             ->inject('queueForEvents')
             ->inject('dbForPlatform')
             ->inject('authorization')
             ->inject('project')
-            ->inject('locale')
             ->callback($this->action(...));
     }
 
     public function action(
         string $templateId,
         string $locale,
-        string $subject,
-        string $message,
-        string $senderName,
-        string $senderEmail,
-        string $replyToEmail,
-        string $replyToName,
+        ?string $subject,
+        ?string $message,
+        ?string $senderName,
+        ?string $senderEmail,
+        ?string $replyToEmail,
+        ?string $replyToName,
         Response $response,
         QueueEvent $queueForEvents,
         Database $dbForPlatform,
         Authorization $authorization,
         Document $project,
-        Locale $localeObject,
     ) {
         $locale = $locale ?: System::getEnv('_APP_LOCALE', 'en');
 
-        $template = [
-            'senderName' => $senderName,
-            'senderEmail' => $senderEmail,
-            'subject' => $subject,
-            'replyToEmail' => $replyToEmail,
-            'replyToName' => $replyToName,
-            'message' => $message
-        ];
+        // Prevent template update if custom SMTP is not configured
+        $smtp = $project->getAttribute('smtp', []);
+        if (($smtp['enabled'] ?? false) !== true) {
+            throw new Exception(Exception::GENERAL_ARGUMENT_INVALID, 'SMTP must be enabled on the project to configure custom email templates.');
+        }
 
+        // Fetch current configuration
         $templates = $project->getAttribute('templates', []);
-        $templates['email.' . $templateId . '-' . $locale] = $template;
+        $template = $templates['email.' . $templateId . '-' . $locale] ?? [];
 
+        // Apply changes
+        $keys = ['senderName', 'senderEmail', 'replyToEmail', 'replyToName', 'message', 'subject'];
+        foreach ($keys as $key) {
+            if (!\is_null(${$key})) {
+                $template[$key] = ${$key};
+            }
+        }
+
+        // Backwards compatibility
+        $template['replyToEmail'] = $template['replyToEmail'] ?? $template['replyTo'] ?? '';
+
+        // Ensure required fields are set
+        $requiredKeys = ['subject', 'message'];
+        foreach ($requiredKeys as $key) {
+            if (empty($template[$key])) {
+                throw new Exception(Exception::GENERAL_ARGUMENT_INVALID, 'Param "' . $key . '" is not optional.');
+            }
+        }
+
+        // Save configuration
+        $templates['email.' . $templateId . '-' . $locale] = $template;
         $updates = new Document([
             'templates' => $templates,
         ]);
@@ -119,7 +137,6 @@ class Update extends Action
             'replyToEmail' => $template['replyToEmail'],
             'replyToName' => $template['replyToName'],
             'message' => $template['message'],
-            'custom' => true,
         ]), Response::MODEL_EMAIL_TEMPLATE);
     }
 }

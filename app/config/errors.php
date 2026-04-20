@@ -1144,6 +1144,11 @@ return [
         'description' => 'Provided SMTP config is invalid. Please check the configured values and try again.',
         'code' => 400,
     ],
+    Exception::PROJECT_TEMPLATE_CONFIG_INVALID => [
+        'name' => Exception::PROJECT_TEMPLATE_CONFIG_INVALID,
+        'description' => 'Provided template config is invalid. Please check the configured values and try again.',
+        'code' => 400,
+    ],
     Exception::PROJECT_TEMPLATE_DEFAULT_DELETION => [
         'name' => Exception::PROJECT_TEMPLATE_DEFAULT_DELETION,
         'description' => 'You can\'t delete default template. If you are trying to reset your template changes, you can ignore this error as it\'s already been reset.',
