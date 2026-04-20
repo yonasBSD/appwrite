@@ -771,6 +771,20 @@ function router(Http $utopia, Database $dbForPlatform, callable $getProjectDB, S
             deployment: $deployment->getArrayCopy(),
         ));
 
+        /* cleanup */
+        if ($executionsRetentionCount > 0 && ENABLE_EXECUTIONS_LIMIT_ON_ROUTE) {
+            $resourceType = $type === 'function'
+                ? RESOURCE_TYPE_FUNCTIONS
+                : RESOURCE_TYPE_SITES;
+
+            $queueForDeletes
+                ->setProject($project)
+                ->setResourceType($resourceType)
+                ->setResource($resource->getSequence())
+                ->setType(DELETE_TYPE_EXECUTIONS_LIMIT)
+                ->trigger();
+        }
+
         return true;
     } elseif ($type === 'api') {
         return false;

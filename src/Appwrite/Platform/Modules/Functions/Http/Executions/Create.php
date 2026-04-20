@@ -3,6 +3,7 @@
 namespace Appwrite\Platform\Modules\Functions\Http\Executions;
 
 use Ahc\Jwt\JWT;
+use Appwrite\Event\Delete as DeleteEvent;
 use Appwrite\Event\Event;
 use Appwrite\Event\Func;
 use Appwrite\Extend\Exception;
@@ -100,6 +101,8 @@ class Create extends Base
             ->inject('executor')
             ->inject('platform')
             ->inject('authorization')
+            ->inject('queueForDeletes')
+            ->inject('executionsRetentionCount')
             ->callback($this->action(...));
     }
 
@@ -126,6 +129,8 @@ class Create extends Base
         Executor $executor,
         array $platform,
         Authorization $authorization,
+        DeleteEvent $queueForDeletes,
+        int $executionsRetentionCount,
     ) {
         $async = \strval($async) === 'true' || \strval($async) === '1';
 
@@ -331,6 +336,15 @@ class Create extends Base
                 $execution = $authorization->skip(fn () => $dbForProject->createDocument('executions', $execution));
             }
 
+            if ($executionsRetentionCount > 0 && ENABLE_EXECUTIONS_LIMIT_ON_ROUTE) {
+                $queueForDeletes
+                    ->setProject($project)
+                    ->setResource($function->getSequence())
+                    ->setResourceType(RESOURCE_TYPE_FUNCTIONS)
+                    ->setType(DELETE_TYPE_EXECUTIONS_LIMIT)
+                    ->trigger();
+            }
+
             $response->setStatusCode(Response::STATUS_CODE_ACCEPTED);
             $response->dynamic($execution, Response::MODEL_EXECUTION);
             return;
@@ -507,6 +521,15 @@ class Create extends Base
                 $response->setContentType(Response::CONTENT_TYPE_MULTIPART);
                 break;
             }
+        }
+
+        if ($executionsRetentionCount > 0 && ENABLE_EXECUTIONS_LIMIT_ON_ROUTE) {
+            $queueForDeletes
+                ->setProject($project)
+                ->setResource($function->getSequence())
+                ->setResourceType(RESOURCE_TYPE_FUNCTIONS)
+                ->setType(DELETE_TYPE_EXECUTIONS_LIMIT)
+                ->trigger();
         }
 
         $response
