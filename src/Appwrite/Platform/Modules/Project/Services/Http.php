@@ -53,6 +53,7 @@ class Http extends Service
         // SMTP
         $this->addAction(UpdateSMTP::getName(), new UpdateSMTP());
         $this->addAction(CreateSMTPTest::getName(), new CreateSMTPTest());
+
         // Templates
         $this->addAction(GetTemplate::getName(), new GetTemplate());
         $this->addAction(DeleteTemplate::getName(), new DeleteTemplate());

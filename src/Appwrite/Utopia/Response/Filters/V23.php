@@ -12,6 +12,7 @@ class V23 extends Filter
     {
         return match ($model) {
             Response::MODEL_EMAIL_TEMPLATE => $this->parseEmailTemplate($content),
+            Response::MODEL_PROJECT => $this->parseProject($content),
             default => $content,
         };
     }
@@ -22,6 +23,26 @@ class V23 extends Filter
             $content['type'] = $content['templateId'];
             unset($content['templateId']);
         }
+
+        if (isset($content['replyToEmail'])) {
+            $content['replyTo'] = $content['replyToEmail'];
+            unset($content['replyToEmail']);
+        }
+
+        unset($content['replyToName']);
+        unset($content['custom']);
+
+        return $content;
+    }
+
+    private function parseProject(array $content): array
+    {
+        if (isset($content['smtpReplyToEmail'])) {
+            $content['smtpReplyTo'] = $content['smtpReplyToEmail'];
+            unset($content['smtpReplyToEmail']);
+        }
+
+        unset($content['smtpReplyToName']);
 
         return $content;
     }

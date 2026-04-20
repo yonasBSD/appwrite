@@ -17,13 +17,29 @@ class V23 extends Filter
         return $content;
     }
 
+    protected function parseReplyTo(array $content): array
+    {
+        if (isset($content['replyTo'])) {
+            $content['replyToEmail'] = $content['replyTo'];
+            unset($content['replyTo']);
+        }
+
+        return $content;
+    }
+
     public function parse(array $content, string $model): array
     {
         switch ($model) {
             case 'project.getEmailTemplate':
-            case 'project.updateEmailTemplate':
             case 'project.deleteEmailTemplate':
                 $content = $this->parseEmailTemplate($content);
+                break;
+            case 'project.updateEmailTemplate':
+                $content = $this->parseEmailTemplate($content);
+                $content = $this->parseReplyTo($content);
+                break;
+            case 'project.updateSMTP':
+                $content = $this->parseReplyTo($content);
                 break;
         }
         return $content;
