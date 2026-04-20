@@ -548,6 +548,26 @@ class RealtimeCustomClientQueryTestWithMessage extends Scope
         $errNonList = $this->sendUnsubscribeMessage($client, ['subscriptionId' => $subB]);
         $this->assertEquals('error', $errNonList['type']);
 
+        // A batch with a valid id followed by an invalid one must be rejected atomically:
+        // the valid id must remain subscribed, not be quietly removed before validation fails.
+        $partial = $this->sendUnsubscribeMessage($client, [
+            ['subscriptionId' => $subB],
+            ['subscriptionId' => 999],
+        ]);
+        $this->assertEquals('error', $partial['type']);
+
+        $name = 'Partial Rejection Test ' . \uniqid();
+        $this->client->call(Client::METHOD_PATCH, '/account/name', \array_merge([
+            'origin' => 'http://localhost',
+            'content-type' => 'application/json',
+            'x-appwrite-project' => $projectId,
+            'cookie' => 'a_session_' . $projectId . '=' . $session,
+        ]), ['name' => $name]);
+
+        $event = \json_decode($client->receive(), true);
+        $this->assertEquals('event', $event['type']);
+        $this->assertSame([$subB], $event['data']['subscriptions']);
+
         // Bulk unsubscribe: remaining subB plus a never-existed id -- response mirrors input order
         $bulk = $this->sendUnsubscribeMessage($client, [
             ['subscriptionId' => $subB],

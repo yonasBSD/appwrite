@@ -1104,7 +1104,9 @@ $server->onMessage(function (int $connection, string $message) use ($server, $re
                     throw new Exception(Exception::REALTIME_MESSAGE_FORMAT_INVALID, 'Payload is not valid.');
                 }
 
-                $unsubscribeResults = [];
+                // Validate every payload before executing any removal so an invalid entry
+                // later in the batch does not leave earlier entries half-applied on the server.
+                $validatedIds = [];
                 foreach ($message['data'] as $payload) {
                     if (
                         !\is_array($payload)
@@ -1114,8 +1116,11 @@ $server->onMessage(function (int $connection, string $message) use ($server, $re
                     ) {
                         throw new Exception(Exception::REALTIME_MESSAGE_FORMAT_INVALID, 'Each unsubscribe payload must include a non-empty subscriptionId.');
                     }
+                    $validatedIds[] = $payload['subscriptionId'];
+                }
 
-                    $subscriptionId = $payload['subscriptionId'];
+                $unsubscribeResults = [];
+                foreach ($validatedIds as $subscriptionId) {
                     $wasRemoved = $realtime->unsubscribeSubscription($connection, $subscriptionId);
                     $unsubscribeResults[] = [
                         'subscriptionId' => $subscriptionId,
