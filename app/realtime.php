@@ -394,10 +394,27 @@ $server->onWorkerStart(function (int $workerId) use ($server, $register, $stats,
     Console::success('Worker ' . $workerId . ' started successfully');
 
     $telemetry = getTelemetry($workerId);
+    $realtimeDelayBuckets = [100, 250, 500, 750, 1000, 1500, 2000, 3000, 5000, 7500, 10000, 15000, 30000];
+    $workerTelemetryAttributes = ['workerId' => (string) $workerId];
     $register->set('telemetry', fn () => $telemetry);
+    $register->set('telemetry.workerAttributes', fn () => $workerTelemetryAttributes);
+    $register->set('telemetry.workerCounter', fn () => $telemetry->createUpDownCounter('realtime.server.active_workers'));
+    $register->set('telemetry.workerClientCounter', fn () => $telemetry->createUpDownCounter('realtime.server.worker_clients'));
+    $register->set('telemetry.workerSubscriptionCounter', fn () => $telemetry->createUpDownCounter('realtime.server.worker_subscriptions'));
     $register->set('telemetry.connectionCounter', fn () => $telemetry->createUpDownCounter('realtime.server.open_connections'));
     $register->set('telemetry.connectionCreatedCounter', fn () => $telemetry->createCounter('realtime.server.connection.created'));
     $register->set('telemetry.messageSentCounter', fn () => $telemetry->createCounter('realtime.server.message.sent'));
+    $register->set('telemetry.deliveryDelayHistogram', fn () => $telemetry->createHistogram(
+        name: 'realtime.server.delivery_delay',
+        unit: 'ms',
+        advisory: ['ExplicitBucketBoundaries' => $realtimeDelayBuckets],
+    ));
+    $register->set('telemetry.arrivalDelayHistogram', fn () => $telemetry->createHistogram(
+        name: 'realtime.server.arrival_delay',
+        unit: 'ms',
+        advisory: ['ExplicitBucketBoundaries' => $realtimeDelayBuckets],
+    ));
+    $register->get('telemetry.workerCounter')->add(1);
 
     $attempts = 0;
     $start = time();
@@ -514,12 +531,28 @@ $server->onWorkerStart(function (int $workerId) use ($server, $register, $stats,
             $pubsub->subscribe(['realtime'], function (mixed $redis, string $channel, string $payload) use ($server, $workerId, $stats, $register, $realtime) {
                 $event = json_decode($payload, true);
 
+                $eventTimestamp = $event['data']['timestamp'] ?? null;
+                if (\is_string($eventTimestamp)) {
+                    try {
+                        $eventDate = new \DateTimeImmutable($eventTimestamp, new \DateTimeZone('UTC'));
+                        $now = new \DateTimeImmutable('now', new \DateTimeZone('UTC'));
+                        $eventTimestampMs = (float) $eventDate->format('U.u') * 1000;
+                        $nowTimestampMs = (float) $now->format('U.u') * 1000;
+                        $arrivalDelayMs = (int) \max(0, $nowTimestampMs - $eventTimestampMs);
+
+                        $register->get('telemetry.arrivalDelayHistogram')->record($arrivalDelayMs);
+                    } catch (\Throwable) {
+                        // Ignore invalid timestamp payloads.
+                    }
+                }
+
                 if ($event['permissionsChanged'] && isset($event['userId'])) {
                     $projectId = $event['project'];
                     $userId = $event['userId'];
 
                     if ($realtime->hasSubscriber($projectId, 'user:' . $userId)) {
                         $connection = array_key_first(reset($realtime->subscriptions[$projectId]['user:' . $userId]));
+                        $subscriptionsBefore = \count($realtime->getSubscriptionMetadata($connection));
                         $consoleDatabase = getConsoleDB();
                         $project = $consoleDatabase->getAuthorization()->skip(fn () => $consoleDatabase->getDocument('projects', $projectId));
                         $database = getProjectDB($project);
@@ -549,6 +582,12 @@ $server->onWorkerStart(function (int $workerId) use ($server, $register, $stats,
                         // Restore authorization after subscribe
                         if ($authorization !== null) {
                             $realtime->connections[$connection]['authorization'] = $authorization;
+                        }
+
+                        $subscriptionsAfter = \count($realtime->getSubscriptionMetadata($connection));
+                        $subscriptionDelta = $subscriptionsAfter - $subscriptionsBefore;
+                        if ($subscriptionDelta !== 0) {
+                            $register->get('telemetry.workerSubscriptionCounter')->add($subscriptionDelta, $register->get('telemetry.workerAttributes'));
                         }
                     }
                 }
@@ -592,6 +631,20 @@ $server->onWorkerStart(function (int $workerId) use ($server, $register, $stats,
                 if ($total > 0) {
                     $register->get('telemetry.messageSentCounter')->add($total);
                     $stats->incr($event['project'], 'messages', $total);
+                    $updatedAt = $event['data']['payload']['$updatedAt'] ?? null;
+                    if (\is_string($updatedAt)) {
+                        try {
+                            $updatedAtDate = new \DateTimeImmutable($updatedAt, new \DateTimeZone('UTC'));
+                            $now = new \DateTimeImmutable('now', new \DateTimeZone('UTC'));
+                            $updatedAtTimestampMs = (float) $updatedAtDate->format('U.u') * 1000;
+                            $nowTimestampMs = (float) $now->format('U.u') * 1000;
+                            $delayMs = (int) \max(0, $nowTimestampMs - $updatedAtTimestampMs);
+
+                            $register->get('telemetry.deliveryDelayHistogram')->record($delayMs);
+                        } catch (\Throwable) {
+                            // Ignore invalid timestamp payloads.
+                        }
+                    }
 
                     $projectId = $event['project'] ?? null;
 
@@ -619,6 +672,16 @@ $server->onWorkerStart(function (int $workerId) use ($server, $register, $stats,
     }
 
     Console::error('Failed to restart pub/sub...');
+});
+
+$server->onWorkerStop(function (int $workerId) use ($register) {
+    Console::warning('Worker ' . $workerId . ' stopping');
+
+    try {
+        $register->get('telemetry.workerCounter')->add(-1);
+    } catch (\Throwable $th) {
+        Console::error('Realtime onWorkerStop telemetry error: ' . $th->getMessage());
+    }
 });
 
 $server->onOpen(function (int $connection, SwooleRequest $request) use ($server, $register, $stats, &$realtime, $registerConnectionResources) {
@@ -709,6 +772,7 @@ $server->onOpen(function (int $connection, SwooleRequest $request) use ($server,
 
         $updateStats = static function (string $projectId, ?string $teamId, string $payloadJson) use ($register, $stats): void {
             $register->get('telemetry.connectionCounter')->add(1);
+            $register->get('telemetry.workerClientCounter')->add(1, $register->get('telemetry.workerAttributes'));
             $register->get('telemetry.connectionCreatedCounter')->add(1);
 
             $stats->set($projectId, [
@@ -773,6 +837,9 @@ $server->onOpen(function (int $connection, SwooleRequest $request) use ($server,
 
             $mapping[$index] = $subscriptionId;
         }
+        if (!empty($subscriptions)) {
+            $register->get('telemetry.workerSubscriptionCounter')->add(\count($subscriptions), $register->get('telemetry.workerAttributes'));
+        }
 
         $realtime->connections[$connection]['authorization'] = $authorization;
 
@@ -827,7 +894,7 @@ $server->onOpen(function (int $connection, SwooleRequest $request) use ($server,
     }
 });
 
-$server->onMessage(function (int $connection, string $message) use ($server, $realtime, $containerId) {
+$server->onMessage(function (int $connection, string $message) use ($server, $realtime, $containerId, $register) {
     $project = null;
     $authorization = null;
     try {
@@ -941,6 +1008,7 @@ $server->onMessage(function (int $connection, string $message) use ($server, $re
                 $authorization = $realtime->connections[$connection]['authorization'] ?? null;
                 $projectId = $realtime->connections[$connection]['projectId'] ?? null;
 
+                $subscriptionsBefore = \count($realtime->getSubscriptionMetadata($connection));
                 $meta = $realtime->getSubscriptionMetadata($connection);
 
                 $realtime->unsubscribe($connection);
@@ -963,6 +1031,12 @@ $server->onMessage(function (int $connection, string $message) use ($server, $re
 
                 if ($authorization !== null) {
                     $realtime->connections[$connection]['authorization'] = $authorization;
+                }
+
+                $subscriptionsAfter = \count($realtime->getSubscriptionMetadata($connection));
+                $subscriptionDelta = $subscriptionsAfter - $subscriptionsBefore;
+                if ($subscriptionDelta !== 0) {
+                    $register->get('telemetry.workerSubscriptionCounter')->add($subscriptionDelta, $register->get('telemetry.workerAttributes'));
                 }
 
                 $user = $response->output($user, Response::MODEL_ACCOUNT);
@@ -1009,6 +1083,7 @@ $server->onMessage(function (int $connection, string $message) use ($server, $re
 
                 // bulk validation + parsing before subscribing
                 $parsedPayloads = [];
+                $subscriptionsBefore = \count($realtime->getSubscriptionMetadata($connection));
                 foreach ($message['data'] as $payload) {
                     if (!\is_array($payload)) {
                         throw new Exception(Exception::REALTIME_MESSAGE_FORMAT_INVALID, 'Each subscribe payload must be an object.');
@@ -1050,9 +1125,11 @@ $server->onMessage(function (int $connection, string $message) use ($server, $re
                     $queries = $parsedPayload['queries'];
                     $realtime->subscribe($projectId, $connection, $subscriptionId, $roles, $channels, $queries);
                 }
-
-                // subscribe() overwrites the connection entry; restore auth so later onMessage uses the same context.
-                $realtime->connections[$connection]['authorization'] = $authorization;
+                $subscriptionsAfter = \count($realtime->getSubscriptionMetadata($connection));
+                $subscriptionDelta = $subscriptionsAfter - $subscriptionsBefore;
+                if ($subscriptionDelta !== 0) {
+                    $register->get('telemetry.workerSubscriptionCounter')->add($subscriptionDelta, $register->get('telemetry.workerAttributes'));
+                }
 
                 $responsePayload = json_encode([
                     'type' => 'response',
@@ -1077,6 +1154,65 @@ $server->onMessage(function (int $connection, string $message) use ($server, $re
                     if ($subscribeOutboundBytes > 0) {
                         triggerStats([
                             METRIC_REALTIME_OUTBOUND => $subscribeOutboundBytes,
+                        ], $project->getId());
+                    }
+                }
+
+                break;
+
+            case 'unsubscribe':
+                if (!\is_array($message['data']) || !\array_is_list($message['data'])) {
+                    throw new Exception(Exception::REALTIME_MESSAGE_FORMAT_INVALID, 'Payload is not valid.');
+                }
+
+                $subscriptionsBefore = \count($realtime->getSubscriptionMetadata($connection));
+
+                // Validate every payload before executing any removal so an invalid entry
+                // later in the batch does not leave earlier entries half-applied on the server.
+                $validatedIds = [];
+                foreach ($message['data'] as $payload) {
+                    if (
+                        !\is_array($payload)
+                        || !\array_key_exists('subscriptionId', $payload)
+                        || !\is_string($payload['subscriptionId'])
+                        || $payload['subscriptionId'] === ''
+                    ) {
+                        throw new Exception(Exception::REALTIME_MESSAGE_FORMAT_INVALID, 'Each unsubscribe payload must include a non-empty subscriptionId.');
+                    }
+                    $validatedIds[] = $payload['subscriptionId'];
+                }
+
+                $unsubscribeResults = [];
+                foreach ($validatedIds as $subscriptionId) {
+                    $wasRemoved = $realtime->unsubscribeSubscription($connection, $subscriptionId);
+                    $unsubscribeResults[] = [
+                        'subscriptionId' => $subscriptionId,
+                        'removed' => $wasRemoved,
+                    ];
+                }
+                $subscriptionsAfter = \count($realtime->getSubscriptionMetadata($connection));
+                $subscriptionDelta = $subscriptionsAfter - $subscriptionsBefore;
+                if ($subscriptionDelta !== 0) {
+                    $register->get('telemetry.workerSubscriptionCounter')->add($subscriptionDelta, $register->get('telemetry.workerAttributes'));
+                }
+
+                $unsubscribeResponsePayload = json_encode([
+                    'type' => 'response',
+                    'data' => [
+                        'to' => 'unsubscribe',
+                        'success' => true,
+                        'subscriptions' => $unsubscribeResults,
+                    ],
+                ]);
+
+                $server->send([$connection], $unsubscribeResponsePayload);
+
+                if ($project !== null && !$project->isEmpty()) {
+                    $unsubscribeOutboundBytes = \strlen($unsubscribeResponsePayload);
+
+                    if ($unsubscribeOutboundBytes > 0) {
+                        triggerStats([
+                            METRIC_REALTIME_OUTBOUND => $unsubscribeOutboundBytes,
                         ], $project->getId());
                     }
                 }
@@ -1121,6 +1257,11 @@ $server->onClose(function (int $connection) use ($realtime, $stats, $register) {
         if (array_key_exists($connection, $realtime->connections)) {
             $stats->decr($realtime->connections[$connection]['projectId'], 'connectionsTotal');
             $register->get('telemetry.connectionCounter')->add(-1);
+            $register->get('telemetry.workerClientCounter')->add(-1, $register->get('telemetry.workerAttributes'));
+            $subscriptionsBeforeClose = \count($realtime->getSubscriptionMetadata($connection));
+            if ($subscriptionsBeforeClose > 0) {
+                $register->get('telemetry.workerSubscriptionCounter')->add(-$subscriptionsBeforeClose, $register->get('telemetry.workerAttributes'));
+            }
 
             $projectId = $realtime->connections[$connection]['projectId'];
 
