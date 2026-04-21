@@ -704,15 +704,13 @@ jobs:
       - name: Benchmark before
         run: |
           rm -f benchmark-before-summary.json benchmark-after-summary.json benchmark-before.txt benchmark.txt
-          docker run --rm -i --network host --user "$(id -u):$(id -g)" -v "/tmp/appwrite-benchmark-before:/scripts" -w /scripts grafana/k6 run --quiet \
-            --summary-export benchmark-before-summary.json \
+          docker run --rm -i --network host --user "$(id -u):$(id -g)" -v "$PWD:/scripts" -w /scripts \
             -e APPWRITE_ENDPOINT=http://localhost/v1 \
             -e APPWRITE_MAILDEV_ENDPOINT=http://localhost:9503/email \
             -e APPWRITE_BENCHMARK_ITERATIONS=1 \
             -e APPWRITE_BENCHMARK_VUS=1 \
             -e APPWRITE_BENCHMARK_SUMMARY_PATH=benchmark-before-summary.json \
-            tests/benchmarks/http.js | tee benchmark-before.txt
-          cp /tmp/appwrite-benchmark-before/benchmark-before-summary.json benchmark-before-summary.json
+            ${{ env.IMAGE }}:after php tests/benchmarks/http.php | tee benchmark-before.txt
 
       - name: Stop before Appwrite
         if: always()
@@ -730,14 +728,14 @@ jobs:
 
       - name: Benchmark after
         run: |
-          docker run --rm -i --network host --user "$(id -u):$(id -g)" -v "$PWD:/scripts" -w /scripts grafana/k6 run --quiet \
+          docker run --rm -i --network host --user "$(id -u):$(id -g)" -v "$PWD:/scripts" -w /scripts \
             -e APPWRITE_ENDPOINT=http://localhost/v1 \
             -e APPWRITE_MAILDEV_ENDPOINT=http://localhost:9503/email \
             -e APPWRITE_BENCHMARK_ITERATIONS=1 \
             -e APPWRITE_BENCHMARK_VUS=1 \
-            -e APPWRITE_BENCHMARK_PREVIOUS_SUMMARY_PATH=/scripts/benchmark-before-summary.json \
+            -e APPWRITE_BENCHMARK_PREVIOUS_SUMMARY_PATH=benchmark-before-summary.json \
             -e APPWRITE_BENCHMARK_SUMMARY_PATH=benchmark-after-summary.json \
-            tests/benchmarks/http.js | tee benchmark.txt
+            ${{ env.IMAGE }}:after php tests/benchmarks/http.php | tee benchmark.txt
 
       - name: Stop after Appwrite
         if: always()
@@ -745,68 +743,83 @@ jobs:
 
       - name: Prepare comment
         run: |
-          node <<'NODE' > benchmark-comment.txt
-          const fs = require('fs');
+          docker run --rm -i -v "$PWD:/scripts" -w /scripts ${{ env.IMAGE }}:after php <<'PHP' > benchmark-comment.txt
+          <?php
 
-          const before = JSON.parse(fs.readFileSync('benchmark-before-summary.json', 'utf8'));
-          const after = JSON.parse(fs.readFileSync('benchmark-after-summary.json', 'utf8'));
+          $before = json_decode(file_get_contents('benchmark-before-summary.json'), true);
+          $after = json_decode(file_get_contents('benchmark-after-summary.json'), true);
 
-          const trend = (data, metric, stat) => data.metrics?.[metric]?.values?.[stat];
-          const value = (data, metric, stat) => data.metrics?.[metric]?.values?.[stat];
-          const counter = (data, metric) => value(data, metric, 'count');
-          const delta = (beforeValue, afterValue, suffix = '') => {
-            if (beforeValue === undefined || afterValue === undefined) {
-              return 'n/a';
-            }
+          function metric_value(?array $data, string $metric, string $stat): mixed
+          {
+              return $data['metrics'][$metric]['values'][$stat] ?? null;
+          }
 
-            const difference = afterValue - beforeValue;
-            return `${difference > 0 ? '+' : ''}${formatNumber(difference)}${suffix}`;
-          };
-          const format = (value, suffix = '') => value === undefined ? 'n/a' : `${formatNumber(value)}${suffix}`;
-          const formatNumber = (value) => Number.isInteger(value) ? String(value) : value.toFixed(2).replace(/\.?0+$/, '');
-          const row = (label, beforeValue, afterValue, suffix = '') => `| ${label} | ${format(beforeValue, suffix)} | ${format(afterValue, suffix)} | ${delta(beforeValue, afterValue, suffix)} |`;
+          function format_number(mixed $value): string
+          {
+              $value = round((float) $value, 2);
+              return rtrim(rtrim(number_format($value, 2, '.', ''), '0'), '.');
+          }
 
-          const rows = [
-            row('HTTP total p95', trend(before, 'http_req_duration', 'p(95)'), trend(after, 'http_req_duration', 'p(95)'), 'ms'),
-            row('API endpoints p95', trend(before, 'appwrite_api_duration', 'p(95)'), trend(after, 'appwrite_api_duration', 'p(95)'), 'ms'),
-            row('Database worker p95', trend(before, 'appwrite_worker_database_duration', 'p(95)'), trend(after, 'appwrite_worker_database_duration', 'p(95)'), 'ms'),
-            row('TablesDB worker p95', trend(before, 'appwrite_worker_tables_duration', 'p(95)'), trend(after, 'appwrite_worker_tables_duration', 'p(95)'), 'ms'),
-            row('Mail worker p95', trend(before, 'appwrite_worker_mails_duration', 'p(95)'), trend(after, 'appwrite_worker_mails_duration', 'p(95)'), 'ms'),
-            row('Messaging worker p95', trend(before, 'appwrite_worker_messaging_duration', 'p(95)'), trend(after, 'appwrite_worker_messaging_duration', 'p(95)'), 'ms'),
-            row('Flow failures', counter(before, 'appwrite_benchmark_flow_failures'), counter(after, 'appwrite_benchmark_flow_failures')),
-            row('Check failures', value(before, 'checks', 'fails'), value(after, 'checks', 'fails')),
+          function format_value(mixed $value, string $suffix = ''): string
+          {
+              return $value === null ? 'n/a' : format_number($value) . $suffix;
+          }
+
+          function delta(mixed $beforeValue, mixed $afterValue, string $suffix = ''): string
+          {
+              if ($beforeValue === null || $afterValue === null) {
+                  return 'n/a';
+              }
+
+              $difference = round((float) $afterValue - (float) $beforeValue, 2);
+              return ($difference > 0 ? '+' : '') . format_number($difference) . $suffix;
+          }
+
+          function row(string $label, mixed $beforeValue, mixed $afterValue, string $suffix = ''): string
+          {
+              return '| ' . $label . ' | ' . format_value($beforeValue, $suffix) . ' | ' . format_value($afterValue, $suffix) . ' | ' . delta($beforeValue, $afterValue, $suffix) . ' |';
+          }
+
+          function detail(array $after, string $label, string $metric, string $suffix = 'ms'): string
+          {
+              $values = $after['metrics'][$metric]['values'] ?? null;
+              if (!is_array($values)) {
+                  return '- **' . $label . ':** no samples';
+              }
+
+              return '- **' . $label . ':** avg=' . format_value($values['avg'] ?? null, $suffix)
+                  . ' p90=' . format_value($values['p(90)'] ?? null, $suffix)
+                  . ' p95=' . format_value($values['p(95)'] ?? null, $suffix)
+                  . ' max=' . format_value($values['max'] ?? null, $suffix);
+          }
+
+          $rows = [
+              row('HTTP total p95', metric_value($before, 'http_req_duration', 'p(95)'), metric_value($after, 'http_req_duration', 'p(95)'), 'ms'),
+              row('API endpoints p95', metric_value($before, 'appwrite_api_duration', 'p(95)'), metric_value($after, 'appwrite_api_duration', 'p(95)'), 'ms'),
+              row('Database worker p95', metric_value($before, 'appwrite_worker_database_duration', 'p(95)'), metric_value($after, 'appwrite_worker_database_duration', 'p(95)'), 'ms'),
+              row('TablesDB worker p95', metric_value($before, 'appwrite_worker_tables_duration', 'p(95)'), metric_value($after, 'appwrite_worker_tables_duration', 'p(95)'), 'ms'),
+              row('Mail worker p95', metric_value($before, 'appwrite_worker_mails_duration', 'p(95)'), metric_value($after, 'appwrite_worker_mails_duration', 'p(95)'), 'ms'),
+              row('Messaging worker p95', metric_value($before, 'appwrite_worker_messaging_duration', 'p(95)'), metric_value($after, 'appwrite_worker_messaging_duration', 'p(95)'), 'ms'),
+              row('Flow failures', metric_value($before, 'appwrite_benchmark_flow_failures', 'count'), metric_value($after, 'appwrite_benchmark_flow_failures', 'count')),
+              row('Check failures', metric_value($before, 'checks', 'fails'), metric_value($after, 'checks', 'fails')),
           ];
 
-          const detail = (label, metric, suffix = 'ms') => {
-            const values = after.metrics?.[metric]?.values;
-            if (!values) {
-              return `- **${label}:** no samples`;
-            }
-
-            return `- **${label}:** avg=${format(values.avg, suffix)} p90=${format(values['p(90)'], suffix)} p95=${format(values['p(95)'], suffix)} max=${format(values.max, suffix)}`;
-          };
-
-          console.log('<!-- appwrite-benchmark-results -->');
-          console.log('## :sparkles: Benchmark results');
-          console.log();
-          console.log(`Comparing \`${{ github.event.pull_request.base.ref }}\` (before) to \`${{ github.event.pull_request.head.ref }}\` (after).`);
-          console.log();
-          console.log('| Metric | Before | After | Delta |');
-          console.log('| --- | ---: | ---: | ---: |');
-          console.log(rows.join('\n'));
-          console.log();
-          console.log('<details>');
-          console.log('<summary>Current run details</summary>');
-          console.log();
-          console.log(detail('HTTP total', 'http_req_duration'));
-          console.log(detail('API endpoints', 'appwrite_api_duration'));
-          console.log(detail('Database worker schema jobs', 'appwrite_worker_database_duration'));
-          console.log(detail('TablesDB worker schema jobs', 'appwrite_worker_tables_duration'));
-          console.log(detail('Mail worker delivery', 'appwrite_worker_mails_duration'));
-          console.log(detail('Messaging worker delivery', 'appwrite_worker_messaging_duration'));
-          console.log();
-          console.log('</details>');
-          NODE
+          echo "<!-- appwrite-benchmark-results -->\n";
+          echo "## :sparkles: Benchmark results\n\n";
+          echo 'Comparing `${{ github.event.pull_request.base.ref }}` (before) to `${{ github.event.pull_request.head.ref }}` (after).' . "\n\n";
+          echo "| Metric | Before | After | Delta |\n";
+          echo "| --- | ---: | ---: | ---: |\n";
+          echo implode("\n", $rows) . "\n\n";
+          echo "<details>\n";
+          echo "<summary>Current run details</summary>\n\n";
+          echo detail($after, 'HTTP total', 'http_req_duration') . "\n";
+          echo detail($after, 'API endpoints', 'appwrite_api_duration') . "\n";
+          echo detail($after, 'Database worker schema jobs', 'appwrite_worker_database_duration') . "\n";
+          echo detail($after, 'TablesDB worker schema jobs', 'appwrite_worker_tables_duration') . "\n";
+          echo detail($after, 'Mail worker delivery', 'appwrite_worker_mails_duration') . "\n";
+          echo detail($after, 'Messaging worker delivery', 'appwrite_worker_messaging_duration') . "\n\n";
+          echo "</details>\n";
+          PHP
 
       - name: Save results
         uses: actions/upload-artifact@v7
