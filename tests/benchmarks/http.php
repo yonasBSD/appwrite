@@ -290,7 +290,12 @@ final class HttpBenchmark
             $context = $this->setup();
 
             for ($i = 0; $i < $this->iterations * $this->vus; $i++) {
-                $this->curatedFlows($context);
+                try {
+                    $this->curatedFlows($context);
+                } catch (Throwable $error) {
+                    $exitCode = 1;
+                    fwrite(STDERR, 'Iteration ' . ($i + 1) . ' failed: ' . $error->getMessage() . PHP_EOL);
+                }
             }
         } catch (Throwable $error) {
             $exitCode = 1;
@@ -1216,7 +1221,7 @@ final class HttpBenchmark
             '',
         ];
 
-        return implode(PHP_EOL, array_filter($lines, fn (string $line): bool => $line !== '')) . PHP_EOL;
+        return implode(PHP_EOL, $lines) . PHP_EOL;
     }
 
     private function comparisonTable(?array $before, array $after): string

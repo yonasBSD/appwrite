@@ -746,8 +746,30 @@ jobs:
           docker run --rm -i -v "$PWD:/scripts" -w /scripts ${{ env.IMAGE }}:after php <<'PHP' > benchmark-comment.txt
           <?php
 
-          $before = json_decode(file_get_contents('benchmark-before-summary.json'), true);
-          $after = json_decode(file_get_contents('benchmark-after-summary.json'), true);
+          function read_summary(string $path): array
+          {
+              if (!is_file($path)) {
+                  fwrite(STDERR, "Missing benchmark summary: {$path}\n");
+                  exit(1);
+              }
+
+              try {
+                  $summary = json_decode(file_get_contents($path), true, 512, JSON_THROW_ON_ERROR);
+              } catch (JsonException $error) {
+                  fwrite(STDERR, "Invalid benchmark summary {$path}: {$error->getMessage()}\n");
+                  exit(1);
+              }
+
+              if (!is_array($summary)) {
+                  fwrite(STDERR, "Invalid benchmark summary {$path}: expected JSON object\n");
+                  exit(1);
+              }
+
+              return $summary;
+          }
+
+          $before = read_summary('benchmark-before-summary.json');
+          $after = read_summary('benchmark-after-summary.json');
 
           function metric_value(?array $data, string $metric, string $stat): mixed
           {
