@@ -2,6 +2,7 @@
 
 namespace Appwrite\Platform\Modules\Project\Http\Project\Policies\PasswordHistory;
 
+use Appwrite\Event\Event;
 use Appwrite\Platform\Action;
 use Appwrite\SDK\AuthType;
 use Appwrite\SDK\Method;
@@ -32,8 +33,8 @@ class Update extends Action
             ->desc('Update password history policy')
             ->groups(['api', 'project'])
             ->label('scope', 'policies.write')
-            ->label('event', 'policies.password-history.update')
-            ->label('audits.event', 'policies.password-history.update')
+            ->label('event', 'projects.[projectId].policies.[policy].update')
+            ->label('audits.event', 'projects.[projectId].policies.[policy].update')
             ->label('audits.resource', 'project/{response.$id}')
             ->label('sdk', new Method(
                 namespace: 'project',
@@ -57,6 +58,7 @@ class Update extends Action
             ->inject('dbForPlatform')
             ->inject('project')
             ->inject('authorization')
+            ->inject('queueForEvents')
             ->callback($this->action(...));
     }
 
@@ -66,6 +68,7 @@ class Update extends Action
         Database $dbForPlatform,
         Document $project,
         Authorization $authorization,
+        Event $queueForEvents,
     ): void {
         $auths = $project->getAttribute('auths', []);
 
@@ -80,6 +83,10 @@ class Update extends Action
         ]);
 
         $project = $authorization->skip(fn () => $dbForPlatform->updateDocument('projects', $project->getId(), $updates));
+
+        $queueForEvents
+            ->setParam('projectId', $project->getId())
+            ->setParam('policy', 'password-history');
 
         $response->dynamic($project, Response::MODEL_PROJECT);
     }
