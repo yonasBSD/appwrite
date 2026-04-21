@@ -1247,7 +1247,6 @@ final class HttpBenchmark
             $this->metricLine($summary, 'appwrite_worker_tables_duration', 'TablesDB worker schema jobs'),
             $this->metricLine($summary, 'appwrite_worker_mails_duration', 'Mail worker delivery'),
             $this->metricLine($summary, 'appwrite_worker_messaging_duration', 'Messaging worker delivery'),
-            $this->counterLine($summary, 'appwrite_benchmark_flow_failures', 'Flow failures'),
             '',
         ];
 
@@ -1263,8 +1262,6 @@ final class HttpBenchmark
             ['TablesDB worker p95', $this->trendMetric($before, 'appwrite_worker_tables_duration', 'p(95)'), $this->trendMetric($after, 'appwrite_worker_tables_duration', 'p(95)'), 'ms'],
             ['Mail worker p95', $this->trendMetric($before, 'appwrite_worker_mails_duration', 'p(95)'), $this->trendMetric($after, 'appwrite_worker_mails_duration', 'p(95)'), 'ms'],
             ['Messaging worker p95', $this->trendMetric($before, 'appwrite_worker_messaging_duration', 'p(95)'), $this->trendMetric($after, 'appwrite_worker_messaging_duration', 'p(95)'), 'ms'],
-            ['Flow failures', $this->counterMetric($before, 'appwrite_benchmark_flow_failures'), $this->counterMetric($after, 'appwrite_benchmark_flow_failures'), ''],
-            ['Check failures', $this->checkFailures($before), $this->checkFailures($after), ''],
         ];
 
         $table = [
@@ -1284,16 +1281,6 @@ final class HttpBenchmark
         return $data['metrics'][$metric]['values'][$stat] ?? null;
     }
 
-    private function counterMetric(?array $data, string $metric): ?float
-    {
-        return $data['metrics'][$metric]['values']['count'] ?? null;
-    }
-
-    private function checkFailures(?array $data): ?float
-    {
-        return $data['metrics']['checks']['values']['fails'] ?? null;
-    }
-
     private function metricLine(array $data, string $metric, string $label): string
     {
         $values = $data['metrics'][$metric]['values'] ?? null;
@@ -1302,11 +1289,6 @@ final class HttpBenchmark
         }
 
         return "{$label}: avg={$this->round($values['avg'])}ms p90={$this->round($values['p(90)'])}ms p95={$this->round($values['p(95)'])}ms max={$this->round($values['max'])}ms";
-    }
-
-    private function counterLine(array $data, string $metric, string $label): string
-    {
-        return "{$label}: " . ($data['metrics'][$metric]['values']['count'] ?? 0);
     }
 
     private function formatValue(?float $value, string $unit): string
