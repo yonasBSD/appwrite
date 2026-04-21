@@ -22,6 +22,7 @@ use Utopia\Database\Validator\Authorization;
 use Utopia\Database\Validator\Query\Cursor;
 use Utopia\Database\Validator\UID;
 use Utopia\Http\Adapter\Swoole\Response as SwooleResponse;
+use Utopia\Http\Http;
 use Utopia\Validator\ArrayList;
 use Utopia\Validator\Boolean;
 use Utopia\Validator\Nullable;
@@ -80,10 +81,11 @@ class XList extends Action
             ->inject('usage')
             ->inject('transactionState')
             ->inject('authorization')
+            ->inject('utopia')
             ->callback($this->action(...));
     }
 
-    public function action(string $databaseId, string $collectionId, array $queries, ?string $transactionId, bool $includeTotal, int $ttl, UtopiaResponse $response, Database $dbForProject, User $user, callable $getDatabasesDB, Context $usage, TransactionState $transactionState, Authorization $authorization): void
+    public function action(string $databaseId, string $collectionId, array $queries, ?string $transactionId, bool $includeTotal, int $ttl, UtopiaResponse $response, Database $dbForProject, User $user, callable $getDatabasesDB, Context $usage, TransactionState $transactionState, Authorization $authorization, ?Http $utopia = null): void
     {
         $isAPIKey = $user->isApp($authorization->getRoles());
         $isPrivilegedUser = $user->isPrivileged($authorization->getRoles());
@@ -126,19 +128,29 @@ class XList extends Action
             $cursor->setValue($cursorDocument);
         }
 
+        $dbDurationMs = 0.0;
+        $measure = function (callable $fn) use (&$dbDurationMs) {
+            $start = \microtime(true);
+            try {
+                return $fn();
+            } finally {
+                $dbDurationMs += (\microtime(true) - $start) * 1000;
+            }
+        };
+
         try {
             $hasSelects = ! empty(Query::groupByType($queries)['selections'] ?? []);
             $collectionTableId = 'database_' . $database->getSequence() . '_collection_' . $collection->getSequence();
             // When there are no select queries, relationship loading is skipped on the
             // underlying find() to avoid pulling related documents the caller did not ask for.
             $find = $hasSelects
-                ? fn () => $dbForDatabases->find($collectionTableId, $queries)
-                : fn () => $dbForDatabases->skipRelationships(fn () => $dbForDatabases->find($collectionTableId, $queries));
+                ? fn () => $measure(fn () => $dbForDatabases->find($collectionTableId, $queries))
+                : fn () => $measure(fn () => $dbForDatabases->skipRelationships(fn () => $dbForDatabases->find($collectionTableId, $queries)));
 
             // Use transaction-aware document retrieval if transactionId is provided
             if ($transactionId !== null) {
-                $documents = $transactionState->listDocuments($database, $collectionTableId, $transactionId, $queries);
-                $total = $includeTotal ? $transactionState->countDocuments($database, $collectionTableId, $transactionId, $queries) : 0;
+                $documents = $measure(fn () => $transactionState->listDocuments($database, $collectionTableId, $transactionId, $queries));
+                $total = $includeTotal ? $measure(fn () => $transactionState->countDocuments($database, $collectionTableId, $transactionId, $queries)) : 0;
             } elseif ((int)$ttl > 0) {
                 $cacheKey = $this->getListCacheKey($dbForProject, $collectionId);
                 $roles = $dbForProject->getAuthorization()->getRoles();
@@ -180,7 +192,7 @@ class XList extends Action
                     if ($cachedTotal !== null && $cachedTotal !== false) {
                         $total = $cachedTotal;
                     } else {
-                        $total = $dbForDatabases->count($collectionTableId, $queries, APP_LIMIT_COUNT);
+                        $total = $measure(fn () => $dbForDatabases->count($collectionTableId, $queries, APP_LIMIT_COUNT));
                         try {
                             $dbForProject->getCache()->save($cacheKey, $total, $totalField);
                         } catch (\Throwable) {
@@ -193,7 +205,7 @@ class XList extends Action
                 $response->addHeader('X-Appwrite-Cache', $documentsCacheHit ? 'hit' : 'miss');
             } else {
                 $documents = $find();
-                $total = $includeTotal ? $dbForDatabases->count($collectionTableId, $queries, APP_LIMIT_COUNT) : 0;
+                $total = $includeTotal ? $measure(fn () => $dbForDatabases->count($collectionTableId, $queries, APP_LIMIT_COUNT)) : 0;
             }
         } catch (OrderException $e) {
             $documents = $this->isCollectionsAPI() ? 'documents' : 'rows';
@@ -229,5 +241,32 @@ class XList extends Action
             // rows or documents
             $this->getSDKGroup() => $documents,
         ]), $this->getResponseModel());
+
+        try {
+            $this->afterQuery($dbDurationMs, $database, $collection, $queries, $utopia);
+        } catch (\Throwable) {
+            // Observers must never break the response.
+        }
+    }
+
+    /**
+     * Hook invoked after listDocuments/listRows completes the response.
+     * Under Swoole the client connection is already closed by $response->dynamic(),
+     * so observers here do not delay the client; under synchronous transports
+     * they run before bytes reach the client — keep work cheap regardless.
+     *
+     * Runs with the actual measured database duration (cache hits report
+     * near-zero, cache misses report only the DB portion). Intended for
+     * downstream distributions to override for slow-query logging or other
+     * observability. CE implementation is a no-op.
+     *
+     * The $utopia Http instance is passed so overrides can resolve additional
+     * resources via $utopia->getResource(...) without touching the inject chain.
+     *
+     * @param array<Query> $queries parsed Query objects
+     */
+    protected function afterQuery(float $dbDurationMs, Document $database, Document $collection, array $queries, ?Http $utopia): void
+    {
+        // no-op in CE
     }
 }
