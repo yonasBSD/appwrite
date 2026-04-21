@@ -107,7 +107,7 @@ class Create extends Action
         $auth = Config::getParam('auth', []);
         $auths = [
             'limit' => 0,
-            'maxSessions' => APP_LIMIT_USER_SESSIONS_DEFAULT,
+            'maxSessions' => 0,
             'passwordHistory' => 0,
             'passwordDictionary' => false,
             'duration' => TOKEN_EXPIRATION_LOGIN_LONG,
