@@ -1166,6 +1166,8 @@ $server->onMessage(function (int $connection, string $message) use ($server, $re
                     throw new Exception(Exception::REALTIME_MESSAGE_FORMAT_INVALID, 'Payload is not valid.');
                 }
 
+                $subscriptionsBefore = \count($realtime->getSubscriptionMetadata($connection));
+
                 // Validate every payload before executing any removal so an invalid entry
                 // later in the batch does not leave earlier entries half-applied on the server.
                 $validatedIds = [];
@@ -1188,6 +1190,11 @@ $server->onMessage(function (int $connection, string $message) use ($server, $re
                         'subscriptionId' => $subscriptionId,
                         'removed' => $wasRemoved,
                     ];
+                }
+                $subscriptionsAfter = \count($realtime->getSubscriptionMetadata($connection));
+                $subscriptionDelta = $subscriptionsAfter - $subscriptionsBefore;
+                if ($subscriptionDelta !== 0) {
+                    $register->get('telemetry.workerSubscriptionCounter')->add($subscriptionDelta, $register->get('telemetry.workerAttributes'));
                 }
 
                 $unsubscribeResponsePayload = json_encode([
