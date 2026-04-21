@@ -14,6 +14,7 @@ const WORKER_TIMEOUT_MS = Number(__ENV.APPWRITE_WORKER_TIMEOUT_MS || 60000);
 const ITERATIONS = Number(__ENV.APPWRITE_BENCHMARK_ITERATIONS || 1);
 const VUS = Number(__ENV.APPWRITE_BENCHMARK_VUS || 1);
 const SUMMARY_PATH = __ENV.APPWRITE_BENCHMARK_SUMMARY_PATH || 'tests/benchmarks/http-summary.json';
+const PREVIOUS_SUMMARY_PATH = __ENV.APPWRITE_BENCHMARK_PREVIOUS_SUMMARY_PATH || SUMMARY_PATH;
 const PREVIOUS_SUMMARY = loadPreviousSummary();
 
 export const apiDuration = new Trend('appwrite_api_duration', true);
@@ -712,8 +713,7 @@ function waitForStatus(path, headers, wantedStatus, timeoutMs) {
 
     while (Date.now() - started < timeoutMs) {
         const response = rawRequest('GET', path, null, headers, `wait${path}`);
-        assertStatus(response, [200], `wait${path}`);
-        if (response.json('status') === wantedStatus) {
+        if (response.status === 200 && response.json('status') === wantedStatus) {
             return response;
         }
         sleep(0.5);
@@ -727,8 +727,7 @@ function waitForMessage(messageId, headers, timeoutMs) {
 
     while (Date.now() - started < timeoutMs) {
         const response = rawRequest('GET', `/messaging/messages/${messageId}`, null, headers, 'messaging.messages.poll');
-        assertStatus(response, [200], 'messaging.messages.poll');
-        const status = response.json('status');
+        const status = response.status === 200 ? response.json('status') : null;
 
         if (['sent', 'failed'].includes(status)) {
             if (status === 'failed') {
@@ -858,15 +857,7 @@ function tablePayload() {
 }
 
 function onePixelPng() {
-    const bytes = new Uint8Array(encoding.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII='));
-    let output = '';
-
-    // Appwrite's multipart upload path accepts this k6 fixture as a binary string.
-    for (let i = 0; i < bytes.length; i++) {
-        output += String.fromCharCode(bytes[i]);
-    }
-
-    return output;
+    return encoding.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=', 'std', 'b');
 }
 
 function flattenMultipartArray(key, values) {
@@ -923,7 +914,7 @@ export function handleSummary(data) {
 
 function loadPreviousSummary() {
     try {
-        return JSON.parse(open('http-summary.json'));
+        return JSON.parse(open(PREVIOUS_SUMMARY_PATH));
     } catch (error) {
         return null;
     }
