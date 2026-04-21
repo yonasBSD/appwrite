@@ -1193,11 +1193,18 @@ final class HttpBenchmark
     private function writeSummary(array $summary): void
     {
         $directory = dirname($this->summaryPath);
-        if ($directory !== '.' && !is_dir($directory)) {
-            mkdir($directory, 0777, true);
+        if ($directory !== '.' && !is_dir($directory) && !mkdir($directory, 0777, true) && !is_dir($directory)) {
+            throw new RuntimeException("Unable to create benchmark summary directory: {$directory}");
         }
 
-        file_put_contents($this->summaryPath, json_encode($summary, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+        $json = json_encode($summary, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+        if ($json === false) {
+            throw new RuntimeException('Unable to encode benchmark summary: ' . json_last_error_msg());
+        }
+
+        if (file_put_contents($this->summaryPath, $json) === false) {
+            throw new RuntimeException("Unable to write benchmark summary: {$this->summaryPath}");
+        }
     }
 
     private function renderSummary(array $summary): string
