@@ -758,6 +758,11 @@ Http::shutdown()
     ->inject('dbForProject')
     ->action(function (Http $utopia, Request $request, Response $response, Document $project, Database $dbForProject) {
         $sessionLimit = $project->getAttribute('auths', [])['maxSessions'] ?? APP_LIMIT_USER_SESSIONS_DEFAULT;
+
+        if ($sessionLimit === 0) {
+            return;
+        }
+
         $session = $response->getPayload();
         $userId = $session['userId'] ?? '';
         if (empty($userId)) {

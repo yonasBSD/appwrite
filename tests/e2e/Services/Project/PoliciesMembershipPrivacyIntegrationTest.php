@@ -119,7 +119,7 @@ class PoliciesMembershipPrivacyIntegrationTest extends Scope
             'x-appwrite-project' => $projectId,
             'cookie' => 'a_session_' . $projectId . '=' . $user1Session,
         ];
-        
+
         $response = $this->client->call(Client::METHOD_GET, '/teams/' . $teamId . '/memberships', $clientHeaders);
         $this->assertSame(200, $response['headers']['status-code']);
         $this->assertSame(2, $response['body']['total']);
