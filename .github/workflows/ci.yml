@@ -837,17 +837,24 @@ jobs:
               return '| ' . $label . ' | ' . format_value($beforeValue, $suffix) . ' | ' . format_value($afterValue, $suffix) . ' | ' . delta($beforeValue, $afterValue, $suffix) . ' |';
           }
 
-          function detail(array $after, string $label, string $metric, string $suffix = 'ms'): string
+          function format_detail_value(mixed $value, string $suffix = ''): string
+          {
+              return $value === null ? 'n/a' : number_format((float) $value, 2, '.', '') . $suffix;
+          }
+
+          function detail_row(array $after, string $label, string $metric, string $suffix = 'ms'): string
           {
               $values = $after['metrics'][$metric]['values'] ?? null;
               if (!is_array($values)) {
-                  return '- **' . $label . ':** no samples';
+                  return '| ' . $label . ' | n/a | n/a | n/a | n/a |';
               }
 
-              return '- **' . $label . ':** avg=' . format_value($values['avg'] ?? null, $suffix)
-                  . ' p90=' . format_value($values['p(90)'] ?? null, $suffix)
-                  . ' p95=' . format_value($values['p(95)'] ?? null, $suffix)
-                  . ' max=' . format_value($values['max'] ?? null, $suffix);
+              return '| ' . $label
+                  . ' | ' . format_detail_value($values['avg'] ?? null, $suffix)
+                  . ' | ' . format_detail_value($values['p(90)'] ?? null, $suffix)
+                  . ' | ' . format_detail_value($values['p(95)'] ?? null, $suffix)
+                  . ' | ' . format_detail_value($values['max'] ?? null, $suffix)
+                  . ' |';
           }
 
           $rows = [
@@ -857,8 +864,6 @@ jobs:
               row('TablesDB worker p95', metric_value($before, 'appwrite_worker_tables_duration', 'p(95)'), metric_value($after, 'appwrite_worker_tables_duration', 'p(95)'), 'ms'),
               row('Mail worker p95', metric_value($before, 'appwrite_worker_mails_duration', 'p(95)'), metric_value($after, 'appwrite_worker_mails_duration', 'p(95)'), 'ms'),
               row('Messaging worker p95', metric_value($before, 'appwrite_worker_messaging_duration', 'p(95)'), metric_value($after, 'appwrite_worker_messaging_duration', 'p(95)'), 'ms'),
-              row('Flow failures', metric_value($before, 'appwrite_benchmark_flow_failures', 'count'), metric_value($after, 'appwrite_benchmark_flow_failures', 'count')),
-              row('Check failures', metric_value($before, 'checks', 'fails'), metric_value($after, 'checks', 'fails')),
           ];
 
           echo "<!-- appwrite-benchmark-results -->\n";
@@ -871,13 +876,16 @@ jobs:
           echo "| --- | ---: | ---: | ---: |\n";
           echo implode("\n", $rows) . "\n\n";
           echo "<details>\n";
-          echo "<summary>Current run details</summary>\n\n";
-          echo detail($after, 'HTTP total', 'http_req_duration') . "\n";
-          echo detail($after, 'API endpoints', 'appwrite_api_duration') . "\n";
-          echo detail($after, 'Database worker schema jobs', 'appwrite_worker_database_duration') . "\n";
-          echo detail($after, 'TablesDB worker schema jobs', 'appwrite_worker_tables_duration') . "\n";
-          echo detail($after, 'Mail worker delivery', 'appwrite_worker_mails_duration') . "\n";
-          echo detail($after, 'Messaging worker delivery', 'appwrite_worker_messaging_duration') . "\n\n";
+          echo "<summary><strong>Current run details</strong></summary>\n\n";
+          echo "<br>\n\n";
+          echo "| Scenario | Avg | P90 | P95 | Max |\n";
+          echo "| --- | ---: | ---: | ---: | ---: |\n";
+          echo detail_row($after, 'HTTP total', 'http_req_duration') . "\n";
+          echo detail_row($after, 'API endpoints', 'appwrite_api_duration') . "\n";
+          echo detail_row($after, 'Database worker schema jobs', 'appwrite_worker_database_duration') . "\n";
+          echo detail_row($after, 'TablesDB worker schema jobs', 'appwrite_worker_tables_duration') . "\n";
+          echo detail_row($after, 'Mail worker delivery', 'appwrite_worker_mails_duration') . "\n";
+          echo detail_row($after, 'Messaging worker delivery', 'appwrite_worker_messaging_duration') . "\n\n";
           echo "</details>\n";
           PHP
 

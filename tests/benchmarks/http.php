@@ -897,17 +897,17 @@ final class HttpBenchmark
         return $response;
     }
 
-    private function rawRequest(string $method, string $path, mixed $body, array $headers, string $name): BenchmarkResponse
+    private function rawRequest(string $method, string $path, mixed $body, array $headers, string $name, bool $recordHttpDuration = true): BenchmarkResponse
     {
-        return $this->send($method, str_starts_with($path, 'http') ? $path : $this->endpoint . $path, $body, $headers, $name, false);
+        return $this->send($method, str_starts_with($path, 'http') ? $path : $this->endpoint . $path, $body, $headers, $name, false, $recordHttpDuration);
     }
 
     private function rawMultipartRequest(string $method, string $path, array $fields, array $headers, string $name): BenchmarkResponse
     {
-        return $this->send($method, $this->endpoint . $path, $fields, $headers, $name, true);
+        return $this->send($method, $this->endpoint . $path, $fields, $headers, $name, true, true);
     }
 
-    private function send(string $method, string $url, mixed $body, array $headers, string $name, bool $multipart): BenchmarkResponse
+    private function send(string $method, string $url, mixed $body, array $headers, string $name, bool $multipart, bool $recordHttpDuration): BenchmarkResponse
     {
         $handle = curl_init($url);
         if ($handle === false) {
@@ -936,7 +936,9 @@ final class HttpBenchmark
         $started = hrtime(true);
         $raw = curl_exec($handle);
         $duration = (hrtime(true) - $started) / 1_000_000;
-        $this->metrics->addTrend('http_req_duration', $duration);
+        if ($recordHttpDuration) {
+            $this->metrics->addTrend('http_req_duration', $duration);
+        }
 
         if ($raw === false) {
             $error = curl_error($handle);
@@ -960,8 +962,15 @@ final class HttpBenchmark
 
         while ($this->nowMs() - $started < $timeoutMs) {
             $response = $this->rawRequest('GET', $path, null, $headers, "wait{$path}");
-            if ($response->status === 200 && $response->json('status') === $wantedStatus) {
-                return $response;
+            if ($response->status === 200) {
+                $status = $response->json('status');
+                if ($status === $wantedStatus) {
+                    return $response;
+                }
+
+                if ($status === 'failed') {
+                    throw new RuntimeException("Resource {$path} failed while waiting for {$wantedStatus}");
+                }
             }
 
             usleep(500_000);
@@ -997,7 +1006,7 @@ final class HttpBenchmark
         $started = $this->nowMs();
 
         while ($this->nowMs() - $started < $timeoutMs) {
-            $response = $this->rawRequest('GET', $this->maildevEndpoint, null, [], 'maildev.email.list');
+            $response = $this->rawRequest('GET', $this->maildevEndpoint, null, [], 'maildev.email.list', false);
 
             if ($response->status === 200) {
                 $emails = $response->json();
