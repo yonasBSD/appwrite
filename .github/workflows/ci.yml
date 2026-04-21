@@ -536,6 +536,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
 
       - name: Download Docker Image
         uses: actions/download-artifact@v7
@@ -656,6 +658,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
 
       - name: Download Docker Image
         uses: actions/download-artifact@v7
@@ -669,14 +673,50 @@ jobs:
           username: ${{ vars.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Load and Start Appwrite
+      - name: Load Appwrite image
+        run: |
+          docker load --input /tmp/${{ env.IMAGE }}.tar
+
+      - name: Prepare benchmark baseline
+        if: github.event_name == 'pull_request'
+        run: |
+          git fetch --depth=1 origin ${{ github.event.pull_request.base.ref }}
+          git worktree add --detach /tmp/appwrite-benchmark-baseline FETCH_HEAD
+
+      - name: Start baseline Appwrite
+        if: github.event_name == 'pull_request'
+        working-directory: /tmp/appwrite-benchmark-baseline
         run: |
           sed -i 's/traefik/localhost/g' .env
-          docker load --input /tmp/${{ env.IMAGE }}.tar
-          docker compose up -d
-          sleep 10
+          docker compose up -d --wait
 
       - name: Benchmark baseline
+        if: github.event_name == 'pull_request'
+        run: |
+          rm -f tests/benchmarks/http-summary.json benchmark-before-summary.json benchmark-after-summary.json benchmark-before.txt benchmark.txt
+          docker run --rm -i --network host -v "$PWD:/scripts" -w /scripts grafana/k6 run --quiet \
+            -e APPWRITE_ENDPOINT=http://localhost/v1 \
+            -e APPWRITE_MAILDEV_ENDPOINT=http://localhost:9503/email \
+            -e APPWRITE_BENCHMARK_ITERATIONS=1 \
+            -e APPWRITE_BENCHMARK_VUS=1 \
+            tests/benchmarks/http.js | tee benchmark-before.txt
+          cp tests/benchmarks/http-summary.json benchmark-before-summary.json
+
+      - name: Stop baseline Appwrite
+        if: always() && github.event_name == 'pull_request'
+        run: |
+          if [ -d /tmp/appwrite-benchmark-baseline ]; then
+            cd /tmp/appwrite-benchmark-baseline
+            docker compose down -v
+          fi
+
+      - name: Start PR Appwrite
+        run: |
+          sed -i 's/traefik/localhost/g' .env
+          docker compose up -d --wait
+
+      - name: Seed workflow benchmark baseline
+        if: github.event_name != 'pull_request'
         run: |
           rm -f tests/benchmarks/http-summary.json benchmark-before-summary.json benchmark-after-summary.json benchmark-before.txt benchmark.txt
           docker run --rm -i --network host -v "$PWD:/scripts" -w /scripts grafana/k6 run --quiet \
