@@ -82,9 +82,9 @@ class PoliciesSessionLimitIntegrationTest extends Scope
 
         // New session pushes old one out
         $session2 = $login();
-        
+
         \sleep(3); // Giving ::shutdown() hooks some time
-        
+
         $this->assertSame(200, $getAccount($session2)['headers']['status-code']);
         $this->assertSame(401, $getAccount($session1)['headers']['status-code']);
 
@@ -92,17 +92,17 @@ class PoliciesSessionLimitIntegrationTest extends Scope
         $setSessionLimit(2);
 
         $session3 = $login();
-        
+
         \sleep(3); // Giving ::shutdown() hooks some time
-        
+
         $this->assertSame(200, $getAccount($session2)['headers']['status-code']);
         $this->assertSame(200, $getAccount($session3)['headers']['status-code']);
 
         // Step 3: 4th session evicts session2 (oldest), session3 and session4 remain
         $session4 = $login();
-        
+
         \sleep(3); // Giving ::shutdown() hooks some time
-        
+
         $this->assertSame(200, $getAccount($session4)['headers']['status-code']);
         $this->assertSame(200, $getAccount($session3)['headers']['status-code']);
         $this->assertSame(401, $getAccount($session2)['headers']['status-code']);
