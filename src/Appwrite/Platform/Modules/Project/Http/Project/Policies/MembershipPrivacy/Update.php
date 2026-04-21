@@ -49,11 +49,11 @@ class Update extends Action
                     )
                 ],
             ))
-            ->param('userId', null, new Boolean(), 'Set to true if you want make user ID visible to all team members, or false to hide it.')
-            ->param('userEmail', null, new Boolean(), 'Set to true if you want make user email visible to all team members, or false to hide it.')
-            ->param('userPhone', null, new Boolean(), 'Set to true if you want make user phone number visible to all team members, or false to hide it.')
-            ->param('userName', null, new Boolean(), 'Set to true if you want make user name visible to all team members, or false to hide it.')
-            ->param('userMFA', null, new Boolean(), 'Set to true if you want make user MFA status visible to all team members, or false to hide it.')
+            ->param('userId', null, new Boolean(), 'Set to true if you want make user ID visible to all team members, or false to hide it.', optional: true)
+            ->param('userEmail', null, new Boolean(), 'Set to true if you want make user email visible to all team members, or false to hide it.', optional: true)
+            ->param('userPhone', null, new Boolean(), 'Set to true if you want make user phone number visible to all team members, or false to hide it.', optional: true)
+            ->param('userName', null, new Boolean(), 'Set to true if you want make user name visible to all team members, or false to hide it.', optional: true)
+            ->param('userMFA', null, new Boolean(), 'Set to true if you want make user MFA status visible to all team members, or false to hide it.', optional: true)
             ->inject('response')
             ->inject('dbForPlatform')
             ->inject('project')
@@ -62,11 +62,11 @@ class Update extends Action
     }
 
     public function action(
-        bool $userId,
-        bool $userEmail,
-        bool $userPhone,
-        bool $userName,
-        bool $userMFA,
+        ?bool $userId,
+        ?bool $userEmail,
+        ?bool $userPhone,
+        ?bool $userName,
+        ?bool $userMFA,
         Response $response,
         Database $dbForPlatform,
         Document $project,
@@ -74,11 +74,21 @@ class Update extends Action
     ): void {
         $auths = $project->getAttribute('auths', []);
 
-        $auths['membershipsUserName'] = $userName;
-        $auths['membershipsUserEmail'] = $userEmail;
-        $auths['membershipsMfa'] = $userMFA;
-        $auths['membershipsUserId'] = $userId;
-        $auths['membershipsUserPhone'] = $userPhone;
+        if ($userId !== null) {
+            $auths['membershipsUserId'] = $userId;
+        }
+        if ($userEmail !== null) {
+            $auths['membershipsUserEmail'] = $userEmail;
+        }
+        if ($userPhone !== null) {
+            $auths['membershipsUserPhone'] = $userPhone;
+        }
+        if ($userName !== null) {
+            $auths['membershipsUserName'] = $userName;
+        }
+        if ($userMFA !== null) {
+            $auths['membershipsMfa'] = $userMFA;
+        }
 
         $updates = new Document([
             'auths' => $auths,

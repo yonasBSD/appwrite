@@ -484,11 +484,11 @@ class Project extends Model
         $document->setAttribute('authFreeEmails', $authValues['freeEmails'] ?? false);
         $document->setAttribute('authMockNumbers', $authValues['mockNumbers'] ?? []);
         $document->setAttribute('authSessionAlerts', $authValues['sessionAlerts'] ?? false);
-        $document->setAttribute('authMembershipsUserName', $authValues['membershipsUserName'] ?? true);
-        $document->setAttribute('authMembershipsUserEmail', $authValues['membershipsUserEmail'] ?? true);
-        $document->setAttribute('authMembershipsMfa', $authValues['membershipsMfa'] ?? true);
-        $document->setAttribute('authMembershipsUserId', $authValues['membershipsUserId'] ?? true);
-        $document->setAttribute('authMembershipsUserPhone', $authValues['membershipsUserPhone'] ?? true);
+        $document->setAttribute('authMembershipsUserName', $authValues['membershipsUserName'] ?? false);
+        $document->setAttribute('authMembershipsUserEmail', $authValues['membershipsUserEmail'] ?? false);
+        $document->setAttribute('authMembershipsMfa', $authValues['membershipsMfa'] ?? false);
+        $document->setAttribute('authMembershipsUserId', $authValues['membershipsUserId'] ?? false);
+        $document->setAttribute('authMembershipsUserPhone', $authValues['membershipsUserPhone'] ?? false);
         $document->setAttribute('authInvalidateSessions', $authValues['invalidateSessions'] ?? false);
 
         foreach ($auth as $method) {

@@ -50,7 +50,7 @@ class Update extends Action
                     )
                 ],
             ))
-            ->param('total', null, new Nullable(new Range(1, APP_LIMIT_COUNT), 'Set the maximum number of users allowed in the project. Value can be between 1 and ' . APP_LIMIT_COUNT . ', or null to disable the limit.'))
+            ->param('total', null, new Nullable(new Range(1, APP_LIMIT_COUNT)), 'Set the maximum number of users allowed in the project. Value can be between 1 and ' . APP_LIMIT_COUNT . ', or null to disable the limit.')
             ->inject('response')
             ->inject('dbForPlatform')
             ->inject('project')
@@ -59,7 +59,7 @@ class Update extends Action
     }
 
     public function action(
-        int $total,
+        ?int $total,
         Response $response,
         Database $dbForPlatform,
         Document $project,
