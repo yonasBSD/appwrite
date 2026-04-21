@@ -692,9 +692,7 @@ jobs:
 
       - name: Installing latest version
         run: |
-          rm docker-compose.yml
           rm .env
-          curl https://appwrite.io/install/compose -o docker-compose.yml
           curl https://appwrite.io/install/env -o .env
           sed -i 's/_APP_OPTIONS_ABUSE=enabled/_APP_OPTIONS_ABUSE=disabled/g' .env
           docker compose up -d

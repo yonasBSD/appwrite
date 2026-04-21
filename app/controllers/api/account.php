@@ -3274,7 +3274,7 @@ Http::patch('/v1/account/password')
             }
 
             $history[] = $newPassword;
-            $history = array_slice($history, (count($history) - $historyLimit), $historyLimit);
+            $history = array_slice($history, -$historyLimit);
         }
 
         if ($project->getAttribute('auths', [])['personalDataCheck'] ?? false) {

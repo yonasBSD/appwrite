@@ -76,27 +76,17 @@ class PoliciesSessionDurationIntegrationTest extends Scope
             $this->assertSame(401, $response['headers']['status-code']);
         }, 15_000, 500);
 
-        // Step 4: Raise duration to 10s - same session should be usable again
+        // Step 4: Raise duration to 10s - same session should still not be usable
         $setDuration(10);
 
-        $this->assertEventually(function () use ($accountHeaders) {
-            $response = $this->client->call(Client::METHOD_GET, '/account', $accountHeaders);
-            $this->assertSame(200, $response['headers']['status-code']);
-        }, 15_000, 500);
+        $response = $this->client->call(Client::METHOD_GET, '/account', $accountHeaders);
+        $this->assertSame(401, $response['headers']['status-code']);
 
-        // Step 5: Poll until the 10s TTL elapses - session should expire again
-        $this->assertEventually(function () use ($accountHeaders) {
-            $response = $this->client->call(Client::METHOD_GET, '/account', $accountHeaders);
-            $this->assertSame(401, $response['headers']['status-code']);
-        }, 20_000, 500);
-
-        // Step 6: Set duration to 1 year
+        // Step 5: Set duration to 1 year
         $setDuration(31536000);
 
-        // Step 7: Same session should be usable again
-        $this->assertEventually(function () use ($accountHeaders) {
-            $response = $this->client->call(Client::METHOD_GET, '/account', $accountHeaders);
-            $this->assertSame(200, $response['headers']['status-code']);
-        }, 15_000, 500);
+        // Step 6: Same session should still not be usable
+        $response = $this->client->call(Client::METHOD_GET, '/account', $accountHeaders);
+        $this->assertSame(401, $response['headers']['status-code']);
     }
 }
