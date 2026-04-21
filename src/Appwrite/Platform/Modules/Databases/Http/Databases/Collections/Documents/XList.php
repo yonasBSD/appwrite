@@ -128,15 +128,7 @@ class XList extends Action
             $cursor->setValue($cursorDocument);
         }
 
-        $dbDurationMs = 0.0;
-        $measure = function (callable $fn) use (&$dbDurationMs) {
-            $start = \microtime(true);
-            try {
-                return $fn();
-            } finally {
-                $dbDurationMs += (\microtime(true) - $start) * 1000;
-            }
-        };
+        $dbStart = \microtime(true);
 
         try {
             $hasSelects = ! empty(Query::groupByType($queries)['selections'] ?? []);
@@ -144,13 +136,13 @@ class XList extends Action
             // When there are no select queries, relationship loading is skipped on the
             // underlying find() to avoid pulling related documents the caller did not ask for.
             $find = $hasSelects
-                ? fn () => $measure(fn () => $dbForDatabases->find($collectionTableId, $queries))
-                : fn () => $measure(fn () => $dbForDatabases->skipRelationships(fn () => $dbForDatabases->find($collectionTableId, $queries)));
+                ? fn () => $dbForDatabases->find($collectionTableId, $queries)
+                : fn () => $dbForDatabases->skipRelationships(fn () => $dbForDatabases->find($collectionTableId, $queries));
 
             // Use transaction-aware document retrieval if transactionId is provided
             if ($transactionId !== null) {
-                $documents = $measure(fn () => $transactionState->listDocuments($database, $collectionTableId, $transactionId, $queries));
-                $total = $includeTotal ? $measure(fn () => $transactionState->countDocuments($database, $collectionTableId, $transactionId, $queries)) : 0;
+                $documents = $transactionState->listDocuments($database, $collectionTableId, $transactionId, $queries);
+                $total = $includeTotal ? $transactionState->countDocuments($database, $collectionTableId, $transactionId, $queries) : 0;
             } elseif ((int)$ttl > 0) {
                 $cacheKey = $this->getListCacheKey($dbForProject, $collectionId);
                 $roles = $dbForProject->getAuthorization()->getRoles();
@@ -192,7 +184,7 @@ class XList extends Action
                     if ($cachedTotal !== null && $cachedTotal !== false) {
                         $total = $cachedTotal;
                     } else {
-                        $total = $measure(fn () => $dbForDatabases->count($collectionTableId, $queries, APP_LIMIT_COUNT));
+                        $total = $dbForDatabases->count($collectionTableId, $queries, APP_LIMIT_COUNT);
                         try {
                             $dbForProject->getCache()->save($cacheKey, $total, $totalField);
                         } catch (\Throwable) {
@@ -205,7 +197,7 @@ class XList extends Action
                 $response->addHeader('X-Appwrite-Cache', $documentsCacheHit ? 'hit' : 'miss');
             } else {
                 $documents = $find();
-                $total = $includeTotal ? $measure(fn () => $dbForDatabases->count($collectionTableId, $queries, APP_LIMIT_COUNT)) : 0;
+                $total = $includeTotal ? $dbForDatabases->count($collectionTableId, $queries, APP_LIMIT_COUNT) : 0;
             }
         } catch (OrderException $e) {
             $documents = $this->isCollectionsAPI() ? 'documents' : 'rows';
@@ -217,6 +209,8 @@ class XList extends Action
         } catch (Timeout) {
             throw new Exception(Exception::DATABASE_TIMEOUT);
         }
+
+        $dbDurationMs = (\microtime(true) - $dbStart) * 1000;
 
         $operations = 0;
         $collectionsCache = [];
