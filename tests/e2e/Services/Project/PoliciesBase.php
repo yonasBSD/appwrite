@@ -306,7 +306,7 @@ trait PoliciesBase
 
     public function testUpdateSessionDurationPolicyMin(): void
     {
-        $response = $this->updateSessionDurationPolicy(60);
+        $response = $this->updateSessionDurationPolicy(1);
 
         $this->assertSame(200, $response['headers']['status-code']);
         $this->assertSame(60, $response['body']['authDuration']);
@@ -325,7 +325,7 @@ trait PoliciesBase
 
     public function testUpdateSessionDurationPolicyBelowMin(): void
     {
-        $response = $this->updateSessionDurationPolicy(59);
+        $response = $this->updateSessionDurationPolicy(0);
 
         $this->assertSame(400, $response['headers']['status-code']);
     }
