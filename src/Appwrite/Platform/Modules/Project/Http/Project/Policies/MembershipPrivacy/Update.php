@@ -95,7 +95,6 @@ class Update extends Action
         ]);
 
         $project = $authorization->skip(fn () => $dbForPlatform->updateDocument('projects', $project->getId(), $updates));
-
         $response->dynamic($project, Response::MODEL_PROJECT);
     }
 }

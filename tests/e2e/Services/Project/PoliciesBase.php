@@ -306,10 +306,10 @@ trait PoliciesBase
 
     public function testUpdateSessionDurationPolicyMin(): void
     {
-        $response = $this->updateSessionDurationPolicy(1);
+        $response = $this->updateSessionDurationPolicy(5);
 
         $this->assertSame(200, $response['headers']['status-code']);
-        $this->assertSame(60, $response['body']['authDuration']);
+        $this->assertSame(5, $response['body']['authDuration']);
 
         // Cleanup
         $this->updateSessionDurationPolicy(31536000);
@@ -325,7 +325,7 @@ trait PoliciesBase
 
     public function testUpdateSessionDurationPolicyBelowMin(): void
     {
-        $response = $this->updateSessionDurationPolicy(0);
+        $response = $this->updateSessionDurationPolicy(4);
 
         $this->assertSame(400, $response['headers']['status-code']);
     }
@@ -693,27 +693,110 @@ trait PoliciesBase
         ]);
     }
 
-    public function testUpdateMembershipPrivacyPolicyMissingParam(): void
+    public function testUpdateMembershipPrivacyPolicyIndividualFields(): void
     {
-        // Missing userMFA
-        $response = $this->client->call(Client::METHOD_PATCH, '/project/policies/membership-privacy', $this->buildHeaders(), [
+        // Start from a known baseline where every field is enabled
+        $this->updateMembershipPrivacyPolicy([
             'userId' => true,
             'userEmail' => true,
             'userPhone' => true,
             'userName' => true,
+            'userMFA' => true,
         ]);
 
-        $this->assertSame(400, $response['headers']['status-code']);
+        $fields = [
+            'userId' => 'authMembershipsUserId',
+            'userEmail' => 'authMembershipsUserEmail',
+            'userPhone' => 'authMembershipsUserPhone',
+            'userName' => 'authMembershipsUserName',
+            'userMFA' => 'authMembershipsMfa',
+        ];
+
+        // Each field can be toggled individually without clobbering the others
+        foreach ($fields as $param => $attribute) {
+            $response = $this->updateMembershipPrivacyPolicy([$param => false]);
+            $this->assertSame(200, $response['headers']['status-code']);
+            $this->assertSame(false, $response['body'][$attribute]);
+
+            foreach ($fields as $otherParam => $otherAttribute) {
+                if ($otherParam === $param) {
+                    continue;
+                }
+                $this->assertSame(true, $response['body'][$otherAttribute], $otherAttribute . ' should be untouched while only ' . $param . ' was updated');
+            }
+
+            // Restore the field before the next iteration
+            $restore = $this->updateMembershipPrivacyPolicy([$param => true]);
+            $this->assertSame(200, $restore['headers']['status-code']);
+            $this->assertSame(true, $restore['body'][$attribute]);
+        }
+    }
+
+    public function testUpdateMembershipPrivacyPolicyMultipleFields(): void
+    {
+        $this->updateMembershipPrivacyPolicy([
+            'userId' => true,
+            'userEmail' => true,
+            'userPhone' => true,
+            'userName' => true,
+            'userMFA' => true,
+        ]);
+
+        $response = $this->updateMembershipPrivacyPolicy([
+            'userId' => false,
+            'userPhone' => false,
+        ]);
+
+        $this->assertSame(200, $response['headers']['status-code']);
+        $this->assertSame(false, $response['body']['authMembershipsUserId']);
+        $this->assertSame(false, $response['body']['authMembershipsUserPhone']);
+        $this->assertSame(true, $response['body']['authMembershipsUserEmail']);
+        $this->assertSame(true, $response['body']['authMembershipsUserName']);
+        $this->assertSame(true, $response['body']['authMembershipsMfa']);
+
+        // Cleanup
+        $this->updateMembershipPrivacyPolicy([
+            'userId' => true,
+            'userEmail' => true,
+            'userPhone' => true,
+            'userName' => true,
+            'userMFA' => true,
+        ]);
+    }
+
+    public function testUpdateMembershipPrivacyPolicyEmptyBody(): void
+    {
+        // PATCH with no fields should be a no-op, leaving state unchanged
+        $this->updateMembershipPrivacyPolicy([
+            'userId' => false,
+            'userEmail' => false,
+            'userPhone' => false,
+            'userName' => false,
+            'userMFA' => false,
+        ]);
+
+        $response = $this->updateMembershipPrivacyPolicy([]);
+        $this->assertSame(200, $response['headers']['status-code']);
+        $this->assertSame(false, $response['body']['authMembershipsUserId']);
+        $this->assertSame(false, $response['body']['authMembershipsUserEmail']);
+        $this->assertSame(false, $response['body']['authMembershipsUserPhone']);
+        $this->assertSame(false, $response['body']['authMembershipsUserName']);
+        $this->assertSame(false, $response['body']['authMembershipsMfa']);
+
+        // Cleanup
+        $this->updateMembershipPrivacyPolicy([
+            'userId' => true,
+            'userEmail' => true,
+            'userPhone' => true,
+            'userName' => true,
+            'userMFA' => true,
+        ]);
     }
 
     public function testUpdateMembershipPrivacyPolicyInvalidType(): void
     {
         $response = $this->client->call(Client::METHOD_PATCH, '/project/policies/membership-privacy', $this->buildHeaders(), [
             'userId' => 'not-a-boolean',
-            'userEmail' => true,
-            'userPhone' => true,
-            'userName' => true,
-            'userMFA' => true,
         ]);
 
         $this->assertSame(400, $response['headers']['status-code']);

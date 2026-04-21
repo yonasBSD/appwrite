@@ -171,6 +171,8 @@ class XList extends Action
 
             if ($membershipsPrivacy['userId']) {
                 $membership->setAttribute('userId', $memberUser->getId());
+            } else {
+                $membership->removeAttribute('userId');
             }
 
             if ($membershipsPrivacy['userPhone']) {
