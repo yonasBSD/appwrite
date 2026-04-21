@@ -804,7 +804,6 @@ $server->onOpen(function (int $connection, SwooleRequest $request) use ($server,
             ]);
 
             $realtime->subscribe($project->getId(), $connection, '', $roles, [], [], $user->getId());
-            $register->get('telemetry.workerSubscriptionCounter')->add(1, $register->get('telemetry.workerAttributes'));
             $realtime->connections[$connection]['authorization'] = $authorization;
             $server->send([$connection], $connectedPayloadJson);
             $updateStats($project->getId(), $project->getAttribute('teamId'), $connectedPayloadJson);
