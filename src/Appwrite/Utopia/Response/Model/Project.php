@@ -181,6 +181,18 @@ class Project extends Model
                 'default' => false,
                 'example' => true,
             ])
+            ->addRule('authMembershipsUserId', [
+                'type' => self::TYPE_BOOLEAN,
+                'description' => 'Whether or not to show user IDs in the teams membership response.',
+                'default' => false,
+                'example' => true,
+            ])
+            ->addRule('authMembershipsUserPhone', [
+                'type' => self::TYPE_BOOLEAN,
+                'description' => 'Whether or not to show user phone numbers in the teams membership response.',
+                'default' => false,
+                'example' => true,
+            ])
             ->addRule('authInvalidateSessions', [
                 'type' => self::TYPE_BOOLEAN,
                 'description' => 'Whether or not all existing sessions should be invalidated on password change',
@@ -475,6 +487,8 @@ class Project extends Model
         $document->setAttribute('authMembershipsUserName', $authValues['membershipsUserName'] ?? true);
         $document->setAttribute('authMembershipsUserEmail', $authValues['membershipsUserEmail'] ?? true);
         $document->setAttribute('authMembershipsMfa', $authValues['membershipsMfa'] ?? true);
+        $document->setAttribute('authMembershipsUserId', $authValues['membershipsUserId'] ?? true);
+        $document->setAttribute('authMembershipsUserPhone', $authValues['membershipsUserPhone'] ?? true);
         $document->setAttribute('authInvalidateSessions', $authValues['invalidateSessions'] ?? false);
 
         foreach ($auth as $method) {

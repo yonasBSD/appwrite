@@ -1,6 +1,6 @@
 <?php
 
-namespace Appwrite\Platform\Modules\Project\Http\Project\Policies\PasswordPersonalData;
+namespace Appwrite\Platform\Modules\Project\Http\Project\Policies\SessionAlert;
 
 use Appwrite\Platform\Action;
 use Appwrite\SDK\AuthType;
@@ -19,27 +19,27 @@ class Update extends Action
 
     public static function getName()
     {
-        return 'updateProjectPasswordPersonalDataPolicy';
+        return 'updateProjectSessionAlertPolicy';
     }
 
     public function __construct()
     {
         $this
             ->setHttpMethod(Action::HTTP_REQUEST_METHOD_PATCH)
-            ->setHttpPath('/v1/project/policies/password-personal-data')
-            ->httpAlias('/v1/projects/:projectId/auth/personal-data')
-            ->desc('Update password personal data policy')
+            ->setHttpPath('/v1/project/policies/session-alert')
+            ->httpAlias('/v1/projects/:projectId/auth/session-alerts')
+            ->desc('Update session alert policy')
             ->groups(['api', 'project'])
             ->label('scope', 'policies.write')
-            ->label('event', 'policies.password-personal-data.update')
-            ->label('audits.event', 'policies.password-personal-data.update')
+            ->label('event', 'policies.session-alert.update')
+            ->label('audits.event', 'policies.session-alert.update')
             ->label('audits.resource', 'project/{response.$id}')
             ->label('sdk', new Method(
                 namespace: 'project',
                 group: 'policies',
-                name: 'updatePasswordPersonalDataPolicy',
+                name: 'updateSessionAlertPolicy',
                 description: <<<EOT
-                Updating this policy allows you to control if password strength is checked against personal data. When enabled, and user sets or changes their password, the password must not contain user ID, name, email or phone number.
+                Updating this policy allows you to control if email alert is sent upon session creation. When enabled, and user signs into their account, they will be sent an email notification. There is an exception, the first session after a new sign up does not trigger an alert, even if the policy is enabled.
                 EOT,
                 auth: [AuthType::ADMIN, AuthType::KEY],
                 responses: [
@@ -49,8 +49,7 @@ class Update extends Action
                     )
                 ],
             ))
-            // TODO: Split into more toggles, simiplar to membership privacy policy
-            ->param('enabled', null, new Boolean(), 'Toggle password personal data policy. Set to true if you want to block passwords including user\'s personal data, or false to allow it. When changing this policy, existing passwords remain valid.')
+            ->param('enabled', null, new Boolean(), 'Toggle session alert policy. Set to true if you want users to receive email notifications when a sessions are created for their users, or false to not send email alerts.')
             ->inject('response')
             ->inject('dbForPlatform')
             ->inject('project')
@@ -66,7 +65,7 @@ class Update extends Action
         Authorization $authorization,
     ): void {
         $auths = $project->getAttribute('auths', []);
-        $auths['personalDataCheck'] = $enabled;
+        $auths['sessionAlerts'] = $enabled;
 
         $updates = new Document([
             'auths' => $auths,

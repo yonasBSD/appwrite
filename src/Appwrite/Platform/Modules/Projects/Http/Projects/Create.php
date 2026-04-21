@@ -120,6 +120,8 @@ class Create extends Action
             'membershipsUserName' => false,
             'membershipsUserEmail' => false,
             'membershipsMfa' => false,
+            'membershipsUserId' => false,
+            'membershipsUserPhone' => false,
             'invalidateSessions' => true
         ];
 
