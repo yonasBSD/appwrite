@@ -1126,9 +1126,6 @@ $server->onMessage(function (int $connection, string $message) use ($server, $re
                     $queries = $parsedPayload['queries'];
                     $realtime->subscribe($projectId, $connection, $subscriptionId, $roles, $channels, $queries);
                 }
-
-                // subscribe() overwrites the connection entry; restore auth so later onMessage uses the same context.
-                $realtime->connections[$connection]['authorization'] = $authorization;
                 $subscriptionsAfter = \count($realtime->getSubscriptionMetadata($connection));
                 $subscriptionDelta = $subscriptionsAfter - $subscriptionsBefore;
                 if ($subscriptionDelta !== 0) {
@@ -1158,6 +1155,58 @@ $server->onMessage(function (int $connection, string $message) use ($server, $re
                     if ($subscribeOutboundBytes > 0) {
                         triggerStats([
                             METRIC_REALTIME_OUTBOUND => $subscribeOutboundBytes,
+                        ], $project->getId());
+                    }
+                }
+
+                break;
+
+            case 'unsubscribe':
+                if (!\is_array($message['data']) || !\array_is_list($message['data'])) {
+                    throw new Exception(Exception::REALTIME_MESSAGE_FORMAT_INVALID, 'Payload is not valid.');
+                }
+
+                // Validate every payload before executing any removal so an invalid entry
+                // later in the batch does not leave earlier entries half-applied on the server.
+                $validatedIds = [];
+                foreach ($message['data'] as $payload) {
+                    if (
+                        !\is_array($payload)
+                        || !\array_key_exists('subscriptionId', $payload)
+                        || !\is_string($payload['subscriptionId'])
+                        || $payload['subscriptionId'] === ''
+                    ) {
+                        throw new Exception(Exception::REALTIME_MESSAGE_FORMAT_INVALID, 'Each unsubscribe payload must include a non-empty subscriptionId.');
+                    }
+                    $validatedIds[] = $payload['subscriptionId'];
+                }
+
+                $unsubscribeResults = [];
+                foreach ($validatedIds as $subscriptionId) {
+                    $wasRemoved = $realtime->unsubscribeSubscription($connection, $subscriptionId);
+                    $unsubscribeResults[] = [
+                        'subscriptionId' => $subscriptionId,
+                        'removed' => $wasRemoved,
+                    ];
+                }
+
+                $unsubscribeResponsePayload = json_encode([
+                    'type' => 'response',
+                    'data' => [
+                        'to' => 'unsubscribe',
+                        'success' => true,
+                        'subscriptions' => $unsubscribeResults,
+                    ],
+                ]);
+
+                $server->send([$connection], $unsubscribeResponsePayload);
+
+                if ($project !== null && !$project->isEmpty()) {
+                    $unsubscribeOutboundBytes = \strlen($unsubscribeResponsePayload);
+
+                    if ($unsubscribeOutboundBytes > 0) {
+                        triggerStats([
+                            METRIC_REALTIME_OUTBOUND => $unsubscribeOutboundBytes,
                         ], $project->getId());
                     }
                 }
