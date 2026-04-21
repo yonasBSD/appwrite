@@ -52,7 +52,7 @@ class V23 extends Filter
     protected function parseLimitToTotal(array $content): array
     {
         if (isset($content['limit'])) {
-            $content['total'] = $content['limit'];
+            $content['total'] = $content['limit'] === 0 ? null : $content['limit'];
             unset($content['limit']);
         }
 
