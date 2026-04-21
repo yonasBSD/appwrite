@@ -658,6 +658,10 @@ final class HttpBenchmark
 
     private function storageFlow(array $context): void
     {
+        if (!isset($context['sessionHeaders']) || !is_array($context['sessionHeaders'])) {
+            throw new RuntimeException('accountFlow must run before storageFlow');
+        }
+
         $bucketId = $this->unique('bucket');
         $fileId = $this->unique('file');
 
@@ -720,6 +724,13 @@ final class HttpBenchmark
 
     private function messagingFlow(array $context): void
     {
+        if (
+            !isset($context['sessionHeaders']) || !is_array($context['sessionHeaders'])
+            || !isset($context['userId'], $context['userEmail'])
+        ) {
+            throw new RuntimeException('accountFlow must run before messagingFlow');
+        }
+
         $providerId = $this->unique('smtp');
         $targetId = $this->unique('target');
         $existingTarget = false;
@@ -806,6 +817,10 @@ final class HttpBenchmark
 
     private function computeFlow(array $context): void
     {
+        if (!isset($context['sessionHeaders']) || !is_array($context['sessionHeaders'])) {
+            throw new RuntimeException('accountFlow must run before computeFlow');
+        }
+
         $functionId = $this->unique('fn');
         $siteId = $this->unique('site');
         $runtime = $this->env('APPWRITE_BENCHMARK_RUNTIME', 'node-22');
