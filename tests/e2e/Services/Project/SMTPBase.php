@@ -531,17 +531,36 @@ trait SMTPBase
         $this->updateSMTP(enabled: false);
     }
 
-    public function testUpdateSMTPInvalidConnectionRefused(): void
+    public function testUpdateSMTPInvalidConnectionEnabled(): void
     {
         $response = $this->updateSMTP(
             senderName: 'Test',
             senderEmail: 'sender@example.com',
             host: 'localhost',
             port: 12345,
+            enabled: true,
         );
 
         $this->assertSame(400, $response['headers']['status-code']);
         $this->assertSame('project_smtp_config_invalid', $response['body']['type']);
+    }
+
+    public function testUpdateSMTPInvalidConnectionDisabled(): void
+    {
+        $response = $this->updateSMTP(
+            senderName: 'Test',
+            senderEmail: 'sender@example.com',
+            host: 'localhost',
+            port: 12345,
+            enabled: false,
+        );
+
+        $this->assertSame(200, $response['headers']['status-code']);
+        $this->assertSame(false, $response['body']['smtpEnabled']);
+        $this->assertSame('Test', $response['body']['smtpSenderName']);
+        $this->assertSame('sender@example.com', $response['body']['smtpSenderEmail']);
+        $this->assertSame('localhost', $response['body']['smtpHost']);
+        $this->assertSame(12345, $response['body']['smtpPort']);
     }
 
     public function testUpdateSMTPLegacyReplyToAndResponseFormat(): void
