@@ -302,12 +302,22 @@ final class HttpBenchmark
             fwrite(STDERR, $error->getMessage() . PHP_EOL);
         } finally {
             if (is_array($context)) {
-                $this->teardown($context);
+                try {
+                    $this->teardown($context);
+                } catch (Throwable $error) {
+                    $exitCode = 1;
+                    fwrite(STDERR, 'Teardown failed: ' . $error->getMessage() . PHP_EOL);
+                }
             }
 
             $summary = $this->metrics->summary();
-            $this->writeSummary($summary);
             echo $this->renderSummary($summary);
+            try {
+                $this->writeSummary($summary);
+            } catch (Throwable $error) {
+                $exitCode = 1;
+                fwrite(STDERR, $error->getMessage() . PHP_EOL);
+            }
         }
 
         if ($this->metrics->failedChecks() > 0 || $this->metrics->flowFailures() > 0) {
@@ -586,6 +596,10 @@ final class HttpBenchmark
 
     private function tablesDbFlow(array $context): void
     {
+        if (!isset($context['sessionHeaders']) || !is_array($context['sessionHeaders'])) {
+            throw new RuntimeException('accountFlow must run before tablesDbFlow');
+        }
+
         $databaseId = $this->unique('tdb');
         $tableId = $this->unique('tbl');
         $rowId = $this->unique('row');

@@ -750,9 +750,26 @@ jobs:
         run: docker compose down -v
 
       - name: Prepare comment
+        env:
+          BENCHMARK_BASE_REF: ${{ github.event.pull_request.base.ref }}
+          BENCHMARK_HEAD_REF: ${{ github.event.pull_request.head.ref }}
         run: |
-          docker run --rm -i -v "$PWD:/scripts" -w /scripts ${{ env.IMAGE }}:after php <<'PHP' > benchmark-comment.txt
+          docker run --rm -i -v "$PWD:/scripts" -w /scripts \
+            -e BENCHMARK_BASE_REF \
+            -e BENCHMARK_HEAD_REF \
+            ${{ env.IMAGE }}:after php <<'PHP' > benchmark-comment.txt
           <?php
+
+          function env_value(string $name, string $default): string
+          {
+              $value = getenv($name);
+              return $value === false || $value === '' ? $default : $value;
+          }
+
+          function markdown_text(string $value): string
+          {
+              return htmlspecialchars(str_replace(["\r", "\n"], ' ', $value), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+          }
 
           function fail_summary(string $message, bool $required): void
           {
@@ -786,6 +803,8 @@ jobs:
 
           $before = read_summary('benchmark-before-summary.json', false);
           $after = read_summary('benchmark-after-summary.json');
+          $baseRef = markdown_text(env_value('BENCHMARK_BASE_REF', 'base'));
+          $headRef = markdown_text(env_value('BENCHMARK_HEAD_REF', 'head'));
 
           function metric_value(?array $data, string $metric, string $stat): mixed
           {
@@ -844,7 +863,7 @@ jobs:
 
           echo "<!-- appwrite-benchmark-results -->\n";
           echo "## :sparkles: Benchmark results\n\n";
-          echo 'Comparing `${{ github.event.pull_request.base.ref }}` (before) to `${{ github.event.pull_request.head.ref }}` (after).' . "\n\n";
+          echo "Comparing {$baseRef} (before) to {$headRef} (after).\n\n";
           if ($before === null) {
               echo "> Before benchmark did not complete; showing current branch metrics only.\n\n";
           }
