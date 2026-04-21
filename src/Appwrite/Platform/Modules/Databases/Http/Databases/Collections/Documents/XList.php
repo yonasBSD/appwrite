@@ -244,23 +244,11 @@ class XList extends Action
     }
 
     /**
-     * Hook invoked after listDocuments/listRows completes the response.
-     * Under Swoole the client connection is already closed by $response->dynamic(),
-     * so observers here do not delay the client; under synchronous transports
-     * they run before bytes reach the client — keep work cheap regardless.
+     * Override to observe list DB duration. No-op in CE.
      *
-     * Runs with the actual measured database duration (cache hits report
-     * near-zero, cache misses report only the DB portion). Intended for
-     * downstream distributions to override for slow-query logging or other
-     * observability. CE implementation is a no-op.
-     *
-     * The $utopia Http instance is passed so overrides can resolve additional
-     * resources via $utopia->getResource(...) without touching the inject chain.
-     *
-     * @param array<Query> $queries parsed Query objects
+     * @param array<Query> $queries
      */
     protected function afterQuery(float $dbDurationMs, Document $database, Document $collection, array $queries, ?Http $utopia): void
     {
-        // no-op in CE
     }
 }
