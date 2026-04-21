@@ -657,6 +657,7 @@ jobs:
     permissions:
       actions: read
       contents: read
+      issues: write
       pull-requests: write
     steps:
       - name: Checkout repository
@@ -772,29 +773,32 @@ jobs:
           const detail = (label, metric, suffix = 'ms') => {
             const values = after.metrics?.[metric]?.values;
             if (!values) {
-              return `${label}: no samples`;
+              return `- **${label}:** no samples`;
             }
 
-            return `${label}: avg=${format(values.avg, suffix)} p90=${format(values['p(90)'], suffix)} p95=${format(values['p(95)'], suffix)} max=${format(values.max, suffix)}`;
+            return `- **${label}:** avg=${format(values.avg, suffix)} p90=${format(values['p(90)'], suffix)} p95=${format(values['p(95)'], suffix)} max=${format(values.max, suffix)}`;
           };
 
+          console.log('<!-- appwrite-benchmark-results -->');
           console.log('## :sparkles: Benchmark results');
           console.log();
-          console.log('Appwrite curated benchmark review');
-          console.log('Before/after comparison');
+          console.log(`Comparing \`${{ github.event.pull_request.base.ref }}\` (before) to \`${{ github.event.pull_request.head.ref }}\` (after).`);
+          console.log();
           console.log('| Metric | Before | After | Delta |');
           console.log('| --- | ---: | ---: | ---: |');
           console.log(rows.join('\n'));
-          console.log('Current run details');
+          console.log();
+          console.log('<details>');
+          console.log('<summary>Current run details</summary>');
+          console.log();
           console.log(detail('HTTP total', 'http_req_duration'));
           console.log(detail('API endpoints', 'appwrite_api_duration'));
           console.log(detail('Database worker schema jobs', 'appwrite_worker_database_duration'));
           console.log(detail('TablesDB worker schema jobs', 'appwrite_worker_tables_duration'));
           console.log(detail('Mail worker delivery', 'appwrite_worker_mails_duration'));
           console.log(detail('Messaging worker delivery', 'appwrite_worker_messaging_duration'));
-          console.log(`Flow failures: ${format(counter(after, 'appwrite_benchmark_flow_failures'))}`);
-          console.log('Endpoint: http://localhost/v1');
-          console.log('Maildev API: http://localhost:9503/email');
+          console.log();
+          console.log('</details>');
           NODE
 
       - name: Save results
@@ -816,13 +820,22 @@ jobs:
         with:
           issue-number: ${{ github.event.pull_request.number }}
           comment-author: 'github-actions[bot]'
+          body-includes: appwrite-benchmark-results
+
+      - name: Find Legacy Comment
+        if: github.event.pull_request.head.repo.full_name == github.repository && steps.fc.outputs.comment-id == ''
+        uses: peter-evans/find-comment@v3
+        id: legacy_fc
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          comment-author: 'github-actions[bot]'
           body-includes: Benchmark results
 
       - name: Comment on PR
         if: github.event.pull_request.head.repo.full_name == github.repository
         uses: peter-evans/create-or-update-comment@v4
         with:
-          comment-id: ${{ steps.fc.outputs.comment-id }}
+          comment-id: ${{ steps.fc.outputs.comment-id || steps.legacy_fc.outputs.comment-id }}
           issue-number: ${{ github.event.pull_request.number }}
           body-path: benchmark-comment.txt
           edit-mode: replace
