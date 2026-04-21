@@ -683,10 +683,13 @@ jobs:
           docker tag ${{ env.IMAGE }} ${{ env.IMAGE }}:after
 
       - name: Prepare benchmark before
+        id: benchmark_before_prepare
+        continue-on-error: true
         run: |
           git fetch --depth=1 origin ${{ github.event.pull_request.base.sha }}
           git worktree add --detach /tmp/appwrite-benchmark-before ${{ github.event.pull_request.base.sha }}
           docker build \
+            --cache-from ${{ env.IMAGE }}:after \
             --target development \
             --build-arg DEBUG=false \
             --build-arg TESTING=true \
@@ -695,6 +698,9 @@ jobs:
             /tmp/appwrite-benchmark-before
 
       - name: Start before Appwrite
+        id: benchmark_before_start
+        if: steps.benchmark_before_prepare.outcome == 'success'
+        continue-on-error: true
         working-directory: /tmp/appwrite-benchmark-before
         run: |
           docker tag ${{ env.IMAGE }}:before ${{ env.IMAGE }}
@@ -702,13 +708,15 @@ jobs:
           docker compose up -d --wait --no-build
 
       - name: Benchmark before
+        if: steps.benchmark_before_start.outcome == 'success'
+        continue-on-error: true
         run: |
           rm -f benchmark-before-summary.json benchmark-after-summary.json benchmark-before.txt benchmark.txt
           docker run --rm -i --network host --user "$(id -u):$(id -g)" -v "$PWD:/scripts" -w /scripts \
             -e APPWRITE_ENDPOINT=http://localhost/v1 \
             -e APPWRITE_MAILDEV_ENDPOINT=http://localhost:9503/email \
             -e APPWRITE_BENCHMARK_ITERATIONS=1 \
-            -e APPWRITE_BENCHMARK_VUS=1 \
+            -e APPWRITE_BENCHMARK_RUNS=1 \
             -e APPWRITE_BENCHMARK_SUMMARY_PATH=benchmark-before-summary.json \
             ${{ env.IMAGE }}:before php tests/benchmarks/http.php | tee benchmark-before.txt
 
@@ -717,7 +725,7 @@ jobs:
         run: |
           if [ -d /tmp/appwrite-benchmark-before ]; then
             cd /tmp/appwrite-benchmark-before
-            docker compose down -v
+            docker compose down -v || true
           fi
 
       - name: Start after Appwrite
@@ -732,7 +740,7 @@ jobs:
             -e APPWRITE_ENDPOINT=http://localhost/v1 \
             -e APPWRITE_MAILDEV_ENDPOINT=http://localhost:9503/email \
             -e APPWRITE_BENCHMARK_ITERATIONS=1 \
-            -e APPWRITE_BENCHMARK_VUS=1 \
+            -e APPWRITE_BENCHMARK_RUNS=1 \
             -e APPWRITE_BENCHMARK_PREVIOUS_SUMMARY_PATH=benchmark-before-summary.json \
             -e APPWRITE_BENCHMARK_SUMMARY_PATH=benchmark-after-summary.json \
             ${{ env.IMAGE }}:after php tests/benchmarks/http.php | tee benchmark.txt
@@ -746,29 +754,37 @@ jobs:
           docker run --rm -i -v "$PWD:/scripts" -w /scripts ${{ env.IMAGE }}:after php <<'PHP' > benchmark-comment.txt
           <?php
 
-          function read_summary(string $path): array
+          function fail_summary(string $message, bool $required): void
+          {
+              fwrite(STDERR, $message . "\n");
+              if ($required) {
+                  exit(1);
+              }
+          }
+
+          function read_summary(string $path, bool $required = true): ?array
           {
               if (!is_file($path)) {
-                  fwrite(STDERR, "Missing benchmark summary: {$path}\n");
-                  exit(1);
+                  fail_summary("Missing benchmark summary: {$path}", $required);
+                  return null;
               }
 
               try {
                   $summary = json_decode(file_get_contents($path), true, 512, JSON_THROW_ON_ERROR);
               } catch (JsonException $error) {
-                  fwrite(STDERR, "Invalid benchmark summary {$path}: {$error->getMessage()}\n");
-                  exit(1);
+                  fail_summary("Invalid benchmark summary {$path}: {$error->getMessage()}", $required);
+                  return null;
               }
 
               if (!is_array($summary)) {
-                  fwrite(STDERR, "Invalid benchmark summary {$path}: expected JSON object\n");
-                  exit(1);
+                  fail_summary("Invalid benchmark summary {$path}: expected JSON object", $required);
+                  return null;
               }
 
               return $summary;
           }
 
-          $before = read_summary('benchmark-before-summary.json');
+          $before = read_summary('benchmark-before-summary.json', false);
           $after = read_summary('benchmark-after-summary.json');
 
           function metric_value(?array $data, string $metric, string $stat): mixed
@@ -829,6 +845,9 @@ jobs:
           echo "<!-- appwrite-benchmark-results -->\n";
           echo "## :sparkles: Benchmark results\n\n";
           echo 'Comparing `${{ github.event.pull_request.base.ref }}` (before) to `${{ github.event.pull_request.head.ref }}` (after).' . "\n\n";
+          if ($before === null) {
+              echo "> Before benchmark did not complete; showing current branch metrics only.\n\n";
+          }
           echo "| Metric | Before | After | Delta |\n";
           echo "| --- | ---: | ---: | ---: |\n";
           echo implode("\n", $rows) . "\n\n";

@@ -260,7 +260,7 @@ final class HttpBenchmark
     private int $mailTimeoutMs;
     private int $workerTimeoutMs;
     private int $iterations;
-    private int $vus;
+    private int $runs;
     private string $summaryPath;
     private ?array $previousSummary;
 
@@ -276,7 +276,7 @@ final class HttpBenchmark
         $this->mailTimeoutMs = (int) $this->env('APPWRITE_MAIL_TIMEOUT_MS', '20000');
         $this->workerTimeoutMs = (int) $this->env('APPWRITE_WORKER_TIMEOUT_MS', '60000');
         $this->iterations = max(1, (int) $this->env('APPWRITE_BENCHMARK_ITERATIONS', '1'));
-        $this->vus = max(1, (int) $this->env('APPWRITE_BENCHMARK_VUS', '1'));
+        $this->runs = max(1, (int) $this->env('APPWRITE_BENCHMARK_RUNS', $this->env('APPWRITE_BENCHMARK_VUS', '1')));
         $this->summaryPath = $this->env('APPWRITE_BENCHMARK_SUMMARY_PATH', 'tests/benchmarks/http-summary.json');
         $this->previousSummary = $this->loadPreviousSummary($this->env('APPWRITE_BENCHMARK_PREVIOUS_SUMMARY_PATH', $this->summaryPath));
     }
@@ -289,7 +289,7 @@ final class HttpBenchmark
         try {
             $context = $this->setup();
 
-            for ($i = 0; $i < $this->iterations * $this->vus; $i++) {
+            for ($i = 0; $i < $this->iterations * $this->runs; $i++) {
                 try {
                     $this->curatedFlows($context);
                 } catch (Throwable $error) {
