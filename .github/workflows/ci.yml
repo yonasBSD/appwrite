@@ -678,13 +678,14 @@ jobs:
 
       - name: Benchmark baseline
         run: |
-          rm -f tests/benchmarks/http-summary.json benchmark-before.txt benchmark.txt
+          rm -f tests/benchmarks/http-summary.json benchmark-before-summary.json benchmark-after-summary.json benchmark-before.txt benchmark.txt
           docker run --rm -i --network host -v "$PWD:/scripts" -w /scripts grafana/k6 run --quiet \
             -e APPWRITE_ENDPOINT=http://localhost/v1 \
             -e APPWRITE_MAILDEV_ENDPOINT=http://localhost:9503/email \
             -e APPWRITE_BENCHMARK_ITERATIONS=1 \
             -e APPWRITE_BENCHMARK_VUS=1 \
             tests/benchmarks/http.js | tee benchmark-before.txt
+          cp tests/benchmarks/http-summary.json benchmark-before-summary.json
 
       - name: Benchmark after
         run: |
@@ -694,14 +695,69 @@ jobs:
             -e APPWRITE_BENCHMARK_ITERATIONS=1 \
             -e APPWRITE_BENCHMARK_VUS=1 \
             tests/benchmarks/http.js | tee benchmark.txt
+          cp tests/benchmarks/http-summary.json benchmark-after-summary.json
 
       - name: Prepare comment
         run: |
-          {
-            echo '## :sparkles: Benchmark results'
-            echo
-            cat benchmark.txt
-          } > benchmark-comment.txt
+          node <<'NODE' > benchmark-comment.txt
+          const fs = require('fs');
+
+          const before = JSON.parse(fs.readFileSync('benchmark-before-summary.json', 'utf8'));
+          const after = JSON.parse(fs.readFileSync('benchmark-after-summary.json', 'utf8'));
+
+          const trend = (data, metric, stat) => data.metrics?.[metric]?.values?.[stat];
+          const value = (data, metric, stat) => data.metrics?.[metric]?.values?.[stat];
+          const counter = (data, metric) => value(data, metric, 'count');
+          const delta = (beforeValue, afterValue, suffix = '') => {
+            if (beforeValue === undefined || afterValue === undefined) {
+              return 'n/a';
+            }
+
+            const difference = afterValue - beforeValue;
+            return `${difference > 0 ? '+' : ''}${formatNumber(difference)}${suffix}`;
+          };
+          const format = (value, suffix = '') => value === undefined ? 'n/a' : `${formatNumber(value)}${suffix}`;
+          const formatNumber = (value) => Number.isInteger(value) ? String(value) : value.toFixed(2).replace(/\.?0+$/, '');
+          const row = (label, beforeValue, afterValue, suffix = '') => `| ${label} | ${format(beforeValue, suffix)} | ${format(afterValue, suffix)} | ${delta(beforeValue, afterValue, suffix)} |`;
+
+          const rows = [
+            row('HTTP total p95', trend(before, 'http_req_duration', 'p(95)'), trend(after, 'http_req_duration', 'p(95)'), 'ms'),
+            row('API endpoints p95', trend(before, 'appwrite_api_duration', 'p(95)'), trend(after, 'appwrite_api_duration', 'p(95)'), 'ms'),
+            row('Database worker p95', trend(before, 'appwrite_worker_database_duration', 'p(95)'), trend(after, 'appwrite_worker_database_duration', 'p(95)'), 'ms'),
+            row('TablesDB worker p95', trend(before, 'appwrite_worker_tables_duration', 'p(95)'), trend(after, 'appwrite_worker_tables_duration', 'p(95)'), 'ms'),
+            row('Mail worker p95', trend(before, 'appwrite_worker_mails_duration', 'p(95)'), trend(after, 'appwrite_worker_mails_duration', 'p(95)'), 'ms'),
+            row('Messaging worker p95', trend(before, 'appwrite_worker_messaging_duration', 'p(95)'), trend(after, 'appwrite_worker_messaging_duration', 'p(95)'), 'ms'),
+            row('Flow failures', counter(before, 'appwrite_benchmark_flow_failures'), counter(after, 'appwrite_benchmark_flow_failures')),
+            row('Check failures', value(before, 'checks', 'fails'), value(after, 'checks', 'fails')),
+          ];
+
+          const detail = (label, metric, suffix = 'ms') => {
+            const values = after.metrics?.[metric]?.values;
+            if (!values) {
+              return `${label}: no samples`;
+            }
+
+            return `${label}: avg=${format(values.avg, suffix)} p90=${format(values['p(90)'], suffix)} p95=${format(values['p(95)'], suffix)} max=${format(values.max, suffix)}`;
+          };
+
+          console.log('## :sparkles: Benchmark results');
+          console.log();
+          console.log('Appwrite curated benchmark review');
+          console.log('Before/after comparison');
+          console.log('| Metric | Before | After | Delta |');
+          console.log('| --- | ---: | ---: | ---: |');
+          console.log(rows.join('\n'));
+          console.log('Current run details');
+          console.log(detail('HTTP total', 'http_req_duration'));
+          console.log(detail('API endpoints', 'appwrite_api_duration'));
+          console.log(detail('Database worker schema jobs', 'appwrite_worker_database_duration'));
+          console.log(detail('TablesDB worker schema jobs', 'appwrite_worker_tables_duration'));
+          console.log(detail('Mail worker delivery', 'appwrite_worker_mails_duration'));
+          console.log(detail('Messaging worker delivery', 'appwrite_worker_messaging_duration'));
+          console.log(`Flow failures: ${format(counter(after, 'appwrite_benchmark_flow_failures'))}`);
+          console.log('Endpoint: http://localhost/v1');
+          console.log('Maildev API: http://localhost:9503/email');
+          NODE
 
       - name: Save results
         uses: actions/upload-artifact@v7
@@ -711,7 +767,8 @@ jobs:
           path: |
             benchmark-before.txt
             benchmark.txt
-            tests/benchmarks/http-summary.json
+            benchmark-before-summary.json
+            benchmark-after-summary.json
           retention-days: 7
 
       - name: Find Comment

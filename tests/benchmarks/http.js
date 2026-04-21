@@ -1,5 +1,6 @@
 import http from 'k6/http';
 import { check, group, sleep } from 'k6';
+import encoding from 'k6/encoding';
 import { Counter, Trend } from 'k6/metrics';
 
 const ENDPOINT = (__ENV.APPWRITE_ENDPOINT || 'http://localhost/v1').replace(/\/+$/, '');
@@ -221,6 +222,10 @@ export function curatedFlows(data) {
 }
 
 export function teardown(data) {
+    if (data && data.projectId && data.consoleSessionHeaders) {
+        rawRequest('DELETE', `/projects/${data.projectId}`, null, data.consoleSessionHeaders, 'teardown.projects.delete');
+    }
+
     if (data && data.teamId && data.consoleSessionHeaders) {
         rawRequest('DELETE', `/teams/${data.teamId}`, null, data.consoleSessionHeaders, 'teardown.teams.delete');
     }
@@ -706,7 +711,8 @@ function waitForStatus(path, headers, wantedStatus, timeoutMs) {
     const started = Date.now();
 
     while (Date.now() - started < timeoutMs) {
-        const response = api('GET', path, null, headers, [200], `wait${path}`);
+        const response = rawRequest('GET', path, null, headers, `wait${path}`);
+        assertStatus(response, [200], `wait${path}`);
         if (response.json('status') === wantedStatus) {
             return response;
         }
@@ -720,7 +726,8 @@ function waitForMessage(messageId, headers, timeoutMs) {
     const started = Date.now();
 
     while (Date.now() - started < timeoutMs) {
-        const response = api('GET', `/messaging/messages/${messageId}`, null, headers, [200], 'messaging.messages.poll');
+        const response = rawRequest('GET', `/messaging/messages/${messageId}`, null, headers, 'messaging.messages.poll');
+        assertStatus(response, [200], 'messaging.messages.poll');
         const status = response.json('status');
 
         if (['sent', 'failed'].includes(status)) {
@@ -851,28 +858,12 @@ function tablePayload() {
 }
 
 function onePixelPng() {
-    return base64ToBinary('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=');
-}
-
-function base64ToBinary(input) {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=';
+    const bytes = new Uint8Array(encoding.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII='));
     let output = '';
-    let buffer = 0;
-    let bits = 0;
 
-    for (let i = 0; i < input.length; i++) {
-        const value = chars.indexOf(input.charAt(i));
-        if (value < 0 || value === 64) {
-            continue;
-        }
-
-        buffer = (buffer << 6) | value;
-        bits += 6;
-
-        if (bits >= 8) {
-            bits -= 8;
-            output += String.fromCharCode((buffer >> bits) & 0xff);
-        }
+    // Appwrite's multipart upload path accepts this k6 fixture as a binary string.
+    for (let i = 0; i < bytes.length; i++) {
+        output += String.fromCharCode(bytes[i]);
     }
 
     return output;
@@ -932,11 +923,7 @@ export function handleSummary(data) {
 
 function loadPreviousSummary() {
     try {
-        if (SUMMARY_PATH === 'tests/benchmarks/http-summary.json') {
-            return JSON.parse(open('http-summary.json'));
-        }
-
-        return JSON.parse(open(SUMMARY_PATH));
+        return JSON.parse(open('http-summary.json'));
     } catch (error) {
         return null;
     }
