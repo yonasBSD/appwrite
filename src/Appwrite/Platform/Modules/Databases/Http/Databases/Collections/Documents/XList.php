@@ -244,7 +244,7 @@ class XList extends Action
     }
 
     /**
-     * Override to observe list DB duration. No-op in CE.
+     * After query hook.
      *
      * @param array<Query> $queries
      */
