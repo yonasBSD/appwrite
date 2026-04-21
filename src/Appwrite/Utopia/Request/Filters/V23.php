@@ -13,6 +13,14 @@ class V23 extends Filter
             case 'project.updateMembershipPrivacyPolicy':
                 $content = $this->parseUpdateMembershipPrivacyPolicy($content);
                 break;
+            case 'project.updateSessionAlertPolicy':
+                $content = $this->parseUpdateSessionAlertPolicy($content);
+                break;
+            case 'project.updateUserLimitPolicy':
+            case 'project.updatePasswordHistoryPolicy':
+            case 'project.updateSessionLimitPolicy':
+                $content = $this->parseLimitToTotal($content);
+                break;
         }
 
         return $content;
@@ -22,6 +30,31 @@ class V23 extends Filter
     {
         $content['userId'] = false;
         $content['userPhone'] = false;
+
+        if (isset($content['mfa'])) {
+            $content['userMFA'] = $content['mfa'];
+            unset($content['mfa']);
+        }
+
+        return $content;
+    }
+
+    protected function parseUpdateSessionAlertPolicy(array $content): array
+    {
+        if (isset($content['alerts'])) {
+            $content['enabled'] = $content['alerts'];
+            unset($content['alerts']);
+        }
+
+        return $content;
+    }
+
+    protected function parseLimitToTotal(array $content): array
+    {
+        if (isset($content['limit'])) {
+            $content['total'] = $content['limit'];
+            unset($content['limit']);
+        }
 
         return $content;
     }

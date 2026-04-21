@@ -82,27 +82,30 @@ class PoliciesSessionLimitIntegrationTest extends Scope
 
         // New session pushes old one out
         $session2 = $login();
-        $this->assertEventually(function () use ($getAccount, $session1, $session2) {
-            $this->assertSame(200, $getAccount($session2)['headers']['status-code']);
-            $this->assertSame(401, $getAccount($session1)['headers']['status-code']);
-        }, 15_000, 500);
+        
+        \sleep(3); // Giving ::shutdown() hooks some time
+        
+        $this->assertSame(200, $getAccount($session2)['headers']['status-code']);
+        $this->assertSame(401, $getAccount($session1)['headers']['status-code']);
 
         // Step 2: Session limit = 2
         $setSessionLimit(2);
 
         $session3 = $login();
-        $this->assertEventually(function () use ($getAccount, $session2, $session3) {
-            $this->assertSame(200, $getAccount($session2)['headers']['status-code']);
-            $this->assertSame(200, $getAccount($session3)['headers']['status-code']);
-        }, 15_000, 500);
+        
+        \sleep(3); // Giving ::shutdown() hooks some time
+        
+        $this->assertSame(200, $getAccount($session2)['headers']['status-code']);
+        $this->assertSame(200, $getAccount($session3)['headers']['status-code']);
 
         // Step 3: 4th session evicts session2 (oldest), session3 and session4 remain
         $session4 = $login();
-        $this->assertEventually(function () use ($getAccount, $session2, $session3, $session4) {
-            $this->assertSame(200, $getAccount($session4)['headers']['status-code']);
-            $this->assertSame(200, $getAccount($session3)['headers']['status-code']);
-            $this->assertSame(401, $getAccount($session2)['headers']['status-code']);
-        }, 15_000, 500);
+        
+        \sleep(3); // Giving ::shutdown() hooks some time
+        
+        $this->assertSame(200, $getAccount($session4)['headers']['status-code']);
+        $this->assertSame(200, $getAccount($session3)['headers']['status-code']);
+        $this->assertSame(401, $getAccount($session2)['headers']['status-code']);
 
         // Step 4: Disable session limit, create 5 new sessions, all should remain usable
         $setSessionLimit(null);
@@ -112,10 +115,8 @@ class PoliciesSessionLimitIntegrationTest extends Scope
             $newSessions[] = $login();
         }
 
-        $this->assertEventually(function () use ($getAccount, $newSessions) {
-            foreach ($newSessions as $index => $sessionCookie) {
-                $this->assertSame(200, $getAccount($sessionCookie)['headers']['status-code'], 'Session #' . ($index + 1) . ' should remain valid when limit is disabled');
-            }
-        }, 15_000, 500);
+        foreach ($newSessions as $index => $sessionCookie) {
+            $this->assertSame(200, $getAccount($sessionCookie)['headers']['status-code'], 'Session #' . ($index + 1) . ' should remain valid when limit is disabled');
+        }
     }
 }
