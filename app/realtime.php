@@ -1016,11 +1016,12 @@ $server->onMessage(function (int $connection, string $message) use ($server, $re
         }
 
         $message = json_decode($message, true);
-        $messageType = $message['type'] ?? 'invalid';
 
         if (is_null($message) || (!array_key_exists('type', $message) && !array_key_exists('data', $message))) {
             throw new Exception(Exception::REALTIME_MESSAGE_FORMAT_INVALID, 'Message format is not valid.');
         }
+
+        $messageType = $message['type'] ?? 'invalid';
 
         if (!\is_scalar($messageType) && $messageType !== null) {
             throw new Exception(Exception::REALTIME_MESSAGE_FORMAT_INVALID, 'Message type is not valid.');
@@ -1408,6 +1409,13 @@ $server->onClose(function (int $connection) use ($realtime, $stats, $register) {
         Console::error('Realtime onClose error: ' . $th->getMessage());
         Span::error($th);
     } finally {
+        try {
+            $realtime->unsubscribe($connection);
+        } catch (\Throwable $th) {
+            Console::error('Realtime onClose unsubscribe error: ' . $th->getMessage());
+            Span::error($th);
+        }
+
         Span::add('realtime.success', $success);
         if (!empty($projectId)) {
             Span::add('realtime.projectId', $projectId);
@@ -1418,7 +1426,6 @@ $server->onClose(function (int $connection) use ($realtime, $stats, $register) {
         Span::add('realtime.subscriptionsBeforeClose', $subscriptionsBeforeClose);
         Span::current()?->finish();
     }
-    $realtime->unsubscribe($connection);
 
     Console::info('Connection close: ' . $connection);
 });
