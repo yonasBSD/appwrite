@@ -744,6 +744,15 @@ abstract class Format
             case 'project':
             case 'projects':
                 switch ($method) {
+                    case 'getEmailTemplate':
+                    case 'updateEmailTemplate':
+                        switch ($param) {
+                            case 'templateId':
+                                return 'EmailTemplateType';
+                            case 'locale':
+                                return 'EmailTemplateLocale';
+                        }
+                        break;
                     case 'getUsage':
                         switch ($param) {
                             case 'period':
@@ -752,7 +761,6 @@ abstract class Format
                         break;
                     case 'getEmailTemplate':
                     case 'updateEmailTemplate':
-                    case 'deleteEmailTemplate':
                         switch ($param) {
                             case 'type':
                                 return 'EmailTemplateType';
