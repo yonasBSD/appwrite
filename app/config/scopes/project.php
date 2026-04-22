@@ -204,4 +204,12 @@ return [ // List of publicly visible scopes
         "description" =>
             "Access to create, update, and delete project\'s platforms",
     ],
+    "templates.read" => [
+        "description" =>
+            "Access to read project\'s templates",
+    ],
+    "templates.write" => [
+        "description" =>
+            "Access to create, update, and delete project\'s templates",
+    ],
 ];
