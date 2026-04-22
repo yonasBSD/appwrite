@@ -12,12 +12,10 @@ import encoding from 'k6/encoding';
 import { Counter, Trend } from 'k6/metrics';
 
 const ENDPOINT = (__ENV.APPWRITE_ENDPOINT || 'http://localhost/v1').replace(/\/+$/, '');
-const MAILDEV_ENDPOINT = __ENV.APPWRITE_MAILDEV_ENDPOINT || 'http://localhost:9503/email';
 const CONSOLE_PROJECT = __ENV.APPWRITE_CONSOLE_PROJECT || 'console';
 const REGION = __ENV.APPWRITE_REGION || 'default';
 const REDIRECT_URL = __ENV.APPWRITE_BENCHMARK_REDIRECT_URL || 'http://localhost';
 const PASSWORD = __ENV.APPWRITE_BENCHMARK_PASSWORD || 'Password123!';
-const MAIL_TIMEOUT_MS = Number(__ENV.APPWRITE_MAIL_TIMEOUT_MS || 20000);
 const WORKER_TIMEOUT_MS = Number(__ENV.APPWRITE_WORKER_TIMEOUT_MS || 120000);
 const ITERATIONS = Number(__ENV.APPWRITE_BENCHMARK_ITERATIONS || 1);
 const VUS = Number(__ENV.APPWRITE_BENCHMARK_VUS || 1);
@@ -25,13 +23,9 @@ const SUMMARY_PATH = __ENV.APPWRITE_BENCHMARK_SUMMARY_PATH || '/tmp/appwrite-k6-
 const PREVIOUS_SUMMARY_PATH = __ENV.APPWRITE_BENCHMARK_PREVIOUS_SUMMARY_PATH || SUMMARY_PATH;
 const PREVIOUS_SUMMARY = loadPreviousSummary();
 
-export const httpDuration = new Trend('appwrite_http_duration', true);
 export const httpWaiting = new Trend('appwrite_http_waiting', true);
 export const apiDuration = new Trend('appwrite_api_duration', true);
-export const tablesWorkerDuration = new Trend('appwrite_worker_tables_duration', true);
-export const mailsWorkerDuration = new Trend('appwrite_worker_mails_duration', true);
-export const tablesWorkerSamples = new Counter('appwrite_worker_tables_samples');
-export const mailsWorkerSamples = new Counter('appwrite_worker_mails_samples');
+export const apiWaiting = new Trend('appwrite_api_waiting', true);
 export const flowFailures = new Counter('appwrite_benchmark_flow_failures');
 
 export const options = {
@@ -79,15 +73,12 @@ const API_SCOPES = [
     'buckets.write',
     'functions.read',
     'functions.write',
-    'sites.read',
-    'sites.write',
     'log.read',
     'log.write',
     'execution.read',
     'execution.write',
     'locale.read',
     'avatars.read',
-    'health.read',
     'rules.read',
     'rules.write',
     'migrations.read',
@@ -179,41 +170,60 @@ export function setup() {
         hostname: hostnameFromUrl(REDIRECT_URL),
     }, apiHeaders, [201, 409], 'setup.project.platforms.web.create');
 
-    const smtp = rawRequest('PATCH', `/projects/${projectId}/smtp`, {
-        enabled: true,
-        senderName: 'Benchmark',
-        senderEmail: 'benchmark@appwrite.io',
-        replyTo: 'benchmark@appwrite.io',
-        host: __ENV.APPWRITE_SMTP_HOST || 'maildev',
-        port: Number(__ENV.APPWRITE_SMTP_PORT || 1025),
-        username: __ENV.APPWRITE_SMTP_USERNAME || 'user',
-        password: __ENV.APPWRITE_SMTP_PASSWORD || 'password',
-        ...(String(__ENV.APPWRITE_SMTP_SECURE || '') !== '' ? { secure: __ENV.APPWRITE_SMTP_SECURE } : {}),
-    }, consoleSessionHeaders, 'setup.projects.smtp.update');
-
-    if (smtp.status !== 200) {
-        console.warn(`Custom SMTP was not enabled (${smtp.status}). Mail worker timings may be unavailable.`);
-    }
+    const tablesDb = setupTablesDb(apiHeaders);
 
     return {
         runId,
         teamId,
         projectId,
+        databaseId: tablesDb.databaseId,
+        tableId: tablesDb.tableId,
         consoleSessionHeaders,
         apiHeaders,
         platformStatus: platform.status,
     };
 }
 
+function setupTablesDb(apiHeaders) {
+    const databaseId = unique('tdb');
+    const tableId = unique('tbl');
+
+    setupApi('POST', '/tablesdb', { databaseId, name: 'Benchmark TablesDB' }, apiHeaders, [201], 'setup.tablesdb.create');
+    setupApi('POST', `/tablesdb/${databaseId}/tables`, {
+        tableId,
+        name: 'Benchmark Table',
+        permissions: BASE_PERMISSIONS,
+        rowSecurity: false,
+    }, apiHeaders, [201], 'setup.tablesdb.tables.create');
+
+    const columns = [
+        ['string', 'title', { size: 128 }],
+        ['integer', 'quantity', { min: 0, max: 100000 }],
+        ['email', 'email', {}],
+        ['boolean', 'active', {}],
+    ];
+
+    for (const [type, key, extra] of columns) {
+        setupApi('POST', `/tablesdb/${databaseId}/tables/${tableId}/columns/${type}`, {
+            key,
+            required: false,
+            array: false,
+            ...extra,
+        }, apiHeaders, [202], `setup.tablesdb.columns.${type}.create`);
+        waitForStatus(`/tablesdb/${databaseId}/tables/${tableId}/columns/${key}`, apiHeaders, 'available', WORKER_TIMEOUT_MS, `setup.tablesdb.columns.${type}.wait`);
+    }
+
+    return { databaseId, tableId };
+}
+
 export function curatedFlows(data) {
     const ctx = { ...data };
 
     try {
-        group('account and mail flow', () => accountFlow(ctx));
+        group('account flow', () => accountFlow(ctx));
         group('tablesdb rows flow', () => tablesDbFlow(ctx));
         group('storage files and tokens flow', () => storageFlow(ctx));
-        group('functions and sites control-plane flow', () => computeFlow(ctx));
-        group('health and queue probes', () => healthFlow(ctx));
+        group('functions control-plane flow', () => computeFlow(ctx));
     } catch (error) {
         flowFailures.add(1);
         throw error;
@@ -228,16 +238,6 @@ export function teardown(data) {
     if (data && data.teamId && data.consoleSessionHeaders) {
         rawRequest('DELETE', `/teams/${data.teamId}`, null, data.consoleSessionHeaders, 'teardown.teams.delete');
     }
-}
-
-function recordTablesWorkerDuration(duration, tags) {
-    tablesWorkerDuration.add(duration, tags);
-    tablesWorkerSamples.add(1, tags);
-}
-
-function recordMailsWorkerDuration(duration, tags) {
-    mailsWorkerDuration.add(duration, tags);
-    mailsWorkerSamples.add(1, tags);
 }
 
 function accountFlow(ctx) {
@@ -271,109 +271,14 @@ function accountFlow(ctx) {
     api('PATCH', '/account/prefs', { prefs: { benchmark: true, runId: ctx.runId } }, sessionHeaders, [200], 'account.prefs.update');
     api('PATCH', '/account/name', { name: 'Benchmark User Updated' }, sessionHeaders, [200], 'account.name.update');
     api('PATCH', '/account/password', { password: `${PASSWORD}2`, oldPassword: PASSWORD }, sessionHeaders, [200], 'account.password.update');
-
-    const verificationStarted = Date.now();
-    api('POST', '/account/verifications/email', { url: REDIRECT_URL }, sessionHeaders, [201], 'account.emailVerification.create');
-    const verificationEmail = waitForEmail(email, (message) => {
-        return includes(message.subject, 'verify')
-            || includes(message.subject, 'verification')
-            || includes(message.html, 'verify')
-            || includes(message.html, 'verification')
-            || includes(message.text, 'verify')
-            || includes(message.text, 'verification');
-    }, MAIL_TIMEOUT_MS);
-    recordMailsWorkerDuration(Date.now() - verificationStarted, { job: 'email_verification' });
-
-    const verification = extractQueryParams(verificationEmail);
-    if (verification.userId && verification.secret) {
-        api('PUT', '/account/verifications/email', {
-            userId: verification.userId,
-            secret: verification.secret,
-        }, sessionHeaders, [200], 'account.emailVerification.update');
-    }
-
-    const recoveryStarted = Date.now();
-    api('POST', '/account/recovery', { email, url: REDIRECT_URL }, headers, [201], 'account.recovery.create');
-    const recoveryEmail = waitForEmail(email, (message) => {
-        return includes(message.subject, 'recovery')
-            || includes(message.subject, 'recover')
-            || includes(message.subject, 'reset')
-            || includes(message.html, 'recovery')
-            || includes(message.html, 'recover')
-            || includes(message.html, 'reset')
-            || includes(message.text, 'recovery')
-            || includes(message.text, 'recover')
-            || includes(message.text, 'reset');
-    }, MAIL_TIMEOUT_MS);
-    recordMailsWorkerDuration(Date.now() - recoveryStarted, { job: 'password_recovery' });
-
-    const recovery = extractQueryParams(recoveryEmail);
-    if (recovery.userId && recovery.secret) {
-        api('DELETE', '/account/sessions/current', null, sessionHeaders, [204], 'account.sessions.current.delete');
-
-        api('PUT', '/account/recovery', {
-            userId: recovery.userId,
-            secret: recovery.secret,
-            password: `${PASSWORD}3`,
-        }, headers, [200], 'account.recovery.update');
-
-        const recoveredSession = api('POST', '/account/sessions/email', {
-            email,
-            password: `${PASSWORD}3`,
-        }, headers, [201], 'account.sessions.email.recovered');
-
-        ctx.sessionHeaders = {
-            ...headers,
-            Cookie: cookieHeader(recoveredSession),
-        };
-
-    }
 }
 
 function tablesDbFlow(ctx) {
     requireSession(ctx, 'tablesDbFlow');
 
-    const databaseId = unique('tdb');
-    const tableId = unique('tbl');
+    const databaseId = ctx.databaseId;
+    const tableId = ctx.tableId;
     const rowId = unique('row');
-    const indexKey = unique('tidx');
-
-    api('POST', '/tablesdb', { databaseId, name: 'Benchmark TablesDB' }, ctx.apiHeaders, [201], 'tablesdb.create');
-    api('POST', `/tablesdb/${databaseId}/tables`, {
-        tableId,
-        name: 'Benchmark Table',
-        permissions: BASE_PERMISSIONS,
-        rowSecurity: false,
-    }, ctx.apiHeaders, [201], 'tablesdb.tables.create');
-
-    const columns = [
-        ['string', 'title', { size: 128 }],
-        ['integer', 'quantity', { min: 0, max: 100000 }],
-        ['email', 'email', {}],
-        ['boolean', 'active', {}],
-    ];
-
-    for (const [type, key, extra] of columns) {
-        const started = Date.now();
-        api('POST', `/tablesdb/${databaseId}/tables/${tableId}/columns/${type}`, {
-            key,
-            required: false,
-            array: false,
-            ...extra,
-        }, ctx.apiHeaders, [202], `tablesdb.columns.${type}.create`);
-        waitForStatus(`/tablesdb/${databaseId}/tables/${tableId}/columns/${key}`, ctx.apiHeaders, 'available', WORKER_TIMEOUT_MS, `tablesdb.columns.${type}.wait`);
-        recordTablesWorkerDuration(Date.now() - started, { job: `column_${type}` });
-    }
-
-    const indexStarted = Date.now();
-    api('POST', `/tablesdb/${databaseId}/tables/${tableId}/indexes`, {
-        key: indexKey,
-        type: 'key',
-        columns: ['title'],
-        orders: ['asc'],
-    }, ctx.apiHeaders, [202], 'tablesdb.indexes.create');
-    waitForStatus(`/tablesdb/${databaseId}/tables/${tableId}/indexes/${indexKey}`, ctx.apiHeaders, 'available', WORKER_TIMEOUT_MS, 'tablesdb.indexes.wait');
-    recordTablesWorkerDuration(Date.now() - indexStarted, { job: 'index' });
 
     api('POST', `/tablesdb/${databaseId}/tables/${tableId}/rows`, {
         rowId,
@@ -392,7 +297,6 @@ function tablesDbFlow(ctx) {
         value: 1,
     }, ctx.sessionHeaders, [200], 'tablesdb.rows.decrement');
     api('DELETE', `/tablesdb/${databaseId}/tables/${tableId}/rows/${rowId}`, null, ctx.sessionHeaders, [204], 'tablesdb.rows.delete');
-    api('DELETE', `/tablesdb/${databaseId}`, null, ctx.apiHeaders, [204], 'tablesdb.delete');
 }
 
 function storageFlow(ctx) {
@@ -426,9 +330,9 @@ function storageFlow(ctx) {
         tags: { name: 'storage.files.create' },
     });
 
-    httpDuration.add(upload.timings.duration, { name: 'storage.files.create' });
     httpWaiting.add(upload.timings.waiting, { name: 'storage.files.create' });
     apiDuration.add(upload.timings.duration, { name: 'storage.files.create' });
+    apiWaiting.add(upload.timings.waiting, { name: 'storage.files.create' });
     assertStatus(upload, [201], 'storage file created');
 
     api('GET', `/storage/buckets/${bucketId}/files`, null, ctx.sessionHeaders, [200], 'storage.files.list');
@@ -456,8 +360,6 @@ function computeFlow(ctx) {
 
     const functionId = unique('fn');
     let functionVariableId;
-    const siteId = unique('site');
-    let siteVariableId;
 
     api('POST', '/functions', {
         functionId,
@@ -490,66 +392,12 @@ function computeFlow(ctx) {
     api('GET', `/functions/${functionId}/variables/${functionVariableId}`, null, ctx.apiHeaders, [200], 'functions.variables.get');
     api('DELETE', `/functions/${functionId}/variables/${functionVariableId}`, null, ctx.apiHeaders, [204], 'functions.variables.delete');
     api('DELETE', `/functions/${functionId}`, null, ctx.apiHeaders, [204], 'functions.delete');
-
-    api('POST', '/sites', {
-        siteId,
-        name: 'Benchmark Site',
-        framework: 'other',
-        adapter: 'static',
-        buildRuntime: __ENV.APPWRITE_BENCHMARK_RUNTIME || 'node-22',
-        buildCommand: '',
-        outputDirectory: '.',
-        installCommand: '',
-        fallbackFile: 'index.html',
-        providerRootDirectory: '.',
-        specification: '',
-    }, ctx.apiHeaders, [201], 'sites.create');
-    api('GET', '/sites/frameworks', null, ctx.sessionHeaders, [200], 'sites.frameworks.list');
-    api('GET', '/sites/specifications', null, ctx.apiHeaders, [200], 'sites.specifications.list');
-    const siteVariable = api('POST', `/sites/${siteId}/variables`, {
-        key: 'BENCHMARK',
-        value: 'true',
-        secret: false,
-    }, ctx.apiHeaders, [201], 'sites.variables.create');
-    siteVariableId = siteVariable.json('$id');
-
-    api('PUT', `/sites/${siteId}/variables/${siteVariableId}`, {
-        key: 'BENCHMARK',
-        value: 'updated',
-        secret: false,
-    }, ctx.apiHeaders, [200], 'sites.variables.update');
-    api('GET', `/sites/${siteId}/variables/${siteVariableId}`, null, ctx.apiHeaders, [200], 'sites.variables.get');
-    api('DELETE', `/sites/${siteId}/variables/${siteVariableId}`, null, ctx.apiHeaders, [204], 'sites.variables.delete');
-    api('DELETE', `/sites/${siteId}`, null, ctx.apiHeaders, [204], 'sites.delete');
-}
-
-function healthFlow(ctx) {
-    const probes = [
-        '/health',
-        '/health/db',
-        '/health/cache',
-        '/health/pubsub',
-        '/health/storage',
-        '/health/storage/local',
-        '/health/time',
-        '/health/queue/mails',
-        '/health/queue/functions',
-        '/health/queue/builds',
-        '/health/queue/deletes',
-        '/health/queue/webhooks',
-        '/health/queue/stats-resources',
-        '/health/queue/stats-usage',
-        '/health/queue/failed/v1-mails',
-    ];
-
-    for (const path of probes) {
-        api('GET', path, null, ctx.apiHeaders, [200], `health${path.replace(/\//g, '.')}`);
-    }
 }
 
 function api(method, path, body, headers, expected, name) {
     const response = rawRequest(method, path, body, headers, name);
     apiDuration.add(response.timings.duration, { name });
+    apiWaiting.add(response.timings.waiting, { name });
     assertStatus(response, expected, name);
     return response;
 }
@@ -567,7 +415,6 @@ function rawRequest(method, path, body, headers, name) {
     };
     const payload = body === null || body === undefined ? null : JSON.stringify(body);
     const response = http.request(method, `${ENDPOINT}${path}`, payload, params);
-    httpDuration.add(response.timings.duration, { name });
     httpWaiting.add(response.timings.waiting, { name });
 
     return response;
@@ -591,73 +438,6 @@ function waitForStatus(path, headers, wantedStatus, timeoutMs, name) {
     }
 
     throw new Error(`Timed out waiting for ${path} to become ${wantedStatus}`);
-}
-
-function waitForEmail(address, predicate, timeoutMs, allowMissingRecipient = false) {
-    const started = Date.now();
-
-    while (Date.now() - started < timeoutMs) {
-        const response = http.get(MAILDEV_ENDPOINT, { tags: { name: 'maildev.email.list' } });
-        if (response.status === 200) {
-            const emails = response.json();
-            for (let i = emails.length - 1; i >= 0; i--) {
-                const message = emails[i];
-                if ((emailMatches(message, address) || (allowMissingRecipient && emailRecipientMissing(message))) && predicate(message)) {
-                    return message;
-                }
-            }
-        }
-        sleep(0.5);
-    }
-
-    throw new Error(`Timed out waiting for email to ${address}`);
-}
-
-function emailMatches(message, address) {
-    const recipients = message.to || [];
-    return recipients.some((recipient) => recipient.address === address);
-}
-
-function emailRecipientMissing(message) {
-    const recipients = message.to || [];
-    return recipients.length === 0 || recipients.every((recipient) => !recipient.address);
-}
-
-function extractQueryParams(message) {
-    const content = `${message.html || ''}\n${message.text || ''}`;
-    const links = [];
-    const hrefPattern = /href="([^"]+)"/g;
-    let hrefMatch = hrefPattern.exec(content);
-
-    while (hrefMatch !== null) {
-        links.push(hrefMatch[1]);
-        hrefMatch = hrefPattern.exec(content);
-    }
-
-    if (links.length === 0) {
-        links.push(content);
-    }
-
-    for (const link of links) {
-        const queryStart = link.indexOf('?');
-        if (queryStart === -1) {
-            continue;
-        }
-
-        const query = link.slice(queryStart + 1).split('#')[0].replace(/&amp;/g, '&');
-        const params = {};
-
-        for (const pair of query.split('&')) {
-            const [key, value] = pair.split('=');
-            params[decodeURIComponent(key)] = decodeURIComponent(value || '');
-        }
-
-        if (params.userId && params.secret) {
-            return params;
-        }
-    }
-
-    return {};
 }
 
 function assertStatus(response, expected, name) {
@@ -719,10 +499,6 @@ function unique(prefix) {
         .slice(0, 36);
 }
 
-function includes(value, needle) {
-    return String(value || '').toLowerCase().includes(String(needle).toLowerCase());
-}
-
 function hostnameFromUrl(value) {
     return value.replace(/^https?:\/\//, '').split('/')[0].split(':')[0];
 }
@@ -731,13 +507,17 @@ export function handleSummary(data) {
     const lines = [
         'Appwrite curated benchmark review',
         '',
-        'Before/after comparison',
+        'Before',
         '',
-        comparisonTable(PREVIOUS_SUMMARY, data),
+        summaryTable(PREVIOUS_SUMMARY),
         '',
-        'Current run details',
+        'After',
         '',
-        detailsTable(data),
+        summaryTable(data),
+        '',
+        'Delta',
+        '',
+        deltaTable(PREVIOUS_SUMMARY, data),
         '',
     ];
 
@@ -747,19 +527,16 @@ export function handleSummary(data) {
     };
 }
 
-function detailsTable(data) {
+function summaryTable(data) {
     return [
         '| Scenario | P50 (ms) | P95 (ms) | Iterations | RPS |',
         '| --- | ---: | ---: | ---: | ---: |',
-        detailRow(data, 'Load test', 'appwrite_http_duration', 'iterations', 'http_reqs'),
-        detailRow(data, 'API total', 'appwrite_api_duration'),
-        detailRow(data, 'TablesDB schema', 'appwrite_worker_tables_duration', 'appwrite_worker_tables_samples', 'appwrite_worker_tables_samples'),
-        detailRow(data, 'Mail delivery', 'appwrite_worker_mails_duration', 'appwrite_worker_mails_samples', 'appwrite_worker_mails_samples'),
+        summaryRow(data, 'API total', 'appwrite_api_duration'),
     ].join('\n');
 }
 
-function detailRow(data, label, metric, iterationsMetric = null, rpsMetric = null) {
-    const values = data.metrics[metric] && data.metrics[metric].values;
+function summaryRow(data, label, metric, iterationsMetric = null, rpsMetric = null) {
+    const values = data && data.metrics[metric] && data.metrics[metric].values;
     if (!values || values.count === 0) {
         return `| ${label} | n/a | n/a | n/a | n/a |`;
     }
@@ -798,23 +575,16 @@ function loadPreviousSummary() {
     return null;
 }
 
-function comparisonTable(before, after) {
-    const rows = [
-        ['Load test', 'appwrite_http_duration'],
-        ['API total', 'appwrite_api_duration'],
-        ['TablesDB schema', 'appwrite_worker_tables_duration'],
-        ['Mail delivery', 'appwrite_worker_mails_duration'],
-    ];
-
+function deltaTable(before, after) {
     return [
-        '| Scenario | Before P50 (ms) | Before P95 (ms) | After P50 (ms) | After P95 (ms) | Delta P95 (ms) |',
-        '| --- | ---: | ---: | ---: | ---: | ---: |',
-        ...rows.map(([label, metric]) => {
-            const beforeP50 = trendMetric(before, metric, 'med');
+        '| Scenario | P95 delta (ms) |',
+        '| --- | ---: |',
+        ...[
+            ['API total', 'appwrite_api_duration'],
+        ].map(([label, metric]) => {
             const beforeP95 = trendMetric(before, metric, 'p(95)');
-            const afterP50 = trendMetric(after, metric, 'med');
             const afterP95 = trendMetric(after, metric, 'p(95)');
-            return `| ${label} | ${formatValue(beforeP50)} | ${formatValue(beforeP95)} | ${formatValue(afterP50)} | ${formatValue(afterP95)} | ${formatDelta(beforeP95, afterP95)} |`;
+            return `| ${label} | ${formatDelta(beforeP95, afterP95)} |`;
         }),
     ].join('\n');
 }
@@ -823,14 +593,6 @@ function trendMetric(data, metric, stat) {
     return data && data.metrics[metric] && data.metrics[metric].values
         ? data.metrics[metric].values[stat]
         : null;
-}
-
-function formatValue(value) {
-    if (value === null || value === undefined || Number.isNaN(value)) {
-        return 'n/a';
-    }
-
-    return `${round(value)}`;
 }
 
 function formatDetailValue(value) {

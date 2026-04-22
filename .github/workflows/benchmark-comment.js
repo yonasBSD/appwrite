@@ -1,7 +1,7 @@
 const fs = require('fs');
 
 const marker = '<!-- appwrite-benchmark-results -->';
-const serviceLabels = ['Account', 'TablesDB', 'Storage', 'Functions', 'Sites', 'Health'];
+const serviceLabels = ['Account', 'TablesDB', 'Storage', 'Functions'];
 
 module.exports = async ({ github, context, core }) => {
     const body = buildComment(core);
@@ -51,7 +51,7 @@ function buildComment(core) {
     const baseRef = markdownText(process.env.BENCHMARK_BASE_REF || 'base');
     const headRef = markdownText(process.env.BENCHMARK_HEAD_REF || 'head');
     const rows = benchmarkRows(before, after, beforeSamples, afterSamples);
-    const topWaits = topSamples(afterSamples, 'appwrite_http_waiting', 3);
+    const topWaits = topSamples(afterSamples, 'appwrite_api_waiting', 3);
     const lines = [
         marker,
         '## :sparkles: Benchmark results',
@@ -68,22 +68,26 @@ function buildComment(core) {
     }
 
     lines.push(
-        '| Scenario | Before P50 (ms) | Before P95 (ms) | After P50 (ms) | After P95 (ms) | Delta P95 (ms) | After iterations | After RPS |',
-        '| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |',
-        ...rows.map(comparisonRow),
+        '**Before**',
+        '',
+        metricTable(rows, 'before'),
+        '',
+        '**After**',
+        '',
+        metricTable(rows, 'after'),
+        '',
+        '**Delta**',
+        '',
+        '| Scenario | P95 delta (ms) |',
+        '| --- | ---: |',
+        ...rows.map(deltaRow),
         '',
         '<details>',
-        '<summary><strong>Current run details</strong></summary>',
+        '<summary><strong>Top API waits</strong></summary>',
         '',
         '<br>',
         '',
-        '| Scenario | P50 (ms) | P95 (ms) | Iterations | RPS |',
-        '| --- | ---: | ---: | ---: | ---: |',
-        ...rows.map(detailRow),
-        '',
-        '**Top 3 request waits**',
-        '',
-        '| Request | Max wait (ms) |',
+        '| API request | Max wait (ms) |',
         '| --- | ---: |',
         ...topWaitRows(topWaits),
         '',
@@ -134,11 +138,6 @@ function benchmarkRows(before, after, beforeSamples, afterSamples) {
     const afterServices = serviceStats(afterSamples);
     return [
         {
-            label: 'Load test',
-            before: summaryStats(before, 'appwrite_http_duration', 'iterations', 'http_reqs'),
-            after: summaryStats(after, 'appwrite_http_duration', 'iterations', 'http_reqs'),
-        },
-        {
             label: 'API total',
             before: apiSampleStats(beforeSamples) || summaryStats(before, 'appwrite_api_duration'),
             after: apiSampleStats(afterSamples) || summaryStats(after, 'appwrite_api_duration'),
@@ -148,16 +147,6 @@ function benchmarkRows(before, after, beforeSamples, afterSamples) {
             before: beforeServices.get(label) || null,
             after: afterServices.get(label) || null,
         })),
-        {
-            label: 'TablesDB schema',
-            before: summaryStats(before, 'appwrite_worker_tables_duration', 'appwrite_worker_tables_samples', 'appwrite_worker_tables_samples'),
-            after: summaryStats(after, 'appwrite_worker_tables_duration', 'appwrite_worker_tables_samples', 'appwrite_worker_tables_samples'),
-        },
-        {
-            label: 'Mail delivery',
-            before: summaryStats(before, 'appwrite_worker_mails_duration', 'appwrite_worker_mails_samples', 'appwrite_worker_mails_samples'),
-            after: summaryStats(after, 'appwrite_worker_mails_duration', 'appwrite_worker_mails_samples', 'appwrite_worker_mails_samples'),
-        },
     ];
 }
 
@@ -205,14 +194,15 @@ function serviceStats(samples) {
 }
 
 function apiSampleStats(samples) {
-    const values = samples
-        .filter((sample) => sample.metric === 'appwrite_api_duration' && typeof sample.data?.value === 'number')
-        .map((sample) => sample.data.value);
+    const apiSamples = samples.filter((sample) => {
+        return sample.metric === 'appwrite_api_duration' && typeof sample.data?.value === 'number';
+    });
+    const values = apiSamples.map((sample) => sample.data.value);
     if (values.length === 0) {
         return null;
     }
 
-    const durationSeconds = sampleWindowSeconds(samples);
+    const durationSeconds = sampleWindowSeconds(apiSamples);
     return {
         p50: percentile(values, 50),
         p95: percentile(values, 95),
@@ -233,12 +223,6 @@ function serviceFromName(name) {
     }
     if (name.startsWith('functions.')) {
         return 'Functions';
-    }
-    if (name.startsWith('sites.')) {
-        return 'Sites';
-    }
-    if (name.startsWith('health.')) {
-        return 'Health';
     }
     return null;
 }
@@ -272,12 +256,21 @@ function metricValue(data, metric, stat) {
     return metricValues(data, metric)?.[stat] ?? null;
 }
 
-function comparisonRow(row) {
-    return `| ${row.label} | ${formatMs(row.before?.p50)} | ${formatMs(row.before?.p95)} | ${formatMs(row.after?.p50)} | ${formatMs(row.after?.p95)} | ${formatDelta(row.before?.p95, row.after?.p95)} | ${formatCount(row.after?.iterations)} | ${formatRate(row.after?.rps)} |`;
+function metricTable(rows, side) {
+    return [
+        '| Scenario | P50 (ms) | P95 (ms) | Iterations | RPS |',
+        '| --- | ---: | ---: | ---: | ---: |',
+        ...rows.map((row) => metricRow(row, side)),
+    ].join('\n');
 }
 
-function detailRow(row) {
-    return `| ${row.label} | ${formatMs(row.after?.p50)} | ${formatMs(row.after?.p95)} | ${formatCount(row.after?.iterations)} | ${formatRate(row.after?.rps)} |`;
+function metricRow(row, side) {
+    const values = row[side];
+    return `| ${row.label} | ${formatMs(values?.p50)} | ${formatMs(values?.p95)} | ${formatCount(values?.iterations)} | ${formatRate(values?.rps)} |`;
+}
+
+function deltaRow(row) {
+    return `| ${row.label} | ${formatDelta(row.before?.p95, row.after?.p95)} |`;
 }
 
 function topSamples(samples, metric, limit) {

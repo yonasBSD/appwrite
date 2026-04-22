@@ -712,7 +712,6 @@ jobs:
           _APP_DOMAIN: localhost
           _APP_CONSOLE_DOMAIN: localhost
           _APP_DOMAIN_FUNCTIONS: functions.localhost
-          _APP_DOMAIN_SITES: sites.localhost
         run: |
           docker tag ${{ env.IMAGE }}:before ${{ env.IMAGE }}
           docker compose up -d --wait --no-build
@@ -726,7 +725,6 @@ jobs:
         uses: grafana/run-k6-action@v1
         env:
           APPWRITE_ENDPOINT: 'http://localhost/v1'
-          APPWRITE_MAILDEV_ENDPOINT: 'http://localhost:9503/email'
           APPWRITE_BENCHMARK_ITERATIONS: '1'
           APPWRITE_BENCHMARK_VUS: '1'
           APPWRITE_WORKER_TIMEOUT_MS: '120000'
@@ -768,7 +766,6 @@ jobs:
           _APP_DOMAIN: localhost
           _APP_CONSOLE_DOMAIN: localhost
           _APP_DOMAIN_FUNCTIONS: functions.localhost
-          _APP_DOMAIN_SITES: sites.localhost
         run: |
           docker tag ${{ env.IMAGE }}:after ${{ env.IMAGE }}
           docker compose up -d --wait --no-build
@@ -779,7 +776,6 @@ jobs:
         uses: grafana/run-k6-action@v1
         env:
           APPWRITE_ENDPOINT: 'http://localhost/v1'
-          APPWRITE_MAILDEV_ENDPOINT: 'http://localhost:9503/email'
           APPWRITE_BENCHMARK_ITERATIONS: '1'
           APPWRITE_BENCHMARK_VUS: '1'
           APPWRITE_WORKER_TIMEOUT_MS: '120000'
