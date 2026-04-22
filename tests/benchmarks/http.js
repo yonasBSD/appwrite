@@ -264,12 +264,6 @@ function accountFlow(ctx) {
     ctx.userEmail = email;
     ctx.sessionHeaders = sessionHeaders;
 
-    const jwt = api('POST', '/account/jwts', null, sessionHeaders, [201], 'account.jwts.create');
-    ctx.jwtHeaders = {
-        ...headers,
-        'X-Appwrite-JWT': jwt.json('jwt'),
-    };
-
     api('GET', '/account', null, sessionHeaders, [200], 'account.get');
     api('GET', '/account/logs', null, sessionHeaders, [200], 'account.logs.list');
     api('PATCH', '/account/prefs', { prefs: { benchmark: true, runId: ctx.runId } }, sessionHeaders, [200], 'account.prefs.update');
@@ -331,11 +325,6 @@ function accountFlow(ctx) {
             Cookie: cookieHeader(recoveredSession),
         };
 
-        const recoveredJwt = api('POST', '/account/jwts', null, ctx.sessionHeaders, [201], 'account.jwts.recovered');
-        ctx.jwtHeaders = {
-            ...headers,
-            'X-Appwrite-JWT': recoveredJwt.json('jwt'),
-        };
     }
 }
 
