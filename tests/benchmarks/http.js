@@ -1,7 +1,6 @@
 /*
  * Run locally:
- *
- * docker compose up -d --force-recreate --build --wait
+ * Requires k6 and a running Appwrite instance.
  *
  * K6_WEB_DASHBOARD=true \
  * K6_WEB_DASHBOARD_HOST=127.0.0.1 \
