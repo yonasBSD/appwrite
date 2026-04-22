@@ -482,7 +482,7 @@ class Project extends Model
 
         $document->setAttribute('authLimit', $authValues['limit'] ?? 0);
         $document->setAttribute('authDuration', $authValues['duration'] ?? TOKEN_EXPIRATION_LOGIN_LONG);
-        $document->setAttribute('authSessionsLimit', $authValues['maxSessions'] ?? APP_LIMIT_USER_SESSIONS_DEFAULT);
+        $document->setAttribute('authSessionsLimit', $authValues['maxSessions'] ?? 0);
         $document->setAttribute('authPasswordHistory', $authValues['passwordHistory'] ?? 0);
         $document->setAttribute('authPasswordDictionary', $authValues['passwordDictionary'] ?? false);
         $document->setAttribute('authPersonalDataCheck', $authValues['personalDataCheck'] ?? false);
