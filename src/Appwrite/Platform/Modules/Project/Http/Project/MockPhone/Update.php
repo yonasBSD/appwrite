@@ -77,7 +77,7 @@ class Update extends Action
 
         $mockNumberIndex = null;
         foreach ($mockNumbers as $index => $mock) {
-            if ($mock['number'] === $number) {
+            if ($mock['phone'] === $number) {
                 $mockNumberIndex = $index;
                 break;
             }

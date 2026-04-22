@@ -75,15 +75,19 @@ class Create extends Action
 
         $mockNumbers = $auths['mockNumbers'] ?? [];
 
+        if (\count($mockNumbers) >= APP_LIMIT_COUNT) {
+            throw new Exception(Exception::MOCK_NUMBER_LIMIT_EXCEEDED);
+        }
+
         foreach ($mockNumbers as $mockNumber) {
-            if ($mockNumber['number'] === $number) {
+            if ($mockNumber['phone'] === $number) {
                 throw new Exception(Exception::MOCK_NUMBER_ALREADY_EXISTS);
             }
         }
 
         // Set to now date
         $mockNumber = [
-            'number' => $number,
+            'phone' => $number,
             'otp' => $otp,
             '$createdAt' => DateTime::now(),
             '$updatedAt' => DateTime::now(),

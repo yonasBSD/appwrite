@@ -4,6 +4,7 @@ namespace Appwrite\Utopia\Response\Model;
 
 use Appwrite\Utopia\Response;
 use Appwrite\Utopia\Response\Model;
+use Utopia\Database\Document;
 
 class MockNumber extends Model
 {
@@ -35,6 +36,16 @@ class MockNumber extends Model
                 'example' => self::TYPE_DATETIME_EXAMPLE,
             ]);
         ;
+    }
+
+    public function filter(Document $document): Document
+    {
+        if ($document->isSet('phone')) {
+            $document->setAttribute('number', $document->getAttribute('phone'));
+            $document->removeAttribute('phone');
+        }
+
+        return $document;
     }
 
     /**

@@ -1418,4 +1418,9 @@ return [
         'description' => 'Mock number with the requested number could not be found.',
         'code' => 404,
     ],
+    Exception::MOCK_NUMBER_LIMIT_EXCEEDED => [
+        'name' => Exception::MOCK_NUMBER_LIMIT_EXCEEDED,
+        'description' => 'The maximum number of mock phones for this project has been reached.',
+        'code' => 400,
+    ],
 ];
