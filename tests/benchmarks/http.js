@@ -20,8 +20,8 @@ const WORKER_TIMEOUT_MS = Number(__ENV.APPWRITE_WORKER_TIMEOUT_MS || 120000);
 const ITERATIONS = Number(__ENV.APPWRITE_BENCHMARK_ITERATIONS || 1);
 const VUS = Number(__ENV.APPWRITE_BENCHMARK_VUS || 1);
 const SUMMARY_PATH = __ENV.APPWRITE_BENCHMARK_SUMMARY_PATH || '/tmp/appwrite-k6-summary.json';
-const PREVIOUS_SUMMARY_PATH = __ENV.APPWRITE_BENCHMARK_PREVIOUS_SUMMARY_PATH || SUMMARY_PATH;
-const PREVIOUS_SUMMARY = loadPreviousSummary();
+const PREVIOUS_SUMMARY_PATH = __ENV.APPWRITE_BENCHMARK_PREVIOUS_SUMMARY_PATH || '';
+const PREVIOUS_SUMMARY = PREVIOUS_SUMMARY_PATH ? loadPreviousSummary(PREVIOUS_SUMMARY_PATH) : null;
 
 export const httpWaiting = new Trend('appwrite_http_waiting', true);
 export const apiDuration = new Trend('appwrite_api_duration', true);
@@ -549,30 +549,21 @@ function summaryRow(data, label, metric, iterationsMetric = null, rpsMetric = nu
     return `| ${label} | ${formatDetailValue(values.med)} | ${formatDetailValue(values['p(95)'])} | ${formatCount(iterations)} | ${formatRate(rps)} |`;
 }
 
-function loadPreviousSummary() {
-    const paths = [PREVIOUS_SUMMARY_PATH];
-    if (!PREVIOUS_SUMMARY_PATH.startsWith('/')) {
-        paths.push(`../../${PREVIOUS_SUMMARY_PATH}`);
+function loadPreviousSummary(path) {
+    let contents;
+    try {
+        contents = open(path);
+    } catch (error) {
+        console.warn(`Missing benchmark summary at ${path}: ${error.message}`);
+        return null;
     }
 
-    for (const path of paths) {
-        let contents;
-        try {
-            contents = open(path);
-        } catch (error) {
-            // Try the next path. k6 resolves open() relative to the script file.
-            continue;
-        }
-
-        try {
-            return JSON.parse(contents);
-        } catch (error) {
-            console.warn(`Invalid benchmark summary at ${path}: ${error.message}`);
-            return null;
-        }
+    try {
+        return JSON.parse(contents);
+    } catch (error) {
+        console.warn(`Invalid benchmark summary at ${path}: ${error.message}`);
+        return null;
     }
-
-    return null;
 }
 
 function deltaTable(before, after) {

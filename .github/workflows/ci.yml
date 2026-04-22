@@ -684,7 +684,7 @@ jobs:
           docker tag ${{ env.IMAGE }} ${{ env.IMAGE }}:after
 
       - name: Setup k6
-        uses: grafana/setup-k6-action@v1
+        uses: grafana/setup-k6-action@ffe7d7290dfa715e48c2ccc924d068444c94bde2
         with:
           k6-version: ${{ env.K6_VERSION }}
 
@@ -723,7 +723,7 @@ jobs:
       - name: Benchmark before
         if: steps.benchmark_before_start.outcome == 'success'
         continue-on-error: true
-        uses: grafana/run-k6-action@v1
+        uses: grafana/run-k6-action@a15e2072ede004e8d46141e33d7f7dad8ad08d9d
         env:
           APPWRITE_ENDPOINT: 'http://localhost/v1'
           APPWRITE_BENCHMARK_ITERATIONS: '1'
@@ -775,13 +775,13 @@ jobs:
       - name: Benchmark after
         id: benchmark_after
         continue-on-error: true
-        uses: grafana/run-k6-action@v1
+        uses: grafana/run-k6-action@a15e2072ede004e8d46141e33d7f7dad8ad08d9d
         env:
           APPWRITE_ENDPOINT: 'http://localhost/v1'
           APPWRITE_BENCHMARK_ITERATIONS: '1'
           APPWRITE_BENCHMARK_VUS: '1'
           APPWRITE_WORKER_TIMEOUT_MS: '120000'
-          APPWRITE_BENCHMARK_PREVIOUS_SUMMARY_PATH: 'benchmark-before-summary.json'
+          APPWRITE_BENCHMARK_PREVIOUS_SUMMARY_PATH: '../../benchmark-before-summary.json'
           APPWRITE_BENCHMARK_SUMMARY_PATH: 'benchmark-after-summary.json'
         with:
           path: tests/benchmarks/http.js
