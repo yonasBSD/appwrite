@@ -723,9 +723,6 @@ $server->onOpen(function (int $connection, SwooleRequest $request) use ($server,
         /** @var Document $project */
         $project = $connectionContainer->get('project');
         $authorization = $connectionContainer->get('authorization');
-        if (!empty($project->getId())) {
-            Span::add('realtime.projectId', $project->getId());
-        }
 
         /*
          *  Project Check
@@ -787,7 +784,6 @@ $server->onOpen(function (int $connection, SwooleRequest $request) use ($server,
         }
 
         $roles = $user->getRoles($authorization);
-        Span::add('realtime.userId', $user->getId());
 
         $channels = Realtime::convertChannels($request->getQuery('channels', []), $user->getId());
         $channelCount = \count($channels);
@@ -1026,8 +1022,6 @@ $server->onMessage(function (int $connection, string $message) use ($server, $re
         if (!\is_scalar($messageType)) {
             throw new Exception(Exception::REALTIME_MESSAGE_FORMAT_INVALID, 'Message type is not valid.');
         }
-
-        Span::add('realtime.messageType', $messageType);
 
         // Ping does not require project context; other messages do (e.g. after unsubscribe during auth)
         if (empty($projectId) && ($message['type'] ?? '') !== 'ping') {
