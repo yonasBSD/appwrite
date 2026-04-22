@@ -51,6 +51,15 @@ class Webhooks extends Base
      */
     public function isValid($value): bool
     {
+        return parent::isValid($this->normalizeAliases($value));
+    }
+
+    private function normalizeAliases(mixed $value): mixed
+    {
+        if (!\is_array($value)) {
+            return $value;
+        }
+
         foreach ($value as &$queryString) {
             if (!\is_string($queryString)) {
                 continue;
@@ -61,6 +70,6 @@ class Webhooks extends Base
         }
         unset($queryString);
 
-        return parent::isValid($value);
+        return $value;
     }
 }

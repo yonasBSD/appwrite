@@ -452,6 +452,7 @@ class Realtime extends MessagingAdapter
          * Reserved channel params with expected type
          * If matched the expected type then skip the query parsing like in project
          */
+        /** @var array<string, 'array'|'string'> $reservedParamExpectedTypes */
         $reservedParamExpectedTypes = [
             'project' => 'string',
         ];
@@ -461,8 +462,14 @@ class Realtime extends MessagingAdapter
             $params = $getQueryParam($paramKey);
 
             if (\array_key_exists($paramKey, $reservedParamExpectedTypes) && $params !== null) {
+                $expectedType = $reservedParamExpectedTypes[$paramKey];
+                $isExpectedType = match ($expectedType) {
+                    'array' => \is_array($params),
+                    'string' => \is_string($params),
+                };
+
                 // If the value matches the expected type dont use it the queries
-                if (\is_string($params)) {
+                if ($isExpectedType) {
                     $params = null;
                 }
             }
