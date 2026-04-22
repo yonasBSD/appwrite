@@ -982,5 +982,5 @@ jobs:
           edit-mode: replace
 
       - name: Fail benchmark
-        if: steps.benchmark_after.outcome == 'failure'
+        if: always() && steps.benchmark_after.outcome == 'failure'
         run: exit 1
