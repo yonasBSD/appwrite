@@ -1,3 +1,28 @@
+/*
+ * Run locally:
+ *
+ * docker compose up -d --force-recreate --build --wait
+ *
+ * docker run --rm -i \
+ *   --network appwrite \
+ *   -p 127.0.0.1:5665:5665 \
+ *   -v "$PWD:/scripts:ro" \
+ *   -v /tmp:/host-tmp \
+ *   -w /scripts \
+ *   -e K6_WEB_DASHBOARD=true \
+ *   -e K6_WEB_DASHBOARD_HOST=0.0.0.0 \
+ *   -e K6_WEB_DASHBOARD_PORT=5665 \
+ *   -e K6_WEB_DASHBOARD_EXPORT=/host-tmp/appwrite-k6-report.html \
+ *   -e APPWRITE_ENDPOINT=http://appwrite/v1 \
+ *   -e APPWRITE_MAILDEV_ENDPOINT=http://maildev:1080/email \
+ *   -e APPWRITE_WORKER_TIMEOUT_MS=120000 \
+ *   -e APPWRITE_BENCHMARK_SUMMARY_PATH=/host-tmp/appwrite-k6-summary.json \
+ *   grafana/k6:0.53.0 run \
+ *     --out json=/host-tmp/appwrite-k6-samples.json \
+ *     tests/benchmarks/http.js
+ *
+ * Open http://127.0.0.1:5665 while the benchmark is running.
+ */
 import http from 'k6/http';
 import { check, group, sleep } from 'k6';
 import encoding from 'k6/encoding';
