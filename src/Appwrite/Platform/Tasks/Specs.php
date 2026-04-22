@@ -343,9 +343,9 @@ class Specs extends Action
         }
     }
 
-    private function collectSpecEnumNames(array $node, array &$enums, ?string $fallbackName = null): void
+    private function collectSpecEnumNames(array $node, array &$enums, ?string $fallbackName = null, bool $skipCurrentEnum = false): void
     {
-        if (isset($node['enum']) && \is_array($node['enum'])) {
+        if (!$skipCurrentEnum && isset($node['enum']) && \is_array($node['enum'])) {
             $enumName = $this->getExplicitSpecEnumName($node)
                 ?? $this->getFallbackSpecEnumName($node, $fallbackName);
 
@@ -354,6 +354,7 @@ class Specs extends Action
             }
         }
 
+        $itemsEnumHandled = false;
         if (
             isset($node['items'])
             && \is_array($node['items'])
@@ -367,6 +368,8 @@ class Specs extends Action
             if (!\is_null($enumName)) {
                 $this->addSpecEnumName($enums, $enumName);
             }
+
+            $itemsEnumHandled = true;
         }
 
         $explicitEnumName = $this->getExplicitSpecEnumName($node);
@@ -375,14 +378,15 @@ class Specs extends Action
         }
 
         foreach ($node as $key => $value) {
-            if ($key === 'items' || !\is_array($value)) {
+            if (!\is_array($value)) {
                 continue;
             }
 
             $this->collectSpecEnumNames(
                 $value,
                 $enums,
-                $this->getChildSpecEnumFallbackName($node, $key, $value, $fallbackName)
+                $this->getChildSpecEnumFallbackName($node, $key, $value, $fallbackName),
+                $key === 'items' && $itemsEnumHandled
             );
         }
     }
