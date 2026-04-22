@@ -764,10 +764,11 @@ trait MigrationsBase
     /**
      * Appwrite → Appwrite row re-migration honoring onDuplicate=skip and onDuplicate=upsert.
      *
-     * onDuplicate only gates the row-write path in DestinationAppwrite. Re-running the
-     * migration with the full resource tree (database/table/column/row) always errors
-     * on schema creation because destination already has those. This test accepts those
-     * schema-level errors as expected noise and asserts row-level correctness directly.
+     * With utopia-php/migration's DestinationAppwrite handling schema tolerance
+     * (pre-check the destination `_metadata` for each database / table / column
+     * / index, tolerate existing in Skip/Upsert), re-migration completes
+     * cleanly — no more schema-level errors to tolerate. The test asserts
+     * strict 'completed' status via performMigrationSync on every run.
      */
     public function testAppwriteMigrationRowsOnDuplicate(): void
     {
@@ -816,31 +817,31 @@ trait MigrationsBase
         $this->assertEquals(200, $mutate['headers']['status-code']);
         $this->assertEquals('Mutated', $mutate['body']['name']);
 
-        // Re-migration with onDuplicate=skip. Overall status is expected to be 'failed'
-        // because schema re-create errors (database/table/column already exist) — those
-        // are orthogonal to onDuplicate which only affects row writes. Assert row-level
-        // success counter instead.
-        $this->runMigrationAssertingRowSuccess([
+        // Re-migration with onDuplicate=skip — completion is strict because
+        // DestinationAppwrite tolerates existing schema resources.
+        $skipResult = $this->performMigrationSync([
             'resources' => $resources,
             'endpoint' => $this->webEndpoint,
             'projectId' => $this->getProject()['$id'],
             'apiKey' => $this->getProject()['apiKey'],
             'onDuplicate' => 'skip',
         ]);
+        $this->assertEquals('completed', $skipResult['status']);
 
         $rowAfterSkip = $this->client->call(Client::METHOD_GET, '/tablesdb/' . $databaseId . '/tables/' . $tableId . '/rows/' . $rowId, $destHeaders);
         $this->assertEquals(200, $rowAfterSkip['headers']['status-code']);
         $this->assertEquals('Mutated', $rowAfterSkip['body']['name'], 'onDuplicate=skip must not overwrite destination row');
 
-        // Re-migration with onDuplicate=upsert. Same status-tolerant approach; assert
-        // destination row was restored to source value.
-        $this->runMigrationAssertingRowSuccess([
+        // Re-migration with onDuplicate=upsert — strict completion; destination
+        // row restored to source value.
+        $upsertResult = $this->performMigrationSync([
             'resources' => $resources,
             'endpoint' => $this->webEndpoint,
             'projectId' => $this->getProject()['$id'],
             'apiKey' => $this->getProject()['apiKey'],
             'onDuplicate' => 'upsert',
         ]);
+        $this->assertEquals('completed', $upsertResult['status']);
 
         $rowAfterUpsert = $this->client->call(Client::METHOD_GET, '/tablesdb/' . $databaseId . '/tables/' . $tableId . '/rows/' . $rowId, $destHeaders);
         $this->assertEquals(200, $rowAfterUpsert['headers']['status-code']);
@@ -854,33 +855,88 @@ trait MigrationsBase
     }
 
     /**
-     * Helper for Appwrite→Appwrite re-migrations where onDuplicate applies only to rows.
-     * Accepts migration stages of 'finished' regardless of overall status, then asserts
-     * the row-level counter has zero errors (and at least one success).
-     *
-     * @param array<string,mixed> $body
+     * Re-migrating unchanged source (Skip / Upsert) completes cleanly without
+     * touching destination rows. Proves the schema-tolerance path: every
+     * database / table / attribute on destination already exists with a
+     * matching spec, so DestinationAppwrite's pre-check returns Tolerate for
+     * every resource and no-ops row writes go through the DB-native conflict
+     * primitives (INSERT IGNORE / ON DUPLICATE KEY UPDATE).
      */
-    private function runMigrationAssertingRowSuccess(array $body): void
+    public function testAppwriteMigrationReRunIsIdempotent(): void
     {
-        $migration = $this->client->call(Client::METHOD_POST, '/migrations/appwrite', [
+        $sourceHeaders = [
+            'content-type' => 'application/json',
+            'x-appwrite-project' => $this->getProject()['$id'],
+            'x-appwrite-key' => $this->getProject()['apiKey'],
+        ];
+        $destHeaders = [
             'content-type' => 'application/json',
             'x-appwrite-project' => $this->getDestinationProject()['$id'],
             'x-appwrite-key' => $this->getDestinationProject()['apiKey'],
-        ], $body);
-        $this->assertEquals(202, $migration['headers']['status-code']);
+        ];
 
-        $this->assertEventually(function () use ($migration) {
-            $response = $this->client->call(Client::METHOD_GET, '/migrations/' . $migration['body']['$id'], [
-                'content-type' => 'application/json',
-                'x-appwrite-project' => $this->getDestinationProject()['$id'],
-                'x-appwrite-key' => $this->getDestinationProject()['apiKey'],
+        $data = $this->setupMigrationTable();
+        $databaseId = $data['databaseId'];
+        $tableId = $data['tableId'];
+
+        // Seed two rows on source so the row-level tolerance is exercised too.
+        foreach (['row-a', 'row-b'] as $rowId) {
+            $row = $this->client->call(Client::METHOD_POST, '/tablesdb/' . $databaseId . '/tables/' . $tableId . '/rows', $sourceHeaders, [
+                'rowId' => $rowId,
+                'data' => ['name' => 'Seeded ' . $rowId],
             ]);
-            $this->assertEquals(200, $response['headers']['status-code']);
-            $this->assertEquals('finished', $response['body']['stage']);
-            $this->assertArrayHasKey(Resource::TYPE_ROW, $response['body']['statusCounters']);
-            $this->assertEquals(0, $response['body']['statusCounters'][Resource::TYPE_ROW]['error']);
-            $this->assertGreaterThanOrEqual(1, $response['body']['statusCounters'][Resource::TYPE_ROW]['success']);
-        }, 60_000, 500);
+            $this->assertEquals(201, $row['headers']['status-code']);
+        }
+
+        $resources = [
+            Resource::TYPE_DATABASE,
+            Resource::TYPE_TABLE,
+            Resource::TYPE_COLUMN,
+            Resource::TYPE_ROW,
+        ];
+
+        // First migration: fresh destination.
+        $first = $this->performMigrationSync([
+            'resources' => $resources,
+            'endpoint' => $this->webEndpoint,
+            'projectId' => $this->getProject()['$id'],
+            'apiKey' => $this->getProject()['apiKey'],
+        ]);
+        $this->assertEquals('completed', $first['status']);
+
+        // Re-run under Skip: nothing on source has changed. Destination
+        // schema + rows are already correct — expect clean completion.
+        $reRunSkip = $this->performMigrationSync([
+            'resources' => $resources,
+            'endpoint' => $this->webEndpoint,
+            'projectId' => $this->getProject()['$id'],
+            'apiKey' => $this->getProject()['apiKey'],
+            'onDuplicate' => 'skip',
+        ]);
+        $this->assertEquals('completed', $reRunSkip['status']);
+
+        // Re-run under Upsert: same unchanged source. Schema tolerance path
+        // fires for each resource; rows go through DB-native upsert.
+        $reRunUpsert = $this->performMigrationSync([
+            'resources' => $resources,
+            'endpoint' => $this->webEndpoint,
+            'projectId' => $this->getProject()['$id'],
+            'apiKey' => $this->getProject()['apiKey'],
+            'onDuplicate' => 'upsert',
+        ]);
+        $this->assertEquals('completed', $reRunUpsert['status']);
+
+        foreach (['row-a', 'row-b'] as $rowId) {
+            $check = $this->client->call(Client::METHOD_GET, '/tablesdb/' . $databaseId . '/tables/' . $tableId . '/rows/' . $rowId, $destHeaders);
+            $this->assertEquals(200, $check['headers']['status-code']);
+            $this->assertEquals('Seeded ' . $rowId, $check['body']['name']);
+        }
+
+        $this->client->call(Client::METHOD_DELETE, '/databases/' . $databaseId, $destHeaders);
+        $this->client->call(Client::METHOD_DELETE, '/databases/' . $databaseId, $sourceHeaders);
+
+        self::$cachedDatabaseData = [];
+        self::$cachedTableData = [];
     }
 
     /**
