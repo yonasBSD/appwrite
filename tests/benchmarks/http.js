@@ -18,6 +18,7 @@ const PREVIOUS_SUMMARY_PATH = __ENV.APPWRITE_BENCHMARK_PREVIOUS_SUMMARY_PATH || 
 const PREVIOUS_SUMMARY = loadPreviousSummary();
 
 export const httpDuration = new Trend('appwrite_http_duration', true);
+export const httpWaiting = new Trend('appwrite_http_waiting', true);
 export const apiDuration = new Trend('appwrite_api_duration', true);
 export const databaseWorkerDuration = new Trend('appwrite_worker_database_duration', true);
 export const tablesWorkerDuration = new Trend('appwrite_worker_tables_duration', true);
@@ -720,6 +721,7 @@ function rawRequest(method, path, body, headers, name) {
     const payload = body === null || body === undefined ? null : JSON.stringify(body);
     const response = http.request(method, `${ENDPOINT}${path}`, payload, params);
     httpDuration.add(response.timings.duration, { name });
+    httpWaiting.add(response.timings.waiting, { name });
 
     return response;
 }

@@ -845,27 +845,35 @@ jobs:
               });
           }
 
-          function slowestSample(samples, metric) {
-            return samples.reduce((slowest, sample) => {
+          function topSamples(samples, metric, limit) {
+            const byName = samples.reduce((result, sample) => {
               if (sample.metric !== metric || typeof sample.data?.value !== 'number') {
-                return slowest;
+                return result;
               }
 
-              const current = {
-                name: sample.data.tags?.name || 'unknown',
-                value: sample.data.value,
-              };
+              const name = sample.data.tags?.name || 'unknown';
+              const current = result.get(name);
+              if (!current || sample.data.value > current.value) {
+                result.set(name, { name, value: sample.data.value });
+              }
 
-              return slowest === null || current.value > slowest.value ? current : slowest;
-            }, null);
+              return result;
+            }, new Map());
+
+            return [...byName.values()]
+              .sort((left, right) => right.value - left.value)
+              .slice(0, limit);
           }
 
-          function formatSlowest(sample) {
-            if (sample === null) {
-              return 'n/a';
+          function topSampleRows(samples) {
+            if (samples.length === 0) {
+              return ['| n/a | n/a |'];
             }
 
-            return `${markdownText(sample.name).replace(/\|/g, '\\|')} (${detailValue(sample.value, 'ms')})`;
+            return samples.map((sample) => {
+              const name = markdownText(sample.name).replace(/\|/g, '\\|');
+              return `| ${name} | ${detailValue(sample.value, 'ms')} |`;
+            });
           }
 
           const before = readSummary('benchmark-before-summary.json', false);
@@ -873,8 +881,7 @@ jobs:
           const afterSamples = readSamples('benchmark-after-samples.json');
           const baseRef = markdownText(process.env.BENCHMARK_BASE_REF || 'base');
           const headRef = markdownText(process.env.BENCHMARK_HEAD_REF || 'head');
-          const slowestHttp = slowestSample(afterSamples, 'appwrite_http_duration');
-          const slowestApi = slowestSample(afterSamples, 'appwrite_api_duration');
+          const topWaits = topSamples(afterSamples, 'appwrite_http_waiting', 3);
 
           const rows = [
             row('HTTP total p95', metricValue(before, 'appwrite_http_duration', 'p(95)'), metricValue(after, 'appwrite_http_duration', 'p(95)'), 'ms'),
@@ -912,10 +919,11 @@ jobs:
           console.log(detailRow(after, 'Mail worker delivery', 'appwrite_worker_mails_duration'));
           console.log(detailRow(after, 'Messaging worker delivery', 'appwrite_worker_messaging_duration'));
           console.log();
-          console.log('| Detail | Value |');
-          console.log('| --- | --- |');
-          console.log(`| Slowest Appwrite request | ${formatSlowest(slowestHttp)} |`);
-          console.log(`| Slowest API endpoint | ${formatSlowest(slowestApi)} |`);
+          console.log('**Top 3 request waits**');
+          console.log();
+          console.log('| Request | Max wait |');
+          console.log('| --- | ---: |');
+          console.log(topSampleRows(topWaits).join('\n'));
           console.log();
           console.log('</details>');
           NODE
