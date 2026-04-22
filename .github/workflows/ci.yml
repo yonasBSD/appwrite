@@ -692,7 +692,6 @@ jobs:
 
       - name: Installing latest version
         run: |
-          # TODO: Minify docker-compose; remove development tooling
           rm .env
           LATEST_TAG=$(curl -fsSL -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/repos/appwrite/appwrite/releases/latest | jq -r .tag_name)
           echo "Latest release tag: $LATEST_TAG"
