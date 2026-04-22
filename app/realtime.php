@@ -702,11 +702,24 @@ $server->onOpen(function (int $connection, SwooleRequest $request) use ($server,
     $project = null;
     $logUser = null;
     $authorization = null;
+    $rawSize = $request->getSize();
+    $channelCount = 0;
+    $subscriptionCount = 0;
+    $outboundBytes = 0;
+    $responseCode = 200;
+    $subscriptionMode = 'message';
+    $success = false;
+
+    Span::init('realtime.open');
+    Span::add('realtime.connection_id', $connection);
+    Span::add('realtime.inbound_bytes', $rawSize);
+    Span::add('realtime.origin', $request->getOrigin() ?: 'n/a');
 
     try {
         /** @var Document $project */
         $project = $connectionContainer->get('project');
         $authorization = $connectionContainer->get('authorization');
+        Span::add('realtime.project_id', $project->getId() ?: 'n/a');
 
         /*
          *  Project Check
@@ -751,8 +764,6 @@ $server->onOpen(function (int $connection, SwooleRequest $request) use ($server,
             throw new Exception(Exception::REALTIME_TOO_MANY_MESSAGES, 'Too many requests');
         }
 
-        $rawSize = $request->getSize();
-
         triggerStats([
             METRIC_REALTIME_INBOUND => $rawSize,
         ], $project->getId());
@@ -770,8 +781,10 @@ $server->onOpen(function (int $connection, SwooleRequest $request) use ($server,
         }
 
         $roles = $user->getRoles($authorization);
+        Span::add('realtime.user_id', $user->getId() ?: 'n/a');
 
         $channels = Realtime::convertChannels($request->getQuery('channels', []), $user->getId());
+        $channelCount = \count($channels);
 
         $updateStats = static function (string $projectId, ?string $teamId, string $payloadJson) use ($register, $stats): void {
             $register->get('telemetry.connectionCounter')->add(1);
@@ -809,11 +822,15 @@ $server->onOpen(function (int $connection, SwooleRequest $request) use ($server,
             $realtime->subscribe($project->getId(), $connection, '', $roles, [], [], $user->getId());
             $realtime->connections[$connection]['authorization'] = $authorization;
             $server->send([$connection], $connectedPayloadJson);
+            $outboundBytes += \strlen($connectedPayloadJson);
             $updateStats($project->getId(), $project->getAttribute('teamId'), $connectedPayloadJson);
+            $subscriptionMode = 'message';
+            $success = true;
             return;
         }
 
         $names = array_keys($channels);
+        $subscriptionMode = 'url';
 
         try {
             $subscriptions = Realtime::constructSubscriptions(
@@ -840,6 +857,7 @@ $server->onOpen(function (int $connection, SwooleRequest $request) use ($server,
 
             $mapping[$index] = $subscriptionId;
         }
+        $subscriptionCount = \count($subscriptions);
         if (!empty($subscriptions)) {
             $register->get('telemetry.workerSubscriptionCounter')->add(\count($subscriptions), $register->get('telemetry.workerAttributes'));
         }
@@ -858,8 +876,9 @@ $server->onOpen(function (int $connection, SwooleRequest $request) use ($server,
         ]);
 
         $server->send([$connection], $connectedPayloadJson);
+        $outboundBytes += \strlen($connectedPayloadJson);
         $updateStats($project->getId(), $project->getAttribute('teamId'), $connectedPayloadJson);
-
+        $success = true;
 
     } catch (Throwable $th) {
         logError($th, 'realtime', project: $project, user: $logUser, authorization: $authorization);
@@ -869,6 +888,7 @@ $server->onOpen(function (int $connection, SwooleRequest $request) use ($server,
         if (!\is_int($code)) {
             $code = 500;
         }
+        $responseCode = $code;
 
         $message = $th->getMessage();
 
@@ -886,7 +906,9 @@ $server->onOpen(function (int $connection, SwooleRequest $request) use ($server,
             ]
         ];
 
-        $server->send([$connection], json_encode($response));
+        $responsePayloadJson = json_encode($response);
+        $server->send([$connection], $responsePayloadJson);
+        $outboundBytes += \strlen($responsePayloadJson);
         $server->close($connection, $code);
 
         if (System::getEnv('_APP_ENV', 'production') === 'development') {
@@ -894,6 +916,17 @@ $server->onOpen(function (int $connection, SwooleRequest $request) use ($server,
             Console::error('[Error] Code: ' . $response['data']['code']);
             Console::error('[Error] Message: ' . $response['data']['message']);
         }
+        Span::error($th);
+    } finally {
+        Span::add('realtime.success', $success);
+        Span::add('realtime.response_code', $responseCode);
+        Span::add('realtime.subscription_mode', $subscriptionMode);
+        Span::add('realtime.channel_count', $channelCount);
+        Span::add('realtime.subscription_count', $subscriptionCount);
+        Span::add('realtime.outbound_bytes', $outboundBytes);
+        Span::add('realtime.project_id', $project?->getId() ?: 'n/a');
+        Span::add('realtime.user_id', $logUser?->getId() ?: 'n/a');
+        Span::current()?->finish();
     }
 });
 
@@ -1298,6 +1331,11 @@ $server->onMessage(function (int $connection, string $message) use ($server, $re
 $server->onClose(function (int $connection) use ($realtime, $stats, $register) {
     $projectId = null;
     $userId = null;
+    $subscriptionsBeforeClose = 0;
+    $success = false;
+
+    Span::init('realtime.close');
+    Span::add('realtime.connection_id', $connection);
 
     if (array_key_exists($connection, $realtime->connections)) {
         $projectId = $realtime->connections[$connection]['projectId'] ?? null;
@@ -1320,12 +1358,20 @@ $server->onClose(function (int $connection) use ($realtime, $stats, $register) {
                 METRIC_REALTIME_CONNECTIONS => -1,
             ], $projectId);
         }
+        $success = true;
     } catch (\Throwable $th) {
         // Log only; do not rethrow. If we let this bubble, Swoole dumps full coroutine
         // backtraces and unsubscribe() below would never run (connection cleanup would fail).
         Console::error('Realtime onClose error: ' . $th->getMessage());
+        Span::error($th);
+    } finally {
+        Span::add('realtime.success', $success);
+        Span::add('realtime.project_id', $projectId ?: 'n/a');
+        Span::add('realtime.user_id', $userId ?: 'n/a');
+        Span::add('realtime.subscriptions_before_close', $subscriptionsBeforeClose);
     }
     $realtime->unsubscribe($connection);
+    Span::current()?->finish();
 
     Console::info('Connection close: ' . $connection);
 });
