@@ -1023,7 +1023,7 @@ $server->onMessage(function (int $connection, string $message) use ($server, $re
 
         $messageType = $message['type'] ?? 'invalid';
 
-        if (!\is_scalar($messageType) && $messageType !== null) {
+        if (!\is_scalar($messageType)) {
             throw new Exception(Exception::REALTIME_MESSAGE_FORMAT_INVALID, 'Message type is not valid.');
         }
 
@@ -1285,7 +1285,7 @@ $server->onMessage(function (int $connection, string $message) use ($server, $re
                 $subscriptionsAfter = \count($realtime->getSubscriptionMetadata($connection));
                 $subscriptionDelta = $subscriptionsAfter - $subscriptionsBefore;
                 $subscriptionsRequested = \count($validatedIds);
-                $subscriptionsRemoved = \count(\array_filter($unsubscribeResults, fn (array $item) => $item['removed'] ?? false));
+                $subscriptionsRemoved = \count(\array_filter($unsubscribeResults, fn (array $item) => $item['removed']));
                 if ($subscriptionDelta !== 0) {
                     $register->get('telemetry.workerSubscriptionCounter')->add($subscriptionDelta, $register->get('telemetry.workerAttributes'));
                 }
