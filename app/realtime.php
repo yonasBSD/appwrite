@@ -1017,11 +1017,16 @@ $server->onMessage(function (int $connection, string $message) use ($server, $re
 
         $message = json_decode($message, true);
         $messageType = $message['type'] ?? 'invalid';
-        Span::add('realtime.messageType', $messageType);
 
         if (is_null($message) || (!array_key_exists('type', $message) && !array_key_exists('data', $message))) {
             throw new Exception(Exception::REALTIME_MESSAGE_FORMAT_INVALID, 'Message format is not valid.');
         }
+
+        if (!\is_scalar($messageType) && $messageType !== null) {
+            throw new Exception(Exception::REALTIME_MESSAGE_FORMAT_INVALID, 'Message type is not valid.');
+        }
+
+        Span::add('realtime.messageType', $messageType);
 
         // Ping does not require project context; other messages do (e.g. after unsubscribe during auth)
         if (empty($projectId) && ($message['type'] ?? '') !== 'ping') {
