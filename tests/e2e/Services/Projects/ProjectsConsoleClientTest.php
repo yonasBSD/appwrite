@@ -927,7 +927,8 @@ class ProjectsConsoleClientTest extends Scope
         $this->assertEquals($smtpHost, $response['body']['smtpHost']);
         $this->assertEquals($smtpPort, $response['body']['smtpPort']);
         $this->assertEquals($smtpUsername, $response['body']['smtpUsername']);
-        $this->assertEquals($smtpPassword, $response['body']['smtpPassword']);
+        // smtpPassword is write-only: the stored password must never leak in responses
+        $this->assertEquals('', $response['body']['smtpPassword']);
         $this->assertEquals('', $response['body']['smtpSecure']);
 
         // Check the project
@@ -943,7 +944,8 @@ class ProjectsConsoleClientTest extends Scope
         $this->assertEquals($smtpHost, $response['body']['smtpHost']);
         $this->assertEquals($smtpPort, $response['body']['smtpPort']);
         $this->assertEquals($smtpUsername, $response['body']['smtpUsername']);
-        $this->assertEquals($smtpPassword, $response['body']['smtpPassword']);
+        // smtpPassword is write-only: the stored password must never leak in responses
+        $this->assertEquals('', $response['body']['smtpPassword']);
         $this->assertEquals('', $response['body']['smtpSecure']);
 
         /**
@@ -1077,6 +1079,7 @@ class ProjectsConsoleClientTest extends Scope
         $response = $this->client->call(Client::METHOD_GET, '/projects/' . $id . '/templates/email/verification/en-us', array_merge([
             'content-type' => 'application/json',
             'x-appwrite-project' => $this->getProject()['$id'],
+            'x-appwrite-response-format' => '1.9.1',
         ], $this->getHeaders()));
 
         $this->assertEquals(200, $response['headers']['status-code']);
@@ -1085,10 +1088,45 @@ class ProjectsConsoleClientTest extends Scope
         $this->assertEquals('verification', $response['body']['type']);
         $this->assertEquals('en-us', $response['body']['locale']);
 
+        /** Update Email template, fail due to SMTP disabled */
+        $response = $this->client->call(Client::METHOD_PATCH, '/projects/' . $id . '/templates/email/verification/en-us', array_merge([
+            'content-type' => 'application/json',
+            'x-appwrite-project' => $this->getProject()['$id'],
+            'x-appwrite-response-format' => '1.9.1',
+        ], $this->getHeaders()), [
+            'subject' => 'Please verify your email',
+            'message' => 'Please verify your email {{url}}',
+            'senderName' => 'Appwrite Custom',
+            'senderEmail' => 'custom@appwrite.io',
+        ]);
+
+        $this->assertEquals(400, $response['headers']['status-code']);
+
+        /** Configure custom SMTP pointing to maildev, so changing template is allowed */
+        $smtpHost = 'maildev';
+        $smtpPort = 1025;
+        $smtpUsername = 'user';
+        $smtpPassword = 'password';
+        $response = $this->client->call(Client::METHOD_PATCH, '/projects/' . $id . '/smtp', array_merge([
+            'content-type' => 'application/json',
+            'x-appwrite-project' => $this->getProject()['$id'],
+            'x-appwrite-response-format' => '1.9.1',
+        ], $this->getHeaders()), [
+            'enabled' => true,
+            'senderEmail' => 'mailer@appwrite.io',
+            'senderName' => 'Mailer',
+            'host' => $smtpHost,
+            'port' => $smtpPort,
+            'username' => $smtpUsername,
+            'password' => $smtpPassword,
+        ]);
+        $this->assertEquals(200, $response['headers']['status-code']);
+
         /** Update Email template */
         $response = $this->client->call(Client::METHOD_PATCH, '/projects/' . $id . '/templates/email/verification/en-us', array_merge([
             'content-type' => 'application/json',
             'x-appwrite-project' => $this->getProject()['$id'],
+            'x-appwrite-response-format' => '1.9.1',
         ], $this->getHeaders()), [
             'subject' => 'Please verify your email',
             'message' => 'Please verify your email {{url}}',
@@ -1108,6 +1146,7 @@ class ProjectsConsoleClientTest extends Scope
         $response = $this->client->call(Client::METHOD_GET, '/projects/' . $id . '/templates/email/verification/en-us', array_merge([
             'content-type' => 'application/json',
             'x-appwrite-project' => $this->getProject()['$id'],
+            'x-appwrite-response-format' => '1.9.1',
         ], $this->getHeaders()));
 
         $this->assertEquals(200, $response['headers']['status-code']);
@@ -1175,6 +1214,7 @@ class ProjectsConsoleClientTest extends Scope
         $response = $this->client->call(Client::METHOD_PATCH, '/projects/' . $projectId . '/templates/email', array_merge([
             'content-type' => 'application/json',
             'x-appwrite-project' => $this->getProject()['$id'],
+            'x-appwrite-response-format' => '1.9.1',
         ], $this->getHeaders()), [
             'type' => 'sessionAlert',
             // Intentionally no locale
@@ -1193,6 +1233,7 @@ class ProjectsConsoleClientTest extends Scope
         $response = $this->client->call(Client::METHOD_PATCH, '/projects/' . $projectId . '/templates/email', array_merge([
             'content-type' => 'application/json',
             'x-appwrite-project' => $this->getProject()['$id'],
+            'x-appwrite-response-format' => '1.9.1',
         ], $this->getHeaders()), [
             'type' => 'sessionAlert',
             'locale' => 'sk',

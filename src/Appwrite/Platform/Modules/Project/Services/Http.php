@@ -24,6 +24,10 @@ use Appwrite\Platform\Modules\Project\Http\Project\Platforms\Windows\Update as U
 use Appwrite\Platform\Modules\Project\Http\Project\Platforms\XList as ListPlatforms;
 use Appwrite\Platform\Modules\Project\Http\Project\Protocols\Update as UpdateProjectProtocol;
 use Appwrite\Platform\Modules\Project\Http\Project\Services\Update as UpdateProjectService;
+use Appwrite\Platform\Modules\Project\Http\Project\SMTP\Tests\Create as CreateSMTPTest;
+use Appwrite\Platform\Modules\Project\Http\Project\SMTP\Update as UpdateSMTP;
+use Appwrite\Platform\Modules\Project\Http\Project\Templates\Email\Get as GetTemplate;
+use Appwrite\Platform\Modules\Project\Http\Project\Templates\Email\Update as UpdateTemplate;
 use Appwrite\Platform\Modules\Project\Http\Project\Variables\Create as CreateVariable;
 use Appwrite\Platform\Modules\Project\Http\Project\Variables\Delete as DeleteVariable;
 use Appwrite\Platform\Modules\Project\Http\Project\Variables\Get as GetVariable;
@@ -44,6 +48,14 @@ class Http extends Service
         $this->addAction(UpdateProjectLabels::getName(), new UpdateProjectLabels());
         $this->addAction(UpdateProjectProtocol::getName(), new UpdateProjectProtocol());
         $this->addAction(UpdateProjectService::getName(), new UpdateProjectService());
+
+        // SMTP
+        $this->addAction(UpdateSMTP::getName(), new UpdateSMTP());
+        $this->addAction(CreateSMTPTest::getName(), new CreateSMTPTest());
+
+        // Templates
+        $this->addAction(GetTemplate::getName(), new GetTemplate());
+        $this->addAction(UpdateTemplate::getName(), new UpdateTemplate());
 
         // Variables
         $this->addAction(CreateVariable::getName(), new CreateVariable());

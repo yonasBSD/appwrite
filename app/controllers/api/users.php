@@ -2246,8 +2246,8 @@ Http::delete('/v1/users/:userId/mfa/authenticators/:type')
     ->label('event', 'users.[userId].delete.mfa')
     ->label('scope', 'users.write')
     ->label('audits.event', 'user.update')
-    ->label('audits.resource', 'user/{response.$id}')
-    ->label('audits.userId', '{response.$id}')
+    ->label('audits.resource', 'user/{request.userId}')
+    ->label('audits.userId', '{request.userId}')
     ->label('usage.metric', 'users.{scope}.requests.update')
     ->label('sdk', [
         new Method(

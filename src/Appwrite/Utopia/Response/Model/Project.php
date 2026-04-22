@@ -247,7 +247,13 @@ class Project extends Model
                 'default' => '',
                 'example' => 'john@appwrite.io',
             ])
-            ->addRule('smtpReplyTo', [
+            ->addRule('smtpReplyToName', [
+                'type' => self::TYPE_STRING,
+                'description' => 'SMTP reply to name',
+                'default' => '',
+                'example' => 'Support Team',
+            ])
+            ->addRule('smtpReplyToEmail', [
                 'type' => self::TYPE_STRING,
                 'description' => 'SMTP reply to email',
                 'default' => '',
@@ -273,9 +279,9 @@ class Project extends Model
             ])
             ->addRule('smtpPassword', [
                 'type' => self::TYPE_STRING,
-                'description' => 'SMTP server password',
+                'description' => 'SMTP server password. This property is write-only and always returned empty.',
                 'default' => '',
-                'example' => 'securepassword',
+                'example' => '',
             ])
             ->addRule('smtpSecure', [
                 'type' => self::TYPE_STRING,
@@ -409,11 +415,12 @@ class Project extends Model
         $document->setAttribute('smtpEnabled', $smtp['enabled'] ?? false);
         $document->setAttribute('smtpSenderEmail', $smtp['senderEmail'] ?? '');
         $document->setAttribute('smtpSenderName', $smtp['senderName'] ?? '');
-        $document->setAttribute('smtpReplyTo', $smtp['replyTo'] ?? '');
+        $document->setAttribute('smtpReplyToEmail', $smtp['replyToEmail'] ?? $smtp['replyTo'] ?? ''); // Includes backwards compatibility
+        $document->setAttribute('smtpReplyToName', $smtp['replyToName'] ?? '');
         $document->setAttribute('smtpHost', $smtp['host'] ?? '');
         $document->setAttribute('smtpPort', $smtp['port'] ?? '');
         $document->setAttribute('smtpUsername', $smtp['username'] ?? '');
-        $document->setAttribute('smtpPassword', $smtp['password'] ?? '');
+        $document->setAttribute('smtpPassword', ''); // Write-only: never expose the stored value
         $document->setAttribute('smtpSecure', $smtp['secure'] ?? '');
     }
 
