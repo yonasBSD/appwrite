@@ -778,7 +778,11 @@ jobs:
             try {
               return JSON.parse(fs.readFileSync(path, 'utf8'));
             } catch (error) {
-              throw new Error(`Invalid benchmark summary ${path}: ${error.message}`);
+              if (required) {
+                throw new Error(`Invalid benchmark summary ${path}: ${error.message}`);
+              }
+              console.error(`Invalid benchmark summary ${path}: ${error.message}`);
+              return null;
             }
           }
 
