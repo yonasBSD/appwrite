@@ -445,7 +445,7 @@ function tablesDbFlow(ctx) {
 
     const columns = [
         ['string', 'title', { size: 128 }],
-        ['integer', 'count', { min: 0, max: 100000 }],
+        ['integer', 'quantity', { min: 0, max: 100000 }],
         ['email', 'email', {}],
         ['boolean', 'active', {}],
     ];
@@ -482,10 +482,10 @@ function tablesDbFlow(ctx) {
     api('PATCH', `/tablesdb/${databaseId}/tables/${tableId}/rows/${rowId}`, {
         data: { title: 'Benchmark Row Updated' },
     }, ctx.sessionHeaders, [200], 'tablesdb.rows.update');
-    api('PATCH', `/tablesdb/${databaseId}/tables/${tableId}/rows/${rowId}/count/increment`, {
+    api('PATCH', `/tablesdb/${databaseId}/tables/${tableId}/rows/${rowId}/quantity/increment`, {
         value: 1,
     }, ctx.sessionHeaders, [200], 'tablesdb.rows.increment');
-    api('PATCH', `/tablesdb/${databaseId}/tables/${tableId}/rows/${rowId}/count/decrement`, {
+    api('PATCH', `/tablesdb/${databaseId}/tables/${tableId}/rows/${rowId}/quantity/decrement`, {
         value: 1,
     }, ctx.sessionHeaders, [200], 'tablesdb.rows.decrement');
     api('DELETE', `/tablesdb/${databaseId}/tables/${tableId}/rows/${rowId}`, null, ctx.sessionHeaders, [204], 'tablesdb.rows.delete');
@@ -905,7 +905,7 @@ function documentPayload() {
 function tablePayload() {
     return {
         title: 'Benchmark Row',
-        count: 1,
+        quantity: 1,
         email: 'row@example.com',
         active: true,
     };
