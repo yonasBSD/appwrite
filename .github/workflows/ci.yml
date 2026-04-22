@@ -757,7 +757,7 @@ jobs:
 
       - name: Stop after Appwrite
         if: always()
-        run: docker compose down -v
+        run: docker compose down -v || true
 
       - name: Prepare comment
         env:
