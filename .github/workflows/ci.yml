@@ -7,7 +7,7 @@ concurrency:
 env:
   COMPOSE_FILE: docker-compose.yml
   IMAGE: appwrite-dev
-  K6_IMAGE: grafana/k6:0.53.0
+  K6_VERSION: '0.53.0'
 
 on:
   pull_request:
@@ -683,6 +683,11 @@ jobs:
           docker load --input /tmp/${{ env.IMAGE }}.tar
           docker tag ${{ env.IMAGE }} ${{ env.IMAGE }}:after
 
+      - name: Setup k6
+        uses: grafana/setup-k6-action@v1
+        with:
+          k6-version: ${{ env.K6_VERSION }}
+
       - name: Prepare benchmark before
         id: benchmark_before_prepare
         continue-on-error: true
@@ -703,27 +708,34 @@ jobs:
         if: steps.benchmark_before_prepare.outcome == 'success'
         continue-on-error: true
         working-directory: /tmp/appwrite-benchmark-before
+        env:
+          _APP_DOMAIN: localhost
+          _APP_CONSOLE_DOMAIN: localhost
+          _APP_DOMAIN_FUNCTIONS: functions.localhost
+          _APP_DOMAIN_SITES: sites.localhost
         run: |
           docker tag ${{ env.IMAGE }}:before ${{ env.IMAGE }}
-          sed -i 's/traefik/localhost/g' .env
           docker compose up -d --wait --no-build
+
+      - name: Prepare benchmark files
+        run: rm -f benchmark-before-summary.json benchmark-after-summary.json benchmark-before-samples.json benchmark-after-samples.json
 
       - name: Benchmark before
         if: steps.benchmark_before_start.outcome == 'success'
         continue-on-error: true
-        run: |
-          set -o pipefail
-          rm -f benchmark-before-summary.json benchmark-after-summary.json benchmark-before-samples.json benchmark-after-samples.json benchmark-before.txt benchmark.txt
-          # Use the current benchmark script for both images so before/after differ only by the Appwrite image.
-          docker run --rm -i --network host --user "$(id -u):$(id -g)" -v "$PWD:/scripts" -w /scripts ${{ env.K6_IMAGE }} run --quiet \
-            --out json=benchmark-before-samples.json \
-            -e APPWRITE_ENDPOINT=http://localhost/v1 \
-            -e APPWRITE_MAILDEV_ENDPOINT=http://localhost:9503/email \
-            -e APPWRITE_BENCHMARK_ITERATIONS=1 \
-            -e APPWRITE_BENCHMARK_VUS=1 \
-            -e APPWRITE_WORKER_TIMEOUT_MS=120000 \
-            -e APPWRITE_BENCHMARK_SUMMARY_PATH=benchmark-before-summary.json \
-            tests/benchmarks/http.js | tee benchmark-before.txt
+        uses: grafana/run-k6-action@v1
+        env:
+          APPWRITE_ENDPOINT: 'http://localhost/v1'
+          APPWRITE_MAILDEV_ENDPOINT: 'http://localhost:9503/email'
+          APPWRITE_BENCHMARK_ITERATIONS: '1'
+          APPWRITE_BENCHMARK_VUS: '1'
+          APPWRITE_WORKER_TIMEOUT_MS: '120000'
+          APPWRITE_BENCHMARK_SUMMARY_PATH: 'benchmark-before-summary.json'
+        with:
+          path: tests/benchmarks/http.js
+          flags: --quiet --out json=benchmark-before-samples.json
+          cloud-comment-on-pr: false
+          debug: true
 
       - name: Stop before Appwrite
         if: always()
@@ -734,211 +746,47 @@ jobs:
           fi
 
       - name: Start after Appwrite
+        env:
+          _APP_DOMAIN: localhost
+          _APP_CONSOLE_DOMAIN: localhost
+          _APP_DOMAIN_FUNCTIONS: functions.localhost
+          _APP_DOMAIN_SITES: sites.localhost
         run: |
           docker tag ${{ env.IMAGE }}:after ${{ env.IMAGE }}
-          sed -i 's/traefik/localhost/g' .env
           docker compose up -d --wait --no-build
 
       - name: Benchmark after
         id: benchmark_after
         continue-on-error: true
-        run: |
-          set -o pipefail
-          docker run --rm -i --network host --user "$(id -u):$(id -g)" -v "$PWD:/scripts" -w /scripts ${{ env.K6_IMAGE }} run --quiet \
-            --out json=benchmark-after-samples.json \
-            -e APPWRITE_ENDPOINT=http://localhost/v1 \
-            -e APPWRITE_MAILDEV_ENDPOINT=http://localhost:9503/email \
-            -e APPWRITE_BENCHMARK_ITERATIONS=1 \
-            -e APPWRITE_BENCHMARK_VUS=1 \
-            -e APPWRITE_WORKER_TIMEOUT_MS=120000 \
-            -e APPWRITE_BENCHMARK_PREVIOUS_SUMMARY_PATH=benchmark-before-summary.json \
-            -e APPWRITE_BENCHMARK_SUMMARY_PATH=benchmark-after-summary.json \
-            tests/benchmarks/http.js | tee benchmark.txt
+        uses: grafana/run-k6-action@v1
+        env:
+          APPWRITE_ENDPOINT: 'http://localhost/v1'
+          APPWRITE_MAILDEV_ENDPOINT: 'http://localhost:9503/email'
+          APPWRITE_BENCHMARK_ITERATIONS: '1'
+          APPWRITE_BENCHMARK_VUS: '1'
+          APPWRITE_WORKER_TIMEOUT_MS: '120000'
+          APPWRITE_BENCHMARK_PREVIOUS_SUMMARY_PATH: 'benchmark-before-summary.json'
+          APPWRITE_BENCHMARK_SUMMARY_PATH: 'benchmark-after-summary.json'
+        with:
+          path: tests/benchmarks/http.js
+          flags: --quiet --out json=benchmark-after-samples.json
+          cloud-comment-on-pr: false
+          debug: true
 
       - name: Stop after Appwrite
         if: always()
         run: docker compose down -v || true
 
-      - name: Prepare comment
+      - name: Comment on PR
+        if: always()
+        uses: actions/github-script@v8
         env:
           BENCHMARK_BASE_REF: ${{ github.event.pull_request.base.ref }}
           BENCHMARK_HEAD_REF: ${{ github.event.pull_request.head.ref }}
-        run: |
-          node <<'NODE' > benchmark-comment.txt
-          const fs = require('fs');
-
-          function readSummary(path, required = true) {
-            if (!fs.existsSync(path)) {
-              if (required) {
-                throw new Error(`Missing benchmark summary: ${path}`);
-              }
-              return null;
-            }
-
-            try {
-              return JSON.parse(fs.readFileSync(path, 'utf8'));
-            } catch (error) {
-              if (required) {
-                throw new Error(`Invalid benchmark summary ${path}: ${error.message}`);
-              }
-              console.error(`Invalid benchmark summary ${path}: ${error.message}`);
-              return null;
-            }
-          }
-
-          function markdownText(value) {
-            return String(value || '').replace(/[\r\n]/g, ' ').replace(/[&<>"']/g, (char) => {
-              return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' })[char];
-            });
-          }
-
-          function metricValue(data, metric, stat) {
-            return data?.metrics?.[metric]?.values?.[stat] ?? null;
-          }
-
-          function formatNumber(value) {
-            return Number(value).toFixed(2).replace(/\.?0+$/, '');
-          }
-
-          function formatValue(value, suffix = '') {
-            return value === null ? 'n/a' : `${formatNumber(value)}${suffix}`;
-          }
-
-          function delta(beforeValue, afterValue, suffix = '') {
-            if (beforeValue === null || afterValue === null) {
-              return 'n/a';
-            }
-
-            const difference = Number((afterValue - beforeValue).toFixed(2));
-            return `${difference > 0 ? '+' : ''}${formatNumber(difference)}${suffix}`;
-          }
-
-          function row(label, beforeValue, afterValue, suffix = '') {
-            return `| ${label} | ${formatValue(beforeValue, suffix)} | ${formatValue(afterValue, suffix)} | ${delta(beforeValue, afterValue, suffix)} |`;
-          }
-
-          function detailValue(value, suffix = '') {
-            return value === null ? 'n/a' : `${Number(value).toFixed(2)}${suffix}`;
-          }
-
-          function detailRow(after, label, metric, suffix = 'ms') {
-            const values = after?.metrics?.[metric]?.values;
-            if (!values) {
-              return `| ${label} | n/a | n/a | n/a | n/a |`;
-            }
-
-            return `| ${label} | ${detailValue(values.avg ?? null, suffix)} | ${detailValue(values['p(90)'] ?? null, suffix)} | ${detailValue(values['p(95)'] ?? null, suffix)} | ${detailValue(values.max ?? null, suffix)} |`;
-          }
-
-          function readSamples(path) {
-            if (!fs.existsSync(path)) {
-              return [];
-            }
-
-            const contents = fs.readFileSync(path, 'utf8').trim();
-            if (contents === '') {
-              return [];
-            }
-
-            return contents
-              .split('\n')
-              .filter(Boolean)
-              .flatMap((line) => {
-                try {
-                  return [JSON.parse(line)];
-                } catch {
-                  return [];
-                }
-              });
-          }
-
-          function topSamples(samples, metric, limit) {
-            const byName = samples.reduce((result, sample) => {
-              if (sample.metric !== metric || typeof sample.data?.value !== 'number') {
-                return result;
-              }
-
-              const name = sample.data.tags?.name || 'unknown';
-              const current = result.get(name);
-              if (!current || sample.data.value > current.value) {
-                result.set(name, { name, value: sample.data.value });
-              }
-
-              return result;
-            }, new Map());
-
-            return [...byName.values()]
-              .sort((left, right) => right.value - left.value)
-              .slice(0, limit);
-          }
-
-          function topSampleRows(samples) {
-            if (samples.length === 0) {
-              return ['| n/a | n/a |'];
-            }
-
-            return samples.map((sample) => {
-              const name = markdownText(sample.name).replace(/\|/g, '\\|');
-              return `| ${name} | ${detailValue(sample.value, 'ms')} |`;
-            });
-          }
-
-          const before = readSummary('benchmark-before-summary.json', false);
-          const after = readSummary('benchmark-after-summary.json', false);
-          const afterSamples = readSamples('benchmark-after-samples.json');
-          const baseRef = markdownText(process.env.BENCHMARK_BASE_REF || 'base');
-          const headRef = markdownText(process.env.BENCHMARK_HEAD_REF || 'head');
-          const topWaits = topSamples(afterSamples, 'appwrite_http_waiting', 3);
-
-          const rows = [
-            row('HTTP throughput', metricValue(before, 'http_reqs', 'rate'), metricValue(after, 'http_reqs', 'rate'), ' req/s'),
-            row('HTTP total p95', metricValue(before, 'appwrite_http_duration', 'p(95)'), metricValue(after, 'appwrite_http_duration', 'p(95)'), 'ms'),
-            row('API endpoints p95', metricValue(before, 'appwrite_api_duration', 'p(95)'), metricValue(after, 'appwrite_api_duration', 'p(95)'), 'ms'),
-            row('Database worker p95', metricValue(before, 'appwrite_worker_database_duration', 'p(95)'), metricValue(after, 'appwrite_worker_database_duration', 'p(95)'), 'ms'),
-            row('TablesDB worker p95', metricValue(before, 'appwrite_worker_tables_duration', 'p(95)'), metricValue(after, 'appwrite_worker_tables_duration', 'p(95)'), 'ms'),
-            row('Mail worker p95', metricValue(before, 'appwrite_worker_mails_duration', 'p(95)'), metricValue(after, 'appwrite_worker_mails_duration', 'p(95)'), 'ms'),
-            row('Messaging worker p95', metricValue(before, 'appwrite_worker_messaging_duration', 'p(95)'), metricValue(after, 'appwrite_worker_messaging_duration', 'p(95)'), 'ms'),
-          ];
-
-          console.log('<!-- appwrite-benchmark-results -->');
-          console.log('## :sparkles: Benchmark results');
-          console.log();
-          console.log(`Comparing ${baseRef} (before) to ${headRef} (after).`);
-          console.log();
-          if (before === null) {
-            console.log('> Before benchmark did not complete; showing current branch metrics only.');
-            console.log();
-          }
-          if (after === null) {
-            console.log('> Current branch benchmark did not complete; showing available metrics only.');
-            console.log();
-          }
-          console.log('| Metric | Before | After | Delta |');
-          console.log('| --- | ---: | ---: | ---: |');
-          console.log(rows.join('\n'));
-          console.log();
-          console.log('<details>');
-          console.log('<summary><strong>Current run details</strong></summary>');
-          console.log();
-          console.log('<br>');
-          console.log();
-          console.log('| Scenario | Avg | P90 | P95 | Max |');
-          console.log('| --- | ---: | ---: | ---: | ---: |');
-          console.log(detailRow(after, 'HTTP total', 'appwrite_http_duration'));
-          console.log(detailRow(after, 'API endpoints', 'appwrite_api_duration'));
-          console.log(detailRow(after, 'Database worker schema jobs', 'appwrite_worker_database_duration'));
-          console.log(detailRow(after, 'TablesDB worker schema jobs', 'appwrite_worker_tables_duration'));
-          console.log(detailRow(after, 'Mail worker delivery', 'appwrite_worker_mails_duration'));
-          console.log(detailRow(after, 'Messaging worker delivery', 'appwrite_worker_messaging_duration'));
-          console.log();
-          console.log('**Top 3 request waits**');
-          console.log();
-          console.log('| Request | Max wait |');
-          console.log('| --- | ---: |');
-          console.log(topSampleRows(topWaits).join('\n'));
-          console.log();
-          console.log('</details>');
-          NODE
+        with:
+          script: |
+            const comment = require('./.github/workflows/benchmark-comment.js');
+            await comment({ github, context, core });
 
       - name: Save results
         uses: actions/upload-artifact@v7
@@ -946,40 +794,12 @@ jobs:
         with:
           name: benchmark-results
           path: |
-            benchmark-before.txt
-            benchmark.txt
+            benchmark-comment.txt
             benchmark-before-summary.json
             benchmark-after-summary.json
             benchmark-before-samples.json
             benchmark-after-samples.json
           retention-days: 7
-
-      - name: Find Comment
-        if: github.event.pull_request.head.repo.full_name == github.repository
-        uses: peter-evans/find-comment@v3
-        id: fc
-        with:
-          issue-number: ${{ github.event.pull_request.number }}
-          comment-author: 'github-actions[bot]'
-          body-includes: appwrite-benchmark-results
-
-      - name: Find Legacy Comment
-        if: github.event.pull_request.head.repo.full_name == github.repository && steps.fc.outputs.comment-id == ''
-        uses: peter-evans/find-comment@v3
-        id: legacy_fc
-        with:
-          issue-number: ${{ github.event.pull_request.number }}
-          comment-author: 'github-actions[bot]'
-          body-includes: Benchmark results
-
-      - name: Comment on PR
-        if: github.event.pull_request.head.repo.full_name == github.repository
-        uses: peter-evans/create-or-update-comment@v4
-        with:
-          comment-id: ${{ steps.fc.outputs.comment-id || steps.legacy_fc.outputs.comment-id }}
-          issue-number: ${{ github.event.pull_request.number }}
-          body-path: benchmark-comment.txt
-          edit-mode: replace
 
       - name: Fail benchmark
         if: always() && steps.benchmark_after.outcome == 'failure'
