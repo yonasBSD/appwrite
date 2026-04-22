@@ -801,8 +801,6 @@ class SitesCustomServerTest extends Scope
             'siteId' => ID::unique()
         ]);
 
-        $this->assertNotNull($siteId);
-
         /**
          * Test for SUCCESS
          */
@@ -881,8 +879,6 @@ class SitesCustomServerTest extends Scope
             'siteId' => ID::unique()
         ]);
 
-        $this->assertNotNull($siteId);
-
         $deployment = $this->createDeployment($siteId, [
             'siteId' => $siteId,
             'code' => $this->packageSite('static-single-file'),
@@ -943,8 +939,6 @@ class SitesCustomServerTest extends Scope
             'siteId' => ID::unique()
         ]);
 
-        $this->assertNotNull($siteId);
-
         $deployment = $this->createDeployment($siteId, [
             'code' => $this->packageSite('static-single-file'),
             'activate' => 'false'
@@ -995,8 +989,6 @@ class SitesCustomServerTest extends Scope
             'siteId' => ID::unique()
         ]);
 
-        $this->assertNotNull($siteId);
-
         $deployment = $this->createDeployment($siteId, [
             'code' => $this->packageSite('static-single-file'),
             'activate' => 'false'
@@ -1039,8 +1031,6 @@ class SitesCustomServerTest extends Scope
             'providerRootDirectory' => './',
             'siteId' => ID::unique()
         ]);
-
-        $this->assertNotNull($siteId);
 
         $deployment = $this->createDeployment($siteId, [
             'code' => $this->packageSite('static-single-file'),
@@ -1243,8 +1233,6 @@ class SitesCustomServerTest extends Scope
             'siteId' => ID::unique()
         ]);
 
-        $this->assertNotNull($siteId);
-
         $deployment = $this->createDeployment($siteId, [
             'code' => $this->packageSite('static-single-file'),
             'activate' => 'false'
@@ -1293,8 +1281,6 @@ class SitesCustomServerTest extends Scope
             'providerRootDirectory' => './',
             'siteId' => ID::unique()
         ]);
-
-        $this->assertNotNull($siteId);
 
         /**
          * Test for SUCCESS
@@ -1383,8 +1369,6 @@ class SitesCustomServerTest extends Scope
             'siteId' => ID::unique()
         ]);
 
-        $this->assertNotNull($siteId);
-
         $deployment = $this->createDeployment($siteId, [
             'code' => $this->packageSite('static-single-file'),
             'activate' => 'false'
@@ -1426,8 +1410,6 @@ class SitesCustomServerTest extends Scope
             'providerRootDirectory' => './',
             'siteId' => ID::unique()
         ]);
-
-        $this->assertNotNull($siteId);
 
         $site = $this->deleteSite($siteId);
 

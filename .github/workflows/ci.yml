@@ -694,7 +694,10 @@ jobs:
         run: |
           # TODO: Minify docker-compose; remove development tooling
           rm .env
-          curl https://appwrite.io/install/env -o .env
+          LATEST_TAG=$(curl -fsSL -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/repos/appwrite/appwrite/releases/latest | jq -r .tag_name)
+          echo "Latest release tag: $LATEST_TAG"
+          curl -fsSL "https://raw.githubusercontent.com/appwrite/appwrite/${LATEST_TAG}/docker-compose.yml" -o docker-compose.yml
+          curl -fsSL "https://raw.githubusercontent.com/appwrite/appwrite/${LATEST_TAG}/.env" -o .env
           sed -i 's/_APP_OPTIONS_ABUSE=enabled/_APP_OPTIONS_ABUSE=disabled/g' .env
           docker compose up -d
           sleep 10

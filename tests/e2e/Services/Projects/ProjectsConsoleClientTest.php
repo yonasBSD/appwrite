@@ -6,7 +6,6 @@ use Appwrite\Extend\Exception;
 use Appwrite\Tests\Async;
 use PHPUnit\Framework\Attributes\Group;
 use Tests\E2E\Client;
-use Tests\E2E\General\UsageTest;
 use Tests\E2E\Scopes\ProjectConsole;
 use Tests\E2E\Scopes\Scope;
 use Tests\E2E\Scopes\SideClient;
@@ -831,49 +830,6 @@ class ProjectsConsoleClientTest extends Scope
         $this->markTestIncomplete(
             'This test is failing right now due to functions collection.'
         );
-        /**
-         * Test for SUCCESS
-         */
-        $response = $this->client->call(Client::METHOD_GET, '/project/usage', array_merge([
-            'content-type' => 'application/json',
-            'x-appwrite-project' => $this->getProject()['$id'],
-        ], $this->getHeaders()), [
-            'startDate' => UsageTest::getToday(),
-            'endDate' => UsageTest::getTomorrow(),
-        ]);
-
-        $this->assertEquals(200, $response['headers']['status-code']);
-        $this->assertEquals(8, count($response['body']));
-        $this->assertNotEmpty($response['body']);
-        $this->assertIsArray($response['body']['requests']);
-        $this->assertIsArray($response['body']['network']);
-        $this->assertIsNumeric($response['body']['executionsTotal']);
-        $this->assertIsNumeric($response['body']['rowsTotal']);
-        $this->assertIsNumeric($response['body']['databasesTotal']);
-        $this->assertIsNumeric($response['body']['bucketsTotal']);
-        $this->assertIsNumeric($response['body']['usersTotal']);
-        $this->assertIsNumeric($response['body']['filesStorageTotal']);
-        $this->assertIsNumeric($response['body']['deploymentStorageTotal']);
-        $this->assertIsNumeric($response['body']['authPhoneTotal']);
-        $this->assertIsNumeric($response['body']['authPhoneEstimate']);
-
-
-        /**
-         * Test for FAILURE
-         */
-        $response = $this->client->call(Client::METHOD_GET, '/projects/empty', array_merge([
-            'content-type' => 'application/json',
-            'x-appwrite-project' => $this->getProject()['$id'],
-        ], $this->getHeaders()));
-
-        $this->assertEquals(404, $response['headers']['status-code']);
-
-        $response = $this->client->call(Client::METHOD_GET, '/projects/id-is-really-long-id-is-really-long-id-is-really-long-id-is-really-long', array_merge([
-            'content-type' => 'application/json',
-            'x-appwrite-project' => $this->getProject()['$id'],
-        ], $this->getHeaders()));
-
-        $this->assertEquals(400, $response['headers']['status-code']);
     }
 
     public function testUpdateProject(): void

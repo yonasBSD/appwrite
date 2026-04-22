@@ -1,6 +1,7 @@
 <?php
 
 use Appwrite\Platform\Modules\Compute\Specification;
+use Utopia\System\System;
 
 const APP_NAME = 'Appwrite';
 const APP_DOMAIN = 'appwrite.io';
@@ -190,7 +191,7 @@ const BUILD_TYPE_RETRY = 'retry';
 
 // Deletion Types
 
-const ENABLE_EXECUTIONS_LIMIT_ON_ROUTE = false;
+\define('ENABLE_EXECUTIONS_LIMIT_ON_ROUTE', System::getEnv('_APP_EXECUTIONS_LIMIT_ON_ROUTE', 'disabled') === 'enabled');
 
 const DELETE_TYPE_DATABASES = 'databases';
 const DELETE_TYPE_DOCUMENT = 'document';

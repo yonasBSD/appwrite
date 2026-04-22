@@ -313,7 +313,6 @@ Http::patch('/v1/projects/:projectId/auth/:method')
         $project = $dbForPlatform->getDocument('projects', $projectId);
         $auth = Config::getParam('auth')[$method] ?? [];
         $authKey = $auth['key'] ?? '';
-        $status = ($status === '1' || $status === 'true' || $status === 1 || $status === true);
 
         if ($project->isEmpty()) {
             throw new Exception(Exception::PROJECT_NOT_FOUND);
