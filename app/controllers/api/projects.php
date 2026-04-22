@@ -170,23 +170,11 @@ Http::patch('/v1/projects/:projectId/auth/:method')
         $response->dynamic($project, Response::MODEL_PROJECT);
     });
 
+// Backwards compatibility
 Http::patch('/v1/projects/:projectId/auth/mock-numbers')
     ->desc('Update the mock numbers for the project')
     ->groups(['api', 'projects'])
     ->label('scope', 'projects.write')
-    ->label('sdk', new Method(
-        namespace: 'projects',
-        group: 'auth',
-        name: 'updateMockNumbers',
-        description: '/docs/references/projects/update-mock-numbers.md',
-        auth: [AuthType::ADMIN],
-        responses: [
-            new SDKResponse(
-                code: Response::STATUS_CODE_OK,
-                model: Response::MODEL_PROJECT,
-            )
-        ]
-    ))
     ->param('projectId', '', fn (Database $dbForPlatform) => new UID($dbForPlatform->getAdapter()->getMaxUIDLength()), 'Project unique ID.', false, ['dbForPlatform'])
     ->param('numbers', '', new ArrayList(new MockNumber(), 10), 'An array of mock numbers and their corresponding verification codes (OTPs). Each number should be a valid E.164 formatted phone number. Maximum of 10 numbers are allowed.')
     ->inject('response')

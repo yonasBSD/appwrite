@@ -9,6 +9,11 @@ use Appwrite\Platform\Modules\Project\Http\Project\Keys\Get as GetKey;
 use Appwrite\Platform\Modules\Project\Http\Project\Keys\Update as UpdateKey;
 use Appwrite\Platform\Modules\Project\Http\Project\Keys\XList as ListKeys;
 use Appwrite\Platform\Modules\Project\Http\Project\Labels\Update as UpdateProjectLabels;
+use Appwrite\Platform\Modules\Project\Http\Project\MockPhone\Create as CreateMockPhone;
+use Appwrite\Platform\Modules\Project\Http\Project\MockPhone\Delete as DeleteMockPhone;
+use Appwrite\Platform\Modules\Project\Http\Project\MockPhone\Get as GetMockPhone;
+use Appwrite\Platform\Modules\Project\Http\Project\MockPhone\Update as UpdateMockPhone;
+use Appwrite\Platform\Modules\Project\Http\Project\MockPhone\XList as ListMockPhones;
 use Appwrite\Platform\Modules\Project\Http\Project\Platforms\Android\Create as CreateAndroidPlatform;
 use Appwrite\Platform\Modules\Project\Http\Project\Platforms\Android\Update as UpdateAndroidPlatform;
 use Appwrite\Platform\Modules\Project\Http\Project\Platforms\Apple\Create as CreateApplePlatform;
@@ -94,6 +99,13 @@ class Http extends Service
         $this->addAction(CreateLinuxPlatform::getName(), new CreateLinuxPlatform());
         $this->addAction(GetPlatform::getName(), new GetPlatform());
         $this->addAction(ListPlatforms::getName(), new ListPlatforms());
+
+        // Mock Phones
+        $this->addAction(CreateMockPhone::getName(), new CreateMockPhone());
+        $this->addAction(ListMockPhones::getName(), new ListMockPhones());
+        $this->addAction(GetMockPhone::getName(), new GetMockPhone());
+        $this->addAction(UpdateMockPhone::getName(), new UpdateMockPhone());
+        $this->addAction(DeleteMockPhone::getName(), new DeleteMockPhone());
 
         // Policies
         $this->addAction(UpdateMembershipPrivacyPolicy::getName(), new UpdateMembershipPrivacyPolicy());
