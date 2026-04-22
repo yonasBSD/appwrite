@@ -361,7 +361,7 @@ function tablesDbFlow(ctx) {
             array: false,
             ...extra,
         }, ctx.apiHeaders, [202], `tablesdb.columns.${type}.create`);
-        waitForStatus(`/tablesdb/${databaseId}/tables/${tableId}/columns/${key}`, ctx.apiHeaders, 'available', WORKER_TIMEOUT_MS);
+        waitForStatus(`/tablesdb/${databaseId}/tables/${tableId}/columns/${key}`, ctx.apiHeaders, 'available', WORKER_TIMEOUT_MS, `tablesdb.columns.${type}.wait`);
         recordTablesWorkerDuration(Date.now() - started, { job: `column_${type}` });
     }
 
@@ -372,7 +372,7 @@ function tablesDbFlow(ctx) {
         columns: ['title'],
         orders: ['asc'],
     }, ctx.apiHeaders, [202], 'tablesdb.indexes.create');
-    waitForStatus(`/tablesdb/${databaseId}/tables/${tableId}/indexes/${indexKey}`, ctx.apiHeaders, 'available', WORKER_TIMEOUT_MS);
+    waitForStatus(`/tablesdb/${databaseId}/tables/${tableId}/indexes/${indexKey}`, ctx.apiHeaders, 'available', WORKER_TIMEOUT_MS, 'tablesdb.indexes.wait');
     recordTablesWorkerDuration(Date.now() - indexStarted, { job: 'index' });
 
     api('POST', `/tablesdb/${databaseId}/tables/${tableId}/rows`, {
@@ -573,11 +573,11 @@ function rawRequest(method, path, body, headers, name) {
     return response;
 }
 
-function waitForStatus(path, headers, wantedStatus, timeoutMs) {
+function waitForStatus(path, headers, wantedStatus, timeoutMs, name) {
     const started = Date.now();
 
     while (Date.now() - started < timeoutMs) {
-        const response = rawRequest('GET', path, null, headers, `wait${path}`);
+        const response = rawRequest('GET', path, null, headers, name);
         if (response.status === 200) {
             const status = response.json('status');
             if (status === wantedStatus) {
