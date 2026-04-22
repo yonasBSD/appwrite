@@ -1000,6 +1000,7 @@ function loadPreviousSummary() {
 
 function comparisonTable(before, after) {
     const rows = [
+        ['HTTP throughput', trendMetric(before, 'http_reqs', 'rate'), trendMetric(after, 'http_reqs', 'rate'), ' req/s'],
         ['HTTP total p95', trendMetric(before, 'appwrite_http_duration', 'p(95)'), trendMetric(after, 'appwrite_http_duration', 'p(95)'), 'ms'],
         ['API endpoints p95', trendMetric(before, 'appwrite_api_duration', 'p(95)'), trendMetric(after, 'appwrite_api_duration', 'p(95)'), 'ms'],
         ['Database worker p95', trendMetric(before, 'appwrite_worker_database_duration', 'p(95)'), trendMetric(after, 'appwrite_worker_database_duration', 'p(95)'), 'ms'],

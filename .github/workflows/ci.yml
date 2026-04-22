@@ -891,6 +891,7 @@ jobs:
           const topWaits = topSamples(afterSamples, 'appwrite_http_waiting', 3);
 
           const rows = [
+            row('HTTP throughput', metricValue(before, 'http_reqs', 'rate'), metricValue(after, 'http_reqs', 'rate'), ' req/s'),
             row('HTTP total p95', metricValue(before, 'appwrite_http_duration', 'p(95)'), metricValue(after, 'appwrite_http_duration', 'p(95)'), 'ms'),
             row('API endpoints p95', metricValue(before, 'appwrite_api_duration', 'p(95)'), metricValue(after, 'appwrite_api_duration', 'p(95)'), 'ms'),
             row('Database worker p95', metricValue(before, 'appwrite_worker_database_duration', 'p(95)'), metricValue(after, 'appwrite_worker_database_duration', 'p(95)'), 'ms'),
