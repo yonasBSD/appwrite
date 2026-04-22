@@ -524,6 +524,7 @@ function storageFlow(ctx) {
     });
 
     httpDuration.add(upload.timings.duration, { name: 'storage.files.create' });
+    httpWaiting.add(upload.timings.waiting, { name: 'storage.files.create' });
     apiDuration.add(upload.timings.duration, { name: 'storage.files.create' });
     assertStatus(upload, [201], 'storage file created');
 
