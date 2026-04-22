@@ -705,6 +705,8 @@ $server->onOpen(function (int $connection, SwooleRequest $request) use ($server,
     $rawSize = $request->getSize();
     $channelCount = 0;
     $subscriptionCount = 0;
+    $urlSubscribedChannels = [];
+    $urlPassedQueries = [];
     $outboundBytes = 0;
     $responseCode = 200;
     $subscriptionMode = 'message';
@@ -785,6 +787,7 @@ $server->onOpen(function (int $connection, SwooleRequest $request) use ($server,
 
         $channels = Realtime::convertChannels($request->getQuery('channels', []), $user->getId());
         $channelCount = \count($channels);
+        $urlSubscribedChannels = \array_values(\array_keys($channels));
 
         $updateStats = static function (string $projectId, ?string $teamId, string $payloadJson) use ($register, $stats): void {
             $register->get('telemetry.connectionCounter')->add(1);
@@ -844,6 +847,10 @@ $server->onOpen(function (int $connection, SwooleRequest $request) use ($server,
         $mapping = [];
         foreach ($subscriptions as $index => $subscription) {
             $subscriptionId = ID::unique();
+            $urlPassedQueries[$index] = \array_map(
+                fn ($query) => $query instanceof Query ? $query->toString() : (string) $query,
+                $subscription['queries'] ?? []
+            );
 
             $realtime->subscribe(
                 $project->getId(),
@@ -923,6 +930,8 @@ $server->onOpen(function (int $connection, SwooleRequest $request) use ($server,
         Span::add('realtime.subscription_mode', $subscriptionMode);
         Span::add('realtime.channel_count', $channelCount);
         Span::add('realtime.subscription_count', $subscriptionCount);
+        Span::add('realtime.channels_subscribed', json_encode($urlSubscribedChannels));
+        Span::add('realtime.queries_passed', json_encode($urlPassedQueries));
         Span::add('realtime.outbound_bytes', $outboundBytes);
         Span::add('realtime.project_id', $project?->getId() ?: 'n/a');
         Span::add('realtime.user_id', $logUser?->getId() ?: 'n/a');
@@ -939,6 +948,8 @@ $server->onMessage(function (int $connection, string $message) use ($server, $re
     $subscriptionDelta = 0;
     $subscriptionsRequested = 0;
     $subscriptionsRemoved = 0;
+    $subscribeChannelsPassed = [];
+    $subscribeQueriesPassed = [];
     $outboundBytes = 0;
     $responseCode = 200;
     $success = false;
@@ -1172,6 +1183,9 @@ $server->onMessage(function (int $connection, string $message) use ($server, $re
                         'channels' => $payload['channels'],
                         'queries' => $convertedQueries,
                     ];
+
+                    $subscribeChannelsPassed[] = $payload['channels'];
+                    $subscribeQueriesPassed[] = $payload['queries'];
                 }
 
                 foreach ($parsedPayloads as $parsedPayload) {
@@ -1320,6 +1334,9 @@ $server->onMessage(function (int $connection, string $message) use ($server, $re
         Span::add('realtime.subscription_delta', $subscriptionDelta);
         Span::add('realtime.subscriptions_requested', $subscriptionsRequested);
         Span::add('realtime.subscriptions_removed', $subscriptionsRemoved);
+        Span::add('realtime.subscribe.channels_passed', json_encode($subscribeChannelsPassed));
+        Span::add('realtime.subscribe.queries_passed', json_encode($subscribeQueriesPassed));
+        Span::add('realtime.subscribe.subscriptions_count', \count($subscribeChannelsPassed));
         Span::add('realtime.outbound_bytes', $outboundBytes);
         Span::add('realtime.project_id', $project?->getId() ?: $projectId ?: 'n/a');
         Span::add('realtime.user_id', $realtime->connections[$connection]['userId'] ?? 'n/a');
