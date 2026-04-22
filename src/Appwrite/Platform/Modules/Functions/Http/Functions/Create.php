@@ -375,7 +375,7 @@ class Create extends Base
             }
 
             $functionsDomain = $platform['functionsDomain'];
-            if (!empty($functionsDomain)) {
+            if (!empty($functionsDomain) && isset($deployment) && !$deployment->isEmpty()) {
                 $routeSubdomain = ID::unique();
                 $domain = "{$routeSubdomain}.{$functionsDomain}";
                 // TODO: (@Meldiron) Remove after 1.7.x migration
