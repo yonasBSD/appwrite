@@ -52,7 +52,7 @@ class Update extends Action
                     )
                 ],
             ))
-            
+
             ->param('methodId', '', new WhiteList(\array_keys(Config::getParam('auth')), true), 'Auth Method ID. Possible values: ' . implode(',', \array_keys(Config::getParam('auth'))), false)
             ->param('enabled', null, new Boolean(), 'Auth method status.')
             ->inject('response')
@@ -74,7 +74,7 @@ class Update extends Action
     ): void {
         $auth = Config::getParam('auth')[$methodId] ?? [];
         $authKey = $auth['key'] ?? '';
-        
+
         $auths = $project->getAttribute('auths', []);
         $auths[$authKey] = $enabled;
 
