@@ -7,6 +7,7 @@ concurrency:
 env:
   COMPOSE_FILE: docker-compose.yml
   IMAGE: appwrite-dev
+  K6_IMAGE: grafana/k6:0.53.0
 
 on:
   pull_request:
@@ -712,13 +713,13 @@ jobs:
         continue-on-error: true
         run: |
           rm -f benchmark-before-summary.json benchmark-after-summary.json benchmark-before.txt benchmark.txt
-          docker run --rm -i --network host --user "$(id -u):$(id -g)" -v "$PWD:/scripts" -w /scripts \
+          docker run --rm -i --network host --user "$(id -u):$(id -g)" -v "$PWD:/scripts" -w /scripts ${{ env.K6_IMAGE }} run --quiet \
             -e APPWRITE_ENDPOINT=http://localhost/v1 \
             -e APPWRITE_MAILDEV_ENDPOINT=http://localhost:9503/email \
             -e APPWRITE_BENCHMARK_ITERATIONS=1 \
-            -e APPWRITE_BENCHMARK_RUNS=1 \
+            -e APPWRITE_BENCHMARK_VUS=1 \
             -e APPWRITE_BENCHMARK_SUMMARY_PATH=benchmark-before-summary.json \
-            ${{ env.IMAGE }}:before php tests/benchmarks/http.php | tee benchmark-before.txt
+            tests/benchmarks/http.js | tee benchmark-before.txt
 
       - name: Stop before Appwrite
         if: always()
@@ -736,14 +737,14 @@ jobs:
 
       - name: Benchmark after
         run: |
-          docker run --rm -i --network host --user "$(id -u):$(id -g)" -v "$PWD:/scripts" -w /scripts \
+          docker run --rm -i --network host --user "$(id -u):$(id -g)" -v "$PWD:/scripts" -w /scripts ${{ env.K6_IMAGE }} run --quiet \
             -e APPWRITE_ENDPOINT=http://localhost/v1 \
             -e APPWRITE_MAILDEV_ENDPOINT=http://localhost:9503/email \
             -e APPWRITE_BENCHMARK_ITERATIONS=1 \
-            -e APPWRITE_BENCHMARK_RUNS=1 \
+            -e APPWRITE_BENCHMARK_VUS=1 \
             -e APPWRITE_BENCHMARK_PREVIOUS_SUMMARY_PATH=benchmark-before-summary.json \
             -e APPWRITE_BENCHMARK_SUMMARY_PATH=benchmark-after-summary.json \
-            ${{ env.IMAGE }}:after php tests/benchmarks/http.php | tee benchmark.txt
+            tests/benchmarks/http.js | tee benchmark.txt
 
       - name: Stop after Appwrite
         if: always()
@@ -754,140 +755,111 @@ jobs:
           BENCHMARK_BASE_REF: ${{ github.event.pull_request.base.ref }}
           BENCHMARK_HEAD_REF: ${{ github.event.pull_request.head.ref }}
         run: |
-          docker run --rm -i -v "$PWD:/scripts" -w /scripts \
-            -e BENCHMARK_BASE_REF \
-            -e BENCHMARK_HEAD_REF \
-            ${{ env.IMAGE }}:after php <<'PHP' > benchmark-comment.txt
-          <?php
+          node <<'NODE' > benchmark-comment.txt
+          const fs = require('fs');
 
-          function env_value(string $name, string $default): string
-          {
-              $value = getenv($name);
-              return $value === false || $value === '' ? $default : $value;
-          }
-
-          function markdown_text(string $value): string
-          {
-              return htmlspecialchars(str_replace(["\r", "\n"], ' ', $value), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-          }
-
-          function fail_summary(string $message, bool $required): void
-          {
-              fwrite(STDERR, $message . "\n");
-              if ($required) {
-                  exit(1);
+          function readSummary(path, required = true) {
+            if (!fs.existsSync(path)) {
+              if (required) {
+                throw new Error(`Missing benchmark summary: ${path}`);
               }
+              return null;
+            }
+
+            try {
+              return JSON.parse(fs.readFileSync(path, 'utf8'));
+            } catch (error) {
+              throw new Error(`Invalid benchmark summary ${path}: ${error.message}`);
+            }
           }
 
-          function read_summary(string $path, bool $required = true): ?array
-          {
-              if (!is_file($path)) {
-                  fail_summary("Missing benchmark summary: {$path}", $required);
-                  return null;
-              }
-
-              try {
-                  $summary = json_decode(file_get_contents($path), true, 512, JSON_THROW_ON_ERROR);
-              } catch (JsonException $error) {
-                  fail_summary("Invalid benchmark summary {$path}: {$error->getMessage()}", $required);
-                  return null;
-              }
-
-              if (!is_array($summary)) {
-                  fail_summary("Invalid benchmark summary {$path}: expected JSON object", $required);
-                  return null;
-              }
-
-              return $summary;
+          function markdownText(value) {
+            return String(value || '').replace(/[\r\n]/g, ' ').replace(/[&<>"']/g, (char) => {
+              return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' })[char];
+            });
           }
 
-          $before = read_summary('benchmark-before-summary.json', false);
-          $after = read_summary('benchmark-after-summary.json');
-          $baseRef = markdown_text(env_value('BENCHMARK_BASE_REF', 'base'));
-          $headRef = markdown_text(env_value('BENCHMARK_HEAD_REF', 'head'));
-
-          function metric_value(?array $data, string $metric, string $stat): mixed
-          {
-              return $data['metrics'][$metric]['values'][$stat] ?? null;
+          function metricValue(data, metric, stat) {
+            return data?.metrics?.[metric]?.values?.[stat] ?? null;
           }
 
-          function format_number(mixed $value): string
-          {
-              $value = round((float) $value, 2);
-              return rtrim(rtrim(number_format($value, 2, '.', ''), '0'), '.');
+          function formatNumber(value) {
+            return Number(value).toFixed(2).replace(/\.?0+$/, '');
           }
 
-          function format_value(mixed $value, string $suffix = ''): string
-          {
-              return $value === null ? 'n/a' : format_number($value) . $suffix;
+          function formatValue(value, suffix = '') {
+            return value === null ? 'n/a' : `${formatNumber(value)}${suffix}`;
           }
 
-          function delta(mixed $beforeValue, mixed $afterValue, string $suffix = ''): string
-          {
-              if ($beforeValue === null || $afterValue === null) {
-                  return 'n/a';
-              }
+          function delta(beforeValue, afterValue, suffix = '') {
+            if (beforeValue === null || afterValue === null) {
+              return 'n/a';
+            }
 
-              $difference = round((float) $afterValue - (float) $beforeValue, 2);
-              return ($difference > 0 ? '+' : '') . format_number($difference) . $suffix;
+            const difference = Number((afterValue - beforeValue).toFixed(2));
+            return `${difference > 0 ? '+' : ''}${formatNumber(difference)}${suffix}`;
           }
 
-          function row(string $label, mixed $beforeValue, mixed $afterValue, string $suffix = ''): string
-          {
-              return '| ' . $label . ' | ' . format_value($beforeValue, $suffix) . ' | ' . format_value($afterValue, $suffix) . ' | ' . delta($beforeValue, $afterValue, $suffix) . ' |';
+          function row(label, beforeValue, afterValue, suffix = '') {
+            return `| ${label} | ${formatValue(beforeValue, suffix)} | ${formatValue(afterValue, suffix)} | ${delta(beforeValue, afterValue, suffix)} |`;
           }
 
-          function format_detail_value(mixed $value, string $suffix = ''): string
-          {
-              return $value === null ? 'n/a' : number_format((float) $value, 2, '.', '') . $suffix;
+          function detailValue(value, suffix = '') {
+            return value === null ? 'n/a' : `${Number(value).toFixed(2)}${suffix}`;
           }
 
-          function detail_row(array $after, string $label, string $metric, string $suffix = 'ms'): string
-          {
-              $values = $after['metrics'][$metric]['values'] ?? null;
-              if (!is_array($values)) {
-                  return '| ' . $label . ' | n/a | n/a | n/a | n/a |';
-              }
+          function detailRow(after, label, metric, suffix = 'ms') {
+            const values = after.metrics?.[metric]?.values;
+            if (!values) {
+              return `| ${label} | n/a | n/a | n/a | n/a |`;
+            }
 
-              return '| ' . $label
-                  . ' | ' . format_detail_value($values['avg'] ?? null, $suffix)
-                  . ' | ' . format_detail_value($values['p(90)'] ?? null, $suffix)
-                  . ' | ' . format_detail_value($values['p(95)'] ?? null, $suffix)
-                  . ' | ' . format_detail_value($values['max'] ?? null, $suffix)
-                  . ' |';
+            return `| ${label} | ${detailValue(values.avg ?? null, suffix)} | ${detailValue(values['p(90)'] ?? null, suffix)} | ${detailValue(values['p(95)'] ?? null, suffix)} | ${detailValue(values.max ?? null, suffix)} |`;
           }
 
-          $rows = [
-              row('HTTP total p95', metric_value($before, 'http_req_duration', 'p(95)'), metric_value($after, 'http_req_duration', 'p(95)'), 'ms'),
-              row('API endpoints p95', metric_value($before, 'appwrite_api_duration', 'p(95)'), metric_value($after, 'appwrite_api_duration', 'p(95)'), 'ms'),
-              row('Database worker p95', metric_value($before, 'appwrite_worker_database_duration', 'p(95)'), metric_value($after, 'appwrite_worker_database_duration', 'p(95)'), 'ms'),
-              row('TablesDB worker p95', metric_value($before, 'appwrite_worker_tables_duration', 'p(95)'), metric_value($after, 'appwrite_worker_tables_duration', 'p(95)'), 'ms'),
-              row('Mail worker p95', metric_value($before, 'appwrite_worker_mails_duration', 'p(95)'), metric_value($after, 'appwrite_worker_mails_duration', 'p(95)'), 'ms'),
-              row('Messaging worker p95', metric_value($before, 'appwrite_worker_messaging_duration', 'p(95)'), metric_value($after, 'appwrite_worker_messaging_duration', 'p(95)'), 'ms'),
+          const before = readSummary('benchmark-before-summary.json', false);
+          const after = readSummary('benchmark-after-summary.json');
+          const baseRef = markdownText(process.env.BENCHMARK_BASE_REF || 'base');
+          const headRef = markdownText(process.env.BENCHMARK_HEAD_REF || 'head');
+
+          const rows = [
+            row('HTTP total p95', metricValue(before, 'appwrite_http_duration', 'p(95)'), metricValue(after, 'appwrite_http_duration', 'p(95)'), 'ms'),
+            row('API endpoints p95', metricValue(before, 'appwrite_api_duration', 'p(95)'), metricValue(after, 'appwrite_api_duration', 'p(95)'), 'ms'),
+            row('Database worker p95', metricValue(before, 'appwrite_worker_database_duration', 'p(95)'), metricValue(after, 'appwrite_worker_database_duration', 'p(95)'), 'ms'),
+            row('TablesDB worker p95', metricValue(before, 'appwrite_worker_tables_duration', 'p(95)'), metricValue(after, 'appwrite_worker_tables_duration', 'p(95)'), 'ms'),
+            row('Mail worker p95', metricValue(before, 'appwrite_worker_mails_duration', 'p(95)'), metricValue(after, 'appwrite_worker_mails_duration', 'p(95)'), 'ms'),
+            row('Messaging worker p95', metricValue(before, 'appwrite_worker_messaging_duration', 'p(95)'), metricValue(after, 'appwrite_worker_messaging_duration', 'p(95)'), 'ms'),
           ];
 
-          echo "<!-- appwrite-benchmark-results -->\n";
-          echo "## :sparkles: Benchmark results\n\n";
-          echo "Comparing {$baseRef} (before) to {$headRef} (after).\n\n";
-          if ($before === null) {
-              echo "> Before benchmark did not complete; showing current branch metrics only.\n\n";
+          console.log('<!-- appwrite-benchmark-results -->');
+          console.log('## :sparkles: Benchmark results');
+          console.log();
+          console.log(`Comparing ${baseRef} (before) to ${headRef} (after).`);
+          console.log();
+          if (before === null) {
+            console.log('> Before benchmark did not complete; showing current branch metrics only.');
+            console.log();
           }
-          echo "| Metric | Before | After | Delta |\n";
-          echo "| --- | ---: | ---: | ---: |\n";
-          echo implode("\n", $rows) . "\n\n";
-          echo "<details>\n";
-          echo "<summary><strong>Current run details</strong></summary>\n\n";
-          echo "<br>\n\n";
-          echo "| Scenario | Avg | P90 | P95 | Max |\n";
-          echo "| --- | ---: | ---: | ---: | ---: |\n";
-          echo detail_row($after, 'HTTP total', 'http_req_duration') . "\n";
-          echo detail_row($after, 'API endpoints', 'appwrite_api_duration') . "\n";
-          echo detail_row($after, 'Database worker schema jobs', 'appwrite_worker_database_duration') . "\n";
-          echo detail_row($after, 'TablesDB worker schema jobs', 'appwrite_worker_tables_duration') . "\n";
-          echo detail_row($after, 'Mail worker delivery', 'appwrite_worker_mails_duration') . "\n";
-          echo detail_row($after, 'Messaging worker delivery', 'appwrite_worker_messaging_duration') . "\n\n";
-          echo "</details>\n";
-          PHP
+          console.log('| Metric | Before | After | Delta |');
+          console.log('| --- | ---: | ---: | ---: |');
+          console.log(rows.join('\n'));
+          console.log();
+          console.log('<details>');
+          console.log('<summary><strong>Current run details</strong></summary>');
+          console.log();
+          console.log('<br>');
+          console.log();
+          console.log('| Scenario | Avg | P90 | P95 | Max |');
+          console.log('| --- | ---: | ---: | ---: | ---: |');
+          console.log(detailRow(after, 'HTTP total', 'appwrite_http_duration'));
+          console.log(detailRow(after, 'API endpoints', 'appwrite_api_duration'));
+          console.log(detailRow(after, 'Database worker schema jobs', 'appwrite_worker_database_duration'));
+          console.log(detailRow(after, 'TablesDB worker schema jobs', 'appwrite_worker_tables_duration'));
+          console.log(detailRow(after, 'Mail worker delivery', 'appwrite_worker_mails_duration'));
+          console.log(detailRow(after, 'Messaging worker delivery', 'appwrite_worker_messaging_duration'));
+          console.log();
+          console.log('</details>');
+          NODE
 
       - name: Save results
         uses: actions/upload-artifact@v7
