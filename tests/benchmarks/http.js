@@ -2,17 +2,7 @@
  * Run locally:
  * Requires k6 and a running Appwrite instance.
  *
- * K6_WEB_DASHBOARD=true \
- * K6_WEB_DASHBOARD_HOST=127.0.0.1 \
- * K6_WEB_DASHBOARD_PORT=5665 \
- * K6_WEB_DASHBOARD_EXPORT=/tmp/appwrite-k6-report.html \
- * APPWRITE_ENDPOINT=http://localhost/v1 \
- * APPWRITE_MAILDEV_ENDPOINT=http://localhost:9503/email \
- * APPWRITE_WORKER_TIMEOUT_MS=120000 \
- * APPWRITE_BENCHMARK_SUMMARY_PATH=/tmp/appwrite-k6-summary.json \
- * k6 run \
- *     --out json=/tmp/appwrite-k6-samples.json \
- *     tests/benchmarks/http.js
+ * tests/benchmarks/http-local.sh
  *
  * Open http://127.0.0.1:5665 while the benchmark is running.
  */
@@ -28,10 +18,10 @@ const REGION = __ENV.APPWRITE_REGION || 'default';
 const REDIRECT_URL = __ENV.APPWRITE_BENCHMARK_REDIRECT_URL || 'http://localhost';
 const PASSWORD = __ENV.APPWRITE_BENCHMARK_PASSWORD || 'Password123!';
 const MAIL_TIMEOUT_MS = Number(__ENV.APPWRITE_MAIL_TIMEOUT_MS || 20000);
-const WORKER_TIMEOUT_MS = Number(__ENV.APPWRITE_WORKER_TIMEOUT_MS || 60000);
+const WORKER_TIMEOUT_MS = Number(__ENV.APPWRITE_WORKER_TIMEOUT_MS || 120000);
 const ITERATIONS = Number(__ENV.APPWRITE_BENCHMARK_ITERATIONS || 1);
 const VUS = Number(__ENV.APPWRITE_BENCHMARK_VUS || 1);
-const SUMMARY_PATH = __ENV.APPWRITE_BENCHMARK_SUMMARY_PATH || 'tests/benchmarks/http-summary.json';
+const SUMMARY_PATH = __ENV.APPWRITE_BENCHMARK_SUMMARY_PATH || '/tmp/appwrite-k6-summary.json';
 const PREVIOUS_SUMMARY_PATH = __ENV.APPWRITE_BENCHMARK_PREVIOUS_SUMMARY_PATH || SUMMARY_PATH;
 const PREVIOUS_SUMMARY = loadPreviousSummary();
 
@@ -40,6 +30,8 @@ export const httpWaiting = new Trend('appwrite_http_waiting', true);
 export const apiDuration = new Trend('appwrite_api_duration', true);
 export const tablesWorkerDuration = new Trend('appwrite_worker_tables_duration', true);
 export const mailsWorkerDuration = new Trend('appwrite_worker_mails_duration', true);
+export const tablesWorkerSamples = new Counter('appwrite_worker_tables_samples');
+export const mailsWorkerSamples = new Counter('appwrite_worker_mails_samples');
 export const flowFailures = new Counter('appwrite_benchmark_flow_failures');
 
 export const options = {
@@ -238,6 +230,16 @@ export function teardown(data) {
     }
 }
 
+function recordTablesWorkerDuration(duration, tags) {
+    tablesWorkerDuration.add(duration, tags);
+    tablesWorkerSamples.add(1, tags);
+}
+
+function recordMailsWorkerDuration(duration, tags) {
+    mailsWorkerDuration.add(duration, tags);
+    mailsWorkerSamples.add(1, tags);
+}
+
 function accountFlow(ctx) {
     const userId = unique('user');
     const email = `bench-user-${unique('mail')}@example.com`;
@@ -280,7 +282,7 @@ function accountFlow(ctx) {
             || includes(message.text, 'verify')
             || includes(message.text, 'verification');
     }, MAIL_TIMEOUT_MS);
-    mailsWorkerDuration.add(Date.now() - verificationStarted, { job: 'email_verification' });
+    recordMailsWorkerDuration(Date.now() - verificationStarted, { job: 'email_verification' });
 
     const verification = extractQueryParams(verificationEmail);
     if (verification.userId && verification.secret) {
@@ -303,7 +305,7 @@ function accountFlow(ctx) {
             || includes(message.text, 'recover')
             || includes(message.text, 'reset');
     }, MAIL_TIMEOUT_MS);
-    mailsWorkerDuration.add(Date.now() - recoveryStarted, { job: 'password_recovery' });
+    recordMailsWorkerDuration(Date.now() - recoveryStarted, { job: 'password_recovery' });
 
     const recovery = extractQueryParams(recoveryEmail);
     if (recovery.userId && recovery.secret) {
@@ -360,7 +362,7 @@ function tablesDbFlow(ctx) {
             ...extra,
         }, ctx.apiHeaders, [202], `tablesdb.columns.${type}.create`);
         waitForStatus(`/tablesdb/${databaseId}/tables/${tableId}/columns/${key}`, ctx.apiHeaders, 'available', WORKER_TIMEOUT_MS);
-        tablesWorkerDuration.add(Date.now() - started, { job: `column_${type}` });
+        recordTablesWorkerDuration(Date.now() - started, { job: `column_${type}` });
     }
 
     const indexStarted = Date.now();
@@ -371,7 +373,7 @@ function tablesDbFlow(ctx) {
         orders: ['asc'],
     }, ctx.apiHeaders, [202], 'tablesdb.indexes.create');
     waitForStatus(`/tablesdb/${databaseId}/tables/${tableId}/indexes/${indexKey}`, ctx.apiHeaders, 'available', WORKER_TIMEOUT_MS);
-    tablesWorkerDuration.add(Date.now() - indexStarted, { job: 'index' });
+    recordTablesWorkerDuration(Date.now() - indexStarted, { job: 'index' });
 
     api('POST', `/tablesdb/${databaseId}/tables/${tableId}/rows`, {
         rowId,
@@ -751,8 +753,8 @@ function detailsTable(data) {
         '| --- | ---: | ---: | ---: | ---: |',
         detailRow(data, 'Load test', 'appwrite_http_duration', 'iterations', 'http_reqs'),
         detailRow(data, 'API total', 'appwrite_api_duration'),
-        detailRow(data, 'TablesDB schema', 'appwrite_worker_tables_duration'),
-        detailRow(data, 'Mail delivery', 'appwrite_worker_mails_duration'),
+        detailRow(data, 'TablesDB schema', 'appwrite_worker_tables_duration', 'appwrite_worker_tables_samples', 'appwrite_worker_tables_samples'),
+        detailRow(data, 'Mail delivery', 'appwrite_worker_mails_duration', 'appwrite_worker_mails_samples', 'appwrite_worker_mails_samples'),
     ].join('\n');
 }
 

@@ -150,13 +150,13 @@ function benchmarkRows(before, after, beforeSamples, afterSamples) {
         })),
         {
             label: 'TablesDB schema',
-            before: summaryStats(before, 'appwrite_worker_tables_duration'),
-            after: summaryStats(after, 'appwrite_worker_tables_duration'),
+            before: summaryStats(before, 'appwrite_worker_tables_duration', 'appwrite_worker_tables_samples', 'appwrite_worker_tables_samples'),
+            after: summaryStats(after, 'appwrite_worker_tables_duration', 'appwrite_worker_tables_samples', 'appwrite_worker_tables_samples'),
         },
         {
             label: 'Mail delivery',
-            before: summaryStats(before, 'appwrite_worker_mails_duration'),
-            after: summaryStats(after, 'appwrite_worker_mails_duration'),
+            before: summaryStats(before, 'appwrite_worker_mails_duration', 'appwrite_worker_mails_samples', 'appwrite_worker_mails_samples'),
+            after: summaryStats(after, 'appwrite_worker_mails_duration', 'appwrite_worker_mails_samples', 'appwrite_worker_mails_samples'),
         },
     ];
 }
