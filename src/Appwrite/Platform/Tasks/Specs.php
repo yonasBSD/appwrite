@@ -331,7 +331,7 @@ class Specs extends Action
             }
 
             foreach ($enums[$normalized] as $enum) {
-                $overlaps[] = "{$enum} (service '{$service}', enum '{$enum}')";
+                $overlaps[] = "service '{$service}' with enum '{$enum}'";
             }
         }
 
@@ -373,7 +373,7 @@ class Specs extends Action
         }
 
         $explicitEnumName = $this->getExplicitSpecEnumName($node);
-        if (!\is_null($explicitEnumName) && !isset($node['enum'])) {
+        if (!\is_null($explicitEnumName) && !isset($node['enum']) && !$itemsEnumHandled) {
             $this->addSpecEnumName($enums, $explicitEnumName);
         }
 
