@@ -327,32 +327,11 @@ if (!function_exists('logError')) {
     }
 }
 
-if (!function_exists('traceOperationalEvent')) {
-    function traceOperationalEvent(string $action, string $message, array $context = []): void
-    {
-        Span::init($action);
-        Span::add('realtime.action', $action);
-        Span::add('realtime.message', $message);
-        Span::add('realtime.timestamp', DateTime::formatTz(DateTime::now()));
-
-        foreach ($context as $key => $value) {
-            if (\is_scalar($value) || $value === null) {
-                Span::add('realtime.' . $key, ($value === null || $value === '') ? 'n/a' : $value);
-            }
-        }
-
-        Span::current()?->finish();
-    }
-}
-
 $server->error(logError(...));
 
 $server->onStart(function () use ($stats, $containerId, &$statsDocument) {
     sleep(5); // wait for the initial database schema to be ready
     Console::success('Server started successfully');
-    traceOperationalEvent('realtime.server.started', 'Realtime server started', [
-        'container' => $containerId,
-    ]);
 
     /**
      * Create document for this worker to share stats across Containers.
@@ -416,9 +395,6 @@ $server->onStart(function () use ($stats, $containerId, &$statsDocument) {
 
 $server->onWorkerStart(function (int $workerId) use ($server, $register, $stats, $realtime) {
     Console::success('Worker ' . $workerId . ' started successfully');
-    traceOperationalEvent('realtime.worker.started', 'Realtime worker started', [
-        'workerId' => $workerId,
-    ]);
 
     $telemetry = getTelemetry($workerId);
     $realtimeDelayBuckets = [100, 250, 500, 750, 1000, 1500, 2000, 3000, 5000, 7500, 10000, 15000, 30000];
@@ -551,9 +527,6 @@ $server->onWorkerStart(function (int $workerId) use ($server, $register, $stats,
             if ($pubsub->ping(true)) {
                 $attempts = 0;
                 Console::success('Pub/sub connection established (worker: ' . $workerId . ')');
-                traceOperationalEvent('realtime.pubsub.connected', 'Realtime pubsub connected', [
-                    'workerId' => $workerId,
-                ]);
             } else {
                 Console::error('Pub/sub failed (worker: ' . $workerId . ')');
             }
@@ -886,14 +859,6 @@ $server->onOpen(function (int $connection, SwooleRequest $request) use ($server,
 
         $server->send([$connection], $connectedPayloadJson);
         $updateStats($project->getId(), $project->getAttribute('teamId'), $connectedPayloadJson);
-        traceOperationalEvent('realtime.connection.opened', 'Realtime connection established', [
-            'connectionId' => $connection,
-            'projectId' => $project->getId(),
-            'teamId' => $project->getAttribute('teamId'),
-            'userId' => $logUser?->getId() ?: null,
-            'channelCount' => \count($names),
-            'subscriptionCount' => \count($mapping),
-        ]);
 
 
     } catch (Throwable $th) {
@@ -935,10 +900,24 @@ $server->onOpen(function (int $connection, SwooleRequest $request) use ($server,
 $server->onMessage(function (int $connection, string $message) use ($server, $realtime, $containerId, $register) {
     $project = null;
     $authorization = null;
+    $projectId = $realtime->connections[$connection]['projectId'] ?? null;
+    $rawSize = \strlen($message);
+    $messageType = 'invalid';
+    $subscriptionDelta = 0;
+    $subscriptionsRequested = 0;
+    $subscriptionsRemoved = 0;
+    $outboundBytes = 0;
+    $responseCode = 200;
+    $success = false;
+
+    Span::init('realtime.message');
+    Span::add('realtime.connection_id', $connection);
+    Span::add('realtime.project_id', $projectId ?: 'n/a');
+    Span::add('realtime.inbound_bytes', $rawSize);
+    Span::add('realtime.container_id', $containerId);
+
     try {
-        $rawSize = \strlen($message);
         $response = new Response(new SwooleResponse());
-        $projectId = $realtime->connections[$connection]['projectId'] ?? null;
 
         // Get authorization from connection (stored during onOpen)
         $authorization = $realtime->connections[$connection]['authorization'] ?? null;
@@ -983,6 +962,8 @@ $server->onMessage(function (int $connection, string $message) use ($server, $re
         }
 
         $message = json_decode($message, true);
+        $messageType = $message['type'] ?? 'invalid';
+        Span::add('realtime.message_type', $messageType);
 
         if (is_null($message) || (!array_key_exists('type', $message) && !array_key_exists('data', $message))) {
             throw new Exception(Exception::REALTIME_MESSAGE_FORMAT_INVALID, 'Message format is not valid.');
@@ -1000,6 +981,7 @@ $server->onMessage(function (int $connection, string $message) use ($server, $re
                 ]);
 
                 $server->send([$connection], $pongPayloadJson);
+                $outboundBytes += \strlen($pongPayloadJson);
 
                 if ($project !== null && !$project->isEmpty()) {
                     $pongOutboundBytes = \strlen($pongPayloadJson);
@@ -1089,12 +1071,8 @@ $server->onMessage(function (int $connection, string $message) use ($server, $re
                 ]);
 
                 $server->send([$connection], $authResponsePayloadJson);
-                traceOperationalEvent('realtime.authentication.succeeded', 'Realtime authentication succeeded', [
-                    'connectionId' => $connection,
-                    'projectId' => $projectId,
-                    'userId' => $user['$id'] ?? null,
-                    'subscriptionDelta' => $subscriptionDelta,
-                ]);
+                $outboundBytes += \strlen($authResponsePayloadJson);
+                Span::add('realtime.user_id', $user['$id'] ?? 'n/a');
 
                 if ($project !== null && !$project->isEmpty()) {
                     $authOutboundBytes = \strlen($authResponsePayloadJson);
@@ -1171,6 +1149,7 @@ $server->onMessage(function (int $connection, string $message) use ($server, $re
                 }
                 $subscriptionsAfter = \count($realtime->getSubscriptionMetadata($connection));
                 $subscriptionDelta = $subscriptionsAfter - $subscriptionsBefore;
+                $subscriptionsRequested = \count($parsedPayloads);
                 if ($subscriptionDelta !== 0) {
                     $register->get('telemetry.workerSubscriptionCounter')->add($subscriptionDelta, $register->get('telemetry.workerAttributes'));
                 }
@@ -1191,12 +1170,7 @@ $server->onMessage(function (int $connection, string $message) use ($server, $re
                 ]);
 
                 $server->send([$connection], $responsePayload);
-                traceOperationalEvent('realtime.subscribe.updated', 'Realtime subscriptions updated', [
-                    'connectionId' => $connection,
-                    'projectId' => $projectId,
-                    'subscriptionCount' => \count($parsedPayloads),
-                    'subscriptionDelta' => $subscriptionDelta,
-                ]);
+                $outboundBytes += \strlen($responsePayload);
 
                 if ($project !== null && !$project->isEmpty()) {
                     $subscribeOutboundBytes = \strlen($responsePayload);
@@ -1242,6 +1216,8 @@ $server->onMessage(function (int $connection, string $message) use ($server, $re
                 }
                 $subscriptionsAfter = \count($realtime->getSubscriptionMetadata($connection));
                 $subscriptionDelta = $subscriptionsAfter - $subscriptionsBefore;
+                $subscriptionsRequested = \count($validatedIds);
+                $subscriptionsRemoved = \count(\array_filter($unsubscribeResults, fn (array $item) => $item['removed'] ?? false));
                 if ($subscriptionDelta !== 0) {
                     $register->get('telemetry.workerSubscriptionCounter')->add($subscriptionDelta, $register->get('telemetry.workerAttributes'));
                 }
@@ -1256,13 +1232,7 @@ $server->onMessage(function (int $connection, string $message) use ($server, $re
                 ]);
 
                 $server->send([$connection], $unsubscribeResponsePayload);
-                traceOperationalEvent('realtime.unsubscribe.updated', 'Realtime subscriptions removed', [
-                    'connectionId' => $connection,
-                    'projectId' => $projectId,
-                    'requestedCount' => \count($validatedIds),
-                    'removedCount' => \count(\array_filter($unsubscribeResults, fn (array $item) => $item['removed'] ?? false)),
-                    'subscriptionDelta' => $subscriptionDelta,
-                ]);
+                $outboundBytes += \strlen($unsubscribeResponsePayload);
 
                 if ($project !== null && !$project->isEmpty()) {
                     $unsubscribeOutboundBytes = \strlen($unsubscribeResponsePayload);
@@ -1279,12 +1249,14 @@ $server->onMessage(function (int $connection, string $message) use ($server, $re
             default:
                 throw new Exception(Exception::REALTIME_MESSAGE_FORMAT_INVALID, 'Message type is not valid.');
         }
+        $success = true;
     } catch (Throwable $th) {
         logError($th, 'realtimeMessage', project: $project, authorization: $authorization);
         $code = $th->getCode();
         if (!is_int($code)) {
             $code = 500;
         }
+        $responseCode = $code;
 
         $message = $th->getMessage();
 
@@ -1301,11 +1273,25 @@ $server->onMessage(function (int $connection, string $message) use ($server, $re
             ]
         ];
 
-        $server->send([$connection], json_encode($response));
+        $responsePayloadJson = json_encode($response);
+        $server->send([$connection], $responsePayloadJson);
+        $outboundBytes += \strlen($responsePayloadJson);
 
         if ($th->getCode() === 1008) {
             $server->close($connection, $th->getCode());
         }
+        Span::error($th);
+    } finally {
+        Span::add('realtime.success', $success);
+        Span::add('realtime.response_code', $responseCode);
+        Span::add('realtime.subscription_delta', $subscriptionDelta);
+        Span::add('realtime.subscriptions_requested', $subscriptionsRequested);
+        Span::add('realtime.subscriptions_removed', $subscriptionsRemoved);
+        Span::add('realtime.outbound_bytes', $outboundBytes);
+        Span::add('realtime.project_id', $project?->getId() ?: $projectId ?: 'n/a');
+        Span::add('realtime.user_id', $realtime->connections[$connection]['userId'] ?? 'n/a');
+        Span::add('realtime.message_type', $messageType);
+        Span::current()?->finish();
     }
 });
 
@@ -1341,11 +1327,6 @@ $server->onClose(function (int $connection) use ($realtime, $stats, $register) {
     }
     $realtime->unsubscribe($connection);
 
-    traceOperationalEvent('realtime.connection.closed', 'Realtime connection closed', [
-        'connectionId' => $connection,
-        'projectId' => $projectId,
-        'userId' => $userId,
-    ]);
     Console::info('Connection close: ' . $connection);
 });
 
