@@ -370,12 +370,12 @@ class Specs extends Action
         }
 
         $explicitEnumName = $this->getExplicitSpecEnumName($node);
-        if (!\is_null($explicitEnumName)) {
+        if (!\is_null($explicitEnumName) && !isset($node['enum'])) {
             $this->addSpecEnumName($enums, $explicitEnumName);
         }
 
         foreach ($node as $key => $value) {
-            if (!\is_array($value)) {
+            if ($key === 'items' || !\is_array($value)) {
                 continue;
             }
 
@@ -420,7 +420,7 @@ class Specs extends Action
             return $this->getFallbackSpecEnumName($parent, $fallbackName);
         }
 
-        if (\is_string($key) && !\in_array($key, ['components', 'content', 'definitions', 'parameters', 'paths', 'properties', 'responses'], true)) {
+        if (\is_string($key) && !\in_array($key, ['components', 'content', 'definitions', 'delete', 'get', 'head', 'options', 'parameters', 'patch', 'paths', 'post', 'properties', 'put', 'responses'], true)) {
             return $key;
         }
 

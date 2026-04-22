@@ -11,6 +11,18 @@ class TestSpecs extends Specs
     {
         $this->verifyParsedSpec($spec);
     }
+
+    public function collectEnums(array $spec): array
+    {
+        $collect = \Closure::bind(function (array $spec): array {
+            $enums = [];
+            $this->collectSpecEnumNames($spec, $enums);
+
+            return $enums;
+        }, $this, Specs::class);
+
+        return $collect($spec);
+    }
 }
 
 class SpecsTest extends TestCase
@@ -109,6 +121,61 @@ class SpecsTest extends TestCase
                                     'type' => 'string',
                                     'enum' => ['en'],
                                     'x-enum-name' => 'EmailTemplateLocale',
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+        ]);
+
+        $this->addToAssertionCount(1);
+    }
+
+    public function testCollectSpecEnumNamesDoesNotDoubleRegisterExplicitNames(): void
+    {
+        $enums = $this->specs->collectEnums([
+            'schema' => [
+                'type' => 'string',
+                'enum' => ['en'],
+                'x-enum-name' => 'Locale',
+            ],
+        ]);
+
+        $this->assertSame(['Locale'], $enums['locale']);
+    }
+
+    public function testCollectSpecEnumNamesDoesNotDoubleRegisterItemsEnums(): void
+    {
+        $enums = $this->specs->collectEnums([
+            'name' => 'Locale',
+            'type' => 'array',
+            'items' => [
+                'type' => 'string',
+                'enum' => ['en'],
+            ],
+        ]);
+
+        $this->assertSame(['Locale'], $enums['locale']);
+    }
+
+    public function testVerifyParsedSpecIgnoresHttpMethodFallbackNames(): void
+    {
+        $this->specs->verify([
+            'tags' => [
+                [
+                    'name' => 'patch',
+                    'description' => 'Patch APIs',
+                ],
+            ],
+            'paths' => [
+                '/example' => [
+                    'patch' => [
+                        'parameters' => [
+                            [
+                                'schema' => [
+                                    'type' => 'string',
+                                    'enum' => ['enabled'],
                                 ],
                             ],
                         ],
