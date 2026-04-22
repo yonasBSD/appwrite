@@ -753,7 +753,7 @@ Http::shutdown()
     ->inject('project')
     ->inject('dbForProject')
     ->action(function (Http $utopia, Request $request, Response $response, Document $project, Database $dbForProject) {
-        $sessionLimit = $project->getAttribute('auths', [])['maxSessions'] ?? APP_LIMIT_USER_SESSIONS_DEFAULT;
+        $sessionLimit = $project->getAttribute('auths', [])['maxSessions'] ?? 0;
 
         if ($sessionLimit === 0) {
             return;
