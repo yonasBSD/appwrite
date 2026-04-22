@@ -712,8 +712,10 @@ jobs:
         if: steps.benchmark_before_start.outcome == 'success'
         continue-on-error: true
         run: |
-          rm -f benchmark-before-summary.json benchmark-after-summary.json benchmark-before.txt benchmark.txt
+          set -o pipefail
+          rm -f benchmark-before-summary.json benchmark-after-summary.json benchmark-before-samples.json benchmark-after-samples.json benchmark-before.txt benchmark.txt
           docker run --rm -i --network host --user "$(id -u):$(id -g)" -v "$PWD:/scripts" -w /scripts ${{ env.K6_IMAGE }} run --quiet \
+            --out json=benchmark-before-samples.json \
             -e APPWRITE_ENDPOINT=http://localhost/v1 \
             -e APPWRITE_MAILDEV_ENDPOINT=http://localhost:9503/email \
             -e APPWRITE_BENCHMARK_ITERATIONS=1 \
@@ -736,8 +738,12 @@ jobs:
           docker compose up -d --wait --no-build
 
       - name: Benchmark after
+        id: benchmark_after
+        continue-on-error: true
         run: |
+          set -o pipefail
           docker run --rm -i --network host --user "$(id -u):$(id -g)" -v "$PWD:/scripts" -w /scripts ${{ env.K6_IMAGE }} run --quiet \
+            --out json=benchmark-after-samples.json \
             -e APPWRITE_ENDPOINT=http://localhost/v1 \
             -e APPWRITE_MAILDEV_ENDPOINT=http://localhost:9503/email \
             -e APPWRITE_BENCHMARK_ITERATIONS=1 \
@@ -817,10 +823,58 @@ jobs:
             return `| ${label} | ${detailValue(values.avg ?? null, suffix)} | ${detailValue(values['p(90)'] ?? null, suffix)} | ${detailValue(values['p(95)'] ?? null, suffix)} | ${detailValue(values.max ?? null, suffix)} |`;
           }
 
+          function readSamples(path) {
+            if (!fs.existsSync(path)) {
+              return [];
+            }
+
+            const contents = fs.readFileSync(path, 'utf8').trim();
+            if (contents === '') {
+              return [];
+            }
+
+            return contents
+              .split('\n')
+              .filter(Boolean)
+              .flatMap((line) => {
+                try {
+                  return [JSON.parse(line)];
+                } catch {
+                  return [];
+                }
+              });
+          }
+
+          function slowestSample(samples, metric) {
+            return samples.reduce((slowest, sample) => {
+              if (sample.metric !== metric || typeof sample.data?.value !== 'number') {
+                return slowest;
+              }
+
+              const current = {
+                name: sample.data.tags?.name || 'unknown',
+                value: sample.data.value,
+              };
+
+              return slowest === null || current.value > slowest.value ? current : slowest;
+            }, null);
+          }
+
+          function formatSlowest(sample) {
+            if (sample === null) {
+              return 'n/a';
+            }
+
+            return `${markdownText(sample.name).replace(/\|/g, '\\|')} (${detailValue(sample.value, 'ms')})`;
+          }
+
           const before = readSummary('benchmark-before-summary.json', false);
           const after = readSummary('benchmark-after-summary.json');
+          const afterSamples = readSamples('benchmark-after-samples.json');
           const baseRef = markdownText(process.env.BENCHMARK_BASE_REF || 'base');
           const headRef = markdownText(process.env.BENCHMARK_HEAD_REF || 'head');
+          const slowestHttp = slowestSample(afterSamples, 'appwrite_http_duration');
+          const slowestApi = slowestSample(afterSamples, 'appwrite_api_duration');
 
           const rows = [
             row('HTTP total p95', metricValue(before, 'appwrite_http_duration', 'p(95)'), metricValue(after, 'appwrite_http_duration', 'p(95)'), 'ms'),
@@ -858,6 +912,11 @@ jobs:
           console.log(detailRow(after, 'Mail worker delivery', 'appwrite_worker_mails_duration'));
           console.log(detailRow(after, 'Messaging worker delivery', 'appwrite_worker_messaging_duration'));
           console.log();
+          console.log('| Detail | Value |');
+          console.log('| --- | --- |');
+          console.log(`| Slowest Appwrite request | ${formatSlowest(slowestHttp)} |`);
+          console.log(`| Slowest API endpoint | ${formatSlowest(slowestApi)} |`);
+          console.log();
           console.log('</details>');
           NODE
 
@@ -871,6 +930,8 @@ jobs:
             benchmark.txt
             benchmark-before-summary.json
             benchmark-after-summary.json
+            benchmark-before-samples.json
+            benchmark-after-samples.json
           retention-days: 7
 
       - name: Find Comment
@@ -899,3 +960,7 @@ jobs:
           issue-number: ${{ github.event.pull_request.number }}
           body-path: benchmark-comment.txt
           edit-mode: replace
+
+      - name: Fail benchmark
+        if: steps.benchmark_after.outcome == 'failure'
+        run: exit 1

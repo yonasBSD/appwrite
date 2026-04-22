@@ -885,7 +885,7 @@ function tablePayload() {
 }
 
 function onePixelPng() {
-    return encoding.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=', 'std', 'b');
+    return encoding.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR4nGNgAAIAAAUAAXpeqz8AAAAASUVORK5CYII=', 'std', 'b');
 }
 
 function flattenMultipartArray(key, values) {
