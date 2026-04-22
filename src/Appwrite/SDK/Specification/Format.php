@@ -742,6 +742,7 @@ abstract class Format
                 }
                 break;
             case 'project':
+            case 'projects':
                 switch ($method) {
                     case 'getUsage':
                         switch ($param) {
@@ -749,10 +750,6 @@ abstract class Format
                                 return 'ProjectUsageRange';
                         }
                         break;
-                }
-                break;
-            case 'projects':
-                switch ($method) {
                     case 'getEmailTemplate':
                     case 'updateEmailTemplate':
                     case 'deleteEmailTemplate':
@@ -770,7 +767,9 @@ abstract class Format
                         }
                         break;
                     case 'createSmtpTest':
+                    case 'createSMTPTest':
                     case 'updateSmtp':
+                    case 'updateSMTP':
                         switch ($param) {
                             case 'secure':
                                 return 'SMTPSecure';
