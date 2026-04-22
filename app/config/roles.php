@@ -55,6 +55,7 @@ $admins = [
     'tables.write',
     'platforms.read',
     'platforms.write',
+    'policies.write',
     'templates.read',
     'templates.write',
     'projects.write',

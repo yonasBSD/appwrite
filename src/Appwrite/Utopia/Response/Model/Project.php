@@ -181,6 +181,18 @@ class Project extends Model
                 'default' => false,
                 'example' => true,
             ])
+            ->addRule('authMembershipsUserId', [
+                'type' => self::TYPE_BOOLEAN,
+                'description' => 'Whether or not to show user IDs in the teams membership response.',
+                'default' => false,
+                'example' => true,
+            ])
+            ->addRule('authMembershipsUserPhone', [
+                'type' => self::TYPE_BOOLEAN,
+                'description' => 'Whether or not to show user phone numbers in the teams membership response.',
+                'default' => false,
+                'example' => true,
+            ])
             ->addRule('authInvalidateSessions', [
                 'type' => self::TYPE_BOOLEAN,
                 'description' => 'Whether or not all existing sessions should be invalidated on password change',
@@ -470,7 +482,7 @@ class Project extends Model
 
         $document->setAttribute('authLimit', $authValues['limit'] ?? 0);
         $document->setAttribute('authDuration', $authValues['duration'] ?? TOKEN_EXPIRATION_LOGIN_LONG);
-        $document->setAttribute('authSessionsLimit', $authValues['maxSessions'] ?? APP_LIMIT_USER_SESSIONS_DEFAULT);
+        $document->setAttribute('authSessionsLimit', $authValues['maxSessions'] ?? 0);
         $document->setAttribute('authPasswordHistory', $authValues['passwordHistory'] ?? 0);
         $document->setAttribute('authPasswordDictionary', $authValues['passwordDictionary'] ?? false);
         $document->setAttribute('authPersonalDataCheck', $authValues['personalDataCheck'] ?? false);
@@ -479,9 +491,11 @@ class Project extends Model
         $document->setAttribute('authFreeEmails', $authValues['freeEmails'] ?? false);
         $document->setAttribute('authMockNumbers', $authValues['mockNumbers'] ?? []);
         $document->setAttribute('authSessionAlerts', $authValues['sessionAlerts'] ?? false);
-        $document->setAttribute('authMembershipsUserName', $authValues['membershipsUserName'] ?? true);
-        $document->setAttribute('authMembershipsUserEmail', $authValues['membershipsUserEmail'] ?? true);
-        $document->setAttribute('authMembershipsMfa', $authValues['membershipsMfa'] ?? true);
+        $document->setAttribute('authMembershipsUserName', $authValues['membershipsUserName'] ?? false);
+        $document->setAttribute('authMembershipsUserEmail', $authValues['membershipsUserEmail'] ?? false);
+        $document->setAttribute('authMembershipsMfa', $authValues['membershipsMfa'] ?? false);
+        $document->setAttribute('authMembershipsUserId', $authValues['membershipsUserId'] ?? false);
+        $document->setAttribute('authMembershipsUserPhone', $authValues['membershipsUserPhone'] ?? false);
         $document->setAttribute('authInvalidateSessions', $authValues['invalidateSessions'] ?? false);
 
         foreach ($auth as $method) {
