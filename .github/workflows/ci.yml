@@ -815,7 +815,7 @@ jobs:
           }
 
           function detailRow(after, label, metric, suffix = 'ms') {
-            const values = after.metrics?.[metric]?.values;
+            const values = after?.metrics?.[metric]?.values;
             if (!values) {
               return `| ${label} | n/a | n/a | n/a | n/a |`;
             }
@@ -877,7 +877,7 @@ jobs:
           }
 
           const before = readSummary('benchmark-before-summary.json', false);
-          const after = readSummary('benchmark-after-summary.json');
+          const after = readSummary('benchmark-after-summary.json', false);
           const afterSamples = readSamples('benchmark-after-samples.json');
           const baseRef = markdownText(process.env.BENCHMARK_BASE_REF || 'base');
           const headRef = markdownText(process.env.BENCHMARK_HEAD_REF || 'head');
@@ -899,6 +899,10 @@ jobs:
           console.log();
           if (before === null) {
             console.log('> Before benchmark did not complete; showing current branch metrics only.');
+            console.log();
+          }
+          if (after === null) {
+            console.log('> Current branch benchmark did not complete; showing available metrics only.');
             console.log();
           }
           console.log('| Metric | Before | After | Delta |');
