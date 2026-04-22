@@ -956,11 +956,20 @@ function detailRow(data, label, metric, unit = 'ms') {
 }
 
 function loadPreviousSummary() {
-    try {
-        return JSON.parse(open(PREVIOUS_SUMMARY_PATH));
-    } catch (error) {
-        return null;
+    const paths = [PREVIOUS_SUMMARY_PATH];
+    if (!PREVIOUS_SUMMARY_PATH.startsWith('/')) {
+        paths.push(`../../${PREVIOUS_SUMMARY_PATH}`);
     }
+
+    for (const path of paths) {
+        try {
+            return JSON.parse(open(path));
+        } catch (error) {
+            // Try the next path. k6 resolves open() relative to the script file.
+        }
+    }
+
+    return null;
 }
 
 function comparisonTable(before, after) {
