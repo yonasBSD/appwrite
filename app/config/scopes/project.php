@@ -208,4 +208,12 @@ return [ // List of publicly visible scopes
         "description" =>
             "Access to update project\'s policies",
     ],
+    "templates.read" => [
+        "description" =>
+            "Access to read project\'s templates",
+    ],
+    "templates.write" => [
+        "description" =>
+            "Access to create, update, and delete project\'s templates",
+    ],
 ];

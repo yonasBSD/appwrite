@@ -15,6 +15,7 @@ class V23 extends Filter
             Response::MODEL_MEMBERSHIP_LIST => $this->handleList($content, 'memberships', fn ($item) => $this->parseMembership($item)),
             Response::MODEL_PROJECT => $this->parseProject($content),
             Response::MODEL_PROJECT_LIST => $this->handleList($content, 'projects', fn ($item) => $this->parseProject($item)),
+            Response::MODEL_EMAIL_TEMPLATE => $this->parseEmailTemplate($content),
             default => $content,
         };
     }
@@ -26,10 +27,35 @@ class V23 extends Filter
         return $content;
     }
 
+    private function parseEmailTemplate(array $content): array
+    {
+        if (isset($content['templateId'])) {
+            $content['type'] = $content['templateId'];
+            unset($content['templateId']);
+        }
+
+        if (isset($content['replyToEmail'])) {
+            $content['replyTo'] = $content['replyToEmail'];
+            unset($content['replyToEmail']);
+        }
+
+        unset($content['replyToName']);
+        unset($content['custom']);
+
+        return $content;
+    }
+
     private function parseProject(array $content): array
     {
         unset($content['authMembershipsUserId']);
         unset($content['authMembershipsUserPhone']);
+
+        if (isset($content['smtpReplyToEmail'])) {
+            $content['smtpReplyTo'] = $content['smtpReplyToEmail'];
+            unset($content['smtpReplyToEmail']);
+        }
+
+        unset($content['smtpReplyToName']);
 
         return $content;
     }

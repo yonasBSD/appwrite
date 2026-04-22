@@ -10,6 +10,17 @@ class V23 extends Filter
     public function parse(array $content, string $model): array
     {
         switch ($model) {
+            case 'project.getEmailTemplate':
+            case 'project.deleteEmailTemplate':
+                $content = $this->parseEmailTemplate($content);
+                break;
+            case 'project.updateEmailTemplate':
+                $content = $this->parseEmailTemplate($content);
+                $content = $this->parseReplyTo($content);
+                break;
+            case 'project.updateSMTP':
+                $content = $this->parseReplyTo($content);
+                break;
             case 'project.updateMembershipPrivacyPolicy':
                 $content = $this->parseUpdateMembershipPrivacyPolicy($content);
                 break;
@@ -54,6 +65,26 @@ class V23 extends Filter
         if (isset($content['limit'])) {
             $content['total'] = $content['limit'] === 0 ? null : $content['limit'];
             unset($content['limit']);
+        }
+
+        return $content;
+    }
+
+    protected function parseEmailTemplate(array $content): array
+    {
+        if (isset($content['type'])) {
+            $content['templateId'] = $content['type'];
+            unset($content['type']);
+        }
+
+        return $content;
+    }
+
+    protected function parseReplyTo(array $content): array
+    {
+        if (isset($content['replyTo'])) {
+            $content['replyToEmail'] = $content['replyTo'];
+            unset($content['replyTo']);
         }
 
         return $content;

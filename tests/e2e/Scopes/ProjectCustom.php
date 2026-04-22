@@ -170,6 +170,8 @@ trait ProjectCustom
                     'platforms.read',
                     'platforms.write',
                     'policies.write',
+                    'templates.read',
+                    'templates.write',
                 ],
             ]);
 
