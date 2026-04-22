@@ -745,6 +745,24 @@ jobs:
             docker compose down -v || true
           fi
 
+      - name: Wait for benchmark ports
+        if: always()
+        run: |
+          for port in 80 443 8080 9503; do
+            for attempt in $(seq 1 30); do
+              if ! ss -ltn | awk '{print $4}' | grep -Eq "[:.]${port}$"; then
+                break
+              fi
+              sleep 1
+            done
+
+            if ss -ltn | awk '{print $4}' | grep -Eq "[:.]${port}$"; then
+              echo "Port ${port} is still in use after stopping the before stack"
+              ss -ltn
+              exit 1
+            fi
+          done
+
       - name: Start after Appwrite
         env:
           _APP_DOMAIN: localhost

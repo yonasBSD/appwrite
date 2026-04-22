@@ -179,7 +179,6 @@ function serviceStats(samples) {
     const apiSamples = samples.filter((sample) => {
         return sample.metric === 'appwrite_api_duration' && typeof sample.data?.value === 'number';
     });
-    const durationSeconds = sampleWindowSeconds(apiSamples);
     const groups = new Map();
 
     for (const sample of apiSamples) {
@@ -188,12 +187,14 @@ function serviceStats(samples) {
             continue;
         }
 
-        const values = groups.get(service) || [];
-        values.push(sample.data.value);
-        groups.set(service, values);
+        const serviceSamples = groups.get(service) || [];
+        serviceSamples.push(sample);
+        groups.set(service, serviceSamples);
     }
 
-    return new Map([...groups.entries()].map(([service, values]) => {
+    return new Map([...groups.entries()].map(([service, serviceSamples]) => {
+        const values = serviceSamples.map((sample) => sample.data.value);
+        const durationSeconds = sampleWindowSeconds(serviceSamples);
         return [service, {
             p50: percentile(values, 50),
             p95: percentile(values, 95),
