@@ -2135,7 +2135,7 @@ class AccountCustomClientTest extends Scope
 
         // Find 6 concurrent digits in email text - OTP
         preg_match_all("/\b\d{6}\b/", $lastEmail['text'], $matches);
-        $code = ($matches[0] ?? [])[0] ?? '';
+        $code = $matches[0][0] ?? '';
 
         $this->assertNotEmpty($code);
 
@@ -3363,7 +3363,7 @@ class AccountCustomClientTest extends Scope
     {
         $data = $this->setupPhoneAccount();
         $id = $data['id'];
-        $token = explode(" ", $data['token'])[0] ?? '';
+        $token = explode(" ", $data['token'])[0];
         $number = $data['number'];
 
         /**

@@ -61,7 +61,7 @@ class Mails extends Action
     public function action(Message $message, Document $project, Registry $register, Log $log): void
     {
         Runtime::setHookFlags(SWOOLE_HOOK_ALL ^ SWOOLE_HOOK_TCP);
-        $payload = $message->getPayload() ?? [];
+        $payload = $message->getPayload();
 
         if (empty($payload)) {
             throw new Exception('Missing payload');
