@@ -960,9 +960,6 @@ $server->onMessage(function (int $connection, string $message) use ($server, $re
 
     Span::init('realtime.message');
     Span::add('realtime.connectionId', $connection);
-    if (!empty($projectId)) {
-        Span::add('realtime.projectId', $projectId);
-    }
     Span::add('realtime.inboundBytes', $rawSize);
     Span::add('realtime.containerId', $containerId);
 
@@ -1126,9 +1123,6 @@ $server->onMessage(function (int $connection, string $message) use ($server, $re
 
                 $server->send([$connection], $authResponsePayloadJson);
                 $outboundBytes += \strlen($authResponsePayloadJson);
-                if (!empty($user['$id'] ?? null)) {
-                    Span::add('realtime.userId', $user['$id']);
-                }
 
                 if ($project !== null && !$project->isEmpty()) {
                     $authOutboundBytes = \strlen($authResponsePayloadJson);
@@ -1353,14 +1347,8 @@ $server->onMessage(function (int $connection, string $message) use ($server, $re
         Span::add('realtime.subscribe.queriesPassed', json_encode($subscribeQueriesPassed));
         Span::add('realtime.subscribe.subscriptionsCount', \count($subscribeChannelsPassed));
         Span::add('realtime.outboundBytes', $outboundBytes);
-        if (!empty($project?->getId())) {
-            Span::add('realtime.projectId', $project->getId());
-        } elseif (!empty($projectId)) {
-            Span::add('realtime.projectId', $projectId);
-        }
-        if (!empty($realtime->connections[$connection]['userId'] ?? null)) {
-            Span::add('realtime.userId', $realtime->connections[$connection]['userId']);
-        }
+        Span::add('realtime.projectId', $project?->getId() ?? $projectId);
+        Span::add('realtime.userId', $realtime->connections[$connection]['userId'] ?? null);
         Span::add('realtime.messageType', $messageType);
         Span::current()?->finish();
     }
