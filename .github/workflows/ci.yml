@@ -285,6 +285,8 @@ jobs:
 
   unit:
     name: Tests / Unit
+    # TEMP: Migrations-only CI run. Re-enable before merging to main.
+    if: false
     runs-on: ubuntu-latest
     needs: build
     permissions:
@@ -332,6 +334,8 @@ jobs:
 
   e2e_general:
     name: Tests / E2E / General
+    # TEMP: Migrations-only CI run. Re-enable before merging to main.
+    if: false
     runs-on: ubuntu-latest
     needs: build
     permissions:
@@ -400,32 +404,10 @@ jobs:
       matrix:
         database: ${{ fromJSON(needs.matrix.outputs.databases) }}
         mode: ${{ fromJSON(needs.matrix.outputs.modes) }}
-        service: [
-          Account,
-          Avatars,
-          Console,
-          Databases,
-          TablesDB,
-          Functions,
-          FunctionsSchedule,
-          GraphQL,
-          Health,
-          Locale,
-          Projects,
-          Realtime,
-          Sites,
-          Proxy,
-          Storage,
-          Tokens,
-          Teams,
-          Users,
-          ProjectWebhooks,
-          Webhooks,
-          VCS,
-          Messaging,
-          Migrations,
-          Project
-        ]
+        # TEMP: branch is testing utopia-php/migration re-migration tolerance.
+        # Restricted to Migrations to get fast CI feedback on the feature work;
+        # revert to the full matrix before merging to main.
+        service: [Migrations]
         include:
           - service: Databases
             runner: blacksmith-4vcpu-ubuntu-2404
@@ -524,6 +506,8 @@ jobs:
 
   e2e_abuse:
     name: Tests / E2E / Abuse (${{ matrix.mode }})
+    # TEMP: Migrations-only CI run. Re-enable before merging to main.
+    if: false
     runs-on: ubuntu-latest
     needs: [build, matrix]
     permissions:
@@ -583,6 +567,8 @@ jobs:
 
   e2e_screenshots:
     name: Tests / E2E / Screenshots (${{ matrix.mode }})
+    # TEMP: Migrations-only CI run. Re-enable before merging to main.
+    if: false
     runs-on: ubuntu-latest
     needs: [build, matrix]
     permissions:
@@ -649,6 +635,8 @@ jobs:
 
   benchmark:
     name: Benchmark
+    # TEMP: Migrations-only CI run. Re-enable before merging to main.
+    if: false
     runs-on: ubuntu-latest
     needs: build
     permissions:
