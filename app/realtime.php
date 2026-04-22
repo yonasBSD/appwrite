@@ -1195,9 +1195,12 @@ $server->onMessage(function (int $connection, string $message) use ($server, $re
                         throw new Exception(Exception::REALTIME_MESSAGE_FORMAT_INVALID, 'Invalid query: ' . $e->getMessage());
                     }
 
+                    $convertedChannels = \array_keys(Realtime::convertChannels($payload['channels'], $userId));
+
                     $parsedPayloads[] = [
                         'subscriptionId' => $subscriptionId,
                         'channels' => $payload['channels'],
+                        'convertedChannels' => $convertedChannels,
                         'queries' => $convertedQueries,
                     ];
 
@@ -1207,7 +1210,7 @@ $server->onMessage(function (int $connection, string $message) use ($server, $re
 
                 foreach ($parsedPayloads as $parsedPayload) {
                     $subscriptionId = $parsedPayload['subscriptionId'];
-                    $channels = \array_keys(Realtime::convertChannels($parsedPayload['channels'], $userId));
+                    $channels = $parsedPayload['convertedChannels'];
                     $queries = $parsedPayload['queries'];
                     $realtime->subscribe($projectId, $connection, $subscriptionId, $roles, $channels, $queries);
                 }
@@ -1226,7 +1229,7 @@ $server->onMessage(function (int $connection, string $message) use ($server, $re
                         'subscriptions' => \array_map(function (array $parsedPayload) {
                             return [
                                 'subscriptionId' => $parsedPayload['subscriptionId'],
-                                'channels' => $parsedPayload['channels'],
+                                'channels' => $parsedPayload['convertedChannels'],
                                 'queries' => \array_map(fn ($q) => $q->toString(), $parsedPayload['queries']),
                             ];
                         }, $parsedPayloads),
@@ -1413,9 +1416,9 @@ $server->onClose(function (int $connection) use ($realtime, $stats, $register) {
             Span::add('realtime.userId', $userId);
         }
         Span::add('realtime.subscriptionsBeforeClose', $subscriptionsBeforeClose);
+        Span::current()?->finish();
     }
     $realtime->unsubscribe($connection);
-    Span::current()?->finish();
 
     Console::info('Connection close: ' . $connection);
 });
