@@ -436,7 +436,7 @@ trait MockPhonesBase
             $headers = \array_merge($headers, $this->getHeaders());
         }
 
-        return $this->client->call(Client::METHOD_GET, '/project/mock-phones/' . \urlencode($number), $headers);
+        return $this->client->call(Client::METHOD_GET, '/project/mock-phones/' . $number, $headers);
     }
 
     protected function updateMockPhone(string $number, ?string $otp, bool $authenticated = true): mixed
@@ -455,7 +455,7 @@ trait MockPhonesBase
             $params['otp'] = $otp;
         }
 
-        return $this->client->call(Client::METHOD_PUT, '/project/mock-phones/' . \urlencode($number), $headers, $params);
+        return $this->client->call(Client::METHOD_PUT, '/project/mock-phones/' . $number, $headers, $params);
     }
 
     protected function listMockPhones(?bool $total = null, bool $authenticated = true): mixed
@@ -488,7 +488,7 @@ trait MockPhonesBase
             $headers = \array_merge($headers, $this->getHeaders());
         }
 
-        return $this->client->call(Client::METHOD_DELETE, '/project/mock-phones/' . \urlencode($number), $headers);
+        return $this->client->call(Client::METHOD_DELETE, '/project/mock-phones/' . $number, $headers);
     }
 
     protected function uniquePhoneNumber(): string
