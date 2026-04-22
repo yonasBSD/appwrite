@@ -258,7 +258,7 @@ function metricValue(data, metric, stat) {
 
 function metricTable(rows, side) {
     return [
-        '| Scenario | P50 (ms) | P95 (ms) | Iterations | RPS |',
+        '| Scenario | P50 (ms) | P95 (ms) | Requests | RPS |',
         '| --- | ---: | ---: | ---: | ---: |',
         ...rows.map((row) => metricRow(row, side)),
     ].join('\n');

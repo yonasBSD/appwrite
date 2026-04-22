@@ -726,7 +726,7 @@ jobs:
         uses: grafana/run-k6-action@a15e2072ede004e8d46141e33d7f7dad8ad08d9d
         env:
           APPWRITE_ENDPOINT: 'http://localhost/v1'
-          APPWRITE_BENCHMARK_ITERATIONS: '1'
+          APPWRITE_BENCHMARK_ITERATIONS: '5'
           APPWRITE_BENCHMARK_VUS: '1'
           APPWRITE_WORKER_TIMEOUT_MS: '120000'
           APPWRITE_BENCHMARK_SUMMARY_PATH: 'benchmark-before-summary.json'
@@ -778,7 +778,7 @@ jobs:
         uses: grafana/run-k6-action@a15e2072ede004e8d46141e33d7f7dad8ad08d9d
         env:
           APPWRITE_ENDPOINT: 'http://localhost/v1'
-          APPWRITE_BENCHMARK_ITERATIONS: '1'
+          APPWRITE_BENCHMARK_ITERATIONS: '5'
           APPWRITE_BENCHMARK_VUS: '1'
           APPWRITE_WORKER_TIMEOUT_MS: '120000'
           APPWRITE_BENCHMARK_PREVIOUS_SUMMARY_PATH: '../../benchmark-before-summary.json'

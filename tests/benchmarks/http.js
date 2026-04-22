@@ -529,7 +529,7 @@ export function handleSummary(data) {
 
 function summaryTable(data) {
     return [
-        '| Scenario | P50 (ms) | P95 (ms) | Iterations | RPS |',
+        '| Scenario | P50 (ms) | P95 (ms) | Requests | RPS |',
         '| --- | ---: | ---: | ---: | ---: |',
         summaryRow(data, 'API total', 'appwrite_api_duration'),
     ].join('\n');
