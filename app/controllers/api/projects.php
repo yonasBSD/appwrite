@@ -58,22 +58,6 @@ Http::get('/v1/projects/:projectId')
         $response->dynamic($project, Response::MODEL_PROJECT);
     });
 
-Http::patch('/v1/projects/:projectId/service/all')
-    ->desc('Update all service status')
-    ->groups(['api', 'projects'])
-    ->label('scope', 'projects.write')
-    ->action(function () {
-        throw new Exception(Exception::GENERAL_NOT_IMPLEMENTED, 'Bulk API no longer exists for services. Please change status individually.');
-    });
-
-Http::patch('/v1/projects/:projectId/api/all')
-    ->desc('Update all API status')
-    ->groups(['api', 'projects'])
-    ->label('scope', 'projects.write')
-    ->action(function () {
-        throw new Exception(Exception::GENERAL_NOT_IMPLEMENTED, 'Bulk API no longer exists for services. Please change status individually.');
-    });
-
 Http::patch('/v1/projects/:projectId/oauth2')
     ->desc('Update project OAuth2')
     ->groups(['api', 'projects'])
