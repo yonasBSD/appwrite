@@ -3,6 +3,7 @@
 namespace Tests\E2E\Services\Project;
 
 use Tests\E2E\Client;
+use Utopia\Database\Query;
 use Utopia\Database\Validator\Datetime as DatetimeValidator;
 
 trait MockPhonesBase
@@ -317,6 +318,52 @@ trait MockPhonesBase
         $this->deleteMockPhone($number);
     }
 
+    public function testListMockPhonesWithLimit(): void
+    {
+        $number1 = $this->uniquePhoneNumber();
+        $number2 = $this->uniquePhoneNumber();
+
+        $this->assertSame(201, $this->createMockPhone($number1, '111111')['headers']['status-code']);
+        $this->assertSame(201, $this->createMockPhone($number2, '222222')['headers']['status-code']);
+
+        $response = $this->listMockPhones([
+            Query::limit(1)->toString(),
+        ]);
+
+        $this->assertSame(200, $response['headers']['status-code']);
+        $this->assertCount(1, $response['body']['mockNumbers']);
+        $this->assertGreaterThanOrEqual(2, $response['body']['total']);
+
+        // Cleanup
+        $this->deleteMockPhone($number1);
+        $this->deleteMockPhone($number2);
+    }
+
+    public function testListMockPhonesWithOffset(): void
+    {
+        $number1 = $this->uniquePhoneNumber();
+        $number2 = $this->uniquePhoneNumber();
+
+        $this->assertSame(201, $this->createMockPhone($number1, '111111')['headers']['status-code']);
+        $this->assertSame(201, $this->createMockPhone($number2, '222222')['headers']['status-code']);
+
+        $listAll = $this->listMockPhones();
+        $this->assertSame(200, $listAll['headers']['status-code']);
+        $totalAll = \count($listAll['body']['mockNumbers']);
+
+        $listOffset = $this->listMockPhones([
+            Query::offset(1)->toString(),
+        ]);
+
+        $this->assertSame(200, $listOffset['headers']['status-code']);
+        $this->assertCount($totalAll - 1, $listOffset['body']['mockNumbers']);
+        $this->assertSame($listAll['body']['total'], $listOffset['body']['total']);
+
+        // Cleanup
+        $this->deleteMockPhone($number1);
+        $this->deleteMockPhone($number2);
+    }
+
     public function testListMockPhonesWithoutAuthentication(): void
     {
         $response = $this->listMockPhones(authenticated: false);
@@ -458,7 +505,7 @@ trait MockPhonesBase
         return $this->client->call(Client::METHOD_PUT, '/project/mock-phones/' . $number, $headers, $params);
     }
 
-    protected function listMockPhones(?bool $total = null, bool $authenticated = true): mixed
+    protected function listMockPhones(?array $queries = null, ?bool $total = null, bool $authenticated = true): mixed
     {
         $headers = [
             'content-type' => 'application/json',
@@ -470,6 +517,9 @@ trait MockPhonesBase
         }
 
         $params = [];
+        if ($queries !== null) {
+            $params['queries'] = $queries;
+        }
         if ($total !== null) {
             $params['total'] = $total;
         }
