@@ -12,10 +12,10 @@ class ProjectCustomServerTest extends Scope
     use ProjectCustom;
     use SideServer;
 
-    // Just a blank test so we dont have warning about empty test class
+    // Placeholder until this scope has custom server-specific coverage.
     // You can remove this after adding some custom server tests, or some project base tests
     public function testProjectServerLogic(): void
     {
-        $this->assertTrue(true);
+        $this->expectNotToPerformAssertions();
     }
 }
