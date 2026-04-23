@@ -393,6 +393,7 @@ class Migrations extends Action
                 'platforms.write',
                 'mocks.read',
                 'mocks.write',
+                'policies.read',
                 'policies.write',
                 'templates.read',
                 'templates.write',
