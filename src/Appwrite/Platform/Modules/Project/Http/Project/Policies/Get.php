@@ -144,6 +144,7 @@ class Get extends Action
                 ]),
                 Response::MODEL_POLICY_MEMBERSHIP_PRIVACY,
             ],
+            default => throw new \LogicException('Unknown policy ID: ' . $policyId),
         };
 
         $response->dynamic($policy, $model);
