@@ -212,8 +212,11 @@ jobs:
             const allDatabases = ['MariaDB', 'PostgreSQL', 'MongoDB'];
             const allModes = ['dedicated', 'shared'];
 
-            const defaultDatabases = ['MongoDB'];
-            const defaultModes = ['dedicated'];
+            // TEMP: branch is testing utopia-php/migration re-migration tolerance
+            // across every adapter/mode. Revert to ['MongoDB']/['dedicated']
+            // before merging to main.
+            const defaultDatabases = allDatabases;
+            const defaultModes = allModes;
 
             const pr = context.payload.pull_request;
             if (!pr) {
