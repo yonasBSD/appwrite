@@ -3,6 +3,7 @@
 namespace Appwrite\Platform\Modules\Project\Services;
 
 use Appwrite\Platform\Modules\Project\Http\Init;
+use Appwrite\Platform\Modules\Project\Http\Project\AuthMethods\Update as UpdateAuthMethod;
 use Appwrite\Platform\Modules\Project\Http\Project\Keys\Create as CreateKey;
 use Appwrite\Platform\Modules\Project\Http\Project\Keys\Delete as DeleteKey;
 use Appwrite\Platform\Modules\Project\Http\Project\Keys\Get as GetKey;
@@ -119,5 +120,8 @@ class Http extends Service
         $this->addAction(UpdateSessionInvalidationPolicy::getName(), new UpdateSessionInvalidationPolicy());
         $this->addAction(UpdateSessionLimitPolicy::getName(), new UpdateSessionLimitPolicy());
         $this->addAction(UpdateUserLimitPolicy::getName(), new UpdateUserLimitPolicy());
+
+        // Auth Methods
+        $this->addAction(UpdateAuthMethod::getName(), new UpdateAuthMethod());
     }
 }
