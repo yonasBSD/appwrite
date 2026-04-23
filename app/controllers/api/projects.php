@@ -1,10 +1,8 @@
 <?php
 
 use Appwrite\Auth\Validator\MockNumber;
-use Appwrite\Event\Delete;
 use Appwrite\Extend\Exception;
 use Appwrite\SDK\AuthType;
-use Appwrite\SDK\ContentType;
 use Appwrite\SDK\Method;
 use Appwrite\SDK\Response as SDKResponse;
 use Appwrite\Utopia\Response;
@@ -159,50 +157,6 @@ Http::patch('/v1/projects/:projectId/auth/mock-numbers')
         $project = $dbForPlatform->updateDocument('projects', $project->getId(), $project->setAttribute('auths', $auths));
 
         $response->dynamic($project, Response::MODEL_PROJECT);
-    });
-
-Http::delete('/v1/projects/:projectId')
-    ->desc('Delete project')
-    ->groups(['api', 'projects'])
-    ->label('audits.event', 'projects.delete')
-    ->label('audits.resource', 'project/{request.projectId}')
-    ->label('scope', 'projects.write')
-    ->label('sdk', new Method(
-        namespace: 'projects',
-        group: 'projects',
-        name: 'delete',
-        description: '/docs/references/projects/delete.md',
-        auth: [AuthType::ADMIN],
-        responses: [
-            new SDKResponse(
-                code: Response::STATUS_CODE_NOCONTENT,
-                model: Response::MODEL_NONE,
-            )
-        ],
-        contentType: ContentType::NONE
-    ))
-    ->param('projectId', '', fn (Database $dbForPlatform) => new UID($dbForPlatform->getAdapter()->getMaxUIDLength()), 'Project unique ID.', false, ['dbForPlatform'])
-    ->inject('response')
-    ->inject('user')
-    ->inject('dbForPlatform')
-    ->inject('queueForDeletes')
-    ->action(function (string $projectId, Response $response, Document $user, Database $dbForPlatform, Delete $queueForDeletes) {
-        $project = $dbForPlatform->getDocument('projects', $projectId);
-
-        if ($project->isEmpty()) {
-            throw new Exception(Exception::PROJECT_NOT_FOUND);
-        }
-
-        $queueForDeletes
-            ->setProject($project)
-            ->setType(DELETE_TYPE_DOCUMENT)
-            ->setDocument($project);
-
-        if (!$dbForPlatform->deleteDocument('projects', $projectId)) {
-            throw new Exception(Exception::GENERAL_SERVER_ERROR, 'Failed to remove project from DB');
-        }
-
-        $response->noContent();
     });
 
 // Backwards compatibility

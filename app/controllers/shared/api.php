@@ -44,7 +44,7 @@ use Utopia\System\System;
 use Utopia\Telemetry\Adapter as Telemetry;
 use Utopia\Validator\WhiteList;
 
-$parseLabel = function (string $label, array $responsePayload, array $requestParams, User $user) {
+$parseLabel = function (string $label, array $responsePayload, array $requestParams, User $user, Document $project) {
     preg_match_all('/{(.*?)}/', $label, $matches);
     foreach ($matches[1] as $pos => $match) {
         $find = $matches[0][$pos];
@@ -59,6 +59,7 @@ $parseLabel = function (string $label, array $responsePayload, array $requestPar
 
         $params = match ($namespace) {
             'user' => (array) $user,
+            'project' => $project->getArrayCopy(),
             'request' => $requestParams,
             default => $responsePayload,
         };
@@ -903,7 +904,7 @@ Http::shutdown()
          */
         $pattern = $route->getLabel('audits.resource', null);
         if (! empty($pattern)) {
-            $resource = $parseLabel($pattern, $responsePayload, $requestParams, $user);
+            $resource = $parseLabel($pattern, $responsePayload, $requestParams, $user, $project);
             if (! empty($resource) && $resource !== $pattern) {
                 $auditContext->resource = $resource;
             }
