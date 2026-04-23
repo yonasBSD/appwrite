@@ -38,6 +38,7 @@ use Appwrite\Platform\Modules\Project\Http\Project\Policies\SessionDuration\Upda
 use Appwrite\Platform\Modules\Project\Http\Project\Policies\SessionInvalidation\Update as UpdateSessionInvalidationPolicy;
 use Appwrite\Platform\Modules\Project\Http\Project\Policies\SessionLimit\Update as UpdateSessionLimitPolicy;
 use Appwrite\Platform\Modules\Project\Http\Project\Policies\UserLimit\Update as UpdateUserLimitPolicy;
+use Appwrite\Platform\Modules\Project\Http\Project\Policies\XList as ListPolicies;
 use Appwrite\Platform\Modules\Project\Http\Project\Protocols\Update as UpdateProjectProtocol;
 use Appwrite\Platform\Modules\Project\Http\Project\Services\Update as UpdateProjectService;
 use Appwrite\Platform\Modules\Project\Http\Project\SMTP\Tests\Create as CreateSMTPTest;
@@ -113,6 +114,7 @@ class Http extends Service
         $this->addAction(DeleteMockPhone::getName(), new DeleteMockPhone());
 
         // Policies
+        $this->addAction(ListPolicies::getName(), new ListPolicies());
         $this->addAction(UpdateMembershipPrivacyPolicy::getName(), new UpdateMembershipPrivacyPolicy());
         $this->addAction(UpdatePasswordDictionaryPolicy::getName(), new UpdatePasswordDictionaryPolicy());
         $this->addAction(UpdatePasswordHistoryPolicy::getName(), new UpdatePasswordHistoryPolicy());
