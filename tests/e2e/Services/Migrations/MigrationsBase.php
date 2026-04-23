@@ -940,6 +940,184 @@ trait MigrationsBase
     }
 
     /**
+     * Upsert re-migration reconciles container metadata drift: when source's
+     * database or table was modified between runs (rename, enabled flag,
+     * permissions tightening), the Upsert pre-check returns UpdateInPlace
+     * and migration's updateDocument propagates source values to dest.
+     * Children (rows) are preserved.
+     */
+    public function testAppwriteMigrationUpsertUpdatesContainerMetadata(): void
+    {
+        $sourceHeaders = [
+            'content-type' => 'application/json',
+            'x-appwrite-project' => $this->getProject()['$id'],
+            'x-appwrite-key' => $this->getProject()['apiKey'],
+        ];
+        $destHeaders = [
+            'content-type' => 'application/json',
+            'x-appwrite-project' => $this->getDestinationProject()['$id'],
+            'x-appwrite-key' => $this->getDestinationProject()['apiKey'],
+        ];
+
+        $data = $this->setupMigrationTable();
+        $databaseId = $data['databaseId'];
+        $tableId = $data['tableId'];
+        $rowId = 'persist-me';
+
+        $this->client->call(Client::METHOD_POST, '/tablesdb/' . $databaseId . '/tables/' . $tableId . '/rows', $sourceHeaders, [
+            'rowId' => $rowId,
+            'data' => ['name' => 'SeedRow'],
+        ]);
+
+        $resources = [
+            Resource::TYPE_DATABASE,
+            Resource::TYPE_TABLE,
+            Resource::TYPE_COLUMN,
+            Resource::TYPE_ROW,
+        ];
+
+        // First migration — dest empty, strict completion.
+        $first = $this->performMigrationSync([
+            'resources' => $resources,
+            'endpoint' => $this->webEndpoint,
+            'projectId' => $this->getProject()['$id'],
+            'apiKey' => $this->getProject()['apiKey'],
+        ]);
+        $this->assertEquals('completed', $first['status']);
+
+        // `_updatedAt` is stored at second granularity (strtotime) — ensure
+        // the source edits below produce a strictly-newer timestamp than
+        // dest's first-migration timestamp.
+        sleep(1);
+
+        // Mutate source: rename database + toggle table enabled.
+        $this->client->call(Client::METHOD_PUT, '/databases/' . $databaseId, $sourceHeaders, [
+            'name' => 'Renamed Source DB',
+        ]);
+        $this->client->call(Client::METHOD_PUT, '/tablesdb/' . $databaseId . '/tables/' . $tableId, $sourceHeaders, [
+            'name' => 'Renamed Source Table',
+            'permissions' => [Permission::read(Role::any())],
+            'rowSecurity' => true,
+            'enabled' => false,
+        ]);
+
+        // Upsert re-migration: UpdateInPlace path fires for database + table.
+        $upsertResult = $this->performMigrationSync([
+            'resources' => $resources,
+            'endpoint' => $this->webEndpoint,
+            'projectId' => $this->getProject()['$id'],
+            'apiKey' => $this->getProject()['apiKey'],
+            'onDuplicate' => 'upsert',
+        ]);
+        $this->assertEquals('completed', $upsertResult['status']);
+
+        // Assert dest database metadata reflects source's new values.
+        $destDb = $this->client->call(Client::METHOD_GET, '/databases/' . $databaseId, $destHeaders);
+        $this->assertEquals(200, $destDb['headers']['status-code']);
+        $this->assertEquals('Renamed Source DB', $destDb['body']['name']);
+
+        // Assert dest table metadata reflects source's new values.
+        $destTable = $this->client->call(Client::METHOD_GET, '/tablesdb/' . $databaseId . '/tables/' . $tableId, $destHeaders);
+        $this->assertEquals(200, $destTable['headers']['status-code']);
+        $this->assertEquals('Renamed Source Table', $destTable['body']['name']);
+        $this->assertFalse($destTable['body']['enabled'], 'Upsert must propagate source enabled=false');
+        $this->assertTrue($destTable['body']['documentSecurity'] ?? $destTable['body']['rowSecurity'], 'Upsert must propagate source rowSecurity=true');
+
+        // Child row untouched — UpdateInPlace only rewrites container metadata.
+        $row = $this->client->call(Client::METHOD_GET, '/tablesdb/' . $databaseId . '/tables/' . $tableId . '/rows/' . $rowId, $destHeaders);
+        $this->assertEquals(200, $row['headers']['status-code']);
+        $this->assertEquals('SeedRow', $row['body']['name'], 'Upsert must not touch child rows when updating container metadata');
+
+        $this->client->call(Client::METHOD_DELETE, '/databases/' . $databaseId, $destHeaders);
+        $this->client->call(Client::METHOD_DELETE, '/databases/' . $databaseId, $sourceHeaders);
+
+        self::$cachedDatabaseData = [];
+        self::$cachedTableData = [];
+    }
+
+    /**
+     * Skip mode is strict "don't touch" — destination container metadata
+     * drift (permissions tightened post-migration, rename on dest) is
+     * preserved on every re-run, even when source has diverged. Guards
+     * against a common production workflow: dev→prod migrate, ops tightens
+     * prod permissions, later schema-only re-sync must not wipe out the
+     * tightening.
+     */
+    public function testAppwriteMigrationSkipPreservesContainerDrift(): void
+    {
+        $sourceHeaders = [
+            'content-type' => 'application/json',
+            'x-appwrite-project' => $this->getProject()['$id'],
+            'x-appwrite-key' => $this->getProject()['apiKey'],
+        ];
+        $destHeaders = [
+            'content-type' => 'application/json',
+            'x-appwrite-project' => $this->getDestinationProject()['$id'],
+            'x-appwrite-key' => $this->getDestinationProject()['apiKey'],
+        ];
+
+        $data = $this->setupMigrationTable();
+        $databaseId = $data['databaseId'];
+        $tableId = $data['tableId'];
+
+        $resources = [
+            Resource::TYPE_DATABASE,
+            Resource::TYPE_TABLE,
+            Resource::TYPE_COLUMN,
+        ];
+
+        // First migration: dest gets whatever source had.
+        $first = $this->performMigrationSync([
+            'resources' => $resources,
+            'endpoint' => $this->webEndpoint,
+            'projectId' => $this->getProject()['$id'],
+            'apiKey' => $this->getProject()['apiKey'],
+        ]);
+        $this->assertEquals('completed', $first['status']);
+
+        sleep(1);
+
+        // Mutate dest: ops tightens permissions and renames the table for
+        // its production-specific branding.
+        $this->client->call(Client::METHOD_PUT, '/tablesdb/' . $databaseId . '/tables/' . $tableId, $destHeaders, [
+            'name' => 'Dest-Managed Table',
+            'permissions' => [Permission::read(Role::users())],
+            'rowSecurity' => false,
+            'enabled' => true,
+        ]);
+
+        // Also mutate source so the second run has a real divergence.
+        $this->client->call(Client::METHOD_PUT, '/tablesdb/' . $databaseId . '/tables/' . $tableId, $sourceHeaders, [
+            'name' => 'Source Renamed',
+            'permissions' => [Permission::read(Role::any())],
+            'rowSecurity' => true,
+            'enabled' => false,
+        ]);
+
+        // Skip re-migration: must tolerate existing destination — no update.
+        $skipResult = $this->performMigrationSync([
+            'resources' => $resources,
+            'endpoint' => $this->webEndpoint,
+            'projectId' => $this->getProject()['$id'],
+            'apiKey' => $this->getProject()['apiKey'],
+            'onDuplicate' => 'skip',
+        ]);
+        $this->assertEquals('completed', $skipResult['status']);
+
+        // Dest kept its tightened values.
+        $destTable = $this->client->call(Client::METHOD_GET, '/tablesdb/' . $databaseId . '/tables/' . $tableId, $destHeaders);
+        $this->assertEquals(200, $destTable['headers']['status-code']);
+        $this->assertEquals('Dest-Managed Table', $destTable['body']['name'], 'Skip must not propagate source name over dest drift');
+        $this->assertTrue($destTable['body']['enabled'], 'Skip must preserve dest enabled flag');
+
+        $this->client->call(Client::METHOD_DELETE, '/databases/' . $databaseId, $destHeaders);
+        $this->client->call(Client::METHOD_DELETE, '/databases/' . $databaseId, $sourceHeaders);
+
+        self::$cachedDatabaseData = [];
+        self::$cachedTableData = [];
+    }
+
+    /**
      * Storage
      */
     public function testAppwriteMigrationStorageBucket(): void
