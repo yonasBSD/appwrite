@@ -70,7 +70,7 @@ class Get extends Action
             throw new Exception(Exception::MEMBERSHIP_NOT_FOUND);
         }
 
-        // Default should be "false", but existing projects already relay on this being "true"
+        // Default should be "false", but existing projects already rely on this being "true"
         $membershipsPrivacy =  [
             'userName' => $project->getAttribute('auths', [])['membershipsUserName'] ?? true,
             'userEmail' => $project->getAttribute('auths', [])['membershipsUserEmail'] ?? true,
