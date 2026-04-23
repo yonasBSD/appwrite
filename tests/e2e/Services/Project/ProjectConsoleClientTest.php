@@ -53,10 +53,7 @@ class ProjectConsoleClientTest extends Scope
 
     protected function createTeam(string $name): array
     {
-        $response = $this->client->call(Client::METHOD_POST, '/teams', array_merge([
-            'content-type' => 'application/json',
-            'x-appwrite-project' => $this->getProject()['$id'],
-        ], $this->getHeaders()), [
+        $response = $this->client->call(Client::METHOD_POST, '/teams', $this->getConsoleSessionHeaders(), [
             'teamId' => ID::unique(),
             'name' => $name,
         ]);
@@ -70,10 +67,7 @@ class ProjectConsoleClientTest extends Scope
 
     protected function createProject(string $teamId, string $name): array
     {
-        $response = $this->client->call(Client::METHOD_POST, '/projects', array_merge([
-            'content-type' => 'application/json',
-            'x-appwrite-project' => $this->getProject()['$id'],
-        ], $this->getHeaders()), [
+        $response = $this->client->call(Client::METHOD_POST, '/projects', $this->getConsoleSessionHeaders(), [
             'projectId' => ID::unique(),
             'region' => System::getEnv('_APP_REGION', 'default'),
             'name' => $name,
@@ -89,10 +83,7 @@ class ProjectConsoleClientTest extends Scope
 
     protected function createProjectKey(string $projectId, array $scopes): string
     {
-        $response = $this->client->call(Client::METHOD_POST, '/projects/' . $projectId . '/keys', array_merge([
-            'content-type' => 'application/json',
-            'x-appwrite-project' => $this->getProject()['$id'],
-        ], $this->getHeaders()), [
+        $response = $this->client->call(Client::METHOD_POST, '/projects/' . $projectId . '/keys', $this->getConsoleSessionHeaders(), [
             'keyId' => ID::unique(),
             'name' => 'Delete Project Key',
             'scopes' => $scopes,
@@ -106,9 +97,16 @@ class ProjectConsoleClientTest extends Scope
 
     protected function getConsoleProject(string $projectId): array
     {
-        return $this->client->call(Client::METHOD_GET, '/projects/' . $projectId, array_merge([
+        return $this->client->call(Client::METHOD_GET, '/projects/' . $projectId, $this->getConsoleSessionHeaders());
+    }
+
+    protected function getConsoleSessionHeaders(): array
+    {
+        return [
+            'origin' => 'http://localhost',
             'content-type' => 'application/json',
-            'x-appwrite-project' => $this->getProject()['$id'],
-        ], $this->getHeaders()));
+            'cookie' => 'a_session_console=' . $this->getRoot()['session'],
+            'x-appwrite-project' => 'console',
+        ];
     }
 }
