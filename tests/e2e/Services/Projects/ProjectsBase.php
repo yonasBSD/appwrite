@@ -2,7 +2,6 @@
 
 namespace Tests\E2E\Services\Projects;
 
-use PHPUnit\Framework\Attributes\Group;
 use Tests\E2E\Client;
 use Utopia\Database\Helpers\ID;
 use Utopia\Database\Helpers\Role;
