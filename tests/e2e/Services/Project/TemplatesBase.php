@@ -4,6 +4,7 @@ namespace Tests\E2E\Services\Project;
 
 use Tests\E2E\Client;
 use Utopia\Database\Helpers\ID;
+use Utopia\Database\Query;
 
 trait TemplatesBase
 {
@@ -767,6 +768,68 @@ trait TemplatesBase
         $this->assertSame(\count($response['body']['templates']), $response['body']['total']);
     }
 
+    public function testListEmailTemplatesWithLimit(): void
+    {
+        $this->ensureSMTPEnabled();
+
+        $runId = \uniqid();
+
+        $this->assertSame(200, $this->updateEmailTemplate(
+            templateId: 'verification',
+            locale: 'en',
+            subject: "Limit verification {$runId}",
+            message: 'Body',
+        )['headers']['status-code']);
+
+        $this->assertSame(200, $this->updateEmailTemplate(
+            templateId: 'recovery',
+            locale: 'en',
+            subject: "Limit recovery {$runId}",
+            message: 'Body',
+        )['headers']['status-code']);
+
+        $response = $this->listEmailTemplates([
+            Query::limit(1)->toString(),
+        ]);
+
+        $this->assertSame(200, $response['headers']['status-code']);
+        $this->assertCount(1, $response['body']['templates']);
+        $this->assertGreaterThanOrEqual(2, $response['body']['total']);
+    }
+
+    public function testListEmailTemplatesWithOffset(): void
+    {
+        $this->ensureSMTPEnabled();
+
+        $runId = \uniqid();
+
+        $this->assertSame(200, $this->updateEmailTemplate(
+            templateId: 'magicSession',
+            locale: 'en',
+            subject: "Offset magic {$runId}",
+            message: 'Body',
+        )['headers']['status-code']);
+
+        $this->assertSame(200, $this->updateEmailTemplate(
+            templateId: 'sessionAlert',
+            locale: 'en',
+            subject: "Offset session {$runId}",
+            message: 'Body',
+        )['headers']['status-code']);
+
+        $listAll = $this->listEmailTemplates();
+        $this->assertSame(200, $listAll['headers']['status-code']);
+        $totalAll = \count($listAll['body']['templates']);
+
+        $listOffset = $this->listEmailTemplates([
+            Query::offset(1)->toString(),
+        ]);
+
+        $this->assertSame(200, $listOffset['headers']['status-code']);
+        $this->assertCount($totalAll - 1, $listOffset['body']['templates']);
+        $this->assertSame($listAll['body']['total'], $listOffset['body']['total']);
+    }
+
     public function testListEmailTemplatesOnlyReturnsCustomizedTemplates(): void
     {
         $this->ensureSMTPEnabled();
@@ -1031,7 +1094,7 @@ trait TemplatesBase
         return $this->client->call(Client::METHOD_GET, '/project/templates/email/' . $templateId, $headers, $params);
     }
 
-    protected function listEmailTemplates(?bool $total = null, bool $authenticated = true): mixed
+    protected function listEmailTemplates(?array $queries = null, ?bool $total = null, bool $authenticated = true): mixed
     {
         $headers = [
             'content-type' => 'application/json',
@@ -1043,6 +1106,9 @@ trait TemplatesBase
         }
 
         $params = [];
+        if ($queries !== null) {
+            $params['queries'] = $queries;
+        }
         if ($total !== null) {
             $params['total'] = $total;
         }
