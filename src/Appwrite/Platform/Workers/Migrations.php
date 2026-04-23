@@ -57,7 +57,7 @@ class Migrations extends Action
     protected ?Device $deviceForFiles;
     protected ?Document $project;
 
-    protected Document $sourceProject;
+    protected ?Document $sourceProject = null;
 
     /**
      * @var callable
@@ -75,7 +75,6 @@ class Migrations extends Action
      */
     protected array $sourceReport = [];
 
-    private string $source;
     /**
      * @var callable|null
      */
@@ -131,7 +130,7 @@ class Migrations extends Action
         array $plan,
         Authorization $authorization,
     ): void {
-        $migrationMessage = Migration::fromArray($message->getPayload() ?? []);
+        $migrationMessage = Migration::fromArray($message->getPayload());
         $this->getDatabasesDB = $getDatabasesDB;
         $this->getProjectDB = $getProjectDB;
 
@@ -394,6 +393,9 @@ class Migrations extends Action
                 'keys.write',
                 'platforms.read',
                 'platforms.write',
+                'policies.write',
+                'templates.read',
+                'templates.write',
             ]
         ]);
 
