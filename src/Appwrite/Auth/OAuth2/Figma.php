@@ -175,8 +175,4 @@ class Figma extends OAuth2
 
         return $this->user;
     }
-
-    public function verifyCredentials(): void {
-        // TODO: Implement, eventuelly. Refer to GitHub.php in this directory for inspiration
-    }
 }
