@@ -310,6 +310,9 @@ class Response extends SwooleResponse
     public const MODEL_OAUTH2_TRADESHIFT_BOX = 'oAuth2TradeshiftBox';
     public const MODEL_OAUTH2_PAYPAL = 'oAuth2Paypal';
     public const MODEL_OAUTH2_PAYPAL_SANDBOX = 'oAuth2PaypalSandbox';
+    public const MODEL_OAUTH2_GITLAB = 'oAuth2Gitlab';
+    public const MODEL_OAUTH2_AUTHENTIK = 'oAuth2Authentik';
+    public const MODEL_OAUTH2_AUTH0 = 'oAuth2Auth0';
 
     // Health
     public const MODEL_HEALTH_STATUS = 'healthStatus';

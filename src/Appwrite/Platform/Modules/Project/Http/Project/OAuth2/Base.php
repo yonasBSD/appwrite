@@ -137,15 +137,23 @@ abstract class Base extends Action
             ->callback($this->action(...));
     }
 
-    public function action(
+    /**
+     * Apply the provided credential changes to the project's oAuthProviders map,
+     * run the optional credential verification hook, persist the project, and
+     * return the updated project document.
+     *
+     * Providers that need to serialize multiple values into a single secret
+     * (e.g. GitLab, which stores `{clientSecret, endpoint}` as JSON) should
+     * encode those values into `$clientSecret` before calling this method.
+     */
+    protected function persistCredentials(
+        Document $project,
+        Database $dbForPlatform,
+        Authorization $authorization,
         ?string $clientId,
         ?string $clientSecret,
-        ?bool $enabled,
-        Response $response,
-        Database $dbForPlatform,
-        Document $project,
-        Authorization $authorization
-    ): void {
+        ?bool $enabled
+    ): Document {
         $providerId = static::getProviderId();
         if (!(\in_array($providerId, \array_keys(Config::getParam('oAuthProviders'))))) {
             throw new Exception(Exception::GENERAL_SERVER_ERROR, 'Provider ' . $providerId . ' is not supported by server configuration.');
@@ -195,13 +203,28 @@ abstract class Base extends Action
             'oAuthProviders' => $oAuthProviders
         ]);
 
-        $project = $authorization->skip(fn () => $dbForPlatform->updateDocument('projects', $project->getId(), $updates));
+        return $authorization->skip(fn () => $dbForPlatform->updateDocument('projects', $project->getId(), $updates));
+    }
+
+    public function action(
+        ?string $clientId,
+        ?string $clientSecret,
+        ?bool $enabled,
+        Response $response,
+        Database $dbForPlatform,
+        Document $project,
+        Authorization $authorization
+    ): void {
+        $project = $this->persistCredentials($project, $dbForPlatform, $authorization, $clientId, $clientSecret, $enabled);
+
+        $providerId = static::getProviderId();
+        $oAuthProviders = $project->getAttribute('oAuthProviders', []);
 
         $response->dynamic(new Document([
             '$id' => $providerId,
-            'enabled' => $oAuthProviders[$enabledKey] ?? false,
-            static::getClientIdParamName() => $oAuthProviders[$appIdKey] ?? '',
-            static::getClientSecretParamName() => $oAuthProviders[$appSecretKey] ?? '',
+            'enabled' => $oAuthProviders[$providerId . 'Enabled'] ?? false,
+            static::getClientIdParamName() => $oAuthProviders[$providerId . 'Appid'] ?? '',
+            static::getClientSecretParamName() => $oAuthProviders[$providerId . 'Secret'] ?? '',
         ]), static::getResponseModel());
     }
 }

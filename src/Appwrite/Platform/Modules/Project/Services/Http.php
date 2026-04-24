@@ -17,6 +17,8 @@ use Appwrite\Platform\Modules\Project\Http\Project\MockPhone\Get as GetMockPhone
 use Appwrite\Platform\Modules\Project\Http\Project\MockPhone\Update as UpdateMockPhone;
 use Appwrite\Platform\Modules\Project\Http\Project\MockPhone\XList as ListMockPhones;
 use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Amazon\Update as UpdateOAuth2Amazon;
+use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Auth0\Update as UpdateOAuth2Auth0;
+use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Authentik\Update as UpdateOAuth2Authentik;
 use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Autodesk\Update as UpdateOAuth2Autodesk;
 use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Bitbucket\Update as UpdateOAuth2Bitbucket;
 use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Bitly\Update as UpdateOAuth2Bitly;
@@ -29,6 +31,7 @@ use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Etsy\Update as UpdateO
 use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Facebook\Update as UpdateOAuth2Facebook;
 use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Figma\Update as UpdateOAuth2Figma;
 use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\GitHub\Update as UpdateOAuth2GitHub;
+use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Gitlab\Update as UpdateOAuth2Gitlab;
 use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Google\Update as UpdateOAuth2Google;
 use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Linkedin\Update as UpdateOAuth2Linkedin;
 use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Notion\Update as UpdateOAuth2Notion;
@@ -195,5 +198,8 @@ class Http extends Service
         $this->addAction(UpdateOAuth2TradeshiftBox::getName(), new UpdateOAuth2TradeshiftBox());
         $this->addAction(UpdateOAuth2Paypal::getName(), new UpdateOAuth2Paypal());
         $this->addAction(UpdateOAuth2PaypalSandbox::getName(), new UpdateOAuth2PaypalSandbox());
+        $this->addAction(UpdateOAuth2Gitlab::getName(), new UpdateOAuth2Gitlab());
+        $this->addAction(UpdateOAuth2Authentik::getName(), new UpdateOAuth2Authentik());
+        $this->addAction(UpdateOAuth2Auth0::getName(), new UpdateOAuth2Auth0());
     }
 }
