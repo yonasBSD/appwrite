@@ -6,23 +6,19 @@ use Appwrite\Utopia\Response;
 
 class OAuth2Discord extends OAuth2Base
 {
-    public function __construct()
+    public function getProviderLabel(): string
     {
-        parent::__construct();
+        return 'Discord';
+    }
 
-        $this
-            ->addRule('clientId', [
-                'type' => self::TYPE_STRING,
-                'description' => 'Discord OAuth 2 client ID.',
-                'default' => '',
-                'example' => '950722000000343754',
-            ])
-            ->addRule('clientSecret', [
-                'type' => self::TYPE_STRING,
-                'description' => 'Discord OAuth 2 client secret.',
-                'default' => '',
-                'example' => 'YmPXnM000000000000000000002zFg5D',
-            ]);
+    public function getClientIdExample(): string
+    {
+        return '950722000000343754';
+    }
+
+    public function getClientSecretExample(): string
+    {
+        return 'YmPXnM000000000000000000002zFg5D';
     }
 
     /**

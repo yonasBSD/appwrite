@@ -6,23 +6,19 @@ use Appwrite\Utopia\Response;
 
 class OAuth2Figma extends OAuth2Base
 {
-    public function __construct()
+    public function getProviderLabel(): string
     {
-        parent::__construct();
+        return 'Figma';
+    }
 
-        $this
-            ->addRule('clientId', [
-                'type' => self::TYPE_STRING,
-                'description' => 'Figma OAuth 2 client ID.',
-                'default' => '',
-                'example' => 'byay5H0000000000VtiI40',
-            ])
-            ->addRule('clientSecret', [
-                'type' => self::TYPE_STRING,
-                'description' => 'Figma OAuth 2 client secret.',
-                'default' => '',
-                'example' => 'yEpOYn0000000000000000004iIsU5',
-            ]);
+    public function getClientIdExample(): string
+    {
+        return 'byay5H0000000000VtiI40';
+    }
+
+    public function getClientSecretExample(): string
+    {
+        return 'yEpOYn0000000000000000004iIsU5';
     }
 
     /**

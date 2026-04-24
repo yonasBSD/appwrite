@@ -6,23 +6,39 @@ use Appwrite\Utopia\Response;
 
 class OAuth2Dropbox extends OAuth2Base
 {
-    public function __construct()
+    public function getProviderLabel(): string
     {
-        parent::__construct();
+        return 'Dropbox';
+    }
 
-        $this
-            ->addRule('appKey', [
-                'type' => self::TYPE_STRING,
-                'description' => 'Dropbox OAuth 2 app key.',
-                'default' => '',
-                'example' => 'jl000000000009t',
-            ])
-            ->addRule('appSecret', [
-                'type' => self::TYPE_STRING,
-                'description' => 'Dropbox OAuth 2 app secret.',
-                'default' => '',
-                'example' => 'g200000000000vw',
-            ]);
+    public function getClientIdExample(): string
+    {
+        return 'jl000000000009t';
+    }
+
+    public function getClientSecretExample(): string
+    {
+        return 'g200000000000vw';
+    }
+
+    public function getClientIdFieldName(): string
+    {
+        return 'appKey';
+    }
+
+    public function getClientSecretFieldName(): string
+    {
+        return 'appSecret';
+    }
+
+    public function getClientIdLabel(): string
+    {
+        return 'app key';
+    }
+
+    public function getClientSecretLabel(): string
+    {
+        return 'app secret';
     }
 
     /**
