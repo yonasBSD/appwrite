@@ -50,6 +50,13 @@ abstract class OAuth2
             $this->addScope($scope);
         }
     }
+    
+    /**
+     * Check if the OAuth credentials are valid
+     *
+     * @throws \Exception
+     */
+    abstract public function verifyCredentials(): void;
 
     /**
      * @return string

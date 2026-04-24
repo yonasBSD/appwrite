@@ -17,6 +17,7 @@ use Appwrite\Platform\Modules\Project\Http\Project\MockPhone\Get as GetMockPhone
 use Appwrite\Platform\Modules\Project\Http\Project\MockPhone\Update as UpdateMockPhone;
 use Appwrite\Platform\Modules\Project\Http\Project\MockPhone\XList as ListMockPhones;
 use Appwrite\Platform\Modules\Project\Http\Project\Platforms\Android\Create as CreateAndroidPlatform;
+use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\GitHub\Update as UpdateOAuth2GitHub;
 use Appwrite\Platform\Modules\Project\Http\Project\Platforms\Android\Update as UpdateAndroidPlatform;
 use Appwrite\Platform\Modules\Project\Http\Project\Platforms\Apple\Create as CreateApplePlatform;
 use Appwrite\Platform\Modules\Project\Http\Project\Platforms\Apple\Update as UpdateApplePlatform;
@@ -129,5 +130,8 @@ class Http extends Service
 
         // Auth Methods
         $this->addAction(UpdateAuthMethod::getName(), new UpdateAuthMethod());
+        
+        // OAuth2
+        $this->addAction(UpdateOAuth2GitHub::getName(), new UpdateOAuth2GitHub());
     }
 }
