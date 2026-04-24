@@ -1,0 +1,40 @@
+<?php
+
+namespace Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Zoom;
+
+use Appwrite\Auth\OAuth2\Zoom;
+use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Base;
+use Appwrite\Utopia\Response;
+
+class Update extends Base
+{
+    public static function getProviderId(): string
+    {
+        return 'zoom';
+    }
+
+    public static function getProviderClass(): string
+    {
+        return Zoom::class;
+    }
+
+    public static function getProviderLabel(): string
+    {
+        return 'Zoom';
+    }
+
+    public static function getResponseModel(): string
+    {
+        return Response::MODEL_OAUTH2_ZOOM;
+    }
+
+    public static function getClientIdDescription(): string
+    {
+        return 'Client ID of Zoom OAuth2 app. For example: QMAC00000000000000w0AQ';
+    }
+
+    public static function getClientSecretDescription(): string
+    {
+        return 'Client Secret of Zoom OAuth2 app. For example: GAWsG4000000000000000000007U01ON';
+    }
+}

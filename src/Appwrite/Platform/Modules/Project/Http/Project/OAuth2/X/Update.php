@@ -1,0 +1,50 @@
+<?php
+
+namespace Appwrite\Platform\Modules\Project\Http\Project\OAuth2\X;
+
+use Appwrite\Auth\OAuth2\X;
+use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Base;
+use Appwrite\Utopia\Response;
+
+class Update extends Base
+{
+    public static function getProviderId(): string
+    {
+        return 'x';
+    }
+
+    public static function getProviderClass(): string
+    {
+        return X::class;
+    }
+
+    public static function getProviderLabel(): string
+    {
+        return 'X';
+    }
+
+    public static function getResponseModel(): string
+    {
+        return Response::MODEL_OAUTH2_X;
+    }
+
+    public static function getClientIdParamName(): string
+    {
+        return 'customerKey';
+    }
+
+    public static function getClientSecretParamName(): string
+    {
+        return 'secretKey';
+    }
+
+    public static function getClientIdDescription(): string
+    {
+        return 'Customer Key of X OAuth2 app. For example: slzZV0000000000000NFLaWT';
+    }
+
+    public static function getClientSecretDescription(): string
+    {
+        return 'Secret Key of X OAuth2 app. For example: tkEPkp00000000000000000000000000000000000000FTxbI9';
+    }
+}

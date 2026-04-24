@@ -288,6 +288,24 @@ class Response extends SwooleResponse
     public const MODEL_OAUTH2_BOX = 'oAuth2Box';
     public const MODEL_OAUTH2_AUTODESK = 'oAuth2Autodesk';
     public const MODEL_OAUTH2_GOOGLE = 'oAuth2Google';
+    public const MODEL_OAUTH2_ZOOM = 'oAuth2Zoom';
+    public const MODEL_OAUTH2_ZOHO = 'oAuth2Zoho';
+    public const MODEL_OAUTH2_YANDEX = 'oAuth2Yandex';
+    public const MODEL_OAUTH2_X = 'oAuth2X';
+    public const MODEL_OAUTH2_WORDPRESS = 'oAuth2WordPress';
+    public const MODEL_OAUTH2_TWITCH = 'oAuth2Twitch';
+    public const MODEL_OAUTH2_STRIPE = 'oAuth2Stripe';
+    public const MODEL_OAUTH2_SPOTIFY = 'oAuth2Spotify';
+    public const MODEL_OAUTH2_SLACK = 'oAuth2Slack';
+    public const MODEL_OAUTH2_PODIO = 'oAuth2Podio';
+    public const MODEL_OAUTH2_NOTION = 'oAuth2Notion';
+    public const MODEL_OAUTH2_SALESFORCE = 'oAuth2Salesforce';
+    public const MODEL_OAUTH2_YAHOO = 'oAuth2Yahoo';
+    public const MODEL_OAUTH2_LINKEDIN = 'oAuth2Linkedin';
+    public const MODEL_OAUTH2_DISQUS = 'oAuth2Disqus';
+    public const MODEL_OAUTH2_AMAZON = 'oAuth2Amazon';
+    public const MODEL_OAUTH2_ETSY = 'oAuth2Etsy';
+    public const MODEL_OAUTH2_FACEBOOK = 'oAuth2Facebook';
 
     // Health
     public const MODEL_HEALTH_STATUS = 'healthStatus';

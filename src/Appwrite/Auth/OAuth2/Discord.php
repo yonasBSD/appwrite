@@ -1,7 +1,6 @@
 <?php
 
 namespace Appwrite\Auth\OAuth2;
-use Utopia\Fetch\Client as FetchClient;
 
 use Appwrite\Auth\OAuth2;
 

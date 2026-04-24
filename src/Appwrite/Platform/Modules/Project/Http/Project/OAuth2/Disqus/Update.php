@@ -1,0 +1,50 @@
+<?php
+
+namespace Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Disqus;
+
+use Appwrite\Auth\OAuth2\Disqus;
+use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Base;
+use Appwrite\Utopia\Response;
+
+class Update extends Base
+{
+    public static function getProviderId(): string
+    {
+        return 'disqus';
+    }
+
+    public static function getProviderClass(): string
+    {
+        return Disqus::class;
+    }
+
+    public static function getProviderLabel(): string
+    {
+        return 'Disqus';
+    }
+
+    public static function getResponseModel(): string
+    {
+        return Response::MODEL_OAUTH2_DISQUS;
+    }
+
+    public static function getClientIdParamName(): string
+    {
+        return 'publicKey';
+    }
+
+    public static function getClientSecretParamName(): string
+    {
+        return 'secretKey';
+    }
+
+    public static function getClientIdDescription(): string
+    {
+        return 'Public key, also known as API Key, of Disqus OAuth2 app. For example: cgegH70000000000000000000000000000000000000000000000000000Hr1nYX';
+    }
+
+    public static function getClientSecretDescription(): string
+    {
+        return 'Secret Key, also known as API Secret, of Disqus OAuth2 app. For example: W7Bykj00000000000000000000000000000000000000000000000000003o43w9';
+    }
+}

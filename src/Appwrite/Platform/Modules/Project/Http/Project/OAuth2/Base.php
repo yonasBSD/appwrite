@@ -140,7 +140,7 @@ abstract class Base extends Action
         Authorization $authorization
     ): void {
         $providerId = static::getProviderId();
-        if(!(\in_array($providerId, \array_keys(Config::getParam('oAuthProviders'))))) {
+        if (!(\in_array($providerId, \array_keys(Config::getParam('oAuthProviders'))))) {
             throw new Exception(Exception::GENERAL_SERVER_ERROR, 'Provider ' . $providerId . ' is not supported by server configuration.');
         }
 
@@ -162,9 +162,9 @@ abstract class Base extends Action
             $oAuthProviders[$enabledKey] = $enabled;
         }
 
-        if($enabled === true || \is_null($enabled)) {
+        if ($enabled === true || \is_null($enabled)) {
             try {
-                if(empty($oAuthProviders[$appIdKey]) || empty($oAuthProviders[$appSecretKey])) {
+                if (empty($oAuthProviders[$appIdKey]) || empty($oAuthProviders[$appSecretKey])) {
                     throw new Exception(Exception::GENERAL_ARGUMENT_INVALID, 'Client ID and Client Secret are required when enabling OAuth2 provider.');
                 }
 
@@ -172,13 +172,13 @@ abstract class Base extends Action
                 $providerInstance = new $providerClass(appId: $oAuthProviders[$appIdKey], appSecret: $oAuthProviders[$appSecretKey], callback: '', state: [], scopes: []);
 
                 // E2E integration check
-                if(\method_exists($providerInstance,'verifyCredentials')) {
+                if (\method_exists($providerInstance, 'verifyCredentials')) {
                     $providerInstance->verifyCredentials();
                 }
 
                 $oAuthProviders[$enabledKey] = true;
-            } catch(\Throwable $err) {
-                if($enabled === true) {
+            } catch (\Throwable $err) {
+                if ($enabled === true) {
                     throw new Exception(Exception::GENERAL_ARGUMENT_INVALID, 'Could not enable OAuth2 provider: ' . $err->getMessage());
                 }
             }
@@ -188,7 +188,7 @@ abstract class Base extends Action
             'oAuthProviders' => $oAuthProviders
         ]);
 
-        $project = $authorization->skip(fn() => $dbForPlatform->updateDocument('projects', $project->getId(), $updates));
+        $project = $authorization->skip(fn () => $dbForPlatform->updateDocument('projects', $project->getId(), $updates));
 
         $response->dynamic(new Document([
             '$id' => $providerId,

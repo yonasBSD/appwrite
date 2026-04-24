@@ -16,17 +16,35 @@ use Appwrite\Platform\Modules\Project\Http\Project\MockPhone\Delete as DeleteMoc
 use Appwrite\Platform\Modules\Project\Http\Project\MockPhone\Get as GetMockPhone;
 use Appwrite\Platform\Modules\Project\Http\Project\MockPhone\Update as UpdateMockPhone;
 use Appwrite\Platform\Modules\Project\Http\Project\MockPhone\XList as ListMockPhones;
+use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Amazon\Update as UpdateOAuth2Amazon;
 use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Autodesk\Update as UpdateOAuth2Autodesk;
 use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Bitbucket\Update as UpdateOAuth2Bitbucket;
 use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Bitly\Update as UpdateOAuth2Bitly;
 use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Box\Update as UpdateOAuth2Box;
 use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Dailymotion\Update as UpdateOAuth2Dailymotion;
 use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Discord\Update as UpdateOAuth2Discord;
+use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Disqus\Update as UpdateOAuth2Disqus;
 use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Dropbox\Update as UpdateOAuth2Dropbox;
+use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Etsy\Update as UpdateOAuth2Etsy;
+use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Facebook\Update as UpdateOAuth2Facebook;
 use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Figma\Update as UpdateOAuth2Figma;
-use Appwrite\Platform\Modules\Project\Http\Project\Platforms\Android\Create as CreateAndroidPlatform;
 use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\GitHub\Update as UpdateOAuth2GitHub;
 use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Google\Update as UpdateOAuth2Google;
+use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Linkedin\Update as UpdateOAuth2Linkedin;
+use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Notion\Update as UpdateOAuth2Notion;
+use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Podio\Update as UpdateOAuth2Podio;
+use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Salesforce\Update as UpdateOAuth2Salesforce;
+use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Slack\Update as UpdateOAuth2Slack;
+use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Spotify\Update as UpdateOAuth2Spotify;
+use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Stripe\Update as UpdateOAuth2Stripe;
+use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Twitch\Update as UpdateOAuth2Twitch;
+use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\WordPress\Update as UpdateOAuth2WordPress;
+use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\X\Update as UpdateOAuth2X;
+use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Yahoo\Update as UpdateOAuth2Yahoo;
+use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Yandex\Update as UpdateOAuth2Yandex;
+use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Zoho\Update as UpdateOAuth2Zoho;
+use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Zoom\Update as UpdateOAuth2Zoom;
+use Appwrite\Platform\Modules\Project\Http\Project\Platforms\Android\Create as CreateAndroidPlatform;
 use Appwrite\Platform\Modules\Project\Http\Project\Platforms\Android\Update as UpdateAndroidPlatform;
 use Appwrite\Platform\Modules\Project\Http\Project\Platforms\Apple\Create as CreateApplePlatform;
 use Appwrite\Platform\Modules\Project\Http\Project\Platforms\Apple\Update as UpdateApplePlatform;
@@ -139,7 +157,7 @@ class Http extends Service
 
         // Auth Methods
         $this->addAction(UpdateAuthMethod::getName(), new UpdateAuthMethod());
-        
+
         // OAuth2
         $this->addAction(UpdateOAuth2GitHub::getName(), new UpdateOAuth2GitHub());
         $this->addAction(UpdateOAuth2Discord::getName(), new UpdateOAuth2Discord());
@@ -151,5 +169,23 @@ class Http extends Service
         $this->addAction(UpdateOAuth2Box::getName(), new UpdateOAuth2Box());
         $this->addAction(UpdateOAuth2Autodesk::getName(), new UpdateOAuth2Autodesk());
         $this->addAction(UpdateOAuth2Google::getName(), new UpdateOAuth2Google());
+        $this->addAction(UpdateOAuth2Zoom::getName(), new UpdateOAuth2Zoom());
+        $this->addAction(UpdateOAuth2Zoho::getName(), new UpdateOAuth2Zoho());
+        $this->addAction(UpdateOAuth2Yandex::getName(), new UpdateOAuth2Yandex());
+        $this->addAction(UpdateOAuth2X::getName(), new UpdateOAuth2X());
+        $this->addAction(UpdateOAuth2WordPress::getName(), new UpdateOAuth2WordPress());
+        $this->addAction(UpdateOAuth2Twitch::getName(), new UpdateOAuth2Twitch());
+        $this->addAction(UpdateOAuth2Stripe::getName(), new UpdateOAuth2Stripe());
+        $this->addAction(UpdateOAuth2Spotify::getName(), new UpdateOAuth2Spotify());
+        $this->addAction(UpdateOAuth2Slack::getName(), new UpdateOAuth2Slack());
+        $this->addAction(UpdateOAuth2Podio::getName(), new UpdateOAuth2Podio());
+        $this->addAction(UpdateOAuth2Notion::getName(), new UpdateOAuth2Notion());
+        $this->addAction(UpdateOAuth2Salesforce::getName(), new UpdateOAuth2Salesforce());
+        $this->addAction(UpdateOAuth2Yahoo::getName(), new UpdateOAuth2Yahoo());
+        $this->addAction(UpdateOAuth2Linkedin::getName(), new UpdateOAuth2Linkedin());
+        $this->addAction(UpdateOAuth2Disqus::getName(), new UpdateOAuth2Disqus());
+        $this->addAction(UpdateOAuth2Amazon::getName(), new UpdateOAuth2Amazon());
+        $this->addAction(UpdateOAuth2Etsy::getName(), new UpdateOAuth2Etsy());
+        $this->addAction(UpdateOAuth2Facebook::getName(), new UpdateOAuth2Facebook());
     }
 }

@@ -1,0 +1,40 @@
+<?php
+
+namespace Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Amazon;
+
+use Appwrite\Auth\OAuth2\Amazon;
+use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Base;
+use Appwrite\Utopia\Response;
+
+class Update extends Base
+{
+    public static function getProviderId(): string
+    {
+        return 'amazon';
+    }
+
+    public static function getProviderClass(): string
+    {
+        return Amazon::class;
+    }
+
+    public static function getProviderLabel(): string
+    {
+        return 'Amazon';
+    }
+
+    public static function getResponseModel(): string
+    {
+        return Response::MODEL_OAUTH2_AMAZON;
+    }
+
+    public static function getClientIdDescription(): string
+    {
+        return 'Client ID of Amazon OAuth2 app. For example: amzn1.application-oa2-client.87400c00000000000000000000063d5b2';
+    }
+
+    public static function getClientSecretDescription(): string
+    {
+        return 'Client Secret of Amazon OAuth2 app. For example: 79ffe4000000000000000000000000000000000000000000000000000002de55';
+    }
+}
