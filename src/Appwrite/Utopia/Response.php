@@ -306,6 +306,10 @@ class Response extends SwooleResponse
     public const MODEL_OAUTH2_AMAZON = 'oAuth2Amazon';
     public const MODEL_OAUTH2_ETSY = 'oAuth2Etsy';
     public const MODEL_OAUTH2_FACEBOOK = 'oAuth2Facebook';
+    public const MODEL_OAUTH2_TRADESHIFT = 'oAuth2Tradeshift';
+    public const MODEL_OAUTH2_TRADESHIFT_BOX = 'oAuth2TradeshiftBox';
+    public const MODEL_OAUTH2_PAYPAL = 'oAuth2Paypal';
+    public const MODEL_OAUTH2_PAYPAL_SANDBOX = 'oAuth2PaypalSandbox';
 
     // Health
     public const MODEL_HEALTH_STATUS = 'healthStatus';

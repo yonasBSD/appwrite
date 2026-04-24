@@ -32,11 +32,15 @@ use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\GitHub\Update as Updat
 use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Google\Update as UpdateOAuth2Google;
 use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Linkedin\Update as UpdateOAuth2Linkedin;
 use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Notion\Update as UpdateOAuth2Notion;
+use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Paypal\Update as UpdateOAuth2Paypal;
+use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\PaypalSandbox\Update as UpdateOAuth2PaypalSandbox;
 use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Podio\Update as UpdateOAuth2Podio;
 use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Salesforce\Update as UpdateOAuth2Salesforce;
 use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Slack\Update as UpdateOAuth2Slack;
 use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Spotify\Update as UpdateOAuth2Spotify;
 use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Stripe\Update as UpdateOAuth2Stripe;
+use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Tradeshift\Update as UpdateOAuth2Tradeshift;
+use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\TradeshiftBox\Update as UpdateOAuth2TradeshiftBox;
 use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Twitch\Update as UpdateOAuth2Twitch;
 use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\WordPress\Update as UpdateOAuth2WordPress;
 use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\X\Update as UpdateOAuth2X;
@@ -187,5 +191,9 @@ class Http extends Service
         $this->addAction(UpdateOAuth2Amazon::getName(), new UpdateOAuth2Amazon());
         $this->addAction(UpdateOAuth2Etsy::getName(), new UpdateOAuth2Etsy());
         $this->addAction(UpdateOAuth2Facebook::getName(), new UpdateOAuth2Facebook());
+        $this->addAction(UpdateOAuth2Tradeshift::getName(), new UpdateOAuth2Tradeshift());
+        $this->addAction(UpdateOAuth2TradeshiftBox::getName(), new UpdateOAuth2TradeshiftBox());
+        $this->addAction(UpdateOAuth2Paypal::getName(), new UpdateOAuth2Paypal());
+        $this->addAction(UpdateOAuth2PaypalSandbox::getName(), new UpdateOAuth2PaypalSandbox());
     }
 }
