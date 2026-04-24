@@ -273,8 +273,6 @@ $adapter
     ->setPackageMaxLength(64000) // Default maximum Package Size (64kb)
     ->setWorkerNumber($workerNumber);
 
-$adapter->getNative()->set(['dispatch_mode' => 2]);
-
 $server = new Server($adapter);
 
 // Allows overriding
