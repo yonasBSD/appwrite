@@ -45,6 +45,7 @@ use Utopia\WebSocket\Adapter;
 use Utopia\WebSocket\Server;
 
 require_once __DIR__ . '/init.php';
+require_once __DIR__ . '/init/span.php';
 
 /** @var Registry $register */
 $register = $GLOBALS['register'] ?? throw new \RuntimeException('Registry not initialized');
@@ -271,6 +272,8 @@ $adapter = new Adapter\Swoole(port: System::getEnv('PORT', 80));
 $adapter
     ->setPackageMaxLength(64000) // Default maximum Package Size (64kb)
     ->setWorkerNumber($workerNumber);
+
+$adapter->getNative()->set(['dispatch_mode' => 2]);
 
 $server = new Server($adapter);
 
