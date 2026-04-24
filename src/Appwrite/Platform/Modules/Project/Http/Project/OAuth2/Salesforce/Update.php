@@ -23,6 +23,11 @@ class Update extends Base
         return 'Salesforce';
     }
 
+    public static function getProviderSDKMethod(): string
+    {
+        return 'updateOAuth2Salesforce';
+    }
+
     public static function getResponseModel(): string
     {
         return Response::MODEL_OAUTH2_SALESFORCE;

@@ -23,6 +23,11 @@ class Update extends Base
         return 'Autodesk';
     }
 
+    public static function getProviderSDKMethod(): string
+    {
+        return 'updateOAuth2Autodesk';
+    }
+
     public static function getResponseModel(): string
     {
         return Response::MODEL_OAUTH2_AUTODESK;

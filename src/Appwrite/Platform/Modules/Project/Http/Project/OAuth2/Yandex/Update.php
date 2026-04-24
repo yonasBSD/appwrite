@@ -23,6 +23,11 @@ class Update extends Base
         return 'Yandex';
     }
 
+    public static function getProviderSDKMethod(): string
+    {
+        return 'updateOAuth2Yandex';
+    }
+
     public static function getResponseModel(): string
     {
         return Response::MODEL_OAUTH2_YANDEX;

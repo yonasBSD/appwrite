@@ -23,6 +23,11 @@ class Update extends Base
         return 'Figma';
     }
 
+    public static function getProviderSDKMethod(): string
+    {
+        return 'updateOAuth2Figma';
+    }
+
     public static function getResponseModel(): string
     {
         return Response::MODEL_OAUTH2_FIGMA;

@@ -23,6 +23,11 @@ class Update extends Base
         return 'Zoho';
     }
 
+    public static function getProviderSDKMethod(): string
+    {
+        return 'updateOAuth2Zoho';
+    }
+
     public static function getResponseModel(): string
     {
         return Response::MODEL_OAUTH2_ZOHO;

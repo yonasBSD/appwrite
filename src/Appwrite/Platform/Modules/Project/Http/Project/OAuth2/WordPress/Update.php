@@ -23,6 +23,11 @@ class Update extends Base
         return 'WordPress';
     }
 
+    public static function getProviderSDKMethod(): string
+    {
+        return 'updateOAuth2WordPress';
+    }
+
     public static function getResponseModel(): string
     {
         return Response::MODEL_OAUTH2_WORDPRESS;

@@ -23,6 +23,11 @@ class Update extends Base
         return 'Yahoo';
     }
 
+    public static function getProviderSDKMethod(): string
+    {
+        return 'updateOAuth2Yahoo';
+    }
+
     public static function getResponseModel(): string
     {
         return Response::MODEL_OAUTH2_YAHOO;

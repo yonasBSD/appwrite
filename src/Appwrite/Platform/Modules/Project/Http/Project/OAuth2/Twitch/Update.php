@@ -23,6 +23,11 @@ class Update extends Base
         return 'Twitch';
     }
 
+    public static function getProviderSDKMethod(): string
+    {
+        return 'updateOAuth2Twitch';
+    }
+
     public static function getResponseModel(): string
     {
         return Response::MODEL_OAUTH2_TWITCH;

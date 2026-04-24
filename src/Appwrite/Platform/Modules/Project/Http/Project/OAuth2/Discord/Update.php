@@ -23,6 +23,11 @@ class Update extends Base
         return 'Discord';
     }
 
+    public static function getProviderSDKMethod(): string
+    {
+        return 'updateOAuth2Discord';
+    }
+
     public static function getResponseModel(): string
     {
         return Response::MODEL_OAUTH2_DISCORD;

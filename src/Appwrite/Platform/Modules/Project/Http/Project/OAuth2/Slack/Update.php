@@ -23,6 +23,11 @@ class Update extends Base
         return 'Slack';
     }
 
+    public static function getProviderSDKMethod(): string
+    {
+        return 'updateOAuth2Slack';
+    }
+
     public static function getResponseModel(): string
     {
         return Response::MODEL_OAUTH2_SLACK;

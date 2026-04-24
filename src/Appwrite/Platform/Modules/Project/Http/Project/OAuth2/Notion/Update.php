@@ -23,6 +23,11 @@ class Update extends Base
         return 'Notion';
     }
 
+    public static function getProviderSDKMethod(): string
+    {
+        return 'updateOAuth2Notion';
+    }
+
     public static function getResponseModel(): string
     {
         return Response::MODEL_OAUTH2_NOTION;

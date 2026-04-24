@@ -23,6 +23,11 @@ class Update extends Base
         return 'Zoom';
     }
 
+    public static function getProviderSDKMethod(): string
+    {
+        return 'updateOAuth2Zoom';
+    }
+
     public static function getResponseModel(): string
     {
         return Response::MODEL_OAUTH2_ZOOM;

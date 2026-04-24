@@ -23,6 +23,11 @@ class Update extends Base
         return 'Linkedin';
     }
 
+    public static function getProviderSDKMethod(): string
+    {
+        return 'updateOAuth2Linkedin';
+    }
+
     public static function getResponseModel(): string
     {
         return Response::MODEL_OAUTH2_LINKEDIN;

@@ -23,6 +23,11 @@ class Update extends Base
         return 'Etsy';
     }
 
+    public static function getProviderSDKMethod(): string
+    {
+        return 'updateOAuth2Etsy';
+    }
+
     public static function getResponseModel(): string
     {
         return Response::MODEL_OAUTH2_ETSY;

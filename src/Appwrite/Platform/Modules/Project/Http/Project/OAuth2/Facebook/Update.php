@@ -23,6 +23,11 @@ class Update extends Base
         return 'Facebook';
     }
 
+    public static function getProviderSDKMethod(): string
+    {
+        return 'updateOAuth2Facebook';
+    }
+
     public static function getResponseModel(): string
     {
         return Response::MODEL_OAUTH2_FACEBOOK;

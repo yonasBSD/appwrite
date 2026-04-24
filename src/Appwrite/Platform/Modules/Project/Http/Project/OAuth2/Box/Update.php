@@ -23,6 +23,11 @@ class Update extends Base
         return 'Box';
     }
 
+    public static function getProviderSDKMethod(): string
+    {
+        return 'updateOAuth2Box';
+    }
+
     public static function getResponseModel(): string
     {
         return Response::MODEL_OAUTH2_BOX;

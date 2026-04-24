@@ -88,6 +88,13 @@ abstract class Base extends Action
         return 'clientSecret';
     }
 
+    /**
+     * SDK method name exposed to clients.
+     *
+     * @return string e.g. 'updateOAuth2GitHub'
+     */
+    abstract public static function getProviderSDKMethod(): string;
+
     public static function getName()
     {
         return 'updateProjectOAuth2' . static::getProviderLabel();
@@ -110,7 +117,7 @@ abstract class Base extends Action
             ->label('sdk', new Method(
                 namespace: 'project',
                 group: 'oauth2',
-                name: 'updateOAuth2' . $providerLabel,
+                name: static::getProviderSDKMethod(),
                 description: 'Update the project OAuth2 ' . $providerLabel . ' configuration.',
                 auth: [AuthType::ADMIN, AuthType::KEY],
                 responses: [

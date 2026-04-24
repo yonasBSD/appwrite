@@ -23,6 +23,11 @@ class Update extends Base
         return 'Podio';
     }
 
+    public static function getProviderSDKMethod(): string
+    {
+        return 'updateOAuth2Podio';
+    }
+
     public static function getResponseModel(): string
     {
         return Response::MODEL_OAUTH2_PODIO;

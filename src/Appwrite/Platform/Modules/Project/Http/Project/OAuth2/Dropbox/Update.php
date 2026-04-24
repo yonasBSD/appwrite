@@ -23,6 +23,11 @@ class Update extends Base
         return 'Dropbox';
     }
 
+    public static function getProviderSDKMethod(): string
+    {
+        return 'updateOAuth2Dropbox';
+    }
+
     public static function getResponseModel(): string
     {
         return Response::MODEL_OAUTH2_DROPBOX;

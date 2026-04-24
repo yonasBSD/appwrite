@@ -23,6 +23,11 @@ class Update extends Base
         return 'Bitbucket';
     }
 
+    public static function getProviderSDKMethod(): string
+    {
+        return 'updateOAuth2Bitbucket';
+    }
+
     public static function getResponseModel(): string
     {
         return Response::MODEL_OAUTH2_BITBUCKET;

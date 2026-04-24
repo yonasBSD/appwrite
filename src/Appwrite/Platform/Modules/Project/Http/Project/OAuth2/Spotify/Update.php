@@ -23,6 +23,11 @@ class Update extends Base
         return 'Spotify';
     }
 
+    public static function getProviderSDKMethod(): string
+    {
+        return 'updateOAuth2Spotify';
+    }
+
     public static function getResponseModel(): string
     {
         return Response::MODEL_OAUTH2_SPOTIFY;

@@ -23,6 +23,11 @@ class Update extends Base
         return 'Amazon';
     }
 
+    public static function getProviderSDKMethod(): string
+    {
+        return 'updateOAuth2Amazon';
+    }
+
     public static function getResponseModel(): string
     {
         return Response::MODEL_OAUTH2_AMAZON;

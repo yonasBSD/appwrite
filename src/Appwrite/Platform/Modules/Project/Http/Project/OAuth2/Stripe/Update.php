@@ -23,6 +23,11 @@ class Update extends Base
         return 'Stripe';
     }
 
+    public static function getProviderSDKMethod(): string
+    {
+        return 'updateOAuth2Stripe';
+    }
+
     public static function getResponseModel(): string
     {
         return Response::MODEL_OAUTH2_STRIPE;
