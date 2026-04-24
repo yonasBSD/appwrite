@@ -4,6 +4,7 @@ namespace Appwrite\Platform\Modules\Project\Services;
 
 use Appwrite\Platform\Modules\Project\Http\Init;
 use Appwrite\Platform\Modules\Project\Http\Project\AuthMethods\Update as UpdateAuthMethod;
+use Appwrite\Platform\Modules\Project\Http\Project\Delete as DeleteProject;
 use Appwrite\Platform\Modules\Project\Http\Project\Keys\Create as CreateKey;
 use Appwrite\Platform\Modules\Project\Http\Project\Keys\Delete as DeleteKey;
 use Appwrite\Platform\Modules\Project\Http\Project\Keys\Get as GetKey;
@@ -28,6 +29,7 @@ use Appwrite\Platform\Modules\Project\Http\Project\Platforms\Web\Update as Updat
 use Appwrite\Platform\Modules\Project\Http\Project\Platforms\Windows\Create as CreateWindowsPlatform;
 use Appwrite\Platform\Modules\Project\Http\Project\Platforms\Windows\Update as UpdateWindowsPlatform;
 use Appwrite\Platform\Modules\Project\Http\Project\Platforms\XList as ListPlatforms;
+use Appwrite\Platform\Modules\Project\Http\Project\Policies\Get as GetPolicy;
 use Appwrite\Platform\Modules\Project\Http\Project\Policies\MembershipPrivacy\Update as UpdateMembershipPrivacyPolicy;
 use Appwrite\Platform\Modules\Project\Http\Project\Policies\PasswordDictionary\Update as UpdatePasswordDictionaryPolicy;
 use Appwrite\Platform\Modules\Project\Http\Project\Policies\PasswordHistory\Update as UpdatePasswordHistoryPolicy;
@@ -37,6 +39,7 @@ use Appwrite\Platform\Modules\Project\Http\Project\Policies\SessionDuration\Upda
 use Appwrite\Platform\Modules\Project\Http\Project\Policies\SessionInvalidation\Update as UpdateSessionInvalidationPolicy;
 use Appwrite\Platform\Modules\Project\Http\Project\Policies\SessionLimit\Update as UpdateSessionLimitPolicy;
 use Appwrite\Platform\Modules\Project\Http\Project\Policies\UserLimit\Update as UpdateUserLimitPolicy;
+use Appwrite\Platform\Modules\Project\Http\Project\Policies\XList as ListPolicies;
 use Appwrite\Platform\Modules\Project\Http\Project\Protocols\Update as UpdateProjectProtocol;
 use Appwrite\Platform\Modules\Project\Http\Project\Services\Update as UpdateProjectService;
 use Appwrite\Platform\Modules\Project\Http\Project\SMTP\Tests\Create as CreateSMTPTest;
@@ -61,6 +64,7 @@ class Http extends Service
         $this->addAction(Init::getName(), new Init());
 
         // Project
+        $this->addAction(DeleteProject::getName(), new DeleteProject());
         $this->addAction(UpdateProjectLabels::getName(), new UpdateProjectLabels());
         $this->addAction(UpdateProjectProtocol::getName(), new UpdateProjectProtocol());
         $this->addAction(UpdateProjectService::getName(), new UpdateProjectService());
@@ -111,6 +115,8 @@ class Http extends Service
         $this->addAction(DeleteMockPhone::getName(), new DeleteMockPhone());
 
         // Policies
+        $this->addAction(ListPolicies::getName(), new ListPolicies());
+        $this->addAction(GetPolicy::getName(), new GetPolicy());
         $this->addAction(UpdateMembershipPrivacyPolicy::getName(), new UpdateMembershipPrivacyPolicy());
         $this->addAction(UpdatePasswordDictionaryPolicy::getName(), new UpdatePasswordDictionaryPolicy());
         $this->addAction(UpdatePasswordHistoryPolicy::getName(), new UpdatePasswordHistoryPolicy());

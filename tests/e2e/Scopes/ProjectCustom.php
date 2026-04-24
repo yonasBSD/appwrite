@@ -171,6 +171,7 @@ trait ProjectCustom
                     'platforms.write',
                     'mocks.read',
                     'mocks.write',
+                    'policies.read',
                     'policies.write',
                     'templates.read',
                     'templates.write',
