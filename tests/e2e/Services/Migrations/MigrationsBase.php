@@ -1118,6 +1118,180 @@ trait MigrationsBase
     }
 
     /**
+     * Upsert re-migration reconciles column-level drift: a column that
+     * exists only on destination (e.g. from a subsequent dest-side edit, or
+     * left over after a source-side rename) must be dropped so destination's
+     * schema matches what source declares. Source-declared columns are
+     * preserved. Rows land after the orphan drop so row upsert doesn't
+     * fail on orphan required columns.
+     */
+    public function testAppwriteMigrationUpsertDropsOrphanColumn(): void
+    {
+        $sourceHeaders = [
+            'content-type' => 'application/json',
+            'x-appwrite-project' => $this->getProject()['$id'],
+            'x-appwrite-key' => $this->getProject()['apiKey'],
+        ];
+        $destHeaders = [
+            'content-type' => 'application/json',
+            'x-appwrite-project' => $this->getDestinationProject()['$id'],
+            'x-appwrite-key' => $this->getDestinationProject()['apiKey'],
+        ];
+
+        $data = $this->setupMigrationTable();
+        $databaseId = $data['databaseId'];
+        $tableId = $data['tableId'];
+
+        $resources = [
+            Resource::TYPE_DATABASE,
+            Resource::TYPE_TABLE,
+            Resource::TYPE_COLUMN,
+            Resource::TYPE_ROW,
+        ];
+
+        // First migration: dest mirrors source (one column 'name').
+        $first = $this->performMigrationSync([
+            'resources' => $resources,
+            'endpoint' => $this->webEndpoint,
+            'projectId' => $this->getProject()['$id'],
+            'apiKey' => $this->getProject()['apiKey'],
+        ]);
+        $this->assertEquals('completed', $first['status']);
+
+        // Add an orphan column directly on destination (not on source).
+        // Simulates the post-rename state: source dropped a column, dest
+        // still has it — or a dest-only column added by a separate app.
+        $orphanResp = $this->client->call(
+            Client::METHOD_POST,
+            '/tablesdb/' . $databaseId . '/tables/' . $tableId . '/columns/string',
+            $destHeaders,
+            [
+                'key' => 'orphan_col',
+                'size' => 50,
+                'required' => false,
+            ]
+        );
+        $this->assertEquals(202, $orphanResp['headers']['status-code']);
+
+        $this->assertEventually(function () use ($databaseId, $tableId, $destHeaders) {
+            $r = $this->client->call(Client::METHOD_GET, '/tablesdb/' . $databaseId . '/tables/' . $tableId . '/columns/orphan_col', $destHeaders);
+            $this->assertEquals(200, $r['headers']['status-code']);
+            $this->assertEquals('available', $r['body']['status']);
+        }, 5000, 500);
+
+        // Seed a row on source so per-table orphan cleanup fires inside
+        // createRecord (before rows land), not just at end of run.
+        $this->client->call(Client::METHOD_POST, '/tablesdb/' . $databaseId . '/tables/' . $tableId . '/rows', $sourceHeaders, [
+            'rowId' => ID::unique(),
+            'data' => ['name' => 'seed'],
+        ]);
+
+        // Upsert re-migration: orphan_col must be dropped from dest.
+        $upsertResult = $this->performMigrationSync([
+            'resources' => $resources,
+            'endpoint' => $this->webEndpoint,
+            'projectId' => $this->getProject()['$id'],
+            'apiKey' => $this->getProject()['apiKey'],
+            'onDuplicate' => 'upsert',
+        ]);
+        $this->assertEquals('completed', $upsertResult['status']);
+
+        // Orphan column dropped.
+        $orphanCheck = $this->client->call(Client::METHOD_GET, '/tablesdb/' . $databaseId . '/tables/' . $tableId . '/columns/orphan_col', $destHeaders);
+        $this->assertEquals(404, $orphanCheck['headers']['status-code'], 'Upsert must drop destination column source no longer declares');
+
+        // Source's column preserved.
+        $nameCheck = $this->client->call(Client::METHOD_GET, '/tablesdb/' . $databaseId . '/tables/' . $tableId . '/columns/name', $destHeaders);
+        $this->assertEquals(200, $nameCheck['headers']['status-code'], 'Upsert must preserve columns source declared');
+
+        $this->client->call(Client::METHOD_DELETE, '/databases/' . $databaseId, $destHeaders);
+        $this->client->call(Client::METHOD_DELETE, '/databases/' . $databaseId, $sourceHeaders);
+
+        self::$cachedDatabaseData = [];
+        self::$cachedTableData = [];
+    }
+
+    /**
+     * Skip mode never touches destination, including orphan columns.
+     * Pairs with testAppwriteMigrationUpsertDropsOrphanColumn to prove the
+     * cleanup is gated correctly: only Upsert reconciles, Skip tolerates.
+     */
+    public function testAppwriteMigrationSkipKeepsOrphanColumn(): void
+    {
+        $sourceHeaders = [
+            'content-type' => 'application/json',
+            'x-appwrite-project' => $this->getProject()['$id'],
+            'x-appwrite-key' => $this->getProject()['apiKey'],
+        ];
+        $destHeaders = [
+            'content-type' => 'application/json',
+            'x-appwrite-project' => $this->getDestinationProject()['$id'],
+            'x-appwrite-key' => $this->getDestinationProject()['apiKey'],
+        ];
+
+        $data = $this->setupMigrationTable();
+        $databaseId = $data['databaseId'];
+        $tableId = $data['tableId'];
+
+        $resources = [
+            Resource::TYPE_DATABASE,
+            Resource::TYPE_TABLE,
+            Resource::TYPE_COLUMN,
+            Resource::TYPE_ROW,
+        ];
+
+        $first = $this->performMigrationSync([
+            'resources' => $resources,
+            'endpoint' => $this->webEndpoint,
+            'projectId' => $this->getProject()['$id'],
+            'apiKey' => $this->getProject()['apiKey'],
+        ]);
+        $this->assertEquals('completed', $first['status']);
+
+        $orphanResp = $this->client->call(
+            Client::METHOD_POST,
+            '/tablesdb/' . $databaseId . '/tables/' . $tableId . '/columns/string',
+            $destHeaders,
+            [
+                'key' => 'dest_only_col',
+                'size' => 50,
+                'required' => false,
+            ]
+        );
+        $this->assertEquals(202, $orphanResp['headers']['status-code']);
+
+        $this->assertEventually(function () use ($databaseId, $tableId, $destHeaders) {
+            $r = $this->client->call(Client::METHOD_GET, '/tablesdb/' . $databaseId . '/tables/' . $tableId . '/columns/dest_only_col', $destHeaders);
+            $this->assertEquals(200, $r['headers']['status-code']);
+            $this->assertEquals('available', $r['body']['status']);
+        }, 5000, 500);
+
+        $this->client->call(Client::METHOD_POST, '/tablesdb/' . $databaseId . '/tables/' . $tableId . '/rows', $sourceHeaders, [
+            'rowId' => ID::unique(),
+            'data' => ['name' => 'seed'],
+        ]);
+
+        // Skip re-migration: orphan column must NOT be dropped.
+        $skipResult = $this->performMigrationSync([
+            'resources' => $resources,
+            'endpoint' => $this->webEndpoint,
+            'projectId' => $this->getProject()['$id'],
+            'apiKey' => $this->getProject()['apiKey'],
+            'onDuplicate' => 'skip',
+        ]);
+        $this->assertEquals('completed', $skipResult['status']);
+
+        $orphanCheck = $this->client->call(Client::METHOD_GET, '/tablesdb/' . $databaseId . '/tables/' . $tableId . '/columns/dest_only_col', $destHeaders);
+        $this->assertEquals(200, $orphanCheck['headers']['status-code'], 'Skip must preserve destination columns, including orphans');
+
+        $this->client->call(Client::METHOD_DELETE, '/databases/' . $databaseId, $destHeaders);
+        $this->client->call(Client::METHOD_DELETE, '/databases/' . $databaseId, $sourceHeaders);
+
+        self::$cachedDatabaseData = [];
+        self::$cachedTableData = [];
+    }
+
+    /**
      * Storage
      */
     public function testAppwriteMigrationStorageBucket(): void
