@@ -1,0 +1,50 @@
+<?php
+
+namespace Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Dropbox;
+
+use Appwrite\Auth\OAuth2\Dropbox;
+use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Base;
+use Appwrite\Utopia\Response;
+
+class Update extends Base
+{
+    public static function getProviderId(): string
+    {
+        return 'dropbox';
+    }
+
+    public static function getProviderClass(): string
+    {
+        return Dropbox::class;
+    }
+
+    public static function getProviderLabel(): string
+    {
+        return 'Dropbox';
+    }
+
+    public static function getResponseModel(): string
+    {
+        return Response::MODEL_OAUTH2_DROPBOX;
+    }
+
+    public static function getClientIdParamName(): string
+    {
+        return 'appKey';
+    }
+
+    public static function getClientSecretParamName(): string
+    {
+        return 'appSecret';
+    }
+
+    public static function getClientIdDescription(): string
+    {
+        return 'App key of Dropbox OAuth2 app. For example: jl000000000009t';
+    }
+
+    public static function getClientSecretDescription(): string
+    {
+        return 'App secret of Dropbox OAuth2 app. For example: g200000000000vw';
+    }
+}

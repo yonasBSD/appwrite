@@ -17,6 +17,7 @@ use Appwrite\Platform\Modules\Project\Http\Project\MockPhone\Get as GetMockPhone
 use Appwrite\Platform\Modules\Project\Http\Project\MockPhone\Update as UpdateMockPhone;
 use Appwrite\Platform\Modules\Project\Http\Project\MockPhone\XList as ListMockPhones;
 use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Discord\Update as UpdateOAuth2Discord;
+use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Dropbox\Update as UpdateOAuth2Dropbox;
 use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Figma\Update as UpdateOAuth2Figma;
 use Appwrite\Platform\Modules\Project\Http\Project\Platforms\Android\Create as CreateAndroidPlatform;
 use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\GitHub\Update as UpdateOAuth2GitHub;
@@ -137,5 +138,6 @@ class Http extends Service
         $this->addAction(UpdateOAuth2GitHub::getName(), new UpdateOAuth2GitHub());
         $this->addAction(UpdateOAuth2Discord::getName(), new UpdateOAuth2Discord());
         $this->addAction(UpdateOAuth2Figma::getName(), new UpdateOAuth2Figma());
+        $this->addAction(UpdateOAuth2Dropbox::getName(), new UpdateOAuth2Dropbox());
     }
 }

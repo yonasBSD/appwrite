@@ -281,6 +281,7 @@ class Response extends SwooleResponse
     public const MODEL_OAUTH2_GITHUB = 'oAuth2Github';
     public const MODEL_OAUTH2_DISCORD = 'oAuth2Discord';
     public const MODEL_OAUTH2_FIGMA = 'oAuth2Figma';
+    public const MODEL_OAUTH2_DROPBOX = 'oAuth2Dropbox';
 
     // Health
     public const MODEL_HEALTH_STATUS = 'healthStatus';
