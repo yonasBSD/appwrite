@@ -279,6 +279,7 @@ class Response extends SwooleResponse
     public const MODEL_EMAIL_TEMPLATE = 'emailTemplate';
     public const MODEL_EMAIL_TEMPLATE_LIST = 'emailTemplateList';
     public const MODEL_OAUTH2_GITHUB = 'oAuth2Github';
+    public const MODEL_OAUTH2_DISCORD = 'oAuth2Discord';
 
     // Health
     public const MODEL_HEALTH_STATUS = 'healthStatus';

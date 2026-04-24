@@ -1,6 +1,7 @@
 <?php
 
 namespace Appwrite\Auth\OAuth2;
+use Utopia\Fetch\Client as FetchClient;
 
 use Appwrite\Auth\OAuth2;
 
@@ -182,5 +183,9 @@ class Discord extends OAuth2
         }
 
         return $this->user;
+    }
+
+    public function verifyCredentials(): void {
+        // TODO: Implement, eventuelly. Refer to GitHub.php in this directory for inspiration
     }
 }
