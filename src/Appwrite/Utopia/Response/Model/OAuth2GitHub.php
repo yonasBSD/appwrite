@@ -15,13 +15,13 @@ class OAuth2GitHub extends OAuth2Base
                 'type' => self::TYPE_STRING,
                 'description' => 'GitHub OAuth 2 client ID. For GitHub Apps, use the "App ID" when both an App ID and client ID are available.',
                 'default' => '',
-                'example' => '123456',
+                'example' => 'e4d87900000000540733',
             ])
             ->addRule('clientSecret', [
                 'type' => self::TYPE_STRING,
                 'description' => 'GitHub OAuth 2 client secret.',
                 'default' => '',
-                'example' => 'github-client-secret',
+                'example' => '5e07c00000000000000000000000000000198bcc',
             ]);
     }
 
