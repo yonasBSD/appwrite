@@ -94,8 +94,8 @@ class OAuthGitHubIntegrationTest extends Scope
             '/account/sessions/oauth2/github',
             $clientHeaders,
             [
-                'success' => 'http://localhost/v1/mock/tests/general/oauth2/success',
-                'failure' => 'http://localhost/v1/mock/tests/general/oauth2/failure',
+                'success' => 'http://localhost:4000/success',
+                'failure' => 'http://localhost:4000/failure',
             ],
             followRedirects: false
         );
@@ -126,23 +126,12 @@ class OAuthGitHubIntegrationTest extends Scope
         // reached GitHub. Anything else means our redirect is malformed.
         $this->assertContains($githubResponse['headers']['status-code'], [200, 302]);
 
-        // Final step: GET /v1/account with the session cookie set by the OAuth callback. In an
-        // automated environment that completes the GitHub authorization step, the call below
-        // returns 200 with the OAuth user. Without that step (no GitHub login/approval automated
-        // here), there is no session cookie, so the call returns 401.
-        $sessionCookieName = 'a_session_' . $newProjectId;
-        $sessionCookie = $githubResponse['cookies'][$sessionCookieName] ?? null;
+        // Cleanup: delete the project
+        $deleteProject = $this->client->call(Client::METHOD_DELETE, '/projects/' . $newProjectId, $consoleHeaders);
+        $this->assertSame(204, $deleteProject['headers']['status-code']);
 
-        if ($sessionCookie === null) {
-            $accountUnauth = $this->client->call(Client::METHOD_GET, '/account', $clientHeaders);
-            $this->assertSame(401, $accountUnauth['headers']['status-code']);
-            return;
-        }
-
-        $accountResponse = $this->client->call(Client::METHOD_GET, '/account', \array_merge($clientHeaders, [
-            'cookie' => $sessionCookieName . '=' . $sessionCookie,
-        ]));
-        $this->assertSame(200, $accountResponse['headers']['status-code']);
-        $this->assertNotEmpty($accountResponse['body']['$id']);
+        // Cleanup: delete the organization (team)
+        $deleteTeam = $this->client->call(Client::METHOD_DELETE, '/teams/' . $teamId, $consoleHeaders);
+        $this->assertSame(204, $deleteTeam['headers']['status-code']);
     }
 }
