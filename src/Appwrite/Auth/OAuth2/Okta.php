@@ -42,7 +42,12 @@ class Okta extends OAuth2
      */
     public function getLoginURL(): string
     {
-        return 'https://' . $this->getOktaDomain() . '/oauth2/' . $this->getAuthorizationServerId() . '/v1/authorize?' . \http_build_query([
+        $base = 'https://' . $this->getOktaDomain() . '/oauth2';
+        if(!empty($this->getAuthorizationServerId())) {
+            $base .= '/' . $this->getAuthorizationServerId();
+        }
+        
+        return $base . '/v1/authorize?' . \http_build_query([
             'client_id' => $this->appID,
             'redirect_uri' => $this->callback,
             'state' => \json_encode($this->state),
@@ -59,10 +64,15 @@ class Okta extends OAuth2
     protected function getTokens(string $code): array
     {
         if (empty($this->tokens)) {
+            $base = 'https://' . $this->getOktaDomain() . '/oauth2';
+            if(!empty($this->getAuthorizationServerId())) {
+                $base .= '/' . $this->getAuthorizationServerId();
+            }
+            
             $headers = ['Content-Type: application/x-www-form-urlencoded'];
             $this->tokens = \json_decode($this->request(
                 'POST',
-                'https://' . $this->getOktaDomain() . '/oauth2/' . $this->getAuthorizationServerId() . '/v1/token',
+                $base . '/v1/token',
                 $headers,
                 \http_build_query([
                     'code' => $code,
@@ -86,10 +96,15 @@ class Okta extends OAuth2
      */
     public function refreshTokens(string $refreshToken): array
     {
+        $base = 'https://' . $this->getOktaDomain() . '/oauth2';
+        if(!empty($this->getAuthorizationServerId())) {
+            $base .= '/' . $this->getAuthorizationServerId();
+        }
+        
         $headers = ['Content-Type: application/x-www-form-urlencoded'];
         $this->tokens = \json_decode($this->request(
             'POST',
-            'https://' . $this->getOktaDomain() . '/oauth2/' . $this->getAuthorizationServerId() . '/v1/token',
+            $base . '/v1/token',
             $headers,
             \http_build_query([
                 'refresh_token' => $refreshToken,
@@ -170,8 +185,13 @@ class Okta extends OAuth2
     protected function getUser(string $accessToken): array
     {
         if (empty($this->user)) {
+            $base = 'https://' . $this->getOktaDomain() . '/oauth2';
+            if(!empty($this->getAuthorizationServerId())) {
+                $base .= '/' . $this->getAuthorizationServerId();
+            }
+            
             $headers = ['Authorization: Bearer ' . \urlencode($accessToken)];
-            $user = $this->request('GET', 'https://' . $this->getOktaDomain() . '/oauth2/' . $this->getAuthorizationServerId() . '/v1/userinfo', $headers);
+            $user = $this->request('GET', $base . '/v1/userinfo', $headers);
             $this->user = \json_decode($user, true);
         }
 
