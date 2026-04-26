@@ -45,11 +45,11 @@ class Update extends Base
 
     public static function getClientIdDescription(): string
     {
-        return 'Key of Bitbucket OAuth2 app. For example: Knt70000000000ByRc';
+        return '\'Key\' of Bitbucket OAuth2 app. For example: Knt70000000000ByRc';
     }
 
     public static function getClientSecretDescription(): string
     {
-        return 'Secret of Bitbucket OAuth2 app. For example: NMfLZJ00000000000000000000TLQdDx';
+        return '\'Secret\' of Bitbucket OAuth2 app. For example: NMfLZJ00000000000000000000TLQdDx';
     }
 }

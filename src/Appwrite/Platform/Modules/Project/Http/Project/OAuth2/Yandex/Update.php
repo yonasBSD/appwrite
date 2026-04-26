@@ -35,11 +35,11 @@ class Update extends Base
 
     public static function getClientIdDescription(): string
     {
-        return 'ClientID of Yandex OAuth2 app. For example: 6a8a6a0000000000000000000091483c';
+        return '\'ClientID\' of Yandex OAuth2 app. For example: 6a8a6a0000000000000000000091483c';
     }
 
     public static function getClientSecretDescription(): string
     {
-        return 'Client secret of Yandex OAuth2 app. For example: bbf98500000000000000000000c75a63';
+        return '\'Client secret\' of Yandex OAuth2 app. For example: bbf98500000000000000000000c75a63';
     }
 }

@@ -45,11 +45,11 @@ class Update extends Base
 
     public static function getClientIdDescription(): string
     {
-        return 'App key of Dropbox OAuth2 app. For example: jl000000000009t';
+        return '\'App key\' of Dropbox OAuth2 app. For example: jl000000000009t';
     }
 
     public static function getClientSecretDescription(): string
     {
-        return 'App secret of Dropbox OAuth2 app. For example: g200000000000vw';
+        return '\'App secret\' of Dropbox OAuth2 app. For example: g200000000000vw';
     }
 }

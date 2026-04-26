@@ -35,11 +35,11 @@ class Update extends Base
 
     public static function getClientIdDescription(): string
     {
-        return 'Client ID, also known as Customer Key, of Yahoo OAuth2 app. For example: dj0yJm000000000000000000000000000000000000000000000000000000000000000000000000000000000000Z4PWRm';
+        return '\'Client ID\', also known as \'Customer Key\', of Yahoo OAuth2 app. For example: dj0yJm000000000000000000000000000000000000000000000000000000000000000000000000000000000000Z4PWRm';
     }
 
     public static function getClientSecretDescription(): string
     {
-        return 'Client Secret, also known as Customer Secret, of Yahoo OAuth2 app. For example: cf978f0000000000000000000000000000c5e2e9';
+        return '\'Client Secret\', also known as \'Customer Secret\', of Yahoo OAuth2 app. For example: cf978f0000000000000000000000000000c5e2e9';
     }
 }

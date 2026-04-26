@@ -45,11 +45,11 @@ class Update extends Base
 
     public static function getClientIdDescription(): string
     {
-        return 'Keystring of Etsy OAuth2 app. For example: nsgzxh0000000000008j85a2';
+        return '\'Keystring\' of Etsy OAuth2 app. For example: nsgzxh0000000000008j85a2';
     }
 
     public static function getClientSecretDescription(): string
     {
-        return 'Shared Secret of Etsy OAuth2 app. For example: tp000000ru';
+        return '\'Shared Secret\' of Etsy OAuth2 app. For example: tp000000ru';
     }
 }

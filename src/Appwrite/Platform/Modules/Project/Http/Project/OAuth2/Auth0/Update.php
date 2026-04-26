@@ -45,12 +45,12 @@ class Update extends Base
 
     public static function getClientIdDescription(): string
     {
-        return 'Client ID of Auth0 OAuth2 app. For example: OaOkIA000000000000000000005KLSYq';
+        return '\'Client ID\' of Auth0 OAuth2 app. For example: OaOkIA000000000000000000005KLSYq';
     }
 
     public static function getClientSecretDescription(): string
     {
-        return 'Client Secret of Auth0 OAuth2 app. For example: zXz0000-00000000000000000000000000000-00000000000000000000PJafnF';
+        return '\'Client Secret\' of Auth0 OAuth2 app. For example: zXz0000-00000000000000000000000000000-00000000000000000000PJafnF';
     }
 
     public function __construct()

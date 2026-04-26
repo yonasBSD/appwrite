@@ -35,11 +35,11 @@ class Update extends Base
 
     public static function getClientIdDescription(): string
     {
-        return 'Client ID of Figma OAuth2 app. For example: byay5H0000000000VtiI40';
+        return '\'Client ID\' of Figma OAuth2 app. For example: byay5H0000000000VtiI40';
     }
 
     public static function getClientSecretDescription(): string
     {
-        return 'Client Secret of Figma OAuth2 app. For example: yEpOYn0000000000000000004iIsU5';
+        return '\'Client Secret\' of Figma OAuth2 app. For example: yEpOYn0000000000000000004iIsU5';
     }
 }

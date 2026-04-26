@@ -56,12 +56,12 @@ class Update extends Base
 
     public static function getClientIdDescription(): string
     {
-        return 'Application ID of GitLab OAuth2 app. For example: d41ffe0000000000000000000000000000000000000000000000000000d5e252';
+        return '\'Application ID\' of GitLab OAuth2 app. For example: d41ffe0000000000000000000000000000000000000000000000000000d5e252';
     }
 
     public static function getClientSecretDescription(): string
     {
-        return 'Secret of GitLab OAuth2 app. For example: gloas-838cfa0000000000000000000000000000000000000000000000000000ecbb38';
+        return '\'Secret\' of GitLab OAuth2 app. For example: gloas-838cfa0000000000000000000000000000000000000000000000000000ecbb38';
     }
 
     public function __construct()

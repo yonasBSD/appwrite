@@ -35,11 +35,11 @@ class Update extends Base
 
     public static function getClientIdDescription(): string
     {
-        return 'Client ID of WordPress OAuth2 app. For example: 130005';
+        return '\'Client ID\' of WordPress OAuth2 app. For example: 130005';
     }
 
     public static function getClientSecretDescription(): string
     {
-        return 'Client Secret of WordPress OAuth2 app. For example: PlBfJS0000000000000000000000000000000000000000000000000000EdUZJk';
+        return '\'Client Secret\' of WordPress OAuth2 app. For example: PlBfJS0000000000000000000000000000000000000000000000000000EdUZJk';
     }
 }

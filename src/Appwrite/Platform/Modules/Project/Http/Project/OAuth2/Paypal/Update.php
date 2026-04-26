@@ -40,11 +40,11 @@ class Update extends Base
 
     public static function getClientIdDescription(): string
     {
-        return 'Client ID of PayPal OAuth2 app. For example: AdhIEG7-000000000000-0000000000000000000000000000000-0000000000000000000000-2pyB';
+        return '\'Client ID\' of ' . static::getProviderLabel() . ' OAuth2 app. For example: AdhIEG7-000000000000-0000000000000000000000000000000-0000000000000000000000-2pyB';
     }
 
     public static function getClientSecretDescription(): string
     {
-        return 'Secret key 1, also known as Secret key 2, of PayPal OAuth2 app. For example: EH8KCXtew--000000000000000000000000000000000000000_C-1_5UP_000000000000000CB7KDp';
+        return '\'Secret key 1\', or \'Secret key 2\', of ' . static::getProviderLabel() . ' OAuth2 app. For example: EH8KCXtew--000000000000000000000000000000000000000_C-1_5UP_000000000000000CB7KDp';
     }
 }

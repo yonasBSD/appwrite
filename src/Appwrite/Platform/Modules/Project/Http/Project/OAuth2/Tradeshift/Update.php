@@ -45,11 +45,11 @@ class Update extends Base
 
     public static function getClientIdDescription(): string
     {
-        return 'Oauth2 Client ID of Tradeshift OAuth2 app. For example: appwrite-test-org.appwrite-test-app';
+        return '\'Oauth2 Client ID\' of ' . static::getProviderLabel() . ' OAuth2 app. For example: appwrite-tes00000.0000000000est-app';
     }
 
     public static function getClientSecretDescription(): string
     {
-        return 'Oauth2 Client secret of Tradeshift OAuth2 app. For example: 7cb52700-0000-0000-0000-000000ca5b83';
+        return '\'Oauth2 Client secret\' of ' . static::getProviderLabel() . ' OAuth2 app. For example: 7cb52700-0000-0000-0000-000000ca5b83';
     }
 }

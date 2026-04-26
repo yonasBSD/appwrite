@@ -35,11 +35,11 @@ class Update extends Base
 
     public static function getClientIdDescription(): string
     {
-        return 'Client ID of Zoom OAuth2 app. For example: QMAC00000000000000w0AQ';
+        return '\'Client ID\' of Zoom OAuth2 app. For example: QMAC00000000000000w0AQ';
     }
 
     public static function getClientSecretDescription(): string
     {
-        return 'Client Secret of Zoom OAuth2 app. For example: GAWsG4000000000000000000007U01ON';
+        return '\'Client Secret\' of Zoom OAuth2 app. For example: GAWsG4000000000000000000007U01ON';
     }
 }

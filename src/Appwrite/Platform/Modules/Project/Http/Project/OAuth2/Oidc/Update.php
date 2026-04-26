@@ -47,12 +47,12 @@ class Update extends Base
 
     public static function getClientIdDescription(): string
     {
-        return 'Client ID of OpenID Connect OAuth2 app. For example: qibI2x0000000000000000000000000006L2YFoG';
+        return '\'Client ID\' of OpenID Connect OAuth2 app. For example: qibI2x0000000000000000000000000006L2YFoG';
     }
 
     public static function getClientSecretDescription(): string
     {
-        return 'Client Secret of OpenID Connect OAuth2 app. For example: Ah68ed000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000003qpcHV';
+        return '\'Client Secret\' of OpenID Connect OAuth2 app. For example: Ah68ed000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000003qpcHV';
     }
 
     public function __construct()

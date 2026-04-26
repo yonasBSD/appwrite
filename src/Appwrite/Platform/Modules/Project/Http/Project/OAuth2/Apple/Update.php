@@ -50,7 +50,7 @@ class Update extends Base
 
     public static function getClientIdDescription(): string
     {
-        return 'Service ID of Apple OAuth2 app. For example: ip.appwrite.app.web';
+        return '\'Service ID\' of Apple OAuth2 app. For example: ip.appwrite.app.web';
     }
 
     public static function getClientSecretDescription(): string
@@ -88,8 +88,8 @@ class Update extends Base
                 ],
             ))
             ->param(static::getClientIdParamName(), null, new Nullable(new Text(256, 0)), static::getClientIdDescription(), optional: true)
-            ->param('keyId', null, new Nullable(new Text(256, 0)), 'Key ID of Apple OAuth2 app. For example: P4000000N8', optional: true)
-            ->param('teamId', null, new Nullable(new Text(256, 0)), 'Team ID of Apple OAuth2 app. For example: D4000000R6', optional: true)
+            ->param('keyId', null, new Nullable(new Text(256, 0)), '\'Key ID\' of Apple OAuth2 app. For example: P4000000N8', optional: true)
+            ->param('teamId', null, new Nullable(new Text(256, 0)), '\'Team ID\' of Apple OAuth2 app. For example: D4000000R6', optional: true)
             ->param('p8File', null, new Nullable(new Text(4096, 0)), 'Contents of the Apple OAuth2 app .p8 private key file. The secret key wrapped by the PEM markers is 200 characters long. For example: -----BEGIN PRIVATE KEY-----MIGTAg...jy2Xbna-----END PRIVATE KEY-----', optional: true)
             ->param('enabled', null, new Nullable(new Boolean()), 'OAuth2 sign-in method status. Set to true to enable new session creation. Setting to true will trigger end-to-end credentials validation, and will throw if the credentials are invalid.', true)
             ->inject('response')

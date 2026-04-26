@@ -45,11 +45,11 @@ class Update extends Base
 
     public static function getClientIdDescription(): string
     {
-        return 'OAuth Client ID of Notion OAuth2 app. For example: 341d8700-0000-0000-0000-000000446ee3';
+        return '\'OAuth Client ID\' of Notion OAuth2 app. For example: 341d8700-0000-0000-0000-000000446ee3';
     }
 
     public static function getClientSecretDescription(): string
     {
-        return 'OAuth Client Secret of Notion OAuth2 app. For example: secret_dLUr4b000000000000000000000000000000lFHAa9';
+        return '\'OAuth Client Secret\' of Notion OAuth2 app. For example: secret_dLUr4b000000000000000000000000000000lFHAa9';
     }
 }

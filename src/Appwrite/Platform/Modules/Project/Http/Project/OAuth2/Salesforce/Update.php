@@ -45,11 +45,11 @@ class Update extends Base
 
     public static function getClientIdDescription(): string
     {
-        return 'Consumer key of Salesforce OAuth2 app. For example: 3MVG9I0000000000000000000000000000000000000000000000000000000000000000000000000C5Aejq';
+        return '\'Consumer key\' of Salesforce OAuth2 app. For example: 3MVG9I0000000000000000000000000000000000000000000000000000000000000000000000000C5Aejq';
     }
 
     public static function getClientSecretDescription(): string
     {
-        return 'Consumer secret of Salesforce OAuth2 app. For example: 3w000000000000e2';
+        return '\'Consumer secret\' of Salesforce OAuth2 app. For example: 3w000000000000e2';
     }
 }

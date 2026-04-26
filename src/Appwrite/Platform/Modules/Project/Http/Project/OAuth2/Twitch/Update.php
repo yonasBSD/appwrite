@@ -35,11 +35,11 @@ class Update extends Base
 
     public static function getClientIdDescription(): string
     {
-        return 'Client ID of Twitch OAuth2 app. For example: vvi0in000000000000000000ikmt9p';
+        return '\'Client ID\' of Twitch OAuth2 app. For example: vvi0in000000000000000000ikmt9p';
     }
 
     public static function getClientSecretDescription(): string
     {
-        return 'Client Secret of Twitch OAuth2 app. For example: pmapue000000000000000000zylw3v';
+        return '\'Client Secret\' of Twitch OAuth2 app. For example: pmapue000000000000000000zylw3v';
     }
 }
