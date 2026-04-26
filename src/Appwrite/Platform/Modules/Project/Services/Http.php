@@ -36,6 +36,7 @@ use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Google\Update as Updat
 use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Linkedin\Update as UpdateOAuth2Linkedin;
 use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Notion\Update as UpdateOAuth2Notion;
 use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Oidc\Update as UpdateOAuth2Oidc;
+use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Okta\Update as UpdateOAuth2Okta;
 use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Paypal\Update as UpdateOAuth2Paypal;
 use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\PaypalSandbox\Update as UpdateOAuth2PaypalSandbox;
 use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Podio\Update as UpdateOAuth2Podio;
@@ -203,5 +204,6 @@ class Http extends Service
         $this->addAction(UpdateOAuth2Authentik::getName(), new UpdateOAuth2Authentik());
         $this->addAction(UpdateOAuth2Auth0::getName(), new UpdateOAuth2Auth0());
         $this->addAction(UpdateOAuth2Oidc::getName(), new UpdateOAuth2Oidc());
+        $this->addAction(UpdateOAuth2Okta::getName(), new UpdateOAuth2Okta());
     }
 }
