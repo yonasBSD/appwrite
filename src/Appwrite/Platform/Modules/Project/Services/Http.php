@@ -45,7 +45,7 @@ use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Slack\Update as Update
 use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Spotify\Update as UpdateOAuth2Spotify;
 use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Stripe\Update as UpdateOAuth2Stripe;
 use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Tradeshift\Update as UpdateOAuth2Tradeshift;
-use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\TradeshiftBox\Update as UpdateOAuth2TradeshiftBox;
+use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\TradeshiftSandbox\Update as UpdateOAuth2TradeshiftSandbox;
 use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Twitch\Update as UpdateOAuth2Twitch;
 use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\WordPress\Update as UpdateOAuth2WordPress;
 use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\X\Update as UpdateOAuth2X;
@@ -197,7 +197,7 @@ class Http extends Service
         $this->addAction(UpdateOAuth2Etsy::getName(), new UpdateOAuth2Etsy());
         $this->addAction(UpdateOAuth2Facebook::getName(), new UpdateOAuth2Facebook());
         $this->addAction(UpdateOAuth2Tradeshift::getName(), new UpdateOAuth2Tradeshift());
-        $this->addAction(UpdateOAuth2TradeshiftBox::getName(), new UpdateOAuth2TradeshiftBox());
+        $this->addAction(UpdateOAuth2TradeshiftSandbox::getName(), new UpdateOAuth2TradeshiftSandbox());
         $this->addAction(UpdateOAuth2Paypal::getName(), new UpdateOAuth2Paypal());
         $this->addAction(UpdateOAuth2PaypalSandbox::getName(), new UpdateOAuth2PaypalSandbox());
         $this->addAction(UpdateOAuth2Gitlab::getName(), new UpdateOAuth2Gitlab());
