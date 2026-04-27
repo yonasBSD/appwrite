@@ -6,6 +6,10 @@ use Appwrite\Utopia\Response;
 
 class OAuth2Bitbucket extends OAuth2Base
 {
+    public array $conditions = [
+        '$id' => 'bitbucket',
+    ];
+
     public function getProviderLabel(): string
     {
         return 'Bitbucket';

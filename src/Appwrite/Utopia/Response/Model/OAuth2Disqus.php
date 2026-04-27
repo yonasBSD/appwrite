@@ -6,6 +6,10 @@ use Appwrite\Utopia\Response;
 
 class OAuth2Disqus extends OAuth2Base
 {
+    public array $conditions = [
+        '$id' => 'disqus',
+    ];
+
     public function getProviderLabel(): string
     {
         return 'Disqus';

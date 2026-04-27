@@ -6,6 +6,10 @@ use Appwrite\Utopia\Response;
 
 class OAuth2Google extends OAuth2Base
 {
+    public array $conditions = [
+        '$id' => 'google',
+    ];
+
     public function getProviderLabel(): string
     {
         return 'Google';

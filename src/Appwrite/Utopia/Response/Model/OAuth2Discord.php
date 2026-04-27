@@ -6,6 +6,10 @@ use Appwrite\Utopia\Response;
 
 class OAuth2Discord extends OAuth2Base
 {
+    public array $conditions = [
+        '$id' => 'discord',
+    ];
+
     public function getProviderLabel(): string
     {
         return 'Discord';

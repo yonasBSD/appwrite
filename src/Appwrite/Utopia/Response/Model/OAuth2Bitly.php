@@ -6,6 +6,10 @@ use Appwrite\Utopia\Response;
 
 class OAuth2Bitly extends OAuth2Base
 {
+    public array $conditions = [
+        '$id' => 'bitly',
+    ];
+
     public function getProviderLabel(): string
     {
         return 'Bitly';

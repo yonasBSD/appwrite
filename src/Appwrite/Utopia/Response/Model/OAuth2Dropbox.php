@@ -6,6 +6,10 @@ use Appwrite\Utopia\Response;
 
 class OAuth2Dropbox extends OAuth2Base
 {
+    public array $conditions = [
+        '$id' => 'dropbox',
+    ];
+
     public function getProviderLabel(): string
     {
         return 'Dropbox';

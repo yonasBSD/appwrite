@@ -6,6 +6,10 @@ use Appwrite\Utopia\Response;
 
 class OAuth2Spotify extends OAuth2Base
 {
+    public array $conditions = [
+        '$id' => 'spotify',
+    ];
+
     public function getProviderLabel(): string
     {
         return 'Spotify';

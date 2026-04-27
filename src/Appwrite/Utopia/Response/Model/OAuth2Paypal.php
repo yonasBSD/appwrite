@@ -6,6 +6,10 @@ use Appwrite\Utopia\Response;
 
 class OAuth2Paypal extends OAuth2Base
 {
+    public array $conditions = [
+        '$id' => ['paypal', 'paypalSandbox'],
+    ];
+
     public function getProviderLabel(): string
     {
         return 'PayPal';

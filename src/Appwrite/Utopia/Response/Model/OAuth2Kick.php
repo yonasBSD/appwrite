@@ -6,6 +6,10 @@ use Appwrite\Utopia\Response;
 
 class OAuth2Kick extends OAuth2Base
 {
+    public array $conditions = [
+        '$id' => 'kick',
+    ];
+
     public function getProviderLabel(): string
     {
         return 'Kick';

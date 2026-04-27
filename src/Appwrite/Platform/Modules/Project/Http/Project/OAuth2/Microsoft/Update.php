@@ -3,6 +3,7 @@
 namespace Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Microsoft;
 
 use Appwrite\Auth\OAuth2\Microsoft;
+use Appwrite\Event\Event as QueueEvent;
 use Appwrite\Platform\Action;
 use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Base;
 use Appwrite\SDK\AuthType;
@@ -74,8 +75,8 @@ class Update extends Base
             ->desc('Update project OAuth2 ' . $providerLabel)
             ->groups(['api', 'project'])
             ->label('scope', 'oauth2.write')
-            ->label('event', 'oauth2.' . $providerId . '.update')
-            ->label('audits.event', 'project.oauth2.' . $providerId . '.update')
+            ->label('event', 'oauth2.[providerId].update')
+            ->label('audits.event', 'project.oauth2.[providerId].update')
             ->label('audits.resource', 'project.oauth2/{response.$id}')
             ->label('sdk', new Method(
                 namespace: 'project',
@@ -98,6 +99,7 @@ class Update extends Base
             ->inject('dbForPlatform')
             ->inject('project')
             ->inject('authorization')
+            ->inject('queueForEvents')
             ->callback($this->handle(...));
     }
 
@@ -129,9 +131,11 @@ class Update extends Base
         Response $response,
         Database $dbForPlatform,
         Document $project,
-        Authorization $authorization
+        Authorization $authorization,
+        QueueEvent $queueForEvents
     ): void {
         $providerId = static::getProviderId();
+        $queueForEvents->setParam('providerId', $providerId);
 
         // The secret is stored as JSON `{"clientSecret": "...", "tenantID": "..."}`
         // to match the shape Microsoft's OAuth2 adapter expects (getTenantID()).

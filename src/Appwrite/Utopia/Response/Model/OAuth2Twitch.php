@@ -6,6 +6,10 @@ use Appwrite\Utopia\Response;
 
 class OAuth2Twitch extends OAuth2Base
 {
+    public array $conditions = [
+        '$id' => 'twitch',
+    ];
+
     public function getProviderLabel(): string
     {
         return 'Twitch';

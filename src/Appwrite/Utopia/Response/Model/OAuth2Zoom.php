@@ -6,6 +6,10 @@ use Appwrite\Utopia\Response;
 
 class OAuth2Zoom extends OAuth2Base
 {
+    public array $conditions = [
+        '$id' => 'zoom',
+    ];
+
     public function getProviderLabel(): string
     {
         return 'Zoom';

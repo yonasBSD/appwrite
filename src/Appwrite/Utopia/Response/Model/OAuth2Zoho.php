@@ -6,6 +6,10 @@ use Appwrite\Utopia\Response;
 
 class OAuth2Zoho extends OAuth2Base
 {
+    public array $conditions = [
+        '$id' => 'zoho',
+    ];
+
     public function getProviderLabel(): string
     {
         return 'Zoho';

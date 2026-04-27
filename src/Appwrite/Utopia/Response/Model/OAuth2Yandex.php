@@ -6,6 +6,10 @@ use Appwrite\Utopia\Response;
 
 class OAuth2Yandex extends OAuth2Base
 {
+    public array $conditions = [
+        '$id' => 'yandex',
+    ];
+
     public function getProviderLabel(): string
     {
         return 'Yandex';

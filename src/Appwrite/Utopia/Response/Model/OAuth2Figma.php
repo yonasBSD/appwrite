@@ -6,6 +6,10 @@ use Appwrite\Utopia\Response;
 
 class OAuth2Figma extends OAuth2Base
 {
+    public array $conditions = [
+        '$id' => 'figma',
+    ];
+
     public function getProviderLabel(): string
     {
         return 'Figma';

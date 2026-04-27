@@ -6,6 +6,10 @@ use Appwrite\Utopia\Response;
 
 class OAuth2Salesforce extends OAuth2Base
 {
+    public array $conditions = [
+        '$id' => 'salesforce',
+    ];
+
     public function getProviderLabel(): string
     {
         return 'Salesforce';

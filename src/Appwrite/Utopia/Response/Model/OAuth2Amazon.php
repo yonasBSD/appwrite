@@ -6,6 +6,10 @@ use Appwrite\Utopia\Response;
 
 class OAuth2Amazon extends OAuth2Base
 {
+    public array $conditions = [
+        '$id' => 'amazon',
+    ];
+
     public function getProviderLabel(): string
     {
         return 'Amazon';

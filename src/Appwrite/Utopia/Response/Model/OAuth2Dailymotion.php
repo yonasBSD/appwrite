@@ -6,6 +6,10 @@ use Appwrite\Utopia\Response;
 
 class OAuth2Dailymotion extends OAuth2Base
 {
+    public array $conditions = [
+        '$id' => 'dailymotion',
+    ];
+
     public function getProviderLabel(): string
     {
         return 'Dailymotion';

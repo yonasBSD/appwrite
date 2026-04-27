@@ -2,6 +2,7 @@
 
 namespace Appwrite\Platform\Modules\Project\Http\Project\OAuth2;
 
+use Appwrite\Event\Event as QueueEvent;
 use Appwrite\Extend\Exception;
 use Appwrite\Platform\Action;
 use Appwrite\SDK\AuthType;
@@ -111,8 +112,8 @@ abstract class Base extends Action
             ->desc('Update project OAuth2 ' . $providerLabel)
             ->groups(['api', 'project'])
             ->label('scope', 'oauth2.write')
-            ->label('event', 'oauth2.' . $providerId . '.update')
-            ->label('audits.event', 'project.oauth2.' . $providerId . '.update')
+            ->label('event', 'oauth2.[providerId].update')
+            ->label('audits.event', 'project.oauth2.[providerId].update')
             ->label('audits.resource', 'project.oauth2/{response.$id}')
             ->label('sdk', new Method(
                 namespace: 'project',
@@ -134,6 +135,7 @@ abstract class Base extends Action
             ->inject('dbForPlatform')
             ->inject('project')
             ->inject('authorization')
+            ->inject('queueForEvents')
             ->callback($this->action(...));
     }
 
@@ -304,12 +306,15 @@ abstract class Base extends Action
         Response $response,
         Database $dbForPlatform,
         Document $project,
-        Authorization $authorization
+        Authorization $authorization,
+        QueueEvent $queueForEvents
     ): void {
         $project = $this->persistCredentials($project, $dbForPlatform, $authorization, $clientId, $clientSecret, $enabled);
 
         $providerId = static::getProviderId();
         $oAuthProviders = $project->getAttribute('oAuthProviders', []);
+
+        $queueForEvents->setParam('providerId', $providerId);
 
         $response->dynamic(new Document([
             '$id' => $providerId,

@@ -6,6 +6,10 @@ use Appwrite\Utopia\Response;
 
 class OAuth2Linkedin extends OAuth2Base
 {
+    public array $conditions = [
+        '$id' => 'linkedin',
+    ];
+
     public function getProviderLabel(): string
     {
         return 'LinkedIn';

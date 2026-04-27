@@ -17,6 +17,7 @@ use Appwrite\Platform\Modules\Project\Http\Project\MockPhone\Get as GetMockPhone
 use Appwrite\Platform\Modules\Project\Http\Project\MockPhone\Update as UpdateMockPhone;
 use Appwrite\Platform\Modules\Project\Http\Project\MockPhone\XList as ListMockPhones;
 use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Amazon\Update as UpdateOAuth2Amazon;
+use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Apple\Update as UpdateOAuth2Apple;
 use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Auth0\Update as UpdateOAuth2Auth0;
 use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Authentik\Update as UpdateOAuth2Authentik;
 use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Autodesk\Update as UpdateOAuth2Autodesk;
@@ -212,6 +213,7 @@ class Http extends Service
         $this->addAction(UpdateOAuth2Oidc::getName(), new UpdateOAuth2Oidc());
         $this->addAction(UpdateOAuth2Okta::getName(), new UpdateOAuth2Okta());
         $this->addAction(UpdateOAuth2Kick::getName(), new UpdateOAuth2Kick());
+        $this->addAction(UpdateOAuth2Apple::getName(), new UpdateOAuth2Apple());
         $this->addAction(UpdateOAuth2Microsoft::getName(), new UpdateOAuth2Microsoft());
     }
 }

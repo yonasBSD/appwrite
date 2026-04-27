@@ -6,6 +6,10 @@ use Appwrite\Utopia\Response;
 
 class OAuth2Etsy extends OAuth2Base
 {
+    public array $conditions = [
+        '$id' => 'etsy',
+    ];
+
     public function getProviderLabel(): string
     {
         return 'Etsy';

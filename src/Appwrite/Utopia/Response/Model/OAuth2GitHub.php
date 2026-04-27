@@ -6,6 +6,10 @@ use Appwrite\Utopia\Response;
 
 class OAuth2GitHub extends OAuth2Base
 {
+    public array $conditions = [
+        '$id' => 'github',
+    ];
+
     public function getProviderLabel(): string
     {
         return 'GitHub';

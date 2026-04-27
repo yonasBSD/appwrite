@@ -6,6 +6,10 @@ use Appwrite\Utopia\Response;
 
 class OAuth2Stripe extends OAuth2Base
 {
+    public array $conditions = [
+        '$id' => 'stripe',
+    ];
+
     public function getProviderLabel(): string
     {
         return 'Stripe';

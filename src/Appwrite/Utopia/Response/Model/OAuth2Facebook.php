@@ -6,6 +6,10 @@ use Appwrite\Utopia\Response;
 
 class OAuth2Facebook extends OAuth2Base
 {
+    public array $conditions = [
+        '$id' => 'facebook',
+    ];
+
     public function getProviderLabel(): string
     {
         return 'Facebook';

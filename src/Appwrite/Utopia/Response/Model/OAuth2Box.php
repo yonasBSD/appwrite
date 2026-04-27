@@ -6,6 +6,10 @@ use Appwrite\Utopia\Response;
 
 class OAuth2Box extends OAuth2Base
 {
+    public array $conditions = [
+        '$id' => 'box',
+    ];
+
     public function getProviderLabel(): string
     {
         return 'Box';

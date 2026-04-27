@@ -6,6 +6,10 @@ use Appwrite\Utopia\Response;
 
 class OAuth2Slack extends OAuth2Base
 {
+    public array $conditions = [
+        '$id' => 'slack',
+    ];
+
     public function getProviderLabel(): string
     {
         return 'Slack';

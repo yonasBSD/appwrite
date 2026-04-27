@@ -6,6 +6,10 @@ use Appwrite\Utopia\Response;
 
 class OAuth2Podio extends OAuth2Base
 {
+    public array $conditions = [
+        '$id' => 'podio',
+    ];
+
     public function getProviderLabel(): string
     {
         return 'Podio';

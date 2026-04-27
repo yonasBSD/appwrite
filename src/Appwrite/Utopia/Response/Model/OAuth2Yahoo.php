@@ -6,6 +6,10 @@ use Appwrite\Utopia\Response;
 
 class OAuth2Yahoo extends OAuth2Base
 {
+    public array $conditions = [
+        '$id' => 'yahoo',
+    ];
+
     public function getProviderLabel(): string
     {
         return 'Yahoo';

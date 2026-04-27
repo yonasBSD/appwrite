@@ -6,6 +6,10 @@ use Appwrite\Utopia\Response;
 
 class OAuth2Notion extends OAuth2Base
 {
+    public array $conditions = [
+        '$id' => 'notion',
+    ];
+
     public function getProviderLabel(): string
     {
         return 'Notion';

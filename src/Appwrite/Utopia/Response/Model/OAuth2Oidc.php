@@ -6,6 +6,10 @@ use Appwrite\Utopia\Response;
 
 class OAuth2Oidc extends OAuth2Base
 {
+    public array $conditions = [
+        '$id' => 'oidc',
+    ];
+
     public function getProviderLabel(): string
     {
         return 'OpenID Connect';

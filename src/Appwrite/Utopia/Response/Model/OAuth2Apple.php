@@ -6,6 +6,10 @@ use Appwrite\Utopia\Response;
 
 class OAuth2Apple extends OAuth2Base
 {
+    public array $conditions = [
+        '$id' => 'apple',
+    ];
+
     public function getProviderLabel(): string
     {
         return 'Apple';
@@ -39,6 +43,12 @@ class OAuth2Apple extends OAuth2Base
         // contents, Key ID, Team ID) instead of a single clientSecret, so the
         // rules are defined manually rather than delegating to OAuth2Base.
         $this
+            ->addRule('$id', [
+                'type' => self::TYPE_STRING,
+                'description' => 'OAuth2 provider ID.',
+                'default' => '',
+                'example' => 'apple',
+            ])
             ->addRule('enabled', [
                 'type' => self::TYPE_BOOLEAN,
                 'description' => 'OAuth2 provider is active and can be used to create sessions.',

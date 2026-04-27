@@ -6,6 +6,10 @@ use Appwrite\Utopia\Response;
 
 class OAuth2WordPress extends OAuth2Base
 {
+    public array $conditions = [
+        '$id' => 'wordpress',
+    ];
+
     public function getProviderLabel(): string
     {
         return 'WordPress';

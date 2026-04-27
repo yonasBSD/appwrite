@@ -6,6 +6,10 @@ use Appwrite\Utopia\Response;
 
 class OAuth2Gitlab extends OAuth2Base
 {
+    public array $conditions = [
+        '$id' => 'gitlab',
+    ];
+
     public function getProviderLabel(): string
     {
         return 'GitLab';

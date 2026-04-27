@@ -6,6 +6,10 @@ use Appwrite\Utopia\Response;
 
 class OAuth2Autodesk extends OAuth2Base
 {
+    public array $conditions = [
+        '$id' => 'autodesk',
+    ];
+
     public function getProviderLabel(): string
     {
         return 'Autodesk';

@@ -97,6 +97,12 @@ abstract class OAuth2Base extends Model
     public function __construct()
     {
         $this
+            ->addRule('$id', [
+                'type' => self::TYPE_STRING,
+                'description' => 'OAuth2 provider ID.',
+                'default' => '',
+                'example' => 'github',
+            ])
             ->addRule('enabled', [
                 'type' => self::TYPE_BOOLEAN,
                 'description' => 'OAuth2 provider is active and can be used to create sessions.',
