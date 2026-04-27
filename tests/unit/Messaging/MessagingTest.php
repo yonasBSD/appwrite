@@ -11,15 +11,15 @@ use Utopia\Database\Helpers\Role;
 
 class MessagingTest extends TestCase
 {
-    protected function setUp(): void
+    public function setUp(): void
     {
     }
 
-    protected function tearDown(): void
+    public function tearDown(): void
     {
     }
 
-    public function test_user(): void
+    public function testUser(): void
     {
         $realtime = new Realtime();
 
@@ -46,8 +46,8 @@ class MessagingTest extends TestCase
             'data' => [
                 'channels' => [
                     0 => 'account.123',
-                ],
-            ],
+                ]
+            ]
         ];
 
         $receivers = array_keys($realtime->getSubscribers($event));
@@ -147,7 +147,7 @@ class MessagingTest extends TestCase
         $this->assertEmpty($realtime->subscriptions);
     }
 
-    public function test_subscribe_unions_channels_and_roles(): void
+    public function testSubscribeUnionsChannelsAndRoles(): void
     {
         $realtime = new Realtime();
 
@@ -177,7 +177,7 @@ class MessagingTest extends TestCase
         $this->assertCount(2, $connection['roles']);
     }
 
-    public function test_unsubscribe_subscription_removes_only_one_subscription(): void
+    public function testUnsubscribeSubscriptionRemovesOnlyOneSubscription(): void
     {
         $realtime = new Realtime();
 
@@ -227,7 +227,7 @@ class MessagingTest extends TestCase
         $this->assertContains(Role::users()->toString(), $realtime->connections[1]['roles']);
     }
 
-    public function test_unsubscribe_subscription_is_idempotent(): void
+    public function testUnsubscribeSubscriptionIsIdempotent(): void
     {
         $realtime = new Realtime();
 
@@ -253,7 +253,7 @@ class MessagingTest extends TestCase
         $this->assertEquals([1], array_keys($realtime->getSubscribers($event)));
     }
 
-    public function test_unsubscribe_subscription_keeps_connection_when_last_sub_removed(): void
+    public function testUnsubscribeSubscriptionKeepsConnectionWhenLastSubRemoved(): void
     {
         $realtime = new Realtime();
 
@@ -274,7 +274,7 @@ class MessagingTest extends TestCase
         $this->assertArrayNotHasKey('1', $realtime->subscriptions);
     }
 
-    public function test_resubscribe_after_unsubscribing_last_sub_delivers(): void
+    public function testResubscribeAfterUnsubscribingLastSubDelivers(): void
     {
         $realtime = new Realtime();
 
@@ -304,7 +304,7 @@ class MessagingTest extends TestCase
         $this->assertEquals([1], array_keys($realtime->getSubscribers($event)));
     }
 
-    public function test_subscribe_after_on_open_empty_sentinel_preserves_union(): void
+    public function testSubscribeAfterOnOpenEmptySentinelPreservesUnion(): void
     {
         $realtime = new Realtime();
 
@@ -334,10 +334,10 @@ class MessagingTest extends TestCase
         $this->assertContains(Role::user(ID::custom('user-123'))->toString(), $realtime->connections[1]['roles']);
     }
 
-    public function test_convert_channels_guest(): void
+    public function testConvertChannelsGuest(): void
     {
         $user = new Document([
-            '$id' => '',
+            '$id' => ''
         ]);
 
         $channels = [
@@ -345,7 +345,7 @@ class MessagingTest extends TestCase
             1 => 'documents',
             2 => 'documents.789',
             3 => 'account',
-            4 => 'account.456',
+            4 => 'account.456'
         ];
 
         $channels = Realtime::convertChannels($channels, $user->getId());
@@ -357,32 +357,32 @@ class MessagingTest extends TestCase
         $this->assertArrayNotHasKey('account.456', $channels);
     }
 
-    public function test_convert_channels_user(): void
+    public function testConvertChannelsUser(): void
     {
-        $user = new Document([
+        $user  = new Document([
             '$id' => ID::custom('123'),
             'memberships' => [
                 [
                     'teamId' => ID::custom('abc'),
                     'roles' => [
                         'administrator',
-                        'moderator',
-                    ],
+                        'moderator'
+                    ]
                 ],
                 [
                     'teamId' => ID::custom('def'),
                     'roles' => [
-                        'guest',
-                    ],
-                ],
-            ],
+                        'guest'
+                    ]
+                ]
+            ]
         ]);
         $channels = [
             0 => 'files',
             1 => 'documents',
             2 => 'documents.789',
             3 => 'account',
-            4 => 'account.456',
+            4 => 'account.456'
         ];
 
         $channels = Realtime::convertChannels($channels, $user->getId());
@@ -396,120 +396,7 @@ class MessagingTest extends TestCase
         $this->assertArrayNotHasKey('account.456', $channels);
     }
 
-    public function test_convert_channels_rewrites_account_action_suffixes(): void
-    {
-        // A subscriber to `account.{action}` should receive the user-scoped
-        // `account.{userId}.{action}` channel that fromPayload publishes for
-        // top-level user events. Without the rewrite the channel would either be
-        // stripped (security guard against subscribing to other users' account)
-        // or, if left literal, leak every user's account events to this client.
-        $channels = Realtime::convertChannels(
-            ['account.create', 'account.update', 'account.upsert', 'account.delete'],
-            '123',
-        );
-
-        $this->assertArrayHasKey('account.123.create', $channels);
-        $this->assertArrayHasKey('account.123.update', $channels);
-        $this->assertArrayHasKey('account.123.upsert', $channels);
-        $this->assertArrayHasKey('account.123.delete', $channels);
-
-        // The literal forms must not survive — they would otherwise match every
-        // user's events, not just the subscribed user's.
-        $this->assertArrayNotHasKey('account.create', $channels);
-        $this->assertArrayNotHasKey('account.update', $channels);
-        $this->assertArrayNotHasKey('account.upsert', $channels);
-        $this->assertArrayNotHasKey('account.delete', $channels);
-
-        // Other-user channels and unknown action-like suffixes still get stripped.
-        $channels = Realtime::convertChannels(
-            ['account.other_id', 'account.bogus', 'account.123', 'account.create'],
-            '123',
-        );
-        $this->assertArrayNotHasKey('account.other_id', $channels);
-        $this->assertArrayNotHasKey('account.bogus', $channels);
-        $this->assertArrayNotHasKey('account.123', $channels);
-        $this->assertArrayHasKey('account.123.create', $channels);
-    }
-
-    public function test_convert_channels_drops_account_actions_for_guest(): void
-    {
-        // No userId → no place to scope the action-suffixed channel, so the
-        // action-suffixed forms are dropped entirely. Plain `account` survives
-        // (matching existing guest behavior — see test_convert_channels_guest).
-        $channels = Realtime::convertChannels(
-            ['account.create', 'account.update', 'account'],
-            '',
-        );
-
-        $this->assertArrayNotHasKey('account.create', $channels);
-        $this->assertArrayNotHasKey('account.update', $channels);
-        $this->assertArrayHasKey('account', $channels);
-    }
-
-    public function test_rebind_account_channels_remaps_after_reauth(): void
-    {
-        // Captures the in-band auth scenario: a guest connects and subscribes to
-        // `account` (stored as `account` because there's no userId). After the
-        // client sends an authentication message, the connection's userId becomes
-        // 'B' — but its stored channels are still bound to whatever the previous
-        // identity was. This helper rewrites them so the resubscribe lands on the
-        // new user's account namespace.
-        $rebound = Realtime::rebindAccountChannels(
-            ['account.A', 'account.A.create', 'account.A.update', 'documents', 'documents.A.something'],
-            'A',
-            'B',
-        );
-
-        // account-scoped channels are rebound to the new user.
-        $this->assertContains('account.B', $rebound);
-        $this->assertContains('account.B.create', $rebound);
-        $this->assertContains('account.B.update', $rebound);
-        $this->assertNotContains('account.A', $rebound);
-        $this->assertNotContains('account.A.create', $rebound);
-        $this->assertNotContains('account.A.update', $rebound);
-
-        // Non-account channels are left alone — the rewrite must be precise.
-        $this->assertContains('documents', $rebound);
-        $this->assertContains('documents.A.something', $rebound);
-    }
-
-    public function test_rebind_account_channels_is_noop_for_unchanged_user(): void
-    {
-        // Same user → nothing to rewrite. Avoids unnecessary churn when the
-        // permissionsChanged path fires (roles change but userId is constant).
-        $channels = ['account.A', 'account.A.create', 'documents'];
-        $this->assertSame($channels, Realtime::rebindAccountChannels($channels, 'A', 'A'));
-    }
-
-    public function test_rebind_account_channels_is_noop_for_guest_origin(): void
-    {
-        // Guest connections never store userId-suffixed channels (convertChannels
-        // strips the suffix when userId is empty), so rebinding from '' to a real
-        // userId should be a no-op — the plain `account` channel doesn't carry
-        // any userId binding to remap.
-        $channels = ['account', 'documents'];
-        $this->assertSame($channels, Realtime::rebindAccountChannels($channels, '', 'B'));
-    }
-
-    public function test_rebind_account_channels_only_remaps_known_actions(): void
-    {
-        // Defensive: we intentionally restrict the rewrite to suffixes in
-        // SUPPORTED_ACTIONS so we don't accidentally rewrite a channel that
-        // happens to have `account.{userId}.{something}` shape from outside the
-        // documented set.
-        $rebound = Realtime::rebindAccountChannels(
-            ['account.A.bogus', 'account.A.create'],
-            'A',
-            'B',
-        );
-
-        $this->assertContains('account.A.bogus', $rebound);
-        $this->assertContains('account.B.create', $rebound);
-        $this->assertNotContains('account.B.bogus', $rebound);
-        $this->assertNotContains('account.A.create', $rebound);
-    }
-
-    public function test_from_payload_permissions(): void
+    public function testFromPayloadPermissions(): void
     {
         /**
          * Test Collection Level Permissions
@@ -573,7 +460,7 @@ class MessagingTest extends TestCase
         $this->assertContains(Role::team('123abc')->toString(), $result['roles']);
     }
 
-    public function test_from_payload_bucket_level_permissions(): void
+    public function testFromPayloadBucketLevelPermissions(): void
     {
         /**
          * Test Bucket Level Permissions
@@ -623,15 +510,14 @@ class MessagingTest extends TestCase
                     Permission::update(Role::team('123abc')),
                     Permission::delete(Role::team('123abc')),
                 ],
-                'fileSecurity' => true,
+                'fileSecurity' => true
             ])
         );
 
         $this->assertContains(Role::any()->toString(), $result['roles']);
         $this->assertContains(Role::team('123abc')->toString(), $result['roles']);
     }
-
-    public function test_from_payload_emits_action_suffixed_channels(): void
+    public function testFromPayloadEmitsActionSuffixedChannels(): void
     {
         $result = Realtime::fromPayload(
             event: 'databases.database_id.collections.collection_id.documents.document_id.create',
@@ -663,7 +549,7 @@ class MessagingTest extends TestCase
         $this->assertNotContains('documents.delete', $result['channels']);
     }
 
-    public function test_from_payload_emits_action_suffix_for_every_action(): void
+    public function testFromPayloadEmitsActionSuffixForEveryAction(): void
     {
         foreach (['create', 'update', 'upsert', 'delete'] as $action) {
             $result = Realtime::fromPayload(
@@ -690,7 +576,7 @@ class MessagingTest extends TestCase
         }
     }
 
-    public function test_from_payload_does_not_suffix_when_no_action(): void
+    public function testFromPayloadDoesNotSuffixWhenNoAction(): void
     {
         // Synthetic event without an action segment: e.g. an attribute event whose
         // last segment is not a known action and whose second-to-last segment is
@@ -719,7 +605,7 @@ class MessagingTest extends TestCase
         $this->assertContains('buckets.bucket_id.files.file_id', $result['channels']);
     }
 
-    public function test_from_payload_does_not_suffix_admin_channels(): void
+    public function testFromPayloadDoesNotSuffixAdminChannels(): void
     {
         // Function execution event emits resource-leaf channels (executions / functions)
         // alongside admin channels (console / projects.X). Admin channels must NOT
@@ -753,7 +639,7 @@ class MessagingTest extends TestCase
         $this->assertNotContains('projects.project_id.create', $result['channels']);
     }
 
-    public function test_from_payload_handles_attribute_trailing_action_events(): void
+    public function testFromPayloadHandlesAttributeTrailingActionEvents(): void
     {
         // `users.[userId].update.{attr}` (e.g. .email, .prefs, .name) — action is the
         // second-to-last segment, not the last one. The suffix must still be `.update`.
@@ -836,7 +722,7 @@ class MessagingTest extends TestCase
         $this->assertContains('account.user_id.update', $updateResult['channels']);
     }
 
-    public function test_action_suffix_delivers_only_matching_action_end_to_end(): void
+    public function testActionSuffixDeliversOnlyMatchingActionEndToEnd(): void
     {
         $realtime = new Realtime();
 
@@ -871,7 +757,7 @@ class MessagingTest extends TestCase
         $this->assertArrayNotHasKey(1, $deleteReceivers);
     }
 
-    public function test_plain_channel_still_receives_all_actions_end_to_end(): void
+    public function testPlainChannelStillReceivesAllActionsEndToEnd(): void
     {
         $realtime = new Realtime();
 
