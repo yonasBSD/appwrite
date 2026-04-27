@@ -91,6 +91,21 @@ class Update extends Base
             ->callback($this->handle(...));
     }
 
+    public function buildReadResponse(Document $project): Document
+    {
+        $providerId = static::getProviderId();
+        $oAuthProviders = $project->getAttribute('oAuthProviders', []);
+        $decoded = $this->decodeStoredSecret($project);
+
+        return new Document([
+            '$id' => $providerId,
+            'enabled' => $oAuthProviders[$providerId . 'Enabled'] ?? false,
+            static::getClientIdParamName() => $oAuthProviders[$providerId . 'Appid'] ?? '',
+            static::getClientSecretParamName() => '',
+            'endpoint' => $decoded['authentikDomain'] ?? '',
+        ]);
+    }
+
     /**
      * Custom callback used instead of the parent's `action()` because Authentik
      * takes an additional required `endpoint` parameter. The method is named

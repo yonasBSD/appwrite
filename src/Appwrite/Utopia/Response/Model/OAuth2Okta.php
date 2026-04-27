@@ -27,14 +27,14 @@ class OAuth2Okta extends OAuth2Base
 
         $this->addRule('domain', [
             'type' => self::TYPE_STRING,
-            'description' => 'Okta OAuth 2 domain.',
+            'description' => 'Okta OAuth2 domain.',
             'default' => '',
             'example' => 'trial-6400025.okta.com',
         ]);
 
         $this->addRule('authorizationServerId', [
             'type' => self::TYPE_STRING,
-            'description' => 'Okta OAuth 2 authorization server ID.',
+            'description' => 'Okta OAuth2 authorization server ID.',
             'default' => '',
             'example' => 'aus000000000000000h7z',
         ]);

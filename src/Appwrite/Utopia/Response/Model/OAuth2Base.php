@@ -79,7 +79,7 @@ abstract class OAuth2Base extends Model
      */
     public function getClientIdDescription(): string
     {
-        return $this->getProviderLabel() . ' OAuth 2 ' . $this->getClientIdLabel() . '.';
+        return $this->getProviderLabel() . ' OAuth2 ' . $this->getClientIdLabel() . '.';
     }
 
     /**
@@ -91,7 +91,7 @@ abstract class OAuth2Base extends Model
      */
     public function getClientSecretDescription(): string
     {
-        return $this->getProviderLabel() . ' OAuth 2 ' . $this->getClientSecretLabel() . '.';
+        return $this->getProviderLabel() . ' OAuth2 ' . $this->getClientSecretLabel() . '.';
     }
 
     public function __construct()
@@ -99,7 +99,7 @@ abstract class OAuth2Base extends Model
         $this
             ->addRule('enabled', [
                 'type' => self::TYPE_BOOLEAN,
-                'description' => 'OAuth 2 provider is active and can be used to create sessions.',
+                'description' => 'OAuth2 provider is active and can be used to create sessions.',
                 'default' => false,
                 'example' => false,
             ])

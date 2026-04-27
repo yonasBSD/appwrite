@@ -94,6 +94,22 @@ class Update extends Base
             ->callback($this->handle(...));
     }
 
+    public function buildReadResponse(Document $project): Document
+    {
+        $providerId = static::getProviderId();
+        $oAuthProviders = $project->getAttribute('oAuthProviders', []);
+        $decoded = $this->decodeStoredSecret($project);
+
+        return new Document([
+            '$id' => $providerId,
+            'enabled' => $oAuthProviders[$providerId . 'Enabled'] ?? false,
+            static::getClientIdParamName() => $oAuthProviders[$providerId . 'Appid'] ?? '',
+            static::getClientSecretParamName() => '',
+            'domain' => $decoded['oktaDomain'] ?? '',
+            'authorizationServerId' => $decoded['authorizationServerId'] ?? '',
+        ]);
+    }
+
     /**
      * Custom callback used instead of the parent's `action()` because Okta
      * takes additional optional `domain` and `authorizationServerId` parameters.

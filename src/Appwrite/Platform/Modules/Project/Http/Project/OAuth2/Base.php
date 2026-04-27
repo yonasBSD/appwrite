@@ -138,6 +138,96 @@ abstract class Base extends Action
     }
 
     /**
+     * Registry of provider ID -> Update action class. Mirrors the OAuth2
+     * actions registered in Project\Services\Http. Used by the Get and XList
+     * read endpoints to dispatch per-provider response shaping.
+     *
+     * @return array<string, class-string<Base>>
+     */
+    public static function getProviderActions(): array
+    {
+        return [
+            'github' => GitHub\Update::class,
+            'discord' => Discord\Update::class,
+            'figma' => Figma\Update::class,
+            'dropbox' => Dropbox\Update::class,
+            'dailymotion' => Dailymotion\Update::class,
+            'bitbucket' => Bitbucket\Update::class,
+            'bitly' => Bitly\Update::class,
+            'box' => Box\Update::class,
+            'autodesk' => Autodesk\Update::class,
+            'google' => Google\Update::class,
+            'zoom' => Zoom\Update::class,
+            'zoho' => Zoho\Update::class,
+            'yandex' => Yandex\Update::class,
+            'x' => X\Update::class,
+            'wordpress' => WordPress\Update::class,
+            'twitch' => Twitch\Update::class,
+            'stripe' => Stripe\Update::class,
+            'spotify' => Spotify\Update::class,
+            'slack' => Slack\Update::class,
+            'podio' => Podio\Update::class,
+            'notion' => Notion\Update::class,
+            'salesforce' => Salesforce\Update::class,
+            'yahoo' => Yahoo\Update::class,
+            'linkedin' => Linkedin\Update::class,
+            'disqus' => Disqus\Update::class,
+            'amazon' => Amazon\Update::class,
+            'etsy' => Etsy\Update::class,
+            'facebook' => Facebook\Update::class,
+            'tradeshift' => Tradeshift\Update::class,
+            'tradeshiftSandbox' => TradeshiftSandbox\Update::class,
+            'paypal' => Paypal\Update::class,
+            'paypalSandbox' => PaypalSandbox\Update::class,
+            'gitlab' => Gitlab\Update::class,
+            'authentik' => Authentik\Update::class,
+            'auth0' => Auth0\Update::class,
+            'oidc' => Oidc\Update::class,
+            'okta' => Okta\Update::class,
+            'kick' => Kick\Update::class,
+            'apple' => Apple\Update::class,
+        ];
+    }
+
+    /**
+     * Build the read-only response document for this provider, with credential
+     * fields zeroed out (write-only). Default implementation handles providers
+     * that store a plain client ID + client secret. Special providers (Apple,
+     * Gitlab, Auth0, Authentik, Oidc, Okta) override to expose their
+     * non-secret extras (endpoint, domain, discovery URLs, ...) decoded from
+     * the JSON-encoded secret blob.
+     */
+    public function buildReadResponse(Document $project): Document
+    {
+        $providerId = static::getProviderId();
+        $oAuthProviders = $project->getAttribute('oAuthProviders', []);
+
+        return new Document([
+            '$id' => $providerId,
+            'enabled' => $oAuthProviders[$providerId . 'Enabled'] ?? false,
+            static::getClientIdParamName() => $oAuthProviders[$providerId . 'Appid'] ?? '',
+            static::getClientSecretParamName() => '',
+        ]);
+    }
+
+    /**
+     * Decode the JSON-encoded secret blob stored under `{providerId}Secret`.
+     * Returns an empty array when the value is empty or not valid JSON.
+     */
+    protected function decodeStoredSecret(Document $project): array
+    {
+        $providerId = static::getProviderId();
+        $stored = $project->getAttribute('oAuthProviders', [])[$providerId . 'Secret'] ?? '';
+
+        if (empty($stored)) {
+            return [];
+        }
+
+        $decoded = \json_decode($stored, true);
+        return \is_array($decoded) ? $decoded : [];
+    }
+
+    /**
      * Apply the provided credential changes to the project's oAuthProviders map,
      * run the optional credential verification hook, persist the project, and
      * return the updated project document.

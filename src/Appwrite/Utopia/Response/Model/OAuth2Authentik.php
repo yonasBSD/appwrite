@@ -27,7 +27,7 @@ class OAuth2Authentik extends OAuth2Base
 
         $this->addRule('endpoint', [
             'type' => self::TYPE_STRING,
-            'description' => 'Authentik OAuth 2 endpoint domain.',
+            'description' => 'Authentik OAuth2 endpoint domain.',
             'default' => '',
             'example' => 'example.authentik.com',
         ]);

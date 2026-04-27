@@ -35,13 +35,51 @@ class Get extends Action
                 group: 'oauth2',
                 name: 'getOAuth2Provider',
                 description: <<<EOT
-                Get a single OAuth2 provider configuration. The `secret` is write-only and is always returned empty.
+                Get a single OAuth2 provider configuration. Credential fields (client secret, p8 file, key/team IDs) are write-only and always returned empty.
                 EOT,
                 auth: [AuthType::ADMIN, AuthType::KEY],
                 responses: [
                     new SDKResponse(
                         code: Response::STATUS_CODE_OK,
-                        model: Response::MODEL_AUTH_PROVIDER,
+                        model: [
+                            Response::MODEL_OAUTH2_GITHUB,
+                            Response::MODEL_OAUTH2_DISCORD,
+                            Response::MODEL_OAUTH2_FIGMA,
+                            Response::MODEL_OAUTH2_DROPBOX,
+                            Response::MODEL_OAUTH2_DAILYMOTION,
+                            Response::MODEL_OAUTH2_BITBUCKET,
+                            Response::MODEL_OAUTH2_BITLY,
+                            Response::MODEL_OAUTH2_BOX,
+                            Response::MODEL_OAUTH2_AUTODESK,
+                            Response::MODEL_OAUTH2_GOOGLE,
+                            Response::MODEL_OAUTH2_ZOOM,
+                            Response::MODEL_OAUTH2_ZOHO,
+                            Response::MODEL_OAUTH2_YANDEX,
+                            Response::MODEL_OAUTH2_X,
+                            Response::MODEL_OAUTH2_WORDPRESS,
+                            Response::MODEL_OAUTH2_TWITCH,
+                            Response::MODEL_OAUTH2_STRIPE,
+                            Response::MODEL_OAUTH2_SPOTIFY,
+                            Response::MODEL_OAUTH2_SLACK,
+                            Response::MODEL_OAUTH2_PODIO,
+                            Response::MODEL_OAUTH2_NOTION,
+                            Response::MODEL_OAUTH2_SALESFORCE,
+                            Response::MODEL_OAUTH2_YAHOO,
+                            Response::MODEL_OAUTH2_LINKEDIN,
+                            Response::MODEL_OAUTH2_DISQUS,
+                            Response::MODEL_OAUTH2_AMAZON,
+                            Response::MODEL_OAUTH2_ETSY,
+                            Response::MODEL_OAUTH2_FACEBOOK,
+                            Response::MODEL_OAUTH2_TRADESHIFT,
+                            Response::MODEL_OAUTH2_PAYPAL,
+                            Response::MODEL_OAUTH2_GITLAB,
+                            Response::MODEL_OAUTH2_AUTHENTIK,
+                            Response::MODEL_OAUTH2_AUTH0,
+                            Response::MODEL_OAUTH2_OIDC,
+                            Response::MODEL_OAUTH2_APPLE,
+                            Response::MODEL_OAUTH2_OKTA,
+                            Response::MODEL_OAUTH2_KICK,
+                        ],
                     )
                 ]
             ))
@@ -61,14 +99,14 @@ class Get extends Action
             throw new Exception(Exception::PROJECT_PROVIDER_UNSUPPORTED);
         }
 
-        $providerValues = $project->getAttribute('oAuthProviders', []);
+        $actions = Base::getProviderActions();
+        if (!isset($actions[$provider])) {
+            throw new Exception(Exception::PROJECT_PROVIDER_UNSUPPORTED);
+        }
 
-        $response->dynamic(new Document([
-            'key' => $provider,
-            'name' => $providers[$provider]['name'] ?? '',
-            'appId' => $providerValues[$provider . 'Appid'] ?? '',
-            'secret' => '',
-            'enabled' => $providerValues[$provider . 'Enabled'] ?? false,
-        ]), Response::MODEL_AUTH_PROVIDER);
+        $updateClass = $actions[$provider];
+        $action = new $updateClass();
+
+        $response->dynamic($action->buildReadResponse($project), $updateClass::getResponseModel());
     }
 }

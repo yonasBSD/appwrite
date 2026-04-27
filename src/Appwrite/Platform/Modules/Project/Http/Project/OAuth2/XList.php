@@ -33,13 +33,13 @@ class XList extends Action
                 group: 'oauth2',
                 name: 'listOAuth2Providers',
                 description: <<<EOT
-                Get a list of all OAuth2 providers supported by the server, along with the project's configuration for each. The `secret` is write-only and is always returned empty.
+                Get a list of all OAuth2 providers supported by the server, along with the project's configuration for each. Credential fields are write-only and always returned empty.
                 EOT,
                 auth: [AuthType::ADMIN, AuthType::KEY],
                 responses: [
                     new SDKResponse(
                         code: Response::STATUS_CODE_OK,
-                        model: Response::MODEL_AUTH_PROVIDER_LIST,
+                        model: Response::MODEL_OAUTH2_PROVIDER_LIST,
                     )
                 ]
             ))
@@ -53,27 +53,22 @@ class XList extends Action
         Document $project,
     ): void {
         $providers = Config::getParam('oAuthProviders', []);
-        $providerValues = $project->getAttribute('oAuthProviders', []);
+        $actions = Base::getProviderActions();
 
-        $projectProviders = [];
-        foreach ($providers as $key => $provider) {
-            if (!($provider['enabled'] ?? false)) {
+        $documents = [];
+        foreach ($actions as $providerId => $updateClass) {
+            if (!($providers[$providerId]['enabled'] ?? false)) {
                 // Disabled by Appwrite configuration, exclude from response
                 continue;
             }
 
-            $projectProviders[] = new Document([
-                'key' => $key,
-                'name' => $provider['name'] ?? '',
-                'appId' => $providerValues[$key . 'Appid'] ?? '',
-                'secret' => '',
-                'enabled' => $providerValues[$key . 'Enabled'] ?? false,
-            ]);
+            $action = new $updateClass();
+            $documents[] = $action->buildReadResponse($project);
         }
 
         $response->dynamic(new Document([
-            'total' => \count($projectProviders),
-            'platforms' => $projectProviders,
-        ]), Response::MODEL_AUTH_PROVIDER_LIST);
+            'total' => \count($documents),
+            'providers' => $documents,
+        ]), Response::MODEL_OAUTH2_PROVIDER_LIST);
     }
 }

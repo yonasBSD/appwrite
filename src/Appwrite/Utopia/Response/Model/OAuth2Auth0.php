@@ -27,7 +27,7 @@ class OAuth2Auth0 extends OAuth2Base
 
         $this->addRule('endpoint', [
             'type' => self::TYPE_STRING,
-            'description' => 'Auth0 OAuth 2 endpoint domain.',
+            'description' => 'Auth0 OAuth2 endpoint domain.',
             'default' => '',
             'example' => 'example.us.auth0.com',
         ]);

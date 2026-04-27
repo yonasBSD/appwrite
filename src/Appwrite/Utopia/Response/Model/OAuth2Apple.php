@@ -35,13 +35,13 @@ class OAuth2Apple extends OAuth2Base
 
     public function __construct()
     {
-        // Apple's OAuth 2 app credential is split into three fields (.p8 file
+        // Apple's OAuth2 app credential is split into three fields (.p8 file
         // contents, Key ID, Team ID) instead of a single clientSecret, so the
         // rules are defined manually rather than delegating to OAuth2Base.
         $this
             ->addRule('enabled', [
                 'type' => self::TYPE_BOOLEAN,
-                'description' => 'OAuth 2 provider is active and can be used to create sessions.',
+                'description' => 'OAuth2 provider is active and can be used to create sessions.',
                 'default' => false,
                 'example' => false,
             ])
@@ -53,19 +53,19 @@ class OAuth2Apple extends OAuth2Base
             ])
             ->addRule('keyId', [
                 'type' => self::TYPE_STRING,
-                'description' => 'Apple OAuth 2 key ID.',
+                'description' => 'Apple OAuth2 key ID.',
                 'default' => '',
                 'example' => 'P4000000N8',
             ])
             ->addRule('teamId', [
                 'type' => self::TYPE_STRING,
-                'description' => 'Apple OAuth 2 team ID.',
+                'description' => 'Apple OAuth2 team ID.',
                 'default' => '',
                 'example' => 'D4000000R6',
             ])
             ->addRule('p8File', [
                 'type' => self::TYPE_STRING,
-                'description' => 'Apple OAuth 2 .p8 private key file contents. The secret key wrapped by the PEM markers is 200 characters long.',
+                'description' => 'Apple OAuth2 .p8 private key file contents. The secret key wrapped by the PEM markers is 200 characters long.',
                 'default' => '',
                 'example' => '-----BEGIN PRIVATE KEY-----MIGTAg...jy2Xbna-----END PRIVATE KEY-----',
             ]);

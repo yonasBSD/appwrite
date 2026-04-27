@@ -96,6 +96,24 @@ class Update extends Base
             ->callback($this->handle(...));
     }
 
+    public function buildReadResponse(Document $project): Document
+    {
+        $providerId = static::getProviderId();
+        $oAuthProviders = $project->getAttribute('oAuthProviders', []);
+        $decoded = $this->decodeStoredSecret($project);
+
+        return new Document([
+            '$id' => $providerId,
+            'enabled' => $oAuthProviders[$providerId . 'Enabled'] ?? false,
+            static::getClientIdParamName() => $oAuthProviders[$providerId . 'Appid'] ?? '',
+            static::getClientSecretParamName() => '',
+            'wellKnownURL' => $decoded['wellKnownEndpoint'] ?? '',
+            'authorizationURL' => $decoded['authorizationEndpoint'] ?? '',
+            'tokenUrl' => $decoded['tokenEndpoint'] ?? '',
+            'userInfoUrl' => $decoded['userInfoEndpoint'] ?? '',
+        ]);
+    }
+
     /**
      * Custom callback used instead of the parent's `action()` because OIDC takes
      * a well-known URL plus three discovery URLs (authorization, token, user

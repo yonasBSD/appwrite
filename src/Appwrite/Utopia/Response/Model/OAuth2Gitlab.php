@@ -47,7 +47,7 @@ class OAuth2Gitlab extends OAuth2Base
 
         $this->addRule('endpoint', [
             'type' => self::TYPE_STRING,
-            'description' => 'GitLab OAuth 2 endpoint URL. Defaults to https://gitlab.com for self-hosted instances.',
+            'description' => 'GitLab OAuth2 endpoint URL. Defaults to https://gitlab.com for self-hosted instances.',
             'default' => '',
             'example' => 'https://gitlab.com',
         ]);

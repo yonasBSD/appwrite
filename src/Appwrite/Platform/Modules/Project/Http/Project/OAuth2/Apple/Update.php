@@ -99,6 +99,21 @@ class Update extends Base
             ->callback($this->handle(...));
     }
 
+    public function buildReadResponse(Document $project): Document
+    {
+        $providerId = static::getProviderId();
+        $oAuthProviders = $project->getAttribute('oAuthProviders', []);
+
+        return new Document([
+            '$id' => $providerId,
+            'enabled' => $oAuthProviders[$providerId . 'Enabled'] ?? false,
+            static::getClientIdParamName() => $oAuthProviders[$providerId . 'Appid'] ?? '',
+            'keyId' => '',
+            'teamId' => '',
+            'p8File' => '',
+        ]);
+    }
+
     /**
      * Custom callback used instead of the parent's `action()` because Apple's
      * client secret is composed of three fields (.p8 file contents, Key ID and
