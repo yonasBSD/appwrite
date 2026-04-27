@@ -186,6 +186,7 @@ abstract class Base extends Action
             'okta' => Okta\Update::class,
             'kick' => Kick\Update::class,
             'apple' => Apple\Update::class,
+            'microsoft' => Microsoft\Update::class,
         ];
     }
 

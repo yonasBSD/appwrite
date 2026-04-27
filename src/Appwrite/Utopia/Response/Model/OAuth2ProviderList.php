@@ -55,6 +55,7 @@ class OAuth2ProviderList extends Model
                     Response::MODEL_OAUTH2_APPLE,
                     Response::MODEL_OAUTH2_OKTA,
                     Response::MODEL_OAUTH2_KICK,
+                    Response::MODEL_OAUTH2_MICROSOFT,
                 ],
                 'description' => 'List of OAuth2 providers.',
                 'default' => [],

@@ -79,6 +79,7 @@ class Get extends Action
                             Response::MODEL_OAUTH2_APPLE,
                             Response::MODEL_OAUTH2_OKTA,
                             Response::MODEL_OAUTH2_KICK,
+                            Response::MODEL_OAUTH2_MICROSOFT,
                         ],
                     )
                 ]
