@@ -1247,7 +1247,7 @@ trait OAuth2Base
 
     public function testUpdateOAuth2GitlabEndpointAcceptsEmpty(): void
     {
-        // The `endpoint` validator is `Nullable(URL(empty: true))`. Passing
+        // The `endpoint` validator is `Nullable(URL(allowEmpty: true))`. Passing
         // `''` must clear the stored value rather than 400 on URL validation.
         $this->updateOAuth2('gitlab', [
             'applicationId' => 'gitlab-clear-app',
@@ -1591,7 +1591,7 @@ trait OAuth2Base
 
     public function testUpdateOAuth2OidcURLsAcceptEmpty(): void
     {
-        // All four URL fields use `Nullable(URL(empty: true))`. Passing `''`
+        // All four URL fields use `Nullable(URL(allowEmpty: true))`. Passing `''`
         // for each must clear them rather than 400 on URL validation.
         $this->updateOAuth2('oidc', [
             'clientId' => 'oidc-clear-client',
@@ -1811,7 +1811,7 @@ trait OAuth2Base
 
     public function testUpdateOAuth2OktaDomainAcceptsEmpty(): void
     {
-        // The `domain` validator is `Nullable(Domain(empty: true))`. Passing
+        // The `domain` validator is `Nullable(Domain(allowEmpty: true))`. Passing
         // `''` must clear the stored value rather than 400 on Domain validation.
         $this->updateOAuth2('okta', [
             'clientId' => 'okta-clear-client',
