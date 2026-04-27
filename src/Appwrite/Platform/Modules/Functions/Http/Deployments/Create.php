@@ -264,6 +264,7 @@ class Create extends Action
             } else {
                 $deployment = $dbForProject->updateDocument('deployments', $deploymentId, new Document([
                     'sourceSize' => $fileSize,
+                    'sourceChunksUploaded' => $chunksUploaded,
                     'sourceMetadata' => $metadata,
                 ]));
             }

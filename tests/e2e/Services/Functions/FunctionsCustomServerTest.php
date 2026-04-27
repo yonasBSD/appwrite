@@ -1102,9 +1102,9 @@ class FunctionsCustomServerTest extends Scope
             $start = $i * $chunkSize;
             $end = min($start + $chunkSize, $totalSize);
             $length = $end - $start;
-            $data = fread($handle, $length);
+            $chunkData = fread($handle, $length);
             $chunks[] = [
-                'data' => $data,
+                'data' => $chunkData,
                 'start' => $start,
                 'end' => $end - 1,
                 'index' => $i,
