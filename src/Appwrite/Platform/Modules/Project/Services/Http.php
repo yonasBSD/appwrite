@@ -30,6 +30,7 @@ use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Dropbox\Update as Upda
 use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Etsy\Update as UpdateOAuth2Etsy;
 use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Facebook\Update as UpdateOAuth2Facebook;
 use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Figma\Update as UpdateOAuth2Figma;
+use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Get as GetOAuth2Provider;
 use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\GitHub\Update as UpdateOAuth2GitHub;
 use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Gitlab\Update as UpdateOAuth2Gitlab;
 use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Google\Update as UpdateOAuth2Google;
@@ -50,6 +51,7 @@ use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\TradeshiftSandbox\Upda
 use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Twitch\Update as UpdateOAuth2Twitch;
 use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\WordPress\Update as UpdateOAuth2WordPress;
 use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\X\Update as UpdateOAuth2X;
+use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\XList as ListOAuth2Providers;
 use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Yahoo\Update as UpdateOAuth2Yahoo;
 use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Yandex\Update as UpdateOAuth2Yandex;
 use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Zoho\Update as UpdateOAuth2Zoho;
@@ -169,6 +171,8 @@ class Http extends Service
         $this->addAction(UpdateAuthMethod::getName(), new UpdateAuthMethod());
 
         // OAuth2
+        $this->addAction(ListOAuth2Providers::getName(), new ListOAuth2Providers());
+        $this->addAction(GetOAuth2Provider::getName(), new GetOAuth2Provider());
         $this->addAction(UpdateOAuth2GitHub::getName(), new UpdateOAuth2GitHub());
         $this->addAction(UpdateOAuth2Discord::getName(), new UpdateOAuth2Discord());
         $this->addAction(UpdateOAuth2Figma::getName(), new UpdateOAuth2Figma());
