@@ -585,7 +585,8 @@ $server->onWorkerStart(function (int $workerId) use ($server, $register, $stats,
                                 $subscriptionId,
                                 $roles,
                                 $channels,
-                                $queries
+                                $queries,
+                                $userId
                             );
                         }
 
