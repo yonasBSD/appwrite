@@ -154,6 +154,22 @@ trait OAuth2Base
         $this->assertSame(401, $response['headers']['status-code']);
     }
 
+    public function testListOAuth2ProvidersExcludesUnregisteredConfigEntries(): void
+    {
+        // `mock` and `mock-unverified` exist in oAuthProviders config (enabled: true)
+        // but are intentionally absent from Base::getProviderActions() — they're
+        // internal Mock OAuth2 adapters used by other test suites, not public
+        // providers. XList iterates the action registry, so they must never be
+        // included even though config marks them enabled.
+        $response = $this->listOAuth2Providers();
+
+        $this->assertSame(200, $response['headers']['status-code']);
+
+        $ids = \array_column($response['body']['providers'], '$id');
+        $this->assertNotContains('mock', $ids);
+        $this->assertNotContains('mock-unverified', $ids);
+    }
+
     // =========================================================================
     // Get OAuth2 provider
     // =========================================================================
@@ -204,6 +220,19 @@ trait OAuth2Base
     public function testGetOAuth2ProviderUnsupported(): void
     {
         $response = $this->getOAuth2Provider('not-a-real-provider');
+
+        $this->assertSame(400, $response['headers']['status-code']);
+        $this->assertSame('project_provider_unsupported', $response['body']['type']);
+    }
+
+    public function testGetOAuth2ProviderRegisteredInConfigButNoUpdateClass(): void
+    {
+        // `mock` is present in oAuthProviders config (enabled: true) but is NOT
+        // registered in Base::getProviderActions(). Get::action has two
+        // separate `unsupported` throw branches — testGetOAuth2ProviderUnsupported
+        // covers the first (provider missing from config); this covers the
+        // second (provider in config but missing from the action registry).
+        $response = $this->getOAuth2Provider('mock');
 
         $this->assertSame(400, $response['headers']['status-code']);
         $this->assertSame('project_provider_unsupported', $response['body']['type']);
@@ -492,6 +521,100 @@ trait OAuth2Base
         ]);
     }
 
+    public function testUpdateOAuth2ApplePartialPreservesEachField(): void
+    {
+        // Seed all four fields, then patch each one individually and confirm
+        // the others survive across the chain. testUpdateOAuth2ApplePartial
+        // only covers `keyId`; this exercises serviceId/teamId/p8File too.
+        $this->updateOAuth2('apple', [
+            'serviceId' => 'ip.appwrite.app.merge',
+            'keyId' => 'KEYMERGE01',
+            'teamId' => 'TEAMMERGE',
+            'p8File' => '-----BEGIN PRIVATE KEY-----MERGE-----END PRIVATE KEY-----',
+            'enabled' => false,
+        ]);
+
+        // Patch only `teamId`.
+        $teamOnly = $this->updateOAuth2('apple', [
+            'teamId' => 'TEAMROTATED',
+        ]);
+        $this->assertSame(200, $teamOnly['headers']['status-code']);
+        $this->assertSame('TEAMROTATED', $teamOnly['body']['teamId']);
+        $this->assertSame('ip.appwrite.app.merge', $teamOnly['body']['serviceId']);
+
+        // Patch only `serviceId` — keyId/teamId/p8File live in the JSON blob
+        // and must survive a top-level (non-blob) field update.
+        $serviceOnly = $this->updateOAuth2('apple', [
+            'serviceId' => 'ip.appwrite.app.rotated',
+        ]);
+        $this->assertSame(200, $serviceOnly['headers']['status-code']);
+        $this->assertSame('ip.appwrite.app.rotated', $serviceOnly['body']['serviceId']);
+
+        // Patch only `p8File`. keyId/teamId/serviceId must still be set
+        // internally — confirm by enabling. Apple has no verifyCredentials()
+        // hook, so persistCredentials only checks for non-empty serviceId and
+        // non-empty stored secret blob.
+        $p8Only = $this->updateOAuth2('apple', [
+            'p8File' => '-----BEGIN PRIVATE KEY-----ROTATED-----END PRIVATE KEY-----',
+        ]);
+        $this->assertSame(200, $p8Only['headers']['status-code']);
+
+        $enable = $this->updateOAuth2('apple', ['enabled' => true]);
+        $this->assertSame(200, $enable['headers']['status-code']);
+        $this->assertTrue($enable['body']['enabled']);
+
+        // Cleanup
+        $this->updateOAuth2('apple', [
+            'serviceId' => '',
+            'keyId' => '',
+            'teamId' => '',
+            'p8File' => '',
+            'enabled' => false,
+        ]);
+    }
+
+    public function testUpdateOAuth2AppleClearAllFieldsBlocksEnable(): void
+    {
+        // Seed all four Apple fields.
+        $this->updateOAuth2('apple', [
+            'serviceId' => 'ip.appwrite.app.clearAll',
+            'keyId' => 'KEYCLEARALL',
+            'teamId' => 'TEAMCLEARALL',
+            'p8File' => '-----BEGIN PRIVATE KEY-----CLEARALL-----END PRIVATE KEY-----',
+            'enabled' => false,
+        ]);
+
+        // Clear all credentials with empty strings. With `enabled` omitted, the
+        // silent-validation branch swallows the empty-credentials throw, so the
+        // call still succeeds — see testUpdateOAuth2PlainEnabledOmittedDoesNotThrow.
+        $clear = $this->updateOAuth2('apple', [
+            'serviceId' => '',
+            'keyId' => '',
+            'teamId' => '',
+            'p8File' => '',
+        ]);
+        $this->assertSame(200, $clear['headers']['status-code']);
+        $this->assertSame('', $clear['body']['serviceId']);
+
+        // A subsequent `enabled => true` must now 400. Empty serviceId trips
+        // persistCredentials' empty(appId) guard before any provider hook runs,
+        // proving that the clear actually took effect on stored state.
+        $enable = $this->updateOAuth2('apple', [
+            'enabled' => true,
+        ]);
+        $this->assertSame(400, $enable['headers']['status-code']);
+        $this->assertSame('general_argument_invalid', $enable['body']['type']);
+
+        // Cleanup (already cleared; included for reset symmetry).
+        $this->updateOAuth2('apple', [
+            'serviceId' => '',
+            'keyId' => '',
+            'teamId' => '',
+            'p8File' => '',
+            'enabled' => false,
+        ]);
+    }
+
     public function testUpdateOAuth2AppleResponseModel(): void
     {
         $response = $this->updateOAuth2('apple', [
@@ -642,6 +765,78 @@ trait OAuth2Base
         ]);
     }
 
+    public function testUpdateOAuth2Auth0PartialPreservesEachField(): void
+    {
+        // testUpdateOAuth2Auth0PartialEndpoint only patches `endpoint`. Cover
+        // patching `clientSecret` alone (must not wipe endpoint) and `clientId`
+        // alone (must not wipe the JSON-blob fields).
+        $this->updateOAuth2('auth0', [
+            'clientId' => 'auth0-merge-client',
+            'clientSecret' => 'auth0-merge-secret',
+            'endpoint' => 'merge.us.auth0.com',
+            'enabled' => false,
+        ]);
+
+        // Patch only clientSecret — clientId and endpoint must survive.
+        $secretOnly = $this->updateOAuth2('auth0', [
+            'clientSecret' => 'auth0-rotated-secret',
+        ]);
+        $this->assertSame(200, $secretOnly['headers']['status-code']);
+        $this->assertSame('auth0-merge-client', $secretOnly['body']['clientId']);
+        $this->assertSame('merge.us.auth0.com', $secretOnly['body']['endpoint']);
+
+        // Patch only clientId — endpoint must survive.
+        $idOnly = $this->updateOAuth2('auth0', [
+            'clientId' => 'auth0-rotated-client',
+        ]);
+        $this->assertSame(200, $idOnly['headers']['status-code']);
+        $this->assertSame('auth0-rotated-client', $idOnly['body']['clientId']);
+        $this->assertSame('merge.us.auth0.com', $idOnly['body']['endpoint']);
+
+        // Confirm the rotated clientSecret survived the chain by enabling.
+        // Auth0 has no verifyCredentials() hook; non-empty secret is enough.
+        $enable = $this->updateOAuth2('auth0', ['enabled' => true]);
+        $this->assertSame(200, $enable['headers']['status-code']);
+        $this->assertTrue($enable['body']['enabled']);
+
+        // Cleanup
+        $this->updateOAuth2('auth0', [
+            'clientId' => '',
+            'clientSecret' => '',
+            'endpoint' => '',
+            'enabled' => false,
+        ]);
+    }
+
+    public function testUpdateOAuth2Auth0EndpointAcceptsEmpty(): void
+    {
+        // Auth0's `endpoint` validator is `Nullable(Text(256, 0))`. Passing
+        // `''` must clear the stored value rather than leave it untouched
+        // (would happen if the merge fell back to existing on empty-string).
+        $this->updateOAuth2('auth0', [
+            'clientId' => 'auth0-clear-client',
+            'clientSecret' => 'auth0-clear-secret',
+            'endpoint' => 'before.us.auth0.com',
+            'enabled' => false,
+        ]);
+
+        $response = $this->updateOAuth2('auth0', [
+            'endpoint' => '',
+        ]);
+
+        $this->assertSame(200, $response['headers']['status-code']);
+        $this->assertSame('', $response['body']['endpoint']);
+        $this->assertSame('auth0-clear-client', $response['body']['clientId']);
+
+        // Cleanup
+        $this->updateOAuth2('auth0', [
+            'clientId' => '',
+            'clientSecret' => '',
+            'endpoint' => '',
+            'enabled' => false,
+        ]);
+    }
+
     public function testUpdateOAuth2Auth0EnableAndReadBack(): void
     {
         $update = $this->updateOAuth2('auth0', [
@@ -687,6 +882,21 @@ trait OAuth2Base
         $this->assertSame('general_argument_invalid', $response['body']['type']);
     }
 
+    public function testUpdateOAuth2AuthentikEmptyEndpointRejected(): void
+    {
+        // The `endpoint` validator is Text(min=1). Sending `''` must be
+        // rejected the same way as omitting — the validator should treat the
+        // empty-string degenerate case as a missing required field.
+        $response = $this->updateOAuth2('authentik', [
+            'clientId' => 'whatever',
+            'clientSecret' => 'whatever',
+            'endpoint' => '',
+        ]);
+
+        $this->assertSame(400, $response['headers']['status-code']);
+        $this->assertSame('general_argument_invalid', $response['body']['type']);
+    }
+
     public function testUpdateOAuth2Authentik(): void
     {
         $response = $this->updateOAuth2('authentik', [
@@ -702,6 +912,45 @@ trait OAuth2Base
         $this->assertSame('example.authentik.com', $response['body']['endpoint']);
 
         // Cleanup
+        $this->updateOAuth2('authentik', [
+            'clientId' => '',
+            'clientSecret' => '',
+            'endpoint' => 'cleanup.authentik.com',
+            'enabled' => false,
+        ]);
+    }
+
+    public function testUpdateOAuth2AuthentikPartialPreservesSecret(): void
+    {
+        // Authentik's `endpoint` is required on every call, so we always
+        // re-send it. The `clientSecret` lives in the JSON blob and must
+        // survive when omitted on a subsequent call that only changes clientId.
+        $this->updateOAuth2('authentik', [
+            'clientId' => 'authentik-merge-client',
+            'clientSecret' => 'authentik-merge-secret',
+            'endpoint' => 'merge.authentik.com',
+            'enabled' => false,
+        ]);
+
+        $response = $this->updateOAuth2('authentik', [
+            'clientId' => 'authentik-rotated-client',
+            'endpoint' => 'merge.authentik.com',
+        ]);
+        $this->assertSame(200, $response['headers']['status-code']);
+        $this->assertSame('authentik-rotated-client', $response['body']['clientId']);
+        $this->assertSame('merge.authentik.com', $response['body']['endpoint']);
+
+        // Confirm clientSecret survived the omitted-field merge by enabling
+        // — Authentik has no verifyCredentials() hook, so non-empty stored
+        // secret is enough. `endpoint` must be re-sent (required on enable too).
+        $enable = $this->updateOAuth2('authentik', [
+            'endpoint' => 'merge.authentik.com',
+            'enabled' => true,
+        ]);
+        $this->assertSame(200, $enable['headers']['status-code']);
+        $this->assertTrue($enable['body']['enabled']);
+
+        // Cleanup — endpoint is required, use a placeholder.
         $this->updateOAuth2('authentik', [
             'clientId' => '',
             'clientSecret' => '',
@@ -748,6 +997,21 @@ trait OAuth2Base
         $response = $this->updateOAuth2('microsoft', [
             'applicationId' => 'whatever',
             'applicationSecret' => 'whatever',
+        ]);
+
+        $this->assertSame(400, $response['headers']['status-code']);
+        $this->assertSame('general_argument_invalid', $response['body']['type']);
+    }
+
+    public function testUpdateOAuth2MicrosoftEmptyTenantRejected(): void
+    {
+        // The `tenant` validator is Text(min=1). Sending `''` must be rejected
+        // the same way as omitting — the validator should treat the empty
+        // string as a missing required field.
+        $response = $this->updateOAuth2('microsoft', [
+            'applicationId' => 'whatever',
+            'applicationSecret' => 'whatever',
+            'tenant' => '',
         ]);
 
         $this->assertSame(400, $response['headers']['status-code']);
@@ -898,6 +1162,43 @@ trait OAuth2Base
         $this->assertSame(200, $response['headers']['status-code']);
         $this->assertSame('https://updated.gitlab.com', $response['body']['endpoint']);
         $this->assertSame('gitlab-seed-app', $response['body']['applicationId']);
+
+        // Cleanup
+        $this->updateOAuth2('gitlab', [
+            'applicationId' => '',
+            'secret' => '',
+            'endpoint' => '',
+            'enabled' => false,
+        ]);
+    }
+
+    public function testUpdateOAuth2GitlabPartialPreservesEachField(): void
+    {
+        // testUpdateOAuth2GitlabPartialEndpoint covers patching only `endpoint`.
+        // Cover patching `secret` alone (must not wipe applicationId/endpoint)
+        // and `applicationId` alone (must not wipe the JSON-blob endpoint).
+        $this->updateOAuth2('gitlab', [
+            'applicationId' => 'gitlab-merge-app',
+            'secret' => 'gitlab-merge-secret',
+            'endpoint' => 'https://merge.gitlab.com',
+            'enabled' => false,
+        ]);
+
+        // Patch only `secret`.
+        $secretOnly = $this->updateOAuth2('gitlab', [
+            'secret' => 'gitlab-rotated-secret',
+        ]);
+        $this->assertSame(200, $secretOnly['headers']['status-code']);
+        $this->assertSame('gitlab-merge-app', $secretOnly['body']['applicationId']);
+        $this->assertSame('https://merge.gitlab.com', $secretOnly['body']['endpoint']);
+
+        // Patch only `applicationId`.
+        $idOnly = $this->updateOAuth2('gitlab', [
+            'applicationId' => 'gitlab-rotated-app',
+        ]);
+        $this->assertSame(200, $idOnly['headers']['status-code']);
+        $this->assertSame('gitlab-rotated-app', $idOnly['body']['applicationId']);
+        $this->assertSame('https://merge.gitlab.com', $idOnly['body']['endpoint']);
 
         // Cleanup
         $this->updateOAuth2('gitlab', [
@@ -1120,6 +1421,167 @@ trait OAuth2Base
         ]);
     }
 
+    public function testUpdateOAuth2OidcEnableInSeparateRequestWithWellKnown(): void
+    {
+        // Configure URLs first with `enabled: false`. Then enable in a SECOND
+        // request that omits all URL fields. The merge-on-enable logic in
+        // Oidc::handle() must see the previously-stored wellKnownEndpoint and
+        // allow the toggle. This is the headline feature of the merge logic.
+        $this->updateOAuth2('oidc', [
+            'clientId' => 'oidc-split-wk-client',
+            'clientSecret' => 'oidc-split-wk-secret',
+            'wellKnownURL' => 'https://idp.example.com/.well-known/openid-configuration',
+            'enabled' => false,
+        ]);
+
+        $enable = $this->updateOAuth2('oidc', [
+            'enabled' => true,
+        ]);
+        $this->assertSame(200, $enable['headers']['status-code']);
+        $this->assertTrue($enable['body']['enabled']);
+
+        // Cleanup
+        $this->updateOAuth2('oidc', [
+            'clientId' => '',
+            'clientSecret' => '',
+            'wellKnownURL' => '',
+            'authorizationURL' => '',
+            'tokenUrl' => '',
+            'userInfoUrl' => '',
+            'enabled' => false,
+        ]);
+    }
+
+    public function testUpdateOAuth2OidcEnableAcrossRequestsWithDiscoveryURLs(): void
+    {
+        // Reset to clean state — earlier tests in this section may have left
+        // partial URL state when running in any order.
+        $this->updateOAuth2('oidc', [
+            'clientId' => '',
+            'clientSecret' => '',
+            'wellKnownURL' => '',
+            'authorizationURL' => '',
+            'tokenUrl' => '',
+            'userInfoUrl' => '',
+            'enabled' => false,
+        ]);
+
+        // Request 1: configure two of the three discovery URLs.
+        $this->updateOAuth2('oidc', [
+            'clientId' => 'oidc-split-discovery',
+            'clientSecret' => 'oidc-split-discovery-secret',
+            'authorizationURL' => 'https://idp.example.com/oauth2/authorize',
+            'tokenUrl' => 'https://idp.example.com/oauth2/token',
+            'enabled' => false,
+        ]);
+
+        // Request 2: send only the third URL plus enable=true. The merged
+        // state must include the two stored URLs + the new one to satisfy
+        // the all-three-discovery-URLs branch of the enable check.
+        $enable = $this->updateOAuth2('oidc', [
+            'userInfoUrl' => 'https://idp.example.com/oauth2/userinfo',
+            'enabled' => true,
+        ]);
+        $this->assertSame(200, $enable['headers']['status-code']);
+        $this->assertTrue($enable['body']['enabled']);
+
+        // Confirm all three URLs ended up persisted (merge wrote the new
+        // userInfoUrl while preserving the previously stored two).
+        $get = $this->getOAuth2Provider('oidc');
+        $this->assertSame(200, $get['headers']['status-code']);
+        $this->assertSame('https://idp.example.com/oauth2/authorize', $get['body']['authorizationURL']);
+        $this->assertSame('https://idp.example.com/oauth2/token', $get['body']['tokenUrl']);
+        $this->assertSame('https://idp.example.com/oauth2/userinfo', $get['body']['userInfoUrl']);
+
+        // Cleanup
+        $this->updateOAuth2('oidc', [
+            'clientId' => '',
+            'clientSecret' => '',
+            'wellKnownURL' => '',
+            'authorizationURL' => '',
+            'tokenUrl' => '',
+            'userInfoUrl' => '',
+            'enabled' => false,
+        ]);
+    }
+
+    public function testUpdateOAuth2OidcEnableFailsAfterClearingWellKnown(): void
+    {
+        // Seed wellKnownURL only (no discovery URLs).
+        $this->updateOAuth2('oidc', [
+            'clientId' => 'oidc-clear-then-enable',
+            'clientSecret' => 'oidc-clear-then-enable-secret',
+            'wellKnownURL' => 'https://idp.example.com/.well-known/openid-configuration',
+            'authorizationURL' => '',
+            'tokenUrl' => '',
+            'userInfoUrl' => '',
+            'enabled' => false,
+        ]);
+
+        // Clear wellKnownURL and try to enable in the same request. Merge
+        // sees `wellKnown=''` (the cleared empty wins over the stored value
+        // because the new value is non-null) and no discovery URLs → 400.
+        // This is the inverse of testUpdateOAuth2OidcEnableInSeparateRequestWithWellKnown:
+        // confirms the merge correctly *replaces* with empty rather than
+        // falling back to the stored non-empty value.
+        $response = $this->updateOAuth2('oidc', [
+            'wellKnownURL' => '',
+            'enabled' => true,
+        ]);
+        $this->assertSame(400, $response['headers']['status-code']);
+        $this->assertSame('general_argument_invalid', $response['body']['type']);
+
+        // Cleanup
+        $this->updateOAuth2('oidc', [
+            'clientId' => '',
+            'clientSecret' => '',
+            'wellKnownURL' => '',
+            'authorizationURL' => '',
+            'tokenUrl' => '',
+            'userInfoUrl' => '',
+            'enabled' => false,
+        ]);
+    }
+
+    public function testUpdateOAuth2OidcSwitchModesWellKnownToDiscovery(): void
+    {
+        // Configure with wellKnownURL, then switch to the three-discovery-URL
+        // mode in a single request: clear wellKnown, set the three URLs,
+        // enable. Merge sees wellKnown='' AND all three discovery URLs set →
+        // hasAllDiscovery branch passes.
+        $this->updateOAuth2('oidc', [
+            'clientId' => 'oidc-switch-client',
+            'clientSecret' => 'oidc-switch-secret',
+            'wellKnownURL' => 'https://idp.example.com/.well-known/openid-configuration',
+            'enabled' => false,
+        ]);
+
+        $switch = $this->updateOAuth2('oidc', [
+            'wellKnownURL' => '',
+            'authorizationURL' => 'https://idp.example.com/oauth2/authorize',
+            'tokenUrl' => 'https://idp.example.com/oauth2/token',
+            'userInfoUrl' => 'https://idp.example.com/oauth2/userinfo',
+            'enabled' => true,
+        ]);
+        $this->assertSame(200, $switch['headers']['status-code']);
+        $this->assertTrue($switch['body']['enabled']);
+        $this->assertSame('', $switch['body']['wellKnownURL']);
+        $this->assertSame('https://idp.example.com/oauth2/authorize', $switch['body']['authorizationURL']);
+        $this->assertSame('https://idp.example.com/oauth2/token', $switch['body']['tokenUrl']);
+        $this->assertSame('https://idp.example.com/oauth2/userinfo', $switch['body']['userInfoUrl']);
+
+        // Cleanup
+        $this->updateOAuth2('oidc', [
+            'clientId' => '',
+            'clientSecret' => '',
+            'wellKnownURL' => '',
+            'authorizationURL' => '',
+            'tokenUrl' => '',
+            'userInfoUrl' => '',
+            'enabled' => false,
+        ]);
+    }
+
     public function testUpdateOAuth2OidcURLsAcceptEmpty(): void
     {
         // All four URL fields use `Nullable(URL(empty: true))`. Passing `''`
@@ -1245,6 +1707,90 @@ trait OAuth2Base
         $this->assertSame('enable.okta.com', $get['body']['domain']);
         $this->assertSame('aus000000000000000h7z', $get['body']['authorizationServerId']);
         $this->assertSame('', $get['body']['clientSecret']);
+
+        // Cleanup
+        $this->updateOAuth2('okta', [
+            'clientId' => '',
+            'clientSecret' => '',
+            'domain' => '',
+            'authorizationServerId' => '',
+            'enabled' => false,
+        ]);
+    }
+
+    public function testUpdateOAuth2OktaPartialPreservesEachField(): void
+    {
+        // Okta has no field-by-field partial test in the existing suite. Cover
+        // each of `domain`, `authorizationServerId`, and `clientSecret` being
+        // patched alone — all three live in the same JSON blob.
+        $this->updateOAuth2('okta', [
+            'clientId' => 'okta-merge-client',
+            'clientSecret' => 'okta-merge-secret',
+            'domain' => 'merge.okta.com',
+            'authorizationServerId' => 'aus000000000000merge',
+            'enabled' => false,
+        ]);
+
+        // Patch only `domain` — others must survive.
+        $domainOnly = $this->updateOAuth2('okta', [
+            'domain' => 'rotated.okta.com',
+        ]);
+        $this->assertSame(200, $domainOnly['headers']['status-code']);
+        $this->assertSame('rotated.okta.com', $domainOnly['body']['domain']);
+        $this->assertSame('okta-merge-client', $domainOnly['body']['clientId']);
+        $this->assertSame('aus000000000000merge', $domainOnly['body']['authorizationServerId']);
+
+        // Patch only `authorizationServerId`.
+        $authServerOnly = $this->updateOAuth2('okta', [
+            'authorizationServerId' => 'aus000000000rotated00',
+        ]);
+        $this->assertSame(200, $authServerOnly['headers']['status-code']);
+        $this->assertSame('rotated.okta.com', $authServerOnly['body']['domain']);
+        $this->assertSame('aus000000000rotated00', $authServerOnly['body']['authorizationServerId']);
+
+        // Patch only `clientSecret` — domain and authServerId in the JSON blob
+        // must survive. Confirm the rotated secret persisted by enabling.
+        $secretOnly = $this->updateOAuth2('okta', [
+            'clientSecret' => 'okta-rotated-secret',
+        ]);
+        $this->assertSame(200, $secretOnly['headers']['status-code']);
+        $this->assertSame('rotated.okta.com', $secretOnly['body']['domain']);
+        $this->assertSame('aus000000000rotated00', $secretOnly['body']['authorizationServerId']);
+
+        $enable = $this->updateOAuth2('okta', ['enabled' => true]);
+        $this->assertSame(200, $enable['headers']['status-code']);
+        $this->assertTrue($enable['body']['enabled']);
+
+        // Cleanup
+        $this->updateOAuth2('okta', [
+            'clientId' => '',
+            'clientSecret' => '',
+            'domain' => '',
+            'authorizationServerId' => '',
+            'enabled' => false,
+        ]);
+    }
+
+    public function testUpdateOAuth2OktaAuthServerIdAcceptsEmpty(): void
+    {
+        // `authorizationServerId` is `Nullable(Text(256, 0))`. Passing `''`
+        // must clear the stored value while leaving the rest of the JSON blob
+        // (clientSecret, oktaDomain) untouched.
+        $this->updateOAuth2('okta', [
+            'clientId' => 'okta-clear-auth-server',
+            'clientSecret' => 'okta-clear-auth-server-secret',
+            'domain' => 'authserver.okta.com',
+            'authorizationServerId' => 'aus0000000000beforeauth',
+            'enabled' => false,
+        ]);
+
+        $response = $this->updateOAuth2('okta', [
+            'authorizationServerId' => '',
+        ]);
+        $this->assertSame(200, $response['headers']['status-code']);
+        $this->assertSame('', $response['body']['authorizationServerId']);
+        // domain (also stored in the JSON blob) must NOT have been wiped.
+        $this->assertSame('authserver.okta.com', $response['body']['domain']);
 
         // Cleanup
         $this->updateOAuth2('okta', [
@@ -1404,6 +1950,34 @@ trait OAuth2Base
         ]);
     }
 
+    public function testUpdateOAuth2PaypalSandboxResponseModel(): void
+    {
+        // PaypalSandbox inherits from Paypal: param/response field is
+        // `secretKey` instead of `clientSecret`. A regression that adds the
+        // default `clientSecret` to the response model would leak the
+        // unwritten field; pin its absence on both PATCH and GET.
+        $update = $this->updateOAuth2('paypalSandbox', [
+            'clientId' => 'paypal-sandbox-shape',
+            'secretKey' => 'paypal-sandbox-shape-secret',
+            'enabled' => false,
+        ]);
+        $this->assertSame(200, $update['headers']['status-code']);
+        $this->assertArrayHasKey('secretKey', $update['body']);
+        $this->assertArrayNotHasKey('clientSecret', $update['body']);
+
+        $get = $this->getOAuth2Provider('paypalSandbox');
+        $this->assertSame(200, $get['headers']['status-code']);
+        $this->assertArrayHasKey('secretKey', $get['body']);
+        $this->assertArrayNotHasKey('clientSecret', $get['body']);
+
+        // Cleanup
+        $this->updateOAuth2('paypalSandbox', [
+            'clientId' => '',
+            'secretKey' => '',
+            'enabled' => false,
+        ]);
+    }
+
     public function testUpdateOAuth2PaypalDoesNotAffectSandbox(): void
     {
         // Reverse direction: writing to regular paypal must leave sandbox state intact.
@@ -1457,6 +2031,38 @@ trait OAuth2Base
         $this->assertSame(200, $regular['headers']['status-code']);
         $this->assertSame('tradeshift', $regular['body']['$id']);
         $this->assertNotSame('tradeshift-sandbox-client', $regular['body']['oauth2ClientId']);
+
+        // Cleanup
+        $this->updateOAuth2('tradeshiftBox', [
+            'oauth2ClientId' => '',
+            'oauth2ClientSecret' => '',
+            'enabled' => false,
+        ]);
+    }
+
+    public function testUpdateOAuth2TradeshiftBoxResponseModel(): void
+    {
+        // TradeshiftSandbox inherits from Tradeshift: both clientId AND
+        // clientSecret are renamed (oauth2ClientId / oauth2ClientSecret).
+        // Pin that the default field names are absent from PATCH and GET
+        // responses so a stray addition to the response model is caught.
+        $update = $this->updateOAuth2('tradeshiftBox', [
+            'oauth2ClientId' => 'tradeshift-box-shape',
+            'oauth2ClientSecret' => 'tradeshift-box-shape-secret',
+            'enabled' => false,
+        ]);
+        $this->assertSame(200, $update['headers']['status-code']);
+        $this->assertArrayHasKey('oauth2ClientId', $update['body']);
+        $this->assertArrayHasKey('oauth2ClientSecret', $update['body']);
+        $this->assertArrayNotHasKey('clientId', $update['body']);
+        $this->assertArrayNotHasKey('clientSecret', $update['body']);
+
+        $get = $this->getOAuth2Provider('tradeshiftBox');
+        $this->assertSame(200, $get['headers']['status-code']);
+        $this->assertArrayHasKey('oauth2ClientId', $get['body']);
+        $this->assertArrayHasKey('oauth2ClientSecret', $get['body']);
+        $this->assertArrayNotHasKey('clientId', $get['body']);
+        $this->assertArrayNotHasKey('clientSecret', $get['body']);
 
         // Cleanup
         $this->updateOAuth2('tradeshiftBox', [
@@ -1576,6 +2182,52 @@ trait OAuth2Base
         $this->assertSame($clientId, $get['body'][$idField]);
         $this->assertSame('', $get['body'][$secretField]);
         $this->assertFalse($get['body']['enabled']);
+
+        // Cleanup
+        $this->updateOAuth2($providerId, [
+            $idField => '',
+            $secretField => '',
+            'enabled' => false,
+        ]);
+    }
+
+    /**
+     * For providers that rename `clientId` / `clientSecret` to a custom field
+     * (e.g. `apiKey`/`apiSecret`, `customerKey`/`secretKey`, `oauthClientId`),
+     * the renamed field replaces the default — the response model must NOT
+     * also expose the default name. Catches a regression where adding a
+     * custom param name forgets to remove the default from the response.
+     */
+    #[DataProvider('plainProviders')]
+    public function testUpdateOAuth2PlainProviderResponseDoesNotLeakDefaultNames(string $providerId, string $idField, string $secretField): void
+    {
+        if ($idField === 'clientId' && $secretField === 'clientSecret') {
+            // Default-named provider — nothing to leak. Avoids a no-op assertion.
+            $this->markTestSkipped("{$providerId} uses default field names.");
+        }
+
+        $update = $this->updateOAuth2($providerId, [
+            $idField => $providerId . '-leak-check-id',
+            $secretField => $providerId . '-leak-check-secret',
+            'enabled' => false,
+        ]);
+        $this->assertSame(200, $update['headers']['status-code']);
+
+        if ($idField !== 'clientId') {
+            $this->assertArrayNotHasKey('clientId', $update['body'], "PATCH response for {$providerId} leaks default `clientId` despite using `{$idField}`.");
+        }
+        if ($secretField !== 'clientSecret') {
+            $this->assertArrayNotHasKey('clientSecret', $update['body'], "PATCH response for {$providerId} leaks default `clientSecret` despite using `{$secretField}`.");
+        }
+
+        $get = $this->getOAuth2Provider($providerId);
+        $this->assertSame(200, $get['headers']['status-code']);
+        if ($idField !== 'clientId') {
+            $this->assertArrayNotHasKey('clientId', $get['body'], "GET response for {$providerId} leaks default `clientId` despite using `{$idField}`.");
+        }
+        if ($secretField !== 'clientSecret') {
+            $this->assertArrayNotHasKey('clientSecret', $get['body'], "GET response for {$providerId} leaks default `clientSecret` despite using `{$secretField}`.");
+        }
 
         // Cleanup
         $this->updateOAuth2($providerId, [
