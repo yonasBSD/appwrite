@@ -523,17 +523,22 @@ class MessagingTest extends TestCase
         $this->assertSame(['documents', 'create'], Realtime::parseActionChannel('documents.create'));
         $this->assertSame(['documents', 'update'], Realtime::parseActionChannel('documents.update'));
         $this->assertSame(['documents', 'upsert'], Realtime::parseActionChannel('documents.upsert'));
+        $this->assertSame(['documents', 'delete'], Realtime::parseActionChannel('documents.delete'));
         $this->assertSame(
             ['databases.X.collections.Y.documents.Z', 'create'],
             Realtime::parseActionChannel('databases.X.collections.Y.documents.Z.create')
+        );
+        $this->assertSame(
+            ['databases.X.collections.Y.documents.Z', 'delete'],
+            Realtime::parseActionChannel('databases.X.collections.Y.documents.Z.delete')
         );
 
         // No action suffix → unchanged with '*' default.
         $this->assertSame(['documents', '*'], Realtime::parseActionChannel('documents'));
         $this->assertSame(['documents.789', '*'], Realtime::parseActionChannel('documents.789'));
 
-        // Unrecognised suffix (e.g. delete is not yet supported) → unchanged.
-        $this->assertSame(['documents.delete', '*'], Realtime::parseActionChannel('documents.delete'));
+        // Unrecognised suffix → unchanged (treated as literal channel name).
+        $this->assertSame(['documents.bogus', '*'], Realtime::parseActionChannel('documents.bogus'));
     }
 
     public function testActionChannelFiltersByEventAction(): void
@@ -588,6 +593,44 @@ class MessagingTest extends TestCase
         $this->assertCount(1, $receivers);
         $this->assertArrayHasKey('sub-update', $receivers[1]);
         $this->assertArrayNotHasKey('sub-create', $receivers[1]);
+    }
+
+    public function testActionChannelDeleteFilter(): void
+    {
+        $realtime = new Realtime();
+
+        $realtime->subscribe(
+            '1',
+            1,
+            'sub-delete',
+            [Role::any()->toString()],
+            ['documents.delete'],
+        );
+
+        $deleteEvent = [
+            'project' => '1',
+            'roles' => [Role::any()->toString()],
+            'data' => [
+                'channels' => ['documents'],
+                'events' => [
+                    'databases.db.collections.col.documents.doc.delete',
+                    'databases.*.collections.*.documents.*.delete',
+                ],
+                'payload' => ['$id' => 'doc'],
+            ],
+        ];
+
+        $receivers = $realtime->getSubscribers($deleteEvent);
+        $this->assertArrayHasKey(1, $receivers);
+        $this->assertArrayHasKey('sub-delete', $receivers[1]);
+
+        // Other actions on the same base channel should not match the delete filter.
+        $createEvent = $deleteEvent;
+        $createEvent['data']['events'] = [
+            'databases.db.collections.col.documents.doc.create',
+            'databases.*.collections.*.documents.*.create',
+        ];
+        $this->assertEmpty($realtime->getSubscribers($createEvent));
     }
 
     public function testActionChannelHonorsResourceId(): void

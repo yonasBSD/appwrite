@@ -22,9 +22,9 @@ class Realtime extends MessagingAdapter
     /**
      * Action suffixes recognized in channel names. A channel like `documents.create`
      * is split into base channel `documents` plus action `create`. Add new actions
-     * (e.g. `delete`) here to extend support — no other code change is required.
+     * here to extend support — no other code change is required.
      */
-    public const SUPPORTED_ACTIONS = ['create', 'update', 'upsert'];
+    public const SUPPORTED_ACTIONS = ['create', 'update', 'upsert', 'delete'];
 
     /**
      * Connection Tree

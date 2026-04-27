@@ -2827,7 +2827,7 @@ trait RealtimeQueryBase
         $clientMulti->close();
     }
 
-    public function testChannelActionFilterUnsupportedActionTreatedAsLiteral(): void
+    public function testChannelActionFilterDeliversDeleteEvents(): void
     {
         $user = $this->getUser();
         $session = $user['session'] ?? '';
@@ -2840,17 +2840,64 @@ trait RealtimeQueryBase
 
         ['databaseId' => $databaseId, 'collectionId' => $collectionId] = $this->createActorsCollection();
 
-        // `delete` is intentionally NOT in SUPPORTED_ACTIONS yet, so parseActionChannel
-        // leaves the channel name intact and treats it as a literal channel that no
-        // published event ever carries — the subscriber should receive nothing.
-        $client = $this->getWebsocket(['documents.delete'], $headers);
-        $connected = $this->assertConnectionStatusIfSupported($client);
+        $deleteChannel = "databases.{$databaseId}.collections.{$collectionId}.documents.delete";
+        $clientDelete = $this->getWebsocket([$deleteChannel], $headers);
+        $connected = $this->assertConnectionStatusIfSupported($clientDelete);
         if ($connected !== null) {
-            $this->assertContains('documents.delete', $connected['data']['channels']);
+            $this->assertContains($deleteChannel, $connected['data']['channels']);
         }
 
         $documentId = ID::unique();
-        $this->createActor($databaseId, $collectionId, $documentId, 'No Delete Listener');
+        $this->createActor($databaseId, $collectionId, $documentId, 'About To Be Deleted');
+
+        // Create event must not arrive — the action filter is `delete`.
+        try {
+            $clientDelete->receive();
+            $this->fail('Delete subscriber should not receive a create event.');
+        } catch (TimeoutException $e) {
+            $this->addToAssertionCount(1);
+        }
+
+        $this->client->call(Client::METHOD_DELETE, "/databases/{$databaseId}/collections/{$collectionId}/documents/{$documentId}", array_merge([
+            'content-type' => 'application/json',
+            'x-appwrite-project' => $projectId,
+        ], $this->getHeaders()));
+
+        $deleteEvent = json_decode($clientDelete->receive(), true);
+        $this->assertEquals('event', $deleteEvent['type']);
+        $this->assertContains(
+            "databases.{$databaseId}.collections.{$collectionId}.documents.{$documentId}.delete",
+            $deleteEvent['data']['events']
+        );
+        $this->assertEquals($documentId, $deleteEvent['data']['payload']['$id']);
+
+        $clientDelete->close();
+    }
+
+    public function testChannelActionFilterUnknownSuffixTreatedAsLiteral(): void
+    {
+        $user = $this->getUser();
+        $session = $user['session'] ?? '';
+        $projectId = $this->getProject()['$id'];
+
+        $headers = [
+            'origin' => 'http://localhost',
+            'cookie' => 'a_session_' . $projectId . '=' . $session,
+        ];
+
+        ['databaseId' => $databaseId, 'collectionId' => $collectionId] = $this->createActorsCollection();
+
+        // An unrecognised suffix is NOT in SUPPORTED_ACTIONS, so parseActionChannel
+        // leaves the channel name intact and treats it as a literal channel that no
+        // published event ever carries — the subscriber should receive nothing.
+        $client = $this->getWebsocket(['documents.bogus'], $headers);
+        $connected = $this->assertConnectionStatusIfSupported($client);
+        if ($connected !== null) {
+            $this->assertContains('documents.bogus', $connected['data']['channels']);
+        }
+
+        $documentId = ID::unique();
+        $this->createActor($databaseId, $collectionId, $documentId, 'No Bogus Listener');
 
         $this->client->call(Client::METHOD_DELETE, "/databases/{$databaseId}/collections/{$collectionId}/documents/{$documentId}", array_merge([
             'content-type' => 'application/json',
@@ -2859,7 +2906,7 @@ trait RealtimeQueryBase
 
         try {
             $client->receive();
-            $this->fail('`documents.delete` is not (yet) a supported action channel and should not deliver.');
+            $this->fail('Unrecognised action suffix should not deliver any events.');
         } catch (TimeoutException $e) {
             $this->addToAssertionCount(1);
         }
