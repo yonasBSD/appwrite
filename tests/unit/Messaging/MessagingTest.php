@@ -517,4 +517,264 @@ class MessagingTest extends TestCase
         $this->assertContains(Role::any()->toString(), $result['roles']);
         $this->assertContains(Role::team('123abc')->toString(), $result['roles']);
     }
+
+    public function testParseActionChannel(): void
+    {
+        $this->assertSame(['documents', 'create'], Realtime::parseActionChannel('documents.create'));
+        $this->assertSame(['documents', 'update'], Realtime::parseActionChannel('documents.update'));
+        $this->assertSame(['documents', 'upsert'], Realtime::parseActionChannel('documents.upsert'));
+        $this->assertSame(
+            ['databases.X.collections.Y.documents.Z', 'create'],
+            Realtime::parseActionChannel('databases.X.collections.Y.documents.Z.create')
+        );
+
+        // No action suffix → unchanged with '*' default.
+        $this->assertSame(['documents', '*'], Realtime::parseActionChannel('documents'));
+        $this->assertSame(['documents.789', '*'], Realtime::parseActionChannel('documents.789'));
+
+        // Unrecognised suffix (e.g. delete is not yet supported) → unchanged.
+        $this->assertSame(['documents.delete', '*'], Realtime::parseActionChannel('documents.delete'));
+    }
+
+    public function testActionChannelFiltersByEventAction(): void
+    {
+        $realtime = new Realtime();
+
+        // Two subscriptions on the same connection: one filtered to creates only,
+        // one filtered to updates only.
+        $realtime->subscribe(
+            '1',
+            1,
+            'sub-create',
+            [Role::any()->toString()],
+            ['documents.create'],
+        );
+        $realtime->subscribe(
+            '1',
+            1,
+            'sub-update',
+            [Role::any()->toString()],
+            ['documents.update'],
+        );
+
+        $createEvent = [
+            'project' => '1',
+            'roles' => [Role::any()->toString()],
+            'data' => [
+                'channels' => ['documents'],
+                'events' => [
+                    'databases.db.collections.col.documents.doc.create',
+                    'databases.*.collections.*.documents.*.create',
+                ],
+                'payload' => ['$id' => 'doc'],
+            ],
+        ];
+
+        $updateEvent = $createEvent;
+        $updateEvent['data']['events'] = [
+            'databases.db.collections.col.documents.doc.update',
+            'databases.*.collections.*.documents.*.update',
+        ];
+
+        // Create event should only deliver to sub-create.
+        $receivers = $realtime->getSubscribers($createEvent);
+        $this->assertCount(1, $receivers);
+        $this->assertArrayHasKey(1, $receivers);
+        $this->assertArrayHasKey('sub-create', $receivers[1]);
+        $this->assertArrayNotHasKey('sub-update', $receivers[1]);
+
+        // Update event should only deliver to sub-update.
+        $receivers = $realtime->getSubscribers($updateEvent);
+        $this->assertCount(1, $receivers);
+        $this->assertArrayHasKey('sub-update', $receivers[1]);
+        $this->assertArrayNotHasKey('sub-create', $receivers[1]);
+    }
+
+    public function testActionChannelHonorsResourceId(): void
+    {
+        $realtime = new Realtime();
+
+        // Subscribe to creates on a specific document only.
+        $realtime->subscribe(
+            '1',
+            1,
+            'sub-doc-create',
+            [Role::any()->toString()],
+            ['documents.789.create'],
+        );
+
+        // The base channel for `documents.789.create` is `documents.789`.
+        $event = [
+            'project' => '1',
+            'roles' => [Role::any()->toString()],
+            'data' => [
+                'channels' => ['documents.789'],
+                'events' => [
+                    'databases.db.collections.col.documents.789.create',
+                    'databases.*.collections.*.documents.*.create',
+                ],
+                'payload' => ['$id' => '789'],
+            ],
+        ];
+
+        $receivers = $realtime->getSubscribers($event);
+        $this->assertCount(1, $receivers);
+        $this->assertArrayHasKey('sub-doc-create', $receivers[1]);
+
+        // Update on the same document should not match.
+        $event['data']['events'] = [
+            'databases.db.collections.col.documents.789.update',
+            'databases.*.collections.*.documents.*.update',
+        ];
+
+        $this->assertEmpty($realtime->getSubscribers($event));
+
+        // Create on a different document should not match (different base channel
+        // entirely; subscription tree key won't even line up).
+        $event['data']['channels'] = ['documents.999'];
+        $event['data']['events'] = [
+            'databases.db.collections.col.documents.999.create',
+            'databases.*.collections.*.documents.*.create',
+        ];
+
+        $this->assertEmpty($realtime->getSubscribers($event));
+    }
+
+    public function testNonActionChannelStillReceivesAllEvents(): void
+    {
+        $realtime = new Realtime();
+
+        $realtime->subscribe(
+            '1',
+            1,
+            'sub-all',
+            [Role::any()->toString()],
+            ['documents'],
+        );
+
+        $event = [
+            'project' => '1',
+            'roles' => [Role::any()->toString()],
+            'data' => [
+                'channels' => ['documents'],
+                'events' => [
+                    'databases.db.collections.col.documents.doc.create',
+                ],
+                'payload' => ['$id' => 'doc'],
+            ],
+        ];
+
+        $this->assertArrayHasKey(1, $realtime->getSubscribers($event));
+
+        $event['data']['events'] = ['databases.db.collections.col.documents.doc.update'];
+        $this->assertArrayHasKey(1, $realtime->getSubscribers($event));
+
+        $event['data']['events'] = ['databases.db.collections.col.documents.doc.upsert'];
+        $this->assertArrayHasKey(1, $realtime->getSubscribers($event));
+    }
+
+    public function testMixedActionAndBaseChannelInSameSubscription(): void
+    {
+        $realtime = new Realtime();
+
+        // Same sub-id covers `documents.create` (filtered) and `files` (unfiltered).
+        // After parsing they live under different base-channel keys with their own
+        // action metadata, so each gets its own filter behaviour.
+        $realtime->subscribe(
+            '1',
+            1,
+            'sub-mixed',
+            [Role::any()->toString()],
+            ['documents.create', 'files'],
+        );
+
+        // Create event on documents → matches.
+        $createDoc = [
+            'project' => '1',
+            'roles' => [Role::any()->toString()],
+            'data' => [
+                'channels' => ['documents'],
+                'events' => ['databases.db.collections.col.documents.doc.create'],
+                'payload' => [],
+            ],
+        ];
+        $this->assertArrayHasKey(1, $realtime->getSubscribers($createDoc));
+
+        // Update event on documents → blocked by the action filter on the documents key.
+        $updateDoc = $createDoc;
+        $updateDoc['data']['events'] = ['databases.db.collections.col.documents.doc.update'];
+        $this->assertEmpty($realtime->getSubscribers($updateDoc));
+
+        // Files channel has no action filter — any action delivers.
+        $updateFile = [
+            'project' => '1',
+            'roles' => [Role::any()->toString()],
+            'data' => [
+                'channels' => ['files'],
+                'events' => ['buckets.bucket.files.file.update'],
+                'payload' => [],
+            ],
+        ];
+        $this->assertArrayHasKey(1, $realtime->getSubscribers($updateFile));
+    }
+
+    public function testActionChannelMetadataRoundTrips(): void
+    {
+        $realtime = new Realtime();
+
+        $realtime->subscribe(
+            '1',
+            1,
+            'sub-create',
+            [Role::any()->toString()],
+            ['documents.create', 'files'],
+        );
+
+        $meta = $realtime->getSubscriptionMetadata(1);
+
+        $this->assertArrayHasKey('sub-create', $meta);
+        $this->assertContains('documents.create', $meta['sub-create']['channels']);
+        $this->assertContains('files', $meta['sub-create']['channels']);
+        // Base form should NOT leak when an action was set.
+        $this->assertNotContains('documents', $meta['sub-create']['channels']);
+    }
+
+    public function testMergingMultipleActionsOnSameBaseChannel(): void
+    {
+        $realtime = new Realtime();
+
+        // Subscribing to multiple actions on the same base merges their action lists
+        // onto a single tree entry.
+        $realtime->subscribe(
+            '1',
+            1,
+            'sub-multi',
+            [Role::any()->toString()],
+            ['documents.create', 'documents.update'],
+        );
+
+        $createEvent = [
+            'project' => '1',
+            'roles' => [Role::any()->toString()],
+            'data' => [
+                'channels' => ['documents'],
+                'events' => ['databases.db.collections.col.documents.doc.create'],
+                'payload' => [],
+            ],
+        ];
+        $this->assertArrayHasKey(1, $realtime->getSubscribers($createEvent));
+
+        $updateEvent = $createEvent;
+        $updateEvent['data']['events'] = ['databases.db.collections.col.documents.doc.update'];
+        $this->assertArrayHasKey(1, $realtime->getSubscribers($updateEvent));
+
+        // Upsert should not match — neither create nor update covers it.
+        $upsertEvent = $createEvent;
+        $upsertEvent['data']['events'] = ['databases.db.collections.col.documents.doc.upsert'];
+        $this->assertEmpty($realtime->getSubscribers($upsertEvent));
+
+        $meta = $realtime->getSubscriptionMetadata(1);
+        $this->assertContains('documents.create', $meta['sub-multi']['channels']);
+        $this->assertContains('documents.update', $meta['sub-multi']['channels']);
+    }
 }
