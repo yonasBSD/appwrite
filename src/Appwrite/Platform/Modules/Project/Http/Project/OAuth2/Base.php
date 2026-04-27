@@ -178,7 +178,7 @@ abstract class Base extends Action
             'etsy' => Etsy\Update::class,
             'facebook' => Facebook\Update::class,
             'tradeshift' => Tradeshift\Update::class,
-            'tradeshiftSandbox' => TradeshiftSandbox\Update::class,
+            'tradeshiftBox' => TradeshiftSandbox\Update::class,
             'paypal' => Paypal\Update::class,
             'paypalSandbox' => PaypalSandbox\Update::class,
             'gitlab' => Gitlab\Update::class,

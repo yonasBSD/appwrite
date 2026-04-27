@@ -3,6 +3,7 @@
 namespace Tests\E2E\Services\Project;
 
 use PHPUnit\Framework\Attributes\Before;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\E2E\Client;
 
 trait OAuth2Base
@@ -967,6 +968,38 @@ trait OAuth2Base
         ]);
     }
 
+    public function testUpdateOAuth2DropboxPartial(): void
+    {
+        // Seed both fields, then patch only `appKey` and verify `appSecret`
+        // persists by enabling — Dropbox has no verifyCredentials() hook, so
+        // enabling succeeds purely from local state.
+        $this->updateOAuth2('dropbox', [
+            'appKey' => 'dropbox-seed-key',
+            'appSecret' => 'dropbox-seed-secret',
+            'enabled' => false,
+        ]);
+
+        $response = $this->updateOAuth2('dropbox', [
+            'appKey' => 'dropbox-updated-key',
+        ]);
+
+        $this->assertSame(200, $response['headers']['status-code']);
+        $this->assertSame('dropbox-updated-key', $response['body']['appKey']);
+
+        $enable = $this->updateOAuth2('dropbox', [
+            'enabled' => true,
+        ]);
+        $this->assertSame(200, $enable['headers']['status-code']);
+        $this->assertSame(true, $enable['body']['enabled']);
+
+        // Cleanup
+        $this->updateOAuth2('dropbox', [
+            'appKey' => '',
+            'appSecret' => '',
+            'enabled' => false,
+        ]);
+    }
+
     // =========================================================================
     // Update Paypal Sandbox (inherits from Paypal — independent provider ID)
     // =========================================================================
@@ -993,6 +1026,113 @@ trait OAuth2Base
         $this->updateOAuth2('paypalSandbox', [
             'clientId' => '',
             'clientSecret' => '',
+            'enabled' => false,
+        ]);
+    }
+
+    // =========================================================================
+    // Update Tradeshift Sandbox (inherits from Tradeshift — independent provider ID)
+    // =========================================================================
+
+    public function testUpdateOAuth2TradeshiftBox(): void
+    {
+        $response = $this->updateOAuth2('tradeshiftBox', [
+            'oauth2ClientId' => 'tradeshift-sandbox-client',
+            'oauth2ClientSecret' => 'tradeshift-sandbox-secret',
+            'enabled' => false,
+        ]);
+
+        $this->assertSame(200, $response['headers']['status-code']);
+        $this->assertSame('tradeshiftBox', $response['body']['$id']);
+        $this->assertSame('tradeshift-sandbox-client', $response['body']['oauth2ClientId']);
+
+        // Sandbox is independent of the regular tradeshift entry.
+        $regular = $this->getOAuth2Provider('tradeshift');
+        $this->assertSame(200, $regular['headers']['status-code']);
+        $this->assertSame('tradeshift', $regular['body']['$id']);
+        $this->assertNotSame('tradeshift-sandbox-client', $regular['body']['oauth2ClientId']);
+
+        // Cleanup
+        $this->updateOAuth2('tradeshiftBox', [
+            'oauth2ClientId' => '',
+            'oauth2ClientSecret' => '',
+            'enabled' => false,
+        ]);
+    }
+
+    // =========================================================================
+    // Smoke test: every plain (clientId + clientSecret) provider
+    //
+    // Ensures each provider's Update endpoint is wired up correctly: routing,
+    // provider class, response model and `$id`. Custom-shaped providers
+    // (apple, auth0, authentik, gitlab, microsoft, oidc, okta, dropbox) and
+    // sandboxes (paypalSandbox, tradeshiftSandbox) have dedicated tests above.
+    // Github is excluded because its `verifyCredentials()` hook is exercised
+    // separately.
+    // =========================================================================
+
+    /**
+     * Provider, ID-field, secret-field. Many providers rename one or both of
+     * the two credential params (`clientId`/`clientSecret`) to match the
+     * upstream provider's terminology, so the smoke test parameterises both.
+     *
+     * @return array<string, array<string>>
+     */
+    public static function plainProviders(): array
+    {
+        return [
+            'discord' => ['discord', 'clientId', 'clientSecret'],
+            'figma' => ['figma', 'clientId', 'clientSecret'],
+            'dailymotion' => ['dailymotion', 'apiKey', 'apiSecret'],
+            'bitbucket' => ['bitbucket', 'key', 'secret'],
+            'bitly' => ['bitly', 'clientId', 'clientSecret'],
+            'box' => ['box', 'clientId', 'clientSecret'],
+            'autodesk' => ['autodesk', 'clientId', 'clientSecret'],
+            'google' => ['google', 'clientId', 'clientSecret'],
+            'zoom' => ['zoom', 'clientId', 'clientSecret'],
+            'zoho' => ['zoho', 'clientId', 'clientSecret'],
+            'yandex' => ['yandex', 'clientId', 'clientSecret'],
+            'x' => ['x', 'customerKey', 'secretKey'],
+            'wordpress' => ['wordpress', 'clientId', 'clientSecret'],
+            'twitch' => ['twitch', 'clientId', 'clientSecret'],
+            'stripe' => ['stripe', 'clientId', 'apiSecretKey'],
+            'spotify' => ['spotify', 'clientId', 'clientSecret'],
+            'slack' => ['slack', 'clientId', 'clientSecret'],
+            'podio' => ['podio', 'clientId', 'clientSecret'],
+            'notion' => ['notion', 'oauthClientId', 'oauthClientSecret'],
+            'salesforce' => ['salesforce', 'customerKey', 'customerSecret'],
+            'yahoo' => ['yahoo', 'clientId', 'clientSecret'],
+            'linkedin' => ['linkedin', 'clientId', 'primaryClientSecret'],
+            'disqus' => ['disqus', 'publicKey', 'secretKey'],
+            'etsy' => ['etsy', 'keyString', 'sharedSecret'],
+            'facebook' => ['facebook', 'appId', 'appSecret'],
+            'tradeshift' => ['tradeshift', 'oauth2ClientId', 'oauth2ClientSecret'],
+            'paypal' => ['paypal', 'clientId', 'secretKey'],
+            'kick' => ['kick', 'clientId', 'clientSecret'],
+        ];
+    }
+
+    #[DataProvider('plainProviders')]
+    public function testUpdateOAuth2PlainProvider(string $providerId, string $idField, string $secretField): void
+    {
+        $clientId = $providerId . '-smoke-client';
+        $clientSecret = $providerId . '-smoke-secret';
+
+        $response = $this->updateOAuth2($providerId, [
+            $idField => $clientId,
+            $secretField => $clientSecret,
+            'enabled' => false,
+        ]);
+
+        $this->assertSame(200, $response['headers']['status-code']);
+        $this->assertSame($providerId, $response['body']['$id']);
+        $this->assertSame($clientId, $response['body'][$idField]);
+        $this->assertSame(false, $response['body']['enabled']);
+
+        // Cleanup
+        $this->updateOAuth2($providerId, [
+            $idField => '',
+            $secretField => '',
             'enabled' => false,
         ]);
     }

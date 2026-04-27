@@ -9,7 +9,7 @@ class Update extends TradeshiftUpdate
 {
     public static function getProviderId(): string
     {
-        return 'tradeshiftSandbox';
+        return 'tradeshiftBox';
     }
 
     public static function getProviderClass(): string

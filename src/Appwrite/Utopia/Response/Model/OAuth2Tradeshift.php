@@ -7,7 +7,7 @@ use Appwrite\Utopia\Response;
 class OAuth2Tradeshift extends OAuth2Base
 {
     public array $conditions = [
-        '$id' => ['tradeshift', 'tradeshiftSandbox'],
+        '$id' => ['tradeshift', 'tradeshiftBox'],
     ];
 
     public function getProviderLabel(): string
