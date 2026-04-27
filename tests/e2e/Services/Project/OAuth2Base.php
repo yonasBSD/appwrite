@@ -2,10 +2,27 @@
 
 namespace Tests\E2E\Services\Project;
 
+use PHPUnit\Framework\Attributes\Before;
 use Tests\E2E\Client;
 
 trait OAuth2Base
 {
+    /**
+     * Reset providers we mutate in tests back to a known empty/disabled state.
+     * The ProjectCustom trait reuses the same project across tests in a class,
+     * and the OAuth2 PATCH endpoint is additive (omitted fields are preserved),
+     * so without a reset state would leak between tests.
+     */
+    #[Before(priority: -1)]
+    protected function resetProjectOAuth2(): void
+    {
+        $this->updateOAuth2('amazon', [
+            'clientId' => '',
+            'clientSecret' => '',
+            'enabled' => false,
+        ]);
+    }
+
     // =========================================================================
     // List OAuth2 providers
     // =========================================================================
@@ -679,10 +696,11 @@ trait OAuth2Base
         $this->assertArrayNotHasKey('clientId', $response['body']);
         $this->assertArrayNotHasKey('clientSecret', $response['body']);
 
-        // Cleanup (endpoint is `Nullable(URL())`; URL rejects empty strings).
+        // Cleanup
         $this->updateOAuth2('gitlab', [
             'applicationId' => '',
             'secret' => '',
+            'endpoint' => '',
             'enabled' => false,
         ]);
     }
@@ -715,11 +733,11 @@ trait OAuth2Base
         $this->assertSame('https://updated.gitlab.com', $response['body']['endpoint']);
         $this->assertSame('gitlab-seed-app', $response['body']['applicationId']);
 
-        // Cleanup (endpoint is `Nullable(URL())` and URL rejects empty strings,
-        // so the endpoint persists past the test).
+        // Cleanup
         $this->updateOAuth2('gitlab', [
             'applicationId' => '',
             'secret' => '',
+            'endpoint' => '',
             'enabled' => false,
         ]);
     }
@@ -743,11 +761,14 @@ trait OAuth2Base
         $this->assertArrayHasKey('tokenUrl', $response['body']);
         $this->assertArrayHasKey('userInfoUrl', $response['body']);
 
-        // Cleanup (URL fields are `Nullable(URL())`; URL rejects empty strings,
-        // so the discovery URLs persist past the test).
+        // Cleanup
         $this->updateOAuth2('oidc', [
             'clientId' => '',
             'clientSecret' => '',
+            'wellKnownURL' => '',
+            'authorizationURL' => '',
+            'tokenUrl' => '',
+            'userInfoUrl' => '',
             'enabled' => false,
         ]);
     }
@@ -772,6 +793,75 @@ trait OAuth2Base
         $this->updateOAuth2('oidc', [
             'clientId' => '',
             'clientSecret' => '',
+            'wellKnownURL' => '',
+            'authorizationURL' => '',
+            'tokenUrl' => '',
+            'userInfoUrl' => '',
+            'enabled' => false,
+        ]);
+    }
+
+    public function testUpdateOAuth2OidcEnableMissingURLs(): void
+    {
+        $this->updateOAuth2('oidc', [
+            'clientId' => '',
+            'clientSecret' => '',
+            'wellKnownURL' => '',
+            'authorizationURL' => '',
+            'tokenUrl' => '',
+            'userInfoUrl' => '',
+            'enabled' => false,
+        ]);
+
+        $response = $this->updateOAuth2('oidc', [
+            'clientId' => 'oidc-no-urls',
+            'clientSecret' => 'oidc-no-urls',
+            'enabled' => true,
+        ]);
+
+        $this->assertSame(400, $response['headers']['status-code']);
+        $this->assertSame('general_argument_invalid', $response['body']['type']);
+
+        // Cleanup
+        $this->updateOAuth2('oidc', [
+            'clientId' => '',
+            'clientSecret' => '',
+            'enabled' => false,
+        ]);
+    }
+
+    public function testUpdateOAuth2OidcEnablePartialDiscoveryFails(): void
+    {
+        // Only authorization+token, missing userInfo — must fail to enable.
+        $this->updateOAuth2('oidc', [
+            'clientId' => '',
+            'clientSecret' => '',
+            'wellKnownURL' => '',
+            'authorizationURL' => '',
+            'tokenUrl' => '',
+            'userInfoUrl' => '',
+            'enabled' => false,
+        ]);
+
+        $response = $this->updateOAuth2('oidc', [
+            'clientId' => 'oidc-partial',
+            'clientSecret' => 'oidc-partial-secret',
+            'authorizationURL' => 'https://idp.example.com/oauth2/authorize',
+            'tokenUrl' => 'https://idp.example.com/oauth2/token',
+            'enabled' => true,
+        ]);
+
+        $this->assertSame(400, $response['headers']['status-code']);
+        $this->assertSame('general_argument_invalid', $response['body']['type']);
+
+        // Cleanup
+        $this->updateOAuth2('oidc', [
+            'clientId' => '',
+            'clientSecret' => '',
+            'wellKnownURL' => '',
+            'authorizationURL' => '',
+            'tokenUrl' => '',
+            'userInfoUrl' => '',
             'enabled' => false,
         ]);
     }
@@ -796,11 +886,11 @@ trait OAuth2Base
         $this->assertSame('trial-6400025.okta.com', $response['body']['domain']);
         $this->assertSame('aus000000000000000h7z', $response['body']['authorizationServerId']);
 
-        // Cleanup (domain is `Nullable(Domain())`; Domain rejects empty strings,
-        // so the domain persists past the test).
+        // Cleanup
         $this->updateOAuth2('okta', [
             'clientId' => '',
             'clientSecret' => '',
+            'domain' => '',
             'authorizationServerId' => '',
             'enabled' => false,
         ]);
@@ -815,6 +905,33 @@ trait OAuth2Base
         ]);
 
         $this->assertSame(400, $response['headers']['status-code']);
+    }
+
+    public function testUpdateOAuth2OktaEnableRequiresDomain(): void
+    {
+        $this->updateOAuth2('okta', [
+            'clientId' => '',
+            'clientSecret' => '',
+            'domain' => '',
+            'authorizationServerId' => '',
+            'enabled' => false,
+        ]);
+
+        $response = $this->updateOAuth2('okta', [
+            'clientId' => 'okta-no-domain',
+            'clientSecret' => 'okta-no-domain-secret',
+            'enabled' => true,
+        ]);
+
+        $this->assertSame(400, $response['headers']['status-code']);
+        $this->assertSame('general_argument_invalid', $response['body']['type']);
+
+        // Cleanup
+        $this->updateOAuth2('okta', [
+            'clientId' => '',
+            'clientSecret' => '',
+            'enabled' => false,
+        ]);
     }
 
     // =========================================================================
