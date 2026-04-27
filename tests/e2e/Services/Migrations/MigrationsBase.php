@@ -1622,6 +1622,160 @@ trait MigrationsBase
     }
 
     /**
+     * Two-way DropAndRecreate path: source recreates the relationship between
+     * runs (createdAt diff). Without partner-side pair-key dedup, the second
+     * createField pass for the partner can re-fire DropAndRecreate after the
+     * first side already reconciled both physical columns, destroying rows
+     * already migrated to the partner table this run.
+     *
+     * Asserts: migration completes, both sides exist on dest, child rows
+     * referencing the parent are preserved end-to-end.
+     */
+    public function testAppwriteMigrationUpsertTwoWayRecreateSkipsPartnerSide(): void
+    {
+        $sourceHeaders = [
+            'content-type' => 'application/json',
+            'x-appwrite-project' => $this->getProject()['$id'],
+            'x-appwrite-key' => $this->getProject()['apiKey'],
+        ];
+        $destHeaders = [
+            'content-type' => 'application/json',
+            'x-appwrite-project' => $this->getDestinationProject()['$id'],
+            'x-appwrite-key' => $this->getDestinationProject()['apiKey'],
+        ];
+
+        $databaseId = ID::unique();
+        $createDb = $this->client->call(Client::METHOD_POST, '/databases', $sourceHeaders, [
+            'databaseId' => $databaseId,
+            'name' => 'Two-Way Recreate DB',
+        ]);
+        $this->assertEquals(201, $createDb['headers']['status-code']);
+
+        foreach (['parents', 'children'] as $tbl) {
+            $createTable = $this->client->call(Client::METHOD_POST, '/tablesdb/' . $databaseId . '/tables', $sourceHeaders, [
+                'tableId' => $tbl,
+                'name' => $tbl,
+                'permissions' => [
+                    Permission::create(Role::any()),
+                    Permission::read(Role::any()),
+                    Permission::update(Role::any()),
+                    Permission::delete(Role::any()),
+                ],
+            ]);
+            $this->assertEquals(201, $createTable['headers']['status-code']);
+        }
+
+        $createRel = $this->client->call(Client::METHOD_POST, '/tablesdb/' . $databaseId . '/tables/parents/columns/relationship', $sourceHeaders, [
+            'relatedTableId' => 'children',
+            'type' => Database::RELATION_ONE_TO_MANY,
+            'twoWay' => true,
+            'key' => 'kids',
+            'twoWayKey' => 'parent',
+            'onDelete' => Database::RELATION_MUTATE_CASCADE,
+        ]);
+        $this->assertEquals(202, $createRel['headers']['status-code']);
+
+        $this->assertEventually(function () use ($databaseId, $sourceHeaders) {
+            $r = $this->client->call(Client::METHOD_GET, '/tablesdb/' . $databaseId . '/tables/parents/columns/kids', $sourceHeaders);
+            $this->assertEquals(200, $r['headers']['status-code']);
+            $this->assertEquals('available', $r['body']['status']);
+        }, 10000, 500);
+
+        $parentRow = $this->client->call(Client::METHOD_POST, '/tablesdb/' . $databaseId . '/tables/parents/rows', $sourceHeaders, [
+            'rowId' => 'parent-1',
+            'data' => [],
+        ]);
+        $this->assertEquals(201, $parentRow['headers']['status-code']);
+        $childRow = $this->client->call(Client::METHOD_POST, '/tablesdb/' . $databaseId . '/tables/children/rows', $sourceHeaders, [
+            'rowId' => 'child-1',
+            'data' => ['parent' => 'parent-1'],
+        ]);
+        $this->assertEquals(201, $childRow['headers']['status-code']);
+
+        $resources = [
+            Resource::TYPE_DATABASE,
+            Resource::TYPE_TABLE,
+            Resource::TYPE_COLUMN,
+            Resource::TYPE_ROW,
+        ];
+
+        $first = $this->performMigrationSync([
+            'resources' => $resources,
+            'endpoint' => $this->webEndpoint,
+            'projectId' => $this->getProject()['$id'],
+            'apiKey' => $this->getProject()['apiKey'],
+        ]);
+        $this->assertEquals('completed', $first['status']);
+
+        // Recreate the relationship on source so its createdAt advances past
+        // dest's stored value — forces SchemaAction::DropAndRecreate on the
+        // parent side, which is the path the partner-side dedup guards.
+        sleep(1);
+        $deleteRel = $this->client->call(Client::METHOD_DELETE, '/tablesdb/' . $databaseId . '/tables/parents/columns/kids', $sourceHeaders);
+        $this->assertEquals(204, $deleteRel['headers']['status-code']);
+
+        $this->assertEventually(function () use ($databaseId, $sourceHeaders) {
+            $r = $this->client->call(Client::METHOD_GET, '/tablesdb/' . $databaseId . '/tables/parents/columns/kids', $sourceHeaders);
+            $this->assertEquals(404, $r['headers']['status-code']);
+        }, 10000, 500);
+
+        sleep(1);
+        $recreate = $this->client->call(Client::METHOD_POST, '/tablesdb/' . $databaseId . '/tables/parents/columns/relationship', $sourceHeaders, [
+            'relatedTableId' => 'children',
+            'type' => Database::RELATION_ONE_TO_MANY,
+            'twoWay' => true,
+            'key' => 'kids',
+            'twoWayKey' => 'parent',
+            'onDelete' => Database::RELATION_MUTATE_CASCADE,
+        ]);
+        $this->assertEquals(202, $recreate['headers']['status-code']);
+
+        $this->assertEventually(function () use ($databaseId, $sourceHeaders) {
+            $r = $this->client->call(Client::METHOD_GET, '/tablesdb/' . $databaseId . '/tables/parents/columns/kids', $sourceHeaders);
+            $this->assertEquals(200, $r['headers']['status-code']);
+            $this->assertEquals('available', $r['body']['status']);
+        }, 10000, 500);
+
+        // Child-row's relationship was wiped by the source-side delete. Re-link.
+        $relink = $this->client->call(Client::METHOD_PATCH, '/tablesdb/' . $databaseId . '/tables/children/rows/child-1', $sourceHeaders, [
+            'data' => ['parent' => 'parent-1'],
+        ]);
+        $this->assertEquals(200, $relink['headers']['status-code']);
+
+        $upsertResult = $this->performMigrationSync([
+            'resources' => $resources,
+            'endpoint' => $this->webEndpoint,
+            'projectId' => $this->getProject()['$id'],
+            'apiKey' => $this->getProject()['apiKey'],
+            'onDuplicate' => 'upsert',
+        ]);
+        $this->assertEquals('completed', $upsertResult['status']);
+
+        $this->assertEventually(function () use ($databaseId, $destHeaders) {
+            $parent = $this->client->call(Client::METHOD_GET, '/tablesdb/' . $databaseId . '/tables/parents/columns/kids', $destHeaders);
+            $this->assertEquals(200, $parent['headers']['status-code']);
+            $this->assertEquals('available', $parent['body']['status']);
+
+            $child = $this->client->call(Client::METHOD_GET, '/tablesdb/' . $databaseId . '/tables/children/columns/parent', $destHeaders);
+            $this->assertEquals(200, $child['headers']['status-code']);
+            $this->assertEquals('available', $child['body']['status']);
+        }, 10000, 500);
+
+        // Both rows survive the re-migration. If the partner-side dedup were
+        // missing and the partner pass re-fired DropAndRecreate, the partner
+        // (children) table's row would have been wiped before the row pass.
+        $destChild = $this->client->call(Client::METHOD_GET, '/tablesdb/' . $databaseId . '/tables/children/rows/child-1', $destHeaders);
+        $this->assertEquals(200, $destChild['headers']['status-code'], 'partner-table row must survive two-way recreate re-migration');
+        $this->assertEquals('parent-1', $destChild['body']['parent']['$id'] ?? $destChild['body']['parent'], 'partner-table row relationship must point to the migrated parent');
+
+        $this->client->call(Client::METHOD_DELETE, '/databases/' . $databaseId, $destHeaders);
+        $this->client->call(Client::METHOD_DELETE, '/databases/' . $databaseId, $sourceHeaders);
+
+        self::$cachedDatabaseData = [];
+        self::$cachedTableData = [];
+    }
+
+    /**
      * Storage
      */
     public function testAppwriteMigrationStorageBucket(): void
