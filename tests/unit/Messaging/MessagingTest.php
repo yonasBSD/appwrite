@@ -734,7 +734,7 @@ class MessagingTest extends TestCase
         $this->assertNotContains('memberships.membership_id.status', $membershipResult['channels']);
     }
 
-    public function test_from_payload_does_not_suffix_account_for_nested_user_events(): void
+    public function testFromPayloadDoesNotSuffixAccountForNestedUserEvents(): void
     {
         // Nested user events (challenges/sessions/recovery/verification) emit only
         // user-level account channels in fromPayload. The trailing action belongs to
