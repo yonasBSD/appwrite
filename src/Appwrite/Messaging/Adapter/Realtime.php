@@ -16,6 +16,15 @@ class Realtime extends MessagingAdapter
 {
     public const SUPPORTED_ACTIONS = ['create', 'update', 'upsert', 'delete'];
 
+    // Resources whose channels receive an action-suffixed sibling at publish time.
+    // The suffix loop in fromPayload() treats any channel whose last OR second-to-last
+    // segment matches an entry here as a candidate for `.{action}` suffixing.
+    //
+    // `functions` is intentionally a parent-only entry: fromPayload publishes
+    // `functions.{functionId}` (suffixed to `functions.{functionId}.{action}`) but
+    // never emits a bare `functions` channel — so subscribing to bare
+    // `functions.{action}` is a silent no-op. Per-function filters
+    // (`functions.{functionId}.{action}`) are the supported form.
     private const RESOURCE_LEAF_NAMES = [
         'documents',
         'rows',
@@ -72,11 +81,13 @@ class Realtime extends MessagingAdapter
     /**
      * Adds a subscription with a specific subscription ID.
      *
-     * @param  mixed  $identifier  Connection ID
-     * @param  string  $subscriptionId  Unique subscription ID
-     * @param  array  $roles  User roles
-     * @param  array  $channels  Channels to subscribe to (array of channel names)
-     * @param  array  $queryGroup  Array of Query objects for this subscription (AND logic within subscription)
+     * @param string $projectId
+     * @param mixed $identifier Connection ID
+     * @param string $subscriptionId Unique subscription ID
+     * @param array $roles User roles
+     * @param array $channels Channels to subscribe to (array of channel names)
+     * @param array $queryGroup Array of Query objects for this subscription (AND logic within subscription)
+     * @return void
      */
     public function subscribe(
         string $projectId,
@@ -148,7 +159,7 @@ class Realtime extends MessagingAdapter
      * Get subscription metadata for a connection.
      * Retrieves subscription data including channels and queries directly from the subscriptions tree.
      *
-     * @param  mixed  $connection  Connection ID
+     * @param mixed $connection Connection ID
      * @return array Array of [subscriptionId => ['channels' => string[], 'queries' => string[]]]
      */
     public function getSubscriptionMetadata(mixed $connection): array
@@ -193,6 +204,9 @@ class Realtime extends MessagingAdapter
 
     /**
      * Removes all subscriptions for a connection.
+     *
+     * @param mixed $connection
+     * @return void
      */
     public function unsubscribe(mixed $connection): void
     {
@@ -226,6 +240,10 @@ class Realtime extends MessagingAdapter
     /**
      * Removes a single subscription from a connection, keeping the connection alive so
      * the client can resubscribe. Idempotent — returns true only when something was removed.
+     *
+     * @param mixed $connection
+     * @param string $subscriptionId
+     * @return bool
      */
     public function unsubscribeSubscription(mixed $connection, string $subscriptionId): bool
     {
@@ -276,6 +294,9 @@ class Realtime extends MessagingAdapter
      * context (set at onOpen, replaced on `authentication` / permission-change) and must survive
      * per-subscription removal — otherwise a client that unsubscribes every subscription and then
      * resubscribes would subscribe with an empty roles array and silently receive nothing.
+     *
+     * @param mixed $connection
+     * @return void
      */
     private function recomputeConnectionState(mixed $connection): void
     {
@@ -299,6 +320,10 @@ class Realtime extends MessagingAdapter
 
     /**
      * Checks if Channel has a subscriber.
+     * @param string $projectId
+     * @param string $role
+     * @param string $channel
+     * @return bool
      */
     public function hasSubscriber(string $projectId, string $role, string $channel = ''): bool
     {
@@ -316,6 +341,13 @@ class Realtime extends MessagingAdapter
 
     /**
      * Sends an event to the Realtime Server
+     * @param string $projectId
+     * @param array $payload
+     * @param array $events
+     * @param array $channels
+     * @param array $roles
+     * @param array $options
+     * @return void
      *
      * @throws \Exception
      */
@@ -404,6 +436,11 @@ class Realtime extends MessagingAdapter
      * `account.delete`) to `account.USER_ID.{action}` so they match the channels
      * fromPayload() publishes for top-level user events, and removes all other
      * illegal account channel variations (e.g. another user's `account.{otherId}`).
+     *
+     * Also renames the account channel to account.USER_ID and removes all illegal account channel variations.
+     * @param array $channels
+     * @param string $userId
+     * @return array
      */
     public static function convertChannels(array $channels, string $userId): array
     {
@@ -495,6 +532,8 @@ class Realtime extends MessagingAdapter
     /**
      * Constructs subscriptions from query parameters.
      *
+     * @param array $channelNames
+     * @param callable $getQueryParam
      * @return array [index => ['channels' => string[], 'queries' => Query[]]]
      *
      * @throws QueryException
@@ -566,8 +605,8 @@ class Realtime extends MessagingAdapter
 
     /**
      * Converts the queries from the Query Params into an array.
-     *
-     * @param  array|string  $queries
+     * @param array|string $queries
+     * @return array
      *
      * @throws QueryException
      */
@@ -602,6 +641,13 @@ class Realtime extends MessagingAdapter
     /**
      * Create channels array based on the event name and payload.
      *
+     * @param string $event
+     * @param Document $payload
+     * @param Document|null $project
+     * @param Document|null $database
+     * @param Document|null $collection
+     * @param Document|null $bucket
+     * @return array
      * @throws \Exception
      */
     public static function fromPayload(string $event, Document $payload, ?Document $project = null, ?Document $database = null, ?Document $collection = null, ?Document $bucket = null): array
@@ -694,7 +740,7 @@ class Realtime extends MessagingAdapter
                     }
                     $channels[] = 'files';
                     $channels[] = 'buckets.' . $payload->getAttribute('bucketId') . '.files';
-                    $channels[] = 'buckets.' . $payload->getAttribute('bucketId') . '.files.'.$payload->getId();
+                    $channels[] = 'buckets.' . $payload->getAttribute('bucketId') . '.files.' . $payload->getId();
 
                     $roles = $bucket->getAttribute('fileSecurity', false)
                         ? \array_merge($bucket->getRead(), $payload->getRead())
@@ -781,12 +827,15 @@ class Realtime extends MessagingAdapter
     }
 
     /**
+     * Generate realtime channels for database events
+     *
      * @param string $type The database API type
      * @param string $databaseId The database ID
      * @param string $resourceId The collection/table ID
      * @param string $payloadId The document/row ID
      * @param string $prefixOverride Override the channel prefix when different API types share the same terminology but need different prefixes
      * (e.g., 'databases' and 'documentsdb' use same terminology but need different prefixes)
+     * @return array Array of channel names
      */
     private static function getDatabaseChannels(
         string $type = 'databases',

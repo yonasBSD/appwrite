@@ -879,6 +879,14 @@ class MessagingTest extends TestCase
         $this->assertNotContains('console.create', $result['channels']);
         $this->assertContains('projects.project_id', $result['channels']);
         $this->assertNotContains('projects.project_id.create', $result['channels']);
+
+        // The bare `functions` channel is never emitted by fromPayload (only
+        // `functions.{functionId}` is). The per-function action variant
+        // (`functions.{functionId}.create`) is the supported subscription
+        // form — bare `functions.create` would be a silent no-op and must
+        // therefore NOT appear in the published channel set either.
+        $this->assertNotContains('functions', $result['channels']);
+        $this->assertNotContains('functions.create', $result['channels']);
     }
 
     public function testFromPayloadHandlesAttributeTrailingActionEvents(): void
