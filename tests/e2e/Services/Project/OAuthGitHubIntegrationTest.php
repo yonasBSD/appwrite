@@ -80,7 +80,7 @@ class OAuthGitHubIntegrationTest extends Scope
         $this->assertNotNull($githubProvider, 'GitHub OAuth provider not found in project details');
         $this->assertTrue($githubProvider['enabled']);
         $this->assertSame($clientId, $githubProvider['appId']);
-        $this->assertSame($clientSecret, $githubProvider['secret']);
+        $this->assertSame('', $githubProvider['secret']); // Write only
 
         // Step 5: Without client headers (no API key), go through the OAuth flow
         $clientHeaders = [
