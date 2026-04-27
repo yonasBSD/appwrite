@@ -1490,14 +1490,15 @@ trait MigrationsBase
     }
 
     /**
-     * Upsert reconciles relationship `onDelete` drift through the SDK's
-     * `updateRelationshipAttribute` endpoint — the only relationship fields
-     * the SDK exposes for in-place edit are `onDelete` and `newKey`. Any
-     * structural change (`relationType`, `twoWay`, `twoWayKey`,
-     * `relatedCollection`) is a non-SDK field and must drop+recreate via
-     * `deleteRelationship`. This test exercises the in-place path: change
-     * `onDelete` cascade→restrict on source, re-migrate Upsert, assert dest
-     * reflects the new value without dropping the column.
+     * Upsert reconciles two-way relationship `onDelete` drift via the SDK's
+     * updateRelationshipAttribute (only `onDelete`/`newKey` are SDK-reachable).
+     * Two-way is required to exercise updateRelationshipInPlace — one-way +
+     * onDelete change falls through to DropAndRecreate (utopia's
+     * updateRelationship partner-cascade throws on one-way).
+     *
+     * Asserts both sides of the relationship reflect the new onDelete on dest:
+     * utopia's updateRelationship syncs the physical constraint on both sides,
+     * but the Appwrite-level partner meta doc has to be refreshed explicitly.
      */
     public function testAppwriteMigrationUpsertUpdatesRelationshipOnDeleteInPlace(): void
     {
@@ -1527,14 +1528,13 @@ trait MigrationsBase
             $this->assertEquals(201, $createTable['headers']['status-code']);
         }
 
-        // One-way relationship parents → children. One-way is sufficient to
-        // exercise updateRelationshipInPlace; two-way pair-key dedup is
-        // covered by the existing two-way coverage in MigrationDocumentsDB.
+        // Two-way: parents.kids ↔ children.parent. Required to hit the in-place path.
         $createRel = $this->client->call(Client::METHOD_POST, '/tablesdb/' . $databaseId . '/tables/parents/columns/relationship', $sourceHeaders, [
             'relatedTableId' => 'children',
             'type' => Database::RELATION_ONE_TO_MANY,
-            'twoWay' => false,
+            'twoWay' => true,
             'key' => 'kids',
+            'twoWayKey' => 'parent',
             'onDelete' => Database::RELATION_MUTATE_CASCADE,
         ]);
         $this->assertEquals(202, $createRel['headers']['status-code']);
@@ -1560,11 +1560,17 @@ trait MigrationsBase
         ]);
         $this->assertEquals('completed', $first['status']);
 
+        // Both sides land on dest with onDelete=cascade.
         $this->assertEventually(function () use ($databaseId, $destHeaders) {
-            $r = $this->client->call(Client::METHOD_GET, '/tablesdb/' . $databaseId . '/tables/parents/columns/kids', $destHeaders);
-            $this->assertEquals(200, $r['headers']['status-code']);
-            $this->assertEquals('available', $r['body']['status']);
-            $this->assertEquals(Database::RELATION_MUTATE_CASCADE, $r['body']['onDelete']);
+            $parent = $this->client->call(Client::METHOD_GET, '/tablesdb/' . $databaseId . '/tables/parents/columns/kids', $destHeaders);
+            $this->assertEquals(200, $parent['headers']['status-code']);
+            $this->assertEquals('available', $parent['body']['status']);
+            $this->assertEquals(Database::RELATION_MUTATE_CASCADE, $parent['body']['onDelete']);
+
+            $child = $this->client->call(Client::METHOD_GET, '/tablesdb/' . $databaseId . '/tables/children/columns/parent', $destHeaders);
+            $this->assertEquals(200, $child['headers']['status-code']);
+            $this->assertEquals('available', $child['body']['status']);
+            $this->assertEquals(Database::RELATION_MUTATE_CASCADE, $child['body']['onDelete']);
         }, 10000, 500);
 
         sleep(1);
@@ -1591,13 +1597,21 @@ trait MigrationsBase
         ]);
         $this->assertEquals('completed', $upsertResult['status']);
 
+        // Both sides on dest must reflect onDelete=restrict. Asserting the
+        // partner side is the regression guard for the previously-missed
+        // partner meta refresh in updateRelationshipInPlace.
         $this->assertEventually(function () use ($databaseId, $destHeaders) {
-            $r = $this->client->call(Client::METHOD_GET, '/tablesdb/' . $databaseId . '/tables/parents/columns/kids', $destHeaders);
-            $this->assertEquals(200, $r['headers']['status-code']);
-            $this->assertEquals('available', $r['body']['status']);
-            $this->assertEquals(Database::RELATION_MUTATE_RESTRICT, $r['body']['onDelete'], 'updateRelationshipInPlace must propagate source onDelete');
-            $this->assertEquals(Database::RELATION_ONE_TO_MANY, $r['body']['relationType'], 'In-place update must not change relationType');
-            $this->assertFalse($r['body']['twoWay'], 'In-place update must not change twoWay');
+            $parent = $this->client->call(Client::METHOD_GET, '/tablesdb/' . $databaseId . '/tables/parents/columns/kids', $destHeaders);
+            $this->assertEquals(200, $parent['headers']['status-code']);
+            $this->assertEquals('available', $parent['body']['status']);
+            $this->assertEquals(Database::RELATION_MUTATE_RESTRICT, $parent['body']['onDelete'], 'parent-side onDelete must reflect source');
+            $this->assertEquals(Database::RELATION_ONE_TO_MANY, $parent['body']['relationType'], 'In-place update must not change relationType');
+            $this->assertTrue($parent['body']['twoWay'], 'In-place update must not change twoWay');
+
+            $child = $this->client->call(Client::METHOD_GET, '/tablesdb/' . $databaseId . '/tables/children/columns/parent', $destHeaders);
+            $this->assertEquals(200, $child['headers']['status-code']);
+            $this->assertEquals('available', $child['body']['status']);
+            $this->assertEquals(Database::RELATION_MUTATE_RESTRICT, $child['body']['onDelete'], 'partner-side onDelete must reflect source after in-place update');
         }, 10000, 500);
 
         $this->client->call(Client::METHOD_DELETE, '/databases/' . $databaseId, $destHeaders);
