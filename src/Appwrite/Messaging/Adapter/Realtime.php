@@ -696,7 +696,7 @@ class Realtime extends MessagingAdapter
         // at parts[2] (`users.U.create`, `users.U.update.email`, etc.).
         if (
             $action !== null
-            && ($parts[0] ?? null) === 'users'
+            && $parts[0] === 'users'
             && ($parts[2] ?? null) !== $action
         ) {
             $action = null;
