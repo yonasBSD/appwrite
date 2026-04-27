@@ -105,6 +105,13 @@ class Realtime extends MessagingAdapter
         // recognised suffix get action '*' (no filter). When the same base channel
         // appears with multiple actions in this call (e.g. `documents.create` and
         // `documents.update`), the actions are merged onto a single tree entry.
+        //
+        // We keep '*' alongside specific actions when both are subscribed to (e.g.
+        // `[documents, documents.create]`). matchesActions short-circuits on '*' so
+        // event delivery is unchanged, but getSubscriptionMetadata can faithfully
+        // round-trip both channel names through re-auth / permissions-changed flows
+        // — otherwise the `.create` would be dropped and the resubscribed entry
+        // would silently broaden its semantics on the next refresh.
         $actionsByBase = [];
         $baseChannels = [];
         foreach ($channels as $channel) {
@@ -116,10 +123,7 @@ class Realtime extends MessagingAdapter
                 $actionsByBase[$base] = [$action];
                 continue;
             }
-            // '*' subsumes any specific action — once present, drop the rest.
-            if (\in_array(self::ACTION_ALL, $actionsByBase[$base], true) || $action === self::ACTION_ALL) {
-                $actionsByBase[$base] = [self::ACTION_ALL];
-            } elseif (!\in_array($action, $actionsByBase[$base], true)) {
+            if (!\in_array($action, $actionsByBase[$base], true)) {
                 $actionsByBase[$base][] = $action;
             }
         }
@@ -355,6 +359,13 @@ class Realtime extends MessagingAdapter
 
     /**
      * Checks if Channel has a subscriber.
+     *
+     * Action-channel aware: if `$channel` carries a recognised action suffix
+     * (e.g. `documents.create`), the lookup is performed against the *base*
+     * channel in the tree and additionally requires at least one subscription
+     * whose `actions` list includes that action (or `'*'`, which subsumes it).
+     * Plain channel names are matched as before.
+     *
      * @param string $projectId
      * @param string $role
      * @param string $channel
@@ -368,10 +379,34 @@ class Realtime extends MessagingAdapter
                 && array_key_exists($role, $this->subscriptions[$projectId]);
         }
 
-        return array_key_exists($projectId, $this->subscriptions)
-            && array_key_exists($role, $this->subscriptions[$projectId])
-            && array_key_exists($channel, $this->subscriptions[$projectId][$role])
-            && !empty($this->subscriptions[$projectId][$role][$channel]);
+        [$base, $action] = self::parseActionChannel($channel);
+
+        if (
+            !array_key_exists($projectId, $this->subscriptions)
+            || !array_key_exists($role, $this->subscriptions[$projectId])
+            || !array_key_exists($base, $this->subscriptions[$projectId][$role])
+            || empty($this->subscriptions[$projectId][$role][$base])
+        ) {
+            return false;
+        }
+
+        // Plain channel — any subscription on the base counts.
+        if ($action === self::ACTION_ALL) {
+            return true;
+        }
+
+        // Action-specific channel — require a subscription whose actions list
+        // includes the action (or '*').
+        foreach ($this->subscriptions[$projectId][$role][$base] as $byConnection) {
+            foreach ($byConnection as $data) {
+                $actions = $data['actions'] ?? [self::ACTION_ALL];
+                if (\in_array(self::ACTION_ALL, $actions, true) || \in_array($action, $actions, true)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     /**

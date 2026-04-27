@@ -518,6 +518,56 @@ class MessagingTest extends TestCase
         $this->assertContains(Role::team('123abc')->toString(), $result['roles']);
     }
 
+    public function testHasSubscriberIsActionChannelAware(): void
+    {
+        $realtime = new Realtime();
+
+        $realtime->subscribe(
+            '1',
+            1,
+            'sub-create',
+            [Role::any()->toString()],
+            ['documents.create'],
+        );
+
+        // Plain base lookup hits the subscription.
+        $this->assertTrue($realtime->hasSubscriber('1', Role::any()->toString(), 'documents'));
+
+        // Action-channel lookup matches when the action is in the stored list.
+        $this->assertTrue($realtime->hasSubscriber('1', Role::any()->toString(), 'documents.create'));
+
+        // Action-channel lookup misses when the action is not stored — even though
+        // the base channel exists.
+        $this->assertFalse($realtime->hasSubscriber('1', Role::any()->toString(), 'documents.update'));
+
+        // Unknown project / role still resolves to false.
+        $this->assertFalse($realtime->hasSubscriber('nope', Role::any()->toString(), 'documents.create'));
+        $this->assertFalse($realtime->hasSubscriber('1', 'role:other', 'documents.create'));
+
+        // No-channel form still works.
+        $this->assertTrue($realtime->hasSubscriber('1', Role::any()->toString()));
+    }
+
+    public function testHasSubscriberWildcardActionsSubsumeSpecific(): void
+    {
+        $realtime = new Realtime();
+
+        // Subscribing to plain `documents` stores actions = ['*']. Any action-channel
+        // lookup against the same base must succeed because '*' subsumes specific actions.
+        $realtime->subscribe(
+            '1',
+            1,
+            'sub-all',
+            [Role::any()->toString()],
+            ['documents'],
+        );
+
+        $this->assertTrue($realtime->hasSubscriber('1', Role::any()->toString(), 'documents'));
+        $this->assertTrue($realtime->hasSubscriber('1', Role::any()->toString(), 'documents.create'));
+        $this->assertTrue($realtime->hasSubscriber('1', Role::any()->toString(), 'documents.update'));
+        $this->assertTrue($realtime->hasSubscriber('1', Role::any()->toString(), 'documents.delete'));
+    }
+
     public function testParseActionChannel(): void
     {
         $this->assertSame(['documents', 'create'], Realtime::parseActionChannel('documents.create'));
@@ -780,6 +830,54 @@ class MessagingTest extends TestCase
         $this->assertContains('files', $meta['sub-create']['channels']);
         // Base form should NOT leak when an action was set.
         $this->assertNotContains('documents', $meta['sub-create']['channels']);
+    }
+
+    public function testActionAndBaseChannelTogetherRoundTripsLosslessly(): void
+    {
+        $realtime = new Realtime();
+
+        // Subscribing with both a specific-action channel AND its plain base form must
+        // preserve both names: '*' short-circuits delivery (so update events still
+        // come through), but the metadata kept for re-auth/permissions-changed flows
+        // would otherwise drop `documents.create` entirely on the next refresh.
+        $realtime->subscribe(
+            '1',
+            1,
+            'sub-mixed',
+            [Role::any()->toString()],
+            ['documents.create', 'documents'],
+        );
+
+        $meta = $realtime->getSubscriptionMetadata(1);
+        $this->assertContains('documents.create', $meta['sub-mixed']['channels']);
+        $this->assertContains('documents', $meta['sub-mixed']['channels']);
+
+        // Update events still deliver because '*' is in the actions list.
+        $updateEvent = [
+            'project' => '1',
+            'roles' => [Role::any()->toString()],
+            'data' => [
+                'channels' => ['documents'],
+                'events' => ['databases.db.collections.col.documents.doc.update'],
+                'payload' => [],
+            ],
+        ];
+        $this->assertArrayHasKey(1, $realtime->getSubscribers($updateEvent));
+
+        // Round-trip: feed the metadata back through subscribe() and the original
+        // pair of channel names must come out again.
+        $realtime->unsubscribe(1);
+        $realtime->subscribe(
+            '1',
+            1,
+            'sub-mixed',
+            [Role::any()->toString()],
+            $meta['sub-mixed']['channels'],
+        );
+
+        $metaAgain = $realtime->getSubscriptionMetadata(1);
+        $this->assertContains('documents.create', $metaAgain['sub-mixed']['channels']);
+        $this->assertContains('documents', $metaAgain['sub-mixed']['channels']);
     }
 
     public function testMergingMultipleActionsOnSameBaseChannel(): void
