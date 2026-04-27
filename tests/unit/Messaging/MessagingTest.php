@@ -396,6 +396,248 @@ class MessagingTest extends TestCase
         $this->assertArrayNotHasKey('account.456', $channels);
     }
 
+    public function testConvertChannelsRewritesAccountActionSuffixes(): void
+    {
+        // Authenticated subscriber to `account.{action}` is translated to the
+        // user-scoped `account.{userId}.{action}` form so events from other
+        // users' accounts don't leak through the literal channel.
+        $channels = Realtime::convertChannels(
+            ['account.create', 'account.update', 'account.upsert', 'account.delete'],
+            '123',
+        );
+
+        $this->assertArrayHasKey('account.123.create', $channels);
+        $this->assertArrayHasKey('account.123.update', $channels);
+        $this->assertArrayHasKey('account.123.upsert', $channels);
+        $this->assertArrayHasKey('account.123.delete', $channels);
+        $this->assertArrayNotHasKey('account.create', $channels);
+        $this->assertArrayNotHasKey('account.update', $channels);
+        $this->assertArrayNotHasKey('account.upsert', $channels);
+        $this->assertArrayNotHasKey('account.delete', $channels);
+
+        // Other-user channels and unknown action-like suffixes still get stripped.
+        $channels = Realtime::convertChannels(
+            ['account.other_id', 'account.bogus', 'account.123', 'account.create'],
+            '123',
+        );
+        $this->assertArrayNotHasKey('account.other_id', $channels);
+        $this->assertArrayNotHasKey('account.bogus', $channels);
+        $this->assertArrayNotHasKey('account.123', $channels);
+        $this->assertArrayHasKey('account.123.create', $channels);
+    }
+
+    public function testConvertChannelsPreservesAccountActionsForGuest(): void
+    {
+        // Guests can't scope an action filter to a userId yet, so `account.{action}`
+        // is preserved verbatim. fromPayload publishes the unscoped `account.{action}`
+        // channel for top-level user events, so the guest's stored form matches and
+        // delivers correctly. After the connection authenticates,
+        // rebindAccountChannels rewrites the literal to `account.{userId}.{action}`
+        // so the action filter survives the auth transition.
+        $channels = Realtime::convertChannels(
+            ['account.create', 'account.update', 'account.upsert', 'account.delete', 'account'],
+            '',
+        );
+
+        $this->assertArrayHasKey('account.create', $channels);
+        $this->assertArrayHasKey('account.update', $channels);
+        $this->assertArrayHasKey('account.upsert', $channels);
+        $this->assertArrayHasKey('account.delete', $channels);
+        $this->assertArrayHasKey('account', $channels);
+    }
+
+    public function testRebindAccountChannelsRemapsAfterReauth(): void
+    {
+        // Reauth as a different user must remap the user-scoped channels so the
+        // connection no longer receives the previous user's account events.
+        $rebound = Realtime::rebindAccountChannels(
+            ['account.A', 'account.A.create', 'account.A.update', 'documents', 'documents.A.something'],
+            'A',
+            'B',
+        );
+
+        $this->assertContains('account.B', $rebound);
+        $this->assertContains('account.B.create', $rebound);
+        $this->assertContains('account.B.update', $rebound);
+        $this->assertNotContains('account.A', $rebound);
+        $this->assertNotContains('account.A.create', $rebound);
+        $this->assertNotContains('account.A.update', $rebound);
+
+        // Non-account channels left alone — the rewrite is precise.
+        $this->assertContains('documents', $rebound);
+        $this->assertContains('documents.A.something', $rebound);
+    }
+
+    public function testRebindAccountChannelsIsNoopForUnchangedUser(): void
+    {
+        // Same user → nothing to rewrite. Avoids unnecessary churn when the
+        // permissionsChanged path fires (roles change, userId is constant).
+        $channels = ['account.A', 'account.A.create', 'documents'];
+        $this->assertSame($channels, Realtime::rebindAccountChannels($channels, 'A', 'A'));
+    }
+
+    public function testRebindAccountChannelsIsNoopForEmptyTarget(): void
+    {
+        // Defensive: if a caller ever passes an empty $newUserId (e.g. a
+        // hypothetical in-band logout), we leave channels untouched rather than
+        // producing malformed `account.` strings.
+        $channels = ['account.A', 'account.A.create', 'account.create', 'documents'];
+        $this->assertSame($channels, Realtime::rebindAccountChannels($channels, 'A', ''));
+        $this->assertSame($channels, Realtime::rebindAccountChannels($channels, '', ''));
+    }
+
+    public function testRebindAccountChannelsPromotesGuestActionFilters(): void
+    {
+        // Guest connections store `account.{action}` literally (convertChannels
+        // preserves the form when userId is empty). On in-band authentication,
+        // rebindAccountChannels promotes those literals to user-scoped form so
+        // the action filter survives.
+        $rebound = Realtime::rebindAccountChannels(
+            ['account', 'account.create', 'account.update', 'documents'],
+            '',
+            'B',
+        );
+
+        $this->assertContains('account.B.create', $rebound);
+        $this->assertContains('account.B.update', $rebound);
+        $this->assertNotContains('account.create', $rebound);
+        $this->assertNotContains('account.update', $rebound);
+
+        // Plain `account` and unrelated channels are left alone.
+        $this->assertContains('account', $rebound);
+        $this->assertContains('documents', $rebound);
+    }
+
+    public function testRebindAccountChannelsOnlyRemapsKnownActions(): void
+    {
+        // Defensive: only suffixes in SUPPORTED_ACTIONS are rewritten, so a
+        // channel like `account.A.bogus` stays intact rather than being
+        // silently rebound.
+        $rebound = Realtime::rebindAccountChannels(
+            ['account.A.bogus', 'account.A.create'],
+            'A',
+            'B',
+        );
+
+        $this->assertContains('account.A.bogus', $rebound);
+        $this->assertContains('account.B.create', $rebound);
+        $this->assertNotContains('account.B.bogus', $rebound);
+        $this->assertNotContains('account.A.create', $rebound);
+    }
+
+    public function testReauthThenPermissionsChangeThenReauthPreservesAccountAction(): void
+    {
+        // Full lifecycle, mirrors the auth + permissionsChanged handler logic in
+        // app/realtime.php:
+        //   1. user A subscribes to account.create (stored as account.A.create)
+        //   2. in-band reauth as B → rebound to account.B.create, userId=B
+        //   3. permissions-change for B → userId on connection MUST stay 'B'
+        //      so a subsequent reauth as C still has previousUserId='B'.
+        //   4. reauth as C → rebound to account.C.create, userId=C
+        $realtime = new Realtime();
+
+        // Step 1.
+        $aChannels = \array_keys(Realtime::convertChannels(['account.create'], 'A'));
+        $this->assertSame(['account.A.create'], $aChannels);
+        $realtime->subscribe('1', 1, 'sub-1', [Role::user(ID::custom('A'))->toString()], $aChannels, [], 'A');
+        $this->assertSame('A', $realtime->connections[1]['userId']);
+
+        // Step 2: A → B.
+        $previousUserId = $realtime->connections[1]['userId'];
+        $meta = $realtime->getSubscriptionMetadata(1);
+        $realtime->unsubscribe(1);
+        foreach ($meta as $subId => $sub) {
+            $rebound = Realtime::rebindAccountChannels($sub['channels'], $previousUserId, 'B');
+            $realtime->subscribe('1', 1, $subId, [Role::user(ID::custom('B'))->toString()], $rebound, [], 'B');
+        }
+        $this->assertSame('B', $realtime->connections[1]['userId']);
+        $this->assertContains('account.B.create', $realtime->connections[1]['channels']);
+
+        // Step 3: permissions-change for B (userId stays 'B').
+        $previousUserId = $realtime->connections[1]['userId'];
+        $meta = $realtime->getSubscriptionMetadata(1);
+        $realtime->unsubscribe(1);
+        foreach ($meta as $subId => $sub) {
+            $rebound = Realtime::rebindAccountChannels($sub['channels'], $previousUserId, 'B');
+            $realtime->subscribe('1', 1, $subId, [Role::user(ID::custom('B'))->toString()], $rebound, [], 'B');
+        }
+        $this->assertSame('B', $realtime->connections[1]['userId']);
+        $this->assertContains('account.B.create', $realtime->connections[1]['channels']);
+
+        // Step 4: B → C.
+        $previousUserId = $realtime->connections[1]['userId'];
+        $meta = $realtime->getSubscriptionMetadata(1);
+        $realtime->unsubscribe(1);
+        foreach ($meta as $subId => $sub) {
+            $rebound = Realtime::rebindAccountChannels($sub['channels'], $previousUserId, 'C');
+            $realtime->subscribe('1', 1, $subId, [Role::user(ID::custom('C'))->toString()], $rebound, [], 'C');
+        }
+        $this->assertSame('C', $realtime->connections[1]['userId']);
+        $this->assertContains('account.C.create', $realtime->connections[1]['channels']);
+        $this->assertNotContains('account.B.create', $realtime->connections[1]['channels']);
+        $this->assertNotContains('account.A.create', $realtime->connections[1]['channels']);
+    }
+
+    public function testGuestAccountActionFilterSurvivesAuthenticationEndToEnd(): void
+    {
+        // Full lifecycle:
+        //   1. Guest connects, subscribes to `account.create`.
+        //   2. fromPayload publishes a top-level `users.B.create` event — guest
+        //      receives it via the unscoped `account.create` broadcast channel.
+        //   3. Guest authenticates as B. Resubscribe goes through
+        //      rebindAccountChannels so the same subscription is now scoped to
+        //      `account.B.create` and only matches B's events.
+        $realtime = new Realtime();
+
+        // Step 1: guest subscribes. convertChannels preserves the literal form.
+        $guestChannels = \array_keys(Realtime::convertChannels(['account.create'], ''));
+        $this->assertSame(['account.create'], $guestChannels);
+        $realtime->subscribe('1', 1, 'sub-1', [Role::guests()->toString()], $guestChannels, [], '');
+
+        // Step 2: fromPayload publishes account.create alongside the user-scoped form.
+        $publish = Realtime::fromPayload(
+            event: 'users.B.create',
+            payload: new Document(['$id' => ID::custom('B')]),
+        );
+        $this->assertContains('account.create', $publish['channels']);
+        $this->assertContains('account.B.create', $publish['channels']);
+
+        // Guest receives the unscoped channel.
+        $event = [
+            'project' => '1',
+            'roles' => [Role::guests()->toString()],
+            'data' => [
+                'channels' => $publish['channels'],
+                'payload' => ['$id' => 'B'],
+            ],
+        ];
+        $this->assertArrayHasKey(1, $realtime->getSubscribers($event));
+
+        // Step 3: in-band auth promotes the guest to user 'B'.
+        $previousUserId = $realtime->connections[1]['userId'] ?? '';
+        $meta = $realtime->getSubscriptionMetadata(1);
+        $realtime->unsubscribe(1);
+        foreach ($meta as $subId => $sub) {
+            $rebound = Realtime::rebindAccountChannels($sub['channels'], $previousUserId, 'B');
+            $realtime->subscribe('1', 1, $subId, [Role::user(ID::custom('B'))->toString()], $rebound, [], 'B');
+        }
+
+        // Literal channel is gone; user-scoped form is in place.
+        $this->assertNotContains('account.create', $realtime->connections[1]['channels']);
+        $this->assertContains('account.B.create', $realtime->connections[1]['channels']);
+
+        // B-scoped event delivers via the user-scoped channel.
+        $bEvent = [
+            'project' => '1',
+            'roles' => [Role::user(ID::custom('B'))->toString()],
+            'data' => [
+                'channels' => $publish['channels'],
+                'payload' => ['$id' => 'B'],
+            ],
+        ];
+        $this->assertArrayHasKey(1, $realtime->getSubscribers($bEvent));
+    }
+
     public function testFromPayloadPermissions(): void
     {
         /**

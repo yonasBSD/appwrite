@@ -418,11 +418,14 @@ class Realtime extends MessagingAdapter
                     break;
 
                 case \in_array(\substr($key, \strlen('account.')), self::SUPPORTED_ACTIONS, true) && str_starts_with($key, 'account.'):
-                    // Translate `account.{action}` into the user-scoped `account.{userId}.{action}`
-                    // so a subscriber only receives their own account events. Without the rewrite
-                    // the literal `account.{action}` channel would match every user's events.
-                    unset($channels[$key]);
+                    // Authenticated: rewrite `account.{action}` → `account.{userId}.{action}`
+                    // so the subscriber only receives their own account events.
+                    // Guest: keep the literal `account.{action}` so the action filter
+                    // applies to the broadcast `account.{action}` channel that fromPayload
+                    // emits for top-level user events. On in-band auth, rebindAccountChannels
+                    // rewrites the literal to the user-scoped form.
                     if (!empty($userId)) {
+                        unset($channels[$key]);
                         $action = \substr($key, \strlen('account.'));
                         $channels['account.'.$userId.'.'.$action] = $value;
                     }
@@ -438,32 +441,46 @@ class Realtime extends MessagingAdapter
     }
 
     /**
-     * Rewrites stored account channels (`account.{oldUserId}` and
-     * `account.{oldUserId}.{action}`) to match a new userId. Used when in-band
-     * authentication changes the connection's user identity (typically
-     * guest → authenticated user, or rare reauth as a different user) — without
-     * this, channels stay bound to the old userId and the connection silently
-     * receives the previous user's account events.
+     * Rewrites stored account channels to match a new userId. Used when in-band
+     * authentication changes the connection's user identity:
      *
-     * Returns channels unchanged when the user identity has not changed
-     * (oldUserId === newUserId) or when the connection had no userId previously
-     * (guest connections never store userId-suffixed channels because
-     * convertChannels strips the suffix when userId is empty).
+     *   - guest → authenticated: rewrites the literal `account.{action}` form
+     *     that convertChannels preserves for guests into `account.{userId}.{action}`.
+     *   - reauth as a different user: rewrites `account.{oldUserId}` and
+     *     `account.{oldUserId}.{action}` to the new userId.
+     *
+     * Returns channels unchanged when there's nothing to do — same user, or an
+     * empty target (defensive: avoids producing malformed `account.` strings if
+     * a caller ever passes `$newUserId = ''`, e.g. an in-band logout flow).
      */
     public static function rebindAccountChannels(array $channels, string $oldUserId, string $newUserId): array
     {
-        if ($oldUserId === '' || $oldUserId === $newUserId) {
+        if ($newUserId === '' || $oldUserId === $newUserId) {
             return $channels;
         }
 
-        $oldExact = 'account.'.$oldUserId;
-        $oldPrefix = $oldExact.'.';
+        return \array_map(function (string $channel) use ($oldUserId, $newUserId) {
+            if (!\str_starts_with($channel, 'account.')) {
+                return $channel;
+            }
 
-        return \array_map(function (string $channel) use ($oldExact, $oldPrefix, $newUserId) {
-            if ($channel === $oldExact) {
+            // Guest origin: literal `account.{action}` (preserved by convertChannels
+            // for unauthenticated connections) becomes `account.{newUserId}.{action}`.
+            if ($oldUserId === '') {
+                $suffix = \substr($channel, \strlen('account.'));
+                if (\in_array($suffix, self::SUPPORTED_ACTIONS, true)) {
+                    return 'account.'.$newUserId.'.'.$suffix;
+                }
+
+                return $channel;
+            }
+
+            // Authenticated → different user.
+            if ($channel === 'account.'.$oldUserId) {
                 return 'account.'.$newUserId;
             }
 
+            $oldPrefix = 'account.'.$oldUserId.'.';
             if (\str_starts_with($channel, $oldPrefix)) {
                 $action = \substr($channel, \strlen($oldPrefix));
                 if (\in_array($action, self::SUPPORTED_ACTIONS, true)) {
