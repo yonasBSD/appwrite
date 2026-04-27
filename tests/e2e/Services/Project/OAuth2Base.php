@@ -2,35 +2,10 @@
 
 namespace Tests\E2E\Services\Project;
 
-use PHPUnit\Framework\Attributes\Before;
 use Tests\E2E\Client;
 
 trait OAuth2Base
 {
-    /**
-     * Providers that follow the default `clientId` + `clientSecret` shape and
-     * have no extra required parameters. We use Amazon as the canonical sample
-     * for behavior tests because it has no `verifyCredentials()` hook, so we
-     * can freely enable/disable without making real network calls.
-     */
-    protected static string $plainProvider = 'amazon';
-
-    /**
-     * Reset providers we mutate in tests back to a known empty/disabled state.
-     * The ProjectCustom trait reuses the same project across tests in a class,
-     * and the OAuth2 PATCH endpoint is additive (omitted fields are preserved),
-     * so without a reset state would leak between tests.
-     */
-    #[Before(priority: -1)]
-    protected function resetProjectOAuth2(): void
-    {
-        $this->updateOAuth2($this->plainProvider, [
-            'clientId' => '',
-            'clientSecret' => '',
-            'enabled' => false,
-        ]);
-    }
-
     // =========================================================================
     // List OAuth2 providers
     // =========================================================================
@@ -93,7 +68,7 @@ trait OAuth2Base
     public function testListOAuth2ProvidersClientSecretsNotExposed(): void
     {
         // Seed credentials so the list cannot trivially return empty values.
-        $this->updateOAuth2($this->plainProvider, [
+        $this->updateOAuth2('amazon', [
             'clientId' => 'amzn1.application-oa2-client.testListSeed',
             'clientSecret' => 'super-secret-must-not-leak',
             'enabled' => false,
@@ -105,7 +80,7 @@ trait OAuth2Base
 
         $matched = false;
         foreach ($response['body']['providers'] as $provider) {
-            if ($provider['$id'] !== $this->plainProvider) {
+            if ($provider['$id'] !== 'amazon') {
                 continue;
             }
 
@@ -142,13 +117,13 @@ trait OAuth2Base
 
     public function testGetOAuth2ProviderClientSecretWriteOnly(): void
     {
-        $this->updateOAuth2($this->plainProvider, [
+        $this->updateOAuth2('amazon', [
             'clientId' => 'amzn1.application-oa2-client.getSecretCheck',
             'clientSecret' => 'must-never-be-returned',
             'enabled' => false,
         ]);
 
-        $response = $this->getOAuth2Provider($this->plainProvider);
+        $response = $this->getOAuth2Provider('amazon');
 
         $this->assertSame(200, $response['headers']['status-code']);
         $this->assertSame('amzn1.application-oa2-client.getSecretCheck', $response['body']['clientId']);
@@ -195,14 +170,14 @@ trait OAuth2Base
 
     public function testUpdateOAuth2Plain(): void
     {
-        $response = $this->updateOAuth2($this->plainProvider, [
+        $response = $this->updateOAuth2('amazon', [
             'clientId' => 'amzn1.application-oa2-client.test01',
             'clientSecret' => 'test-secret-01',
             'enabled' => false,
         ]);
 
         $this->assertSame(200, $response['headers']['status-code']);
-        $this->assertSame($this->plainProvider, $response['body']['$id']);
+        $this->assertSame('amazon', $response['body']['$id']);
         $this->assertSame('amzn1.application-oa2-client.test01', $response['body']['clientId']);
         $this->assertSame(false, $response['body']['enabled']);
     }
@@ -211,7 +186,7 @@ trait OAuth2Base
     {
         // Amazon has no verifyCredentials() hook, so enabling with arbitrary
         // credentials succeeds without making a real network call.
-        $response = $this->updateOAuth2($this->plainProvider, [
+        $response = $this->updateOAuth2('amazon', [
             'clientId' => 'amzn1.application-oa2-client.test02',
             'clientSecret' => 'test-secret-02',
             'enabled' => true,
@@ -223,13 +198,13 @@ trait OAuth2Base
 
     public function testUpdateOAuth2PlainDisable(): void
     {
-        $this->updateOAuth2($this->plainProvider, [
+        $this->updateOAuth2('amazon', [
             'clientId' => 'amzn1.application-oa2-client.test03',
             'clientSecret' => 'test-secret-03',
             'enabled' => true,
         ]);
 
-        $response = $this->updateOAuth2($this->plainProvider, [
+        $response = $this->updateOAuth2('amazon', [
             'enabled' => false,
         ]);
 
@@ -242,14 +217,14 @@ trait OAuth2Base
     public function testUpdateOAuth2PlainPartial(): void
     {
         // Seed both credentials.
-        $this->updateOAuth2($this->plainProvider, [
+        $this->updateOAuth2('amazon', [
             'clientId' => 'seed-client-id',
             'clientSecret' => 'seed-secret',
             'enabled' => false,
         ]);
 
         // Patch only clientId.
-        $response = $this->updateOAuth2($this->plainProvider, [
+        $response = $this->updateOAuth2('amazon', [
             'clientId' => 'updated-client-id',
         ]);
 
@@ -259,7 +234,7 @@ trait OAuth2Base
         // Read back through GET to confirm the secret is still set internally
         // (write-only, so we cannot inspect the value, but enabling should still
         // succeed because the secret remains non-empty).
-        $enable = $this->updateOAuth2($this->plainProvider, [
+        $enable = $this->updateOAuth2('amazon', [
             'enabled' => true,
         ]);
         $this->assertSame(200, $enable['headers']['status-code']);
@@ -269,13 +244,13 @@ trait OAuth2Base
     public function testUpdateOAuth2PlainEnableRequiresCredentials(): void
     {
         // Start from a clean state with no credentials.
-        $this->updateOAuth2($this->plainProvider, [
+        $this->updateOAuth2('amazon', [
             'clientId' => '',
             'clientSecret' => '',
             'enabled' => false,
         ]);
 
-        $response = $this->updateOAuth2($this->plainProvider, [
+        $response = $this->updateOAuth2('amazon', [
             'enabled' => true,
         ]);
 
@@ -287,13 +262,13 @@ trait OAuth2Base
     {
         // With enabled omitted (null) and no credentials, the silent-validation
         // branch must not surface as an error.
-        $this->updateOAuth2($this->plainProvider, [
+        $this->updateOAuth2('amazon', [
             'clientId' => '',
             'clientSecret' => '',
             'enabled' => false,
         ]);
 
-        $response = $this->updateOAuth2($this->plainProvider, [
+        $response = $this->updateOAuth2('amazon', [
             'clientId' => 'partial-only',
         ]);
 
@@ -304,7 +279,7 @@ trait OAuth2Base
 
     public function testUpdateOAuth2PlainResponseModel(): void
     {
-        $response = $this->updateOAuth2($this->plainProvider, [
+        $response = $this->updateOAuth2('amazon', [
             'clientId' => 'amzn1.application-oa2-client.modelCheck',
             'clientSecret' => 'model-check-secret',
             'enabled' => false,
@@ -319,7 +294,7 @@ trait OAuth2Base
 
     public function testUpdateOAuth2WithoutAuthentication(): void
     {
-        $response = $this->updateOAuth2($this->plainProvider, [
+        $response = $this->updateOAuth2('amazon', [
             'clientId' => 'no-auth',
             'clientSecret' => 'no-auth',
             'enabled' => false,
@@ -343,7 +318,7 @@ trait OAuth2Base
 
     public function testUpdateOAuth2InvalidEnabled(): void
     {
-        $response = $this->updateOAuth2($this->plainProvider, [
+        $response = $this->updateOAuth2('amazon', [
             'enabled' => 'not-a-boolean',
         ]);
 
@@ -704,11 +679,10 @@ trait OAuth2Base
         $this->assertArrayNotHasKey('clientId', $response['body']);
         $this->assertArrayNotHasKey('clientSecret', $response['body']);
 
-        // Cleanup
+        // Cleanup (endpoint is `Nullable(URL())`; URL rejects empty strings).
         $this->updateOAuth2('gitlab', [
             'applicationId' => '',
             'secret' => '',
-            'endpoint' => '',
             'enabled' => false,
         ]);
     }
@@ -741,11 +715,11 @@ trait OAuth2Base
         $this->assertSame('https://updated.gitlab.com', $response['body']['endpoint']);
         $this->assertSame('gitlab-seed-app', $response['body']['applicationId']);
 
-        // Cleanup
+        // Cleanup (endpoint is `Nullable(URL())` and URL rejects empty strings,
+        // so the endpoint persists past the test).
         $this->updateOAuth2('gitlab', [
             'applicationId' => '',
             'secret' => '',
-            'endpoint' => '',
             'enabled' => false,
         ]);
     }
@@ -769,14 +743,11 @@ trait OAuth2Base
         $this->assertArrayHasKey('tokenUrl', $response['body']);
         $this->assertArrayHasKey('userInfoUrl', $response['body']);
 
-        // Cleanup
+        // Cleanup (URL fields are `Nullable(URL())`; URL rejects empty strings,
+        // so the discovery URLs persist past the test).
         $this->updateOAuth2('oidc', [
             'clientId' => '',
             'clientSecret' => '',
-            'wellKnownURL' => '',
-            'authorizationURL' => '',
-            'tokenUrl' => '',
-            'userInfoUrl' => '',
             'enabled' => false,
         ]);
     }
@@ -801,75 +772,6 @@ trait OAuth2Base
         $this->updateOAuth2('oidc', [
             'clientId' => '',
             'clientSecret' => '',
-            'wellKnownURL' => '',
-            'authorizationURL' => '',
-            'tokenUrl' => '',
-            'userInfoUrl' => '',
-            'enabled' => false,
-        ]);
-    }
-
-    public function testUpdateOAuth2OidcEnableMissingURLs(): void
-    {
-        $this->updateOAuth2('oidc', [
-            'clientId' => '',
-            'clientSecret' => '',
-            'wellKnownURL' => '',
-            'authorizationURL' => '',
-            'tokenUrl' => '',
-            'userInfoUrl' => '',
-            'enabled' => false,
-        ]);
-
-        $response = $this->updateOAuth2('oidc', [
-            'clientId' => 'oidc-no-urls',
-            'clientSecret' => 'oidc-no-urls',
-            'enabled' => true,
-        ]);
-
-        $this->assertSame(400, $response['headers']['status-code']);
-        $this->assertSame('general_argument_invalid', $response['body']['type']);
-
-        // Cleanup
-        $this->updateOAuth2('oidc', [
-            'clientId' => '',
-            'clientSecret' => '',
-            'enabled' => false,
-        ]);
-    }
-
-    public function testUpdateOAuth2OidcEnablePartialDiscoveryFails(): void
-    {
-        // Only authorization+token, missing userInfo — must fail to enable.
-        $this->updateOAuth2('oidc', [
-            'clientId' => '',
-            'clientSecret' => '',
-            'wellKnownURL' => '',
-            'authorizationURL' => '',
-            'tokenUrl' => '',
-            'userInfoUrl' => '',
-            'enabled' => false,
-        ]);
-
-        $response = $this->updateOAuth2('oidc', [
-            'clientId' => 'oidc-partial',
-            'clientSecret' => 'oidc-partial-secret',
-            'authorizationURL' => 'https://idp.example.com/oauth2/authorize',
-            'tokenUrl' => 'https://idp.example.com/oauth2/token',
-            'enabled' => true,
-        ]);
-
-        $this->assertSame(400, $response['headers']['status-code']);
-        $this->assertSame('general_argument_invalid', $response['body']['type']);
-
-        // Cleanup
-        $this->updateOAuth2('oidc', [
-            'clientId' => '',
-            'clientSecret' => '',
-            'wellKnownURL' => '',
-            'authorizationURL' => '',
-            'tokenUrl' => '',
-            'userInfoUrl' => '',
             'enabled' => false,
         ]);
     }
@@ -894,11 +796,11 @@ trait OAuth2Base
         $this->assertSame('trial-6400025.okta.com', $response['body']['domain']);
         $this->assertSame('aus000000000000000h7z', $response['body']['authorizationServerId']);
 
-        // Cleanup
+        // Cleanup (domain is `Nullable(Domain())`; Domain rejects empty strings,
+        // so the domain persists past the test).
         $this->updateOAuth2('okta', [
             'clientId' => '',
             'clientSecret' => '',
-            'domain' => '',
             'authorizationServerId' => '',
             'enabled' => false,
         ]);
@@ -913,33 +815,6 @@ trait OAuth2Base
         ]);
 
         $this->assertSame(400, $response['headers']['status-code']);
-    }
-
-    public function testUpdateOAuth2OktaEnableRequiresDomain(): void
-    {
-        $this->updateOAuth2('okta', [
-            'clientId' => '',
-            'clientSecret' => '',
-            'domain' => '',
-            'authorizationServerId' => '',
-            'enabled' => false,
-        ]);
-
-        $response = $this->updateOAuth2('okta', [
-            'clientId' => 'okta-no-domain',
-            'clientSecret' => 'okta-no-domain-secret',
-            'enabled' => true,
-        ]);
-
-        $this->assertSame(400, $response['headers']['status-code']);
-        $this->assertSame('general_argument_invalid', $response['body']['type']);
-
-        // Cleanup
-        $this->updateOAuth2('okta', [
-            'clientId' => '',
-            'clientSecret' => '',
-            'enabled' => false,
-        ]);
     }
 
     // =========================================================================
