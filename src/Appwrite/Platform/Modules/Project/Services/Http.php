@@ -33,6 +33,7 @@ use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Figma\Update as Update
 use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\GitHub\Update as UpdateOAuth2GitHub;
 use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Gitlab\Update as UpdateOAuth2Gitlab;
 use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Google\Update as UpdateOAuth2Google;
+use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Kick\Update as UpdateOAuth2Kick;
 use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Linkedin\Update as UpdateOAuth2Linkedin;
 use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Notion\Update as UpdateOAuth2Notion;
 use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Oidc\Update as UpdateOAuth2Oidc;
@@ -205,5 +206,6 @@ class Http extends Service
         $this->addAction(UpdateOAuth2Auth0::getName(), new UpdateOAuth2Auth0());
         $this->addAction(UpdateOAuth2Oidc::getName(), new UpdateOAuth2Oidc());
         $this->addAction(UpdateOAuth2Okta::getName(), new UpdateOAuth2Okta());
+        $this->addAction(UpdateOAuth2Kick::getName(), new UpdateOAuth2Kick());
     }
 }

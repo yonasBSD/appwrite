@@ -200,6 +200,17 @@ return [
         'mock' => false,
         'class' => 'Appwrite\\Auth\\OAuth2\\Google',
     ],
+    'kick' => [
+        'name' => 'Kick',
+        'developers' => 'https://docs.kick.com/',
+        'icon' => 'icon-kick',
+        'enabled' => true,
+        'sandbox' => false,
+        'form' => false,
+        'beta' => false,
+        'mock' => false,
+        'class' => 'Appwrite\\Auth\\OAuth2\\Kick',
+    ],
     'linkedin' => [
         'name' => 'LinkedIn',
         'developers' => 'https://developer.linkedin.com/',

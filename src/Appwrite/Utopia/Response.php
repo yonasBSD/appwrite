@@ -314,6 +314,7 @@ class Response extends SwooleResponse
     public const MODEL_OAUTH2_OIDC = 'oAuth2Oidc';
     public const MODEL_OAUTH2_APPLE = 'oAuth2Apple';
     public const MODEL_OAUTH2_OKTA = 'oAuth2Okta';
+    public const MODEL_OAUTH2_KICK = 'oAuth2Kick';
 
     // Health
     public const MODEL_HEALTH_STATUS = 'healthStatus';
