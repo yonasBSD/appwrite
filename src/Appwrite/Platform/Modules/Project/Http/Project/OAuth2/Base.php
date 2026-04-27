@@ -311,16 +311,10 @@ abstract class Base extends Action
     ): void {
         $project = $this->persistCredentials($project, $dbForPlatform, $authorization, $clientId, $clientSecret, $enabled);
 
-        $providerId = static::getProviderId();
-        $oAuthProviders = $project->getAttribute('oAuthProviders', []);
+        $queueForEvents->setParam('providerId', static::getProviderId());
 
-        $queueForEvents->setParam('providerId', $providerId);
-
-        $response->dynamic(new Document([
-            '$id' => $providerId,
-            'enabled' => $oAuthProviders[$providerId . 'Enabled'] ?? false,
-            static::getClientIdParamName() => $oAuthProviders[$providerId . 'Appid'] ?? '',
-            static::getClientSecretParamName() => $oAuthProviders[$providerId . 'Secret'] ?? '',
-        ]), static::getResponseModel());
+        // Reuse buildReadResponse to keep PATCH/GET shapes identical and
+        // guarantee the clientSecret is write-only on every response path.
+        $response->dynamic($this->buildReadResponse($project), static::getResponseModel());
     }
 }

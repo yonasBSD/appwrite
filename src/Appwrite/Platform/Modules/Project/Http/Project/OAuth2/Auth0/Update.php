@@ -146,19 +146,8 @@ class Update extends Base
 
         $project = $this->persistCredentials($project, $dbForPlatform, $authorization, $clientId, $encodedSecret, $enabled);
 
-        $oAuthProviders = $project->getAttribute('oAuthProviders', []);
-        $storedRaw = $oAuthProviders[$providerId . 'Secret'] ?? '';
-        $decoded = [];
-        if (!empty($storedRaw)) {
-            $decoded = \json_decode($storedRaw, true) ?: [];
-        }
-
-        $response->dynamic(new Document([
-            '$id' => $providerId,
-            'enabled' => $oAuthProviders[$providerId . 'Enabled'] ?? false,
-            static::getClientIdParamName() => $oAuthProviders[$providerId . 'Appid'] ?? '',
-            static::getClientSecretParamName() => $decoded['clientSecret'] ?? '',
-            'endpoint' => $decoded['auth0Domain'] ?? '',
-        ]), static::getResponseModel());
+        // Reuse buildReadResponse to keep PATCH/GET shapes identical and
+        // guarantee the clientSecret is write-only on every response path.
+        $response->dynamic($this->buildReadResponse($project), static::getResponseModel());
     }
 }

@@ -476,8 +476,10 @@ trait OAuth2Base
         $this->assertSame(200, $response['headers']['status-code']);
         $this->assertSame('apple', $response['body']['$id']);
         $this->assertSame('ip.appwrite.app.web', $response['body']['serviceId']);
-        $this->assertSame('P4000000N8', $response['body']['keyId']);
-        $this->assertSame('D4000000R6', $response['body']['teamId']);
+        // keyId / teamId / p8File are write-only — PATCH response must not echo them back.
+        $this->assertSame('', $response['body']['keyId']);
+        $this->assertSame('', $response['body']['teamId']);
+        $this->assertSame('', $response['body']['p8File']);
         $this->assertSame(false, $response['body']['enabled']);
 
         // Cleanup
@@ -507,9 +509,12 @@ trait OAuth2Base
         ]);
 
         $this->assertSame(200, $response['headers']['status-code']);
-        $this->assertSame('KEYUPDATED', $response['body']['keyId']);
-        $this->assertSame('TEAMSEED01', $response['body']['teamId']);
+        // serviceId is the (non-secret) clientId; keyId/teamId are write-only
+        // and must not surface in the response. Persistence of the merged
+        // values is verified separately via the enable-after-merge tests.
         $this->assertSame('ip.appwrite.app.seed', $response['body']['serviceId']);
+        $this->assertSame('', $response['body']['keyId']);
+        $this->assertSame('', $response['body']['teamId']);
 
         // Cleanup
         $this->updateOAuth2('apple', [
@@ -539,7 +544,9 @@ trait OAuth2Base
             'teamId' => 'TEAMROTATED',
         ]);
         $this->assertSame(200, $teamOnly['headers']['status-code']);
-        $this->assertSame('TEAMROTATED', $teamOnly['body']['teamId']);
+        // teamId is write-only; verify only the non-secret serviceId echo.
+        // The actual merge is validated by the enable-after-merge call below.
+        $this->assertSame('', $teamOnly['body']['teamId']);
         $this->assertSame('ip.appwrite.app.merge', $teamOnly['body']['serviceId']);
 
         // Patch only `serviceId` — keyId/teamId/p8File live in the JSON blob
