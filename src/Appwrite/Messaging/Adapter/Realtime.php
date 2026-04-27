@@ -438,6 +438,44 @@ class Realtime extends MessagingAdapter
     }
 
     /**
+     * Rewrites stored account channels (`account.{oldUserId}` and
+     * `account.{oldUserId}.{action}`) to match a new userId. Used when in-band
+     * authentication changes the connection's user identity (typically
+     * guest → authenticated user, or rare reauth as a different user) — without
+     * this, channels stay bound to the old userId and the connection silently
+     * receives the previous user's account events.
+     *
+     * Returns channels unchanged when the user identity has not changed
+     * (oldUserId === newUserId) or when the connection had no userId previously
+     * (guest connections never store userId-suffixed channels because
+     * convertChannels strips the suffix when userId is empty).
+     */
+    public static function rebindAccountChannels(array $channels, string $oldUserId, string $newUserId): array
+    {
+        if ($oldUserId === '' || $oldUserId === $newUserId) {
+            return $channels;
+        }
+
+        $oldExact = 'account.'.$oldUserId;
+        $oldPrefix = $oldExact.'.';
+
+        return \array_map(function (string $channel) use ($oldExact, $oldPrefix, $newUserId) {
+            if ($channel === $oldExact) {
+                return 'account.'.$newUserId;
+            }
+
+            if (\str_starts_with($channel, $oldPrefix)) {
+                $action = \substr($channel, \strlen($oldPrefix));
+                if (\in_array($action, self::SUPPORTED_ACTIONS, true)) {
+                    return 'account.'.$newUserId.'.'.$action;
+                }
+            }
+
+            return $channel;
+        }, $channels);
+    }
+
+    /**
      * Constructs subscriptions from query parameters.
      *
      * @return array [index => ['channels' => string[], 'queries' => Query[]]]

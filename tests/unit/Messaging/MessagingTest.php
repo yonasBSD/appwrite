@@ -446,6 +446,69 @@ class MessagingTest extends TestCase
         $this->assertArrayHasKey('account', $channels);
     }
 
+    public function test_rebind_account_channels_remaps_after_reauth(): void
+    {
+        // Captures the in-band auth scenario: a guest connects and subscribes to
+        // `account` (stored as `account` because there's no userId). After the
+        // client sends an authentication message, the connection's userId becomes
+        // 'B' — but its stored channels are still bound to whatever the previous
+        // identity was. This helper rewrites them so the resubscribe lands on the
+        // new user's account namespace.
+        $rebound = Realtime::rebindAccountChannels(
+            ['account.A', 'account.A.create', 'account.A.update', 'documents', 'documents.A.something'],
+            'A',
+            'B',
+        );
+
+        // account-scoped channels are rebound to the new user.
+        $this->assertContains('account.B', $rebound);
+        $this->assertContains('account.B.create', $rebound);
+        $this->assertContains('account.B.update', $rebound);
+        $this->assertNotContains('account.A', $rebound);
+        $this->assertNotContains('account.A.create', $rebound);
+        $this->assertNotContains('account.A.update', $rebound);
+
+        // Non-account channels are left alone — the rewrite must be precise.
+        $this->assertContains('documents', $rebound);
+        $this->assertContains('documents.A.something', $rebound);
+    }
+
+    public function test_rebind_account_channels_is_noop_for_unchanged_user(): void
+    {
+        // Same user → nothing to rewrite. Avoids unnecessary churn when the
+        // permissionsChanged path fires (roles change but userId is constant).
+        $channels = ['account.A', 'account.A.create', 'documents'];
+        $this->assertSame($channels, Realtime::rebindAccountChannels($channels, 'A', 'A'));
+    }
+
+    public function test_rebind_account_channels_is_noop_for_guest_origin(): void
+    {
+        // Guest connections never store userId-suffixed channels (convertChannels
+        // strips the suffix when userId is empty), so rebinding from '' to a real
+        // userId should be a no-op — the plain `account` channel doesn't carry
+        // any userId binding to remap.
+        $channels = ['account', 'documents'];
+        $this->assertSame($channels, Realtime::rebindAccountChannels($channels, '', 'B'));
+    }
+
+    public function test_rebind_account_channels_only_remaps_known_actions(): void
+    {
+        // Defensive: we intentionally restrict the rewrite to suffixes in
+        // SUPPORTED_ACTIONS so we don't accidentally rewrite a channel that
+        // happens to have `account.{userId}.{something}` shape from outside the
+        // documented set.
+        $rebound = Realtime::rebindAccountChannels(
+            ['account.A.bogus', 'account.A.create'],
+            'A',
+            'B',
+        );
+
+        $this->assertContains('account.A.bogus', $rebound);
+        $this->assertContains('account.B.create', $rebound);
+        $this->assertNotContains('account.B.bogus', $rebound);
+        $this->assertNotContains('account.A.create', $rebound);
+    }
+
     public function test_from_payload_permissions(): void
     {
         /**
