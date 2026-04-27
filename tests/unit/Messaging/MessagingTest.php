@@ -11,15 +11,15 @@ use Utopia\Database\Helpers\Role;
 
 class MessagingTest extends TestCase
 {
-    public function setUp(): void
+    protected function setUp(): void
     {
     }
 
-    public function tearDown(): void
+    protected function tearDown(): void
     {
     }
 
-    public function testUser(): void
+    public function test_user(): void
     {
         $realtime = new Realtime();
 
@@ -46,8 +46,8 @@ class MessagingTest extends TestCase
             'data' => [
                 'channels' => [
                     0 => 'account.123',
-                ]
-            ]
+                ],
+            ],
         ];
 
         $receivers = array_keys($realtime->getSubscribers($event));
@@ -147,7 +147,7 @@ class MessagingTest extends TestCase
         $this->assertEmpty($realtime->subscriptions);
     }
 
-    public function testSubscribeUnionsChannelsAndRoles(): void
+    public function test_subscribe_unions_channels_and_roles(): void
     {
         $realtime = new Realtime();
 
@@ -177,7 +177,7 @@ class MessagingTest extends TestCase
         $this->assertCount(2, $connection['roles']);
     }
 
-    public function testUnsubscribeSubscriptionRemovesOnlyOneSubscription(): void
+    public function test_unsubscribe_subscription_removes_only_one_subscription(): void
     {
         $realtime = new Realtime();
 
@@ -227,7 +227,7 @@ class MessagingTest extends TestCase
         $this->assertContains(Role::users()->toString(), $realtime->connections[1]['roles']);
     }
 
-    public function testUnsubscribeSubscriptionIsIdempotent(): void
+    public function test_unsubscribe_subscription_is_idempotent(): void
     {
         $realtime = new Realtime();
 
@@ -253,7 +253,7 @@ class MessagingTest extends TestCase
         $this->assertEquals([1], array_keys($realtime->getSubscribers($event)));
     }
 
-    public function testUnsubscribeSubscriptionKeepsConnectionWhenLastSubRemoved(): void
+    public function test_unsubscribe_subscription_keeps_connection_when_last_sub_removed(): void
     {
         $realtime = new Realtime();
 
@@ -274,7 +274,7 @@ class MessagingTest extends TestCase
         $this->assertArrayNotHasKey('1', $realtime->subscriptions);
     }
 
-    public function testResubscribeAfterUnsubscribingLastSubDelivers(): void
+    public function test_resubscribe_after_unsubscribing_last_sub_delivers(): void
     {
         $realtime = new Realtime();
 
@@ -304,7 +304,7 @@ class MessagingTest extends TestCase
         $this->assertEquals([1], array_keys($realtime->getSubscribers($event)));
     }
 
-    public function testSubscribeAfterOnOpenEmptySentinelPreservesUnion(): void
+    public function test_subscribe_after_on_open_empty_sentinel_preserves_union(): void
     {
         $realtime = new Realtime();
 
@@ -334,10 +334,10 @@ class MessagingTest extends TestCase
         $this->assertContains(Role::user(ID::custom('user-123'))->toString(), $realtime->connections[1]['roles']);
     }
 
-    public function testConvertChannelsGuest(): void
+    public function test_convert_channels_guest(): void
     {
         $user = new Document([
-            '$id' => ''
+            '$id' => '',
         ]);
 
         $channels = [
@@ -345,7 +345,7 @@ class MessagingTest extends TestCase
             1 => 'documents',
             2 => 'documents.789',
             3 => 'account',
-            4 => 'account.456'
+            4 => 'account.456',
         ];
 
         $channels = Realtime::convertChannels($channels, $user->getId());
@@ -357,32 +357,32 @@ class MessagingTest extends TestCase
         $this->assertArrayNotHasKey('account.456', $channels);
     }
 
-    public function testConvertChannelsUser(): void
+    public function test_convert_channels_user(): void
     {
-        $user  = new Document([
+        $user = new Document([
             '$id' => ID::custom('123'),
             'memberships' => [
                 [
                     'teamId' => ID::custom('abc'),
                     'roles' => [
                         'administrator',
-                        'moderator'
-                    ]
+                        'moderator',
+                    ],
                 ],
                 [
                     'teamId' => ID::custom('def'),
                     'roles' => [
-                        'guest'
-                    ]
-                ]
-            ]
+                        'guest',
+                    ],
+                ],
+            ],
         ]);
         $channels = [
             0 => 'files',
             1 => 'documents',
             2 => 'documents.789',
             3 => 'account',
-            4 => 'account.456'
+            4 => 'account.456',
         ];
 
         $channels = Realtime::convertChannels($channels, $user->getId());
@@ -396,7 +396,7 @@ class MessagingTest extends TestCase
         $this->assertArrayNotHasKey('account.456', $channels);
     }
 
-    public function testFromPayloadPermissions(): void
+    public function test_from_payload_permissions(): void
     {
         /**
          * Test Collection Level Permissions
@@ -460,7 +460,7 @@ class MessagingTest extends TestCase
         $this->assertContains(Role::team('123abc')->toString(), $result['roles']);
     }
 
-    public function testFromPayloadBucketLevelPermissions(): void
+    public function test_from_payload_bucket_level_permissions(): void
     {
         /**
          * Test Bucket Level Permissions
@@ -510,15 +510,15 @@ class MessagingTest extends TestCase
                     Permission::update(Role::team('123abc')),
                     Permission::delete(Role::team('123abc')),
                 ],
-                'fileSecurity' => true
+                'fileSecurity' => true,
             ])
         );
 
         $this->assertContains(Role::any()->toString(), $result['roles']);
         $this->assertContains(Role::team('123abc')->toString(), $result['roles']);
     }
-    
-    public function testFromPayloadEmitsActionSuffixedChannels(): void
+
+    public function test_from_payload_emits_action_suffixed_channels(): void
     {
         $result = Realtime::fromPayload(
             event: 'databases.database_id.collections.collection_id.documents.document_id.create',
@@ -550,7 +550,7 @@ class MessagingTest extends TestCase
         $this->assertNotContains('documents.delete', $result['channels']);
     }
 
-    public function testFromPayloadEmitsActionSuffixForEveryAction(): void
+    public function test_from_payload_emits_action_suffix_for_every_action(): void
     {
         foreach (['create', 'update', 'upsert', 'delete'] as $action) {
             $result = Realtime::fromPayload(
@@ -577,7 +577,7 @@ class MessagingTest extends TestCase
         }
     }
 
-    public function testFromPayloadDoesNotSuffixWhenNoAction(): void
+    public function test_from_payload_does_not_suffix_when_no_action(): void
     {
         // Synthetic event without an action segment: e.g. an attribute event whose
         // last segment is not a known action and whose second-to-last segment is
@@ -606,7 +606,7 @@ class MessagingTest extends TestCase
         $this->assertContains('buckets.bucket_id.files.file_id', $result['channels']);
     }
 
-    public function testFromPayloadDoesNotSuffixAdminChannels(): void
+    public function test_from_payload_does_not_suffix_admin_channels(): void
     {
         // Function execution event emits resource-leaf channels (executions / functions)
         // alongside admin channels (console / projects.X). Admin channels must NOT
@@ -640,7 +640,51 @@ class MessagingTest extends TestCase
         $this->assertNotContains('projects.project_id.create', $result['channels']);
     }
 
-    public function testActionSuffixDeliversOnlyMatchingActionEndToEnd(): void
+    public function test_from_payload_handles_attribute_trailing_action_events(): void
+    {
+        // `users.[userId].update.{attr}` (e.g. .email, .prefs, .name) — action is the
+        // second-to-last segment, not the last one. The suffix must still be `.update`.
+        $userResult = Realtime::fromPayload(
+            event: 'users.user_id.update.email',
+            payload: new Document(['$id' => ID::custom('user_id')])
+        );
+
+        $this->assertContains('account', $userResult['channels']);
+        $this->assertContains('account.user_id', $userResult['channels']);
+        $this->assertContains('account.update', $userResult['channels']);
+        $this->assertContains('account.user_id.update', $userResult['channels']);
+        // The attribute name must NOT leak into the channel namespace.
+        $this->assertNotContains('account.email', $userResult['channels']);
+        $this->assertNotContains('account.user_id.email', $userResult['channels']);
+
+        // `teams.[teamId].update.prefs` — same shape at the team level.
+        $teamResult = Realtime::fromPayload(
+            event: 'teams.team_id.update.prefs',
+            payload: new Document(['$id' => ID::custom('team_id')])
+        );
+
+        $this->assertContains('teams', $teamResult['channels']);
+        $this->assertContains('teams.team_id', $teamResult['channels']);
+        $this->assertContains('teams.update', $teamResult['channels']);
+        $this->assertContains('teams.team_id.update', $teamResult['channels']);
+        $this->assertNotContains('teams.prefs', $teamResult['channels']);
+        $this->assertNotContains('teams.team_id.prefs', $teamResult['channels']);
+
+        // `teams.[teamId].memberships.[membershipId].update.{attr}` — same again, deeper.
+        $membershipResult = Realtime::fromPayload(
+            event: 'teams.team_id.memberships.membership_id.update.status',
+            payload: new Document(['$id' => ID::custom('membership_id')])
+        );
+
+        $this->assertContains('memberships', $membershipResult['channels']);
+        $this->assertContains('memberships.membership_id', $membershipResult['channels']);
+        $this->assertContains('memberships.update', $membershipResult['channels']);
+        $this->assertContains('memberships.membership_id.update', $membershipResult['channels']);
+        $this->assertNotContains('memberships.status', $membershipResult['channels']);
+        $this->assertNotContains('memberships.membership_id.status', $membershipResult['channels']);
+    }
+
+    public function test_action_suffix_delivers_only_matching_action_end_to_end(): void
     {
         $realtime = new Realtime();
 
@@ -675,7 +719,7 @@ class MessagingTest extends TestCase
         $this->assertArrayNotHasKey(1, $deleteReceivers);
     }
 
-    public function testPlainChannelStillReceivesAllActionsEndToEnd(): void
+    public function test_plain_channel_still_receives_all_actions_end_to_end(): void
     {
         $realtime = new Realtime();
 

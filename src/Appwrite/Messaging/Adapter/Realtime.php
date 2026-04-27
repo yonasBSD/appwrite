@@ -14,6 +14,8 @@ use Utopia\Database\Query;
 
 class Realtime extends MessagingAdapter
 {
+    public const SUPPORTED_ACTIONS = ['create', 'update', 'upsert', 'delete'];
+
     private const RESOURCE_LEAF_NAMES = [
         'documents',
         'rows',
@@ -658,10 +660,19 @@ class Realtime extends MessagingAdapter
                 break;
         }
 
+        // Action is the last segment for plain CRUD events (e.g. `documents.X.create`),
+        // and the second-to-last segment for attribute-trailing events
+        // (e.g. `users.U.update.email`, `teams.T.update.prefs`,
+        // `teams.T.memberships.M.update.status`). Without the second-to-last fallback
+        $count = \count($parts);
+        $action = null;
+        if (\in_array($parts[$count - 1], self::SUPPORTED_ACTIONS, true)) {
+            $action = $parts[$count - 1];
+        } elseif ($count >= 2 && \in_array($parts[$count - 2], self::SUPPORTED_ACTIONS, true)) {
+            $action = $parts[$count - 2];
+        }
 
-        if (! empty($channels)) {
-            // create, update, upsert, delete
-            $action = $parts[\count($parts) - 1];
+        if ($action !== null && ! empty($channels)) {
             $augmented = $channels;
             foreach ($channels as $channel) {
                 $segments = \explode('.', $channel);
