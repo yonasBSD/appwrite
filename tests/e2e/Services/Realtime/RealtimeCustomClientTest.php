@@ -438,13 +438,14 @@ class RealtimeCustomClientTest extends Scope
         $this->assertArrayHasKey('data', $response);
         $this->assertEquals('event', $response['type']);
         $this->assertNotEmpty($response['data']);
-        $this->assertCount(4, $response['data']['channels']);
+        // Nested user event (verification) — must NOT suffix the account channels.
+        $this->assertCount(2, $response['data']['channels']);
         $this->assertArrayHasKey('timestamp', $response['data']);
         $this->assertArrayNotHasKey('secret', $response['data']);
         $this->assertContains('account', $response['data']['channels']);
         $this->assertContains('account.' . $userId, $response['data']['channels']);
-        $this->assertContains('account.create', $response['data']['channels']);
-        $this->assertContains('account.' . $userId . '.create', $response['data']['channels']);
+        $this->assertNotContains('account.create', $response['data']['channels']);
+        $this->assertNotContains('account.' . $userId . '.create', $response['data']['channels']);
         $this->assertContains("users.{$userId}.verification.{$verificationId}.create", $response['data']['events']);
         $this->assertContains("users.{$userId}.verification.{$verificationId}", $response['data']['events']);
         $this->assertContains("users.{$userId}.verification.*.create", $response['data']['events']);
@@ -483,12 +484,13 @@ class RealtimeCustomClientTest extends Scope
         $this->assertArrayHasKey('data', $response);
         $this->assertEquals('event', $response['type']);
         $this->assertNotEmpty($response['data']);
-        $this->assertCount(4, $response['data']['channels']);
+        // Nested user event (verification) — must NOT suffix the account channels.
+        $this->assertCount(2, $response['data']['channels']);
         $this->assertArrayHasKey('timestamp', $response['data']);
         $this->assertContains('account', $response['data']['channels']);
         $this->assertContains('account.' . $userId, $response['data']['channels']);
-        $this->assertContains('account.update', $response['data']['channels']);
-        $this->assertContains('account.' . $userId . '.update', $response['data']['channels']);
+        $this->assertNotContains('account.update', $response['data']['channels']);
+        $this->assertNotContains('account.' . $userId . '.update', $response['data']['channels']);
         $this->assertContains("users.{$userId}.verification.{$verificationId}.update", $response['data']['events']);
         $this->assertContains("users.{$userId}.verification.{$verificationId}", $response['data']['events']);
         $this->assertContains("users.{$userId}.verification.*.update", $response['data']['events']);
@@ -563,12 +565,13 @@ class RealtimeCustomClientTest extends Scope
         $this->assertArrayHasKey('data', $response);
         $this->assertEquals('event', $response['type']);
         $this->assertNotEmpty($response['data']);
-        $this->assertCount(4, $response['data']['channels']);
+        // Nested user event (sessions) — must NOT suffix the account channels.
+        $this->assertCount(2, $response['data']['channels']);
         $this->assertArrayHasKey('timestamp', $response['data']);
         $this->assertContains('account', $response['data']['channels']);
         $this->assertContains('account.' . $userId, $response['data']['channels']);
-        $this->assertContains('account.create', $response['data']['channels']);
-        $this->assertContains('account.' . $userId . '.create', $response['data']['channels']);
+        $this->assertNotContains('account.create', $response['data']['channels']);
+        $this->assertNotContains('account.' . $userId . '.create', $response['data']['channels']);
         $this->assertContains("users.{$userId}.sessions.{$sessionNewId}.create", $response['data']['events']);
         $this->assertContains("users.{$userId}.sessions.{$sessionNewId}", $response['data']['events']);
         $this->assertContains("users.{$userId}.sessions.*.create", $response['data']['events']);
@@ -597,12 +600,13 @@ class RealtimeCustomClientTest extends Scope
         $this->assertArrayHasKey('data', $response);
         $this->assertEquals('event', $response['type']);
         $this->assertNotEmpty($response['data']);
-        $this->assertCount(4, $response['data']['channels']);
+        // Nested user event (sessions) — must NOT suffix the account channels.
+        $this->assertCount(2, $response['data']['channels']);
         $this->assertArrayHasKey('timestamp', $response['data']);
         $this->assertContains('account', $response['data']['channels']);
         $this->assertContains('account.' . $userId, $response['data']['channels']);
-        $this->assertContains('account.delete', $response['data']['channels']);
-        $this->assertContains('account.' . $userId . '.delete', $response['data']['channels']);
+        $this->assertNotContains('account.delete', $response['data']['channels']);
+        $this->assertNotContains('account.' . $userId . '.delete', $response['data']['channels']);
         $this->assertContains("users.{$userId}.sessions.{$sessionNewId}.delete", $response['data']['events']);
         $this->assertContains("users.{$userId}.sessions.{$sessionNewId}", $response['data']['events']);
         $this->assertContains("users.{$userId}.sessions.*.delete", $response['data']['events']);
@@ -636,12 +640,13 @@ class RealtimeCustomClientTest extends Scope
         $this->assertArrayHasKey('data', $response);
         $this->assertEquals('event', $response['type']);
         $this->assertNotEmpty($response['data']);
-        $this->assertCount(4, $response['data']['channels']);
+        // Nested user event (sessions) — must NOT suffix the account channels.
+        $this->assertCount(2, $response['data']['channels']);
         $this->assertArrayHasKey('timestamp', $response['data']);
         $this->assertContains('account', $response['data']['channels']);
         $this->assertContains('account.' . $userId, $response['data']['channels']);
-        $this->assertContains('account.delete', $response['data']['channels']);
-        $this->assertContains('account.' . $userId . '.delete', $response['data']['channels']);
+        $this->assertNotContains('account.delete', $response['data']['channels']);
+        $this->assertNotContains('account.' . $userId . '.delete', $response['data']['channels']);
         $this->assertContains("users.{$userId}.sessions.{$sessionNewId}.delete", $response['data']['events']);
         $this->assertContains("users.{$userId}.sessions.{$sessionNewId}", $response['data']['events']);
         $this->assertContains("users.{$userId}.sessions.*.delete", $response['data']['events']);
@@ -679,12 +684,13 @@ class RealtimeCustomClientTest extends Scope
         $this->assertArrayHasKey('data', $response);
         $this->assertEquals('event', $response['type']);
         $this->assertNotEmpty($response['data']);
-        $this->assertCount(4, $response['data']['channels']);
+        // Nested user event (recovery) — must NOT suffix the account channels.
+        $this->assertCount(2, $response['data']['channels']);
         $this->assertArrayHasKey('timestamp', $response['data']);
         $this->assertContains('account', $response['data']['channels']);
         $this->assertContains('account.' . $userId, $response['data']['channels']);
-        $this->assertContains('account.create', $response['data']['channels']);
-        $this->assertContains('account.' . $userId . '.create', $response['data']['channels']);
+        $this->assertNotContains('account.create', $response['data']['channels']);
+        $this->assertNotContains('account.' . $userId . '.create', $response['data']['channels']);
         $this->assertContains("users.{$userId}.recovery.{$recoveryId}.create", $response['data']['events']);
         $this->assertContains("users.{$userId}.recovery.{$recoveryId}", $response['data']['events']);
         $this->assertContains("users.{$userId}.recovery.*.create", $response['data']['events']);
@@ -715,12 +721,13 @@ class RealtimeCustomClientTest extends Scope
         $this->assertArrayHasKey('data', $response);
         $this->assertEquals('event', $response['type']);
         $this->assertNotEmpty($response['data']);
-        $this->assertCount(4, $response['data']['channels']);
+        // Nested user event (recovery) — must NOT suffix the account channels.
+        $this->assertCount(2, $response['data']['channels']);
         $this->assertArrayHasKey('timestamp', $response['data']);
         $this->assertContains('account', $response['data']['channels']);
         $this->assertContains('account.' . $userId, $response['data']['channels']);
-        $this->assertContains('account.update', $response['data']['channels']);
-        $this->assertContains('account.' . $userId . '.update', $response['data']['channels']);
+        $this->assertNotContains('account.update', $response['data']['channels']);
+        $this->assertNotContains('account.' . $userId . '.update', $response['data']['channels']);
         $this->assertContains("users.{$userId}.recovery.{$recoveryId}.update", $response['data']['events']);
         $this->assertContains("users.{$userId}.recovery.{$recoveryId}", $response['data']['events']);
         $this->assertContains("users.{$userId}.recovery.*.update", $response['data']['events']);
