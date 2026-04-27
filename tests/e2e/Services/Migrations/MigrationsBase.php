@@ -1292,6 +1292,322 @@ trait MigrationsBase
     }
 
     /**
+     * Upsert reconciles attribute-level metadata edits using the Appwrite SDK's
+     * per-type updateXAttribute endpoint instead of drop+recreate. Source-side
+     * PATCH of fields the SDK can express (`required`, `default`, `size` for
+     * strings) — same `$createdAt` on both sides, source `$updatedAt` newer —
+     * routes through `updateAttributeInPlace` on DestinationAppwrite. Existing
+     * row data must survive (drop+recreate would have wiped the column).
+     */
+    public function testAppwriteMigrationUpsertUpdatesAttributeInPlace(): void
+    {
+        $sourceHeaders = [
+            'content-type' => 'application/json',
+            'x-appwrite-project' => $this->getProject()['$id'],
+            'x-appwrite-key' => $this->getProject()['apiKey'],
+        ];
+        $destHeaders = [
+            'content-type' => 'application/json',
+            'x-appwrite-project' => $this->getDestinationProject()['$id'],
+            'x-appwrite-key' => $this->getDestinationProject()['apiKey'],
+        ];
+
+        $data = $this->setupMigrationTable();
+        $databaseId = $data['databaseId'];
+        $tableId = $data['tableId'];
+        $rowId = 'persist-on-inplace';
+
+        // Seed a row that proves drop+recreate didn't happen — recreate would
+        // have wiped this column's data on the destination.
+        $row = $this->client->call(Client::METHOD_POST, '/tablesdb/' . $databaseId . '/tables/' . $tableId . '/rows', $sourceHeaders, [
+            'rowId' => $rowId,
+            'data' => ['name' => 'SeedRow'],
+        ]);
+        $this->assertEquals(201, $row['headers']['status-code']);
+
+        $resources = [
+            Resource::TYPE_DATABASE,
+            Resource::TYPE_TABLE,
+            Resource::TYPE_COLUMN,
+            Resource::TYPE_ROW,
+        ];
+
+        // First migration — dest gets the column as required:true.
+        $first = $this->performMigrationSync([
+            'resources' => $resources,
+            'endpoint' => $this->webEndpoint,
+            'projectId' => $this->getProject()['$id'],
+            'apiKey' => $this->getProject()['apiKey'],
+        ]);
+        $this->assertEquals('completed', $first['status']);
+
+        $beforeUpdate = $this->client->call(Client::METHOD_GET, '/tablesdb/' . $databaseId . '/tables/' . $tableId . '/columns/name', $destHeaders);
+        $this->assertEquals(200, $beforeUpdate['headers']['status-code']);
+        $this->assertTrue($beforeUpdate['body']['required']);
+
+        // _updatedAt has second granularity; ensure source's PATCH produces a
+        // strictly-newer timestamp than the dest's first-migration value.
+        sleep(1);
+
+        // SDK-reachable change set: required true→false, default null→'unknown'.
+        // Both fields are supported by PATCH /columns/string/:key — must route
+        // through updateAttributeInPlace, not DropAndRecreate.
+        $patch = $this->client->call(Client::METHOD_PATCH, '/tablesdb/' . $databaseId . '/tables/' . $tableId . '/columns/string/name', $sourceHeaders, [
+            'required' => false,
+            'default' => 'unknown',
+        ]);
+        $this->assertEquals(200, $patch['headers']['status-code']);
+
+        $this->assertEventually(function () use ($databaseId, $tableId, $sourceHeaders) {
+            $r = $this->client->call(Client::METHOD_GET, '/tablesdb/' . $databaseId . '/tables/' . $tableId . '/columns/name', $sourceHeaders);
+            $this->assertEquals(200, $r['headers']['status-code']);
+            $this->assertEquals('available', $r['body']['status']);
+            $this->assertFalse($r['body']['required']);
+            $this->assertEquals('unknown', $r['body']['default']);
+        }, 5000, 500);
+
+        $upsertResult = $this->performMigrationSync([
+            'resources' => $resources,
+            'endpoint' => $this->webEndpoint,
+            'projectId' => $this->getProject()['$id'],
+            'apiKey' => $this->getProject()['apiKey'],
+            'onDuplicate' => 'upsert',
+        ]);
+        $this->assertEquals('completed', $upsertResult['status']);
+
+        $this->assertEventually(function () use ($databaseId, $tableId, $destHeaders) {
+            $r = $this->client->call(Client::METHOD_GET, '/tablesdb/' . $databaseId . '/tables/' . $tableId . '/columns/name', $destHeaders);
+            $this->assertEquals(200, $r['headers']['status-code']);
+            $this->assertEquals('available', $r['body']['status']);
+            $this->assertFalse($r['body']['required'], 'updateAttributeInPlace must propagate source required=false');
+            $this->assertEquals('unknown', $r['body']['default'], 'updateAttributeInPlace must propagate source default');
+        }, 10000, 500);
+
+        // Pre-existing row preserved — proof that the path was UpdateInPlace
+        // and not DropAndRecreate (which would have nulled this column).
+        $rowAfter = $this->client->call(Client::METHOD_GET, '/tablesdb/' . $databaseId . '/tables/' . $tableId . '/rows/' . $rowId, $destHeaders);
+        $this->assertEquals(200, $rowAfter['headers']['status-code']);
+        $this->assertEquals('SeedRow', $rowAfter['body']['name'], 'updateAttributeInPlace must not touch row data');
+
+        $this->client->call(Client::METHOD_DELETE, '/databases/' . $databaseId, $destHeaders);
+        $this->client->call(Client::METHOD_DELETE, '/databases/' . $databaseId, $sourceHeaders);
+
+        self::$cachedDatabaseData = [];
+        self::$cachedTableData = [];
+    }
+
+    /**
+     * Skip mode is "don't touch" at the attribute level too: destination
+     * column drift (ops loosened a column post-migration) must survive a
+     * Skip re-run, even when source's `$updatedAt` is strictly newer.
+     * Pairs with testAppwriteMigrationSkipPreservesContainerDrift but
+     * exercises the leaf path (`canDrop = true`) instead of the container
+     * path. Regression guard against Skip ever consulting timestamps.
+     */
+    public function testAppwriteMigrationSkipPreservesAttributeDrift(): void
+    {
+        $sourceHeaders = [
+            'content-type' => 'application/json',
+            'x-appwrite-project' => $this->getProject()['$id'],
+            'x-appwrite-key' => $this->getProject()['apiKey'],
+        ];
+        $destHeaders = [
+            'content-type' => 'application/json',
+            'x-appwrite-project' => $this->getDestinationProject()['$id'],
+            'x-appwrite-key' => $this->getDestinationProject()['apiKey'],
+        ];
+
+        $data = $this->setupMigrationTable();
+        $databaseId = $data['databaseId'];
+        $tableId = $data['tableId'];
+
+        $resources = [
+            Resource::TYPE_DATABASE,
+            Resource::TYPE_TABLE,
+            Resource::TYPE_COLUMN,
+        ];
+
+        $first = $this->performMigrationSync([
+            'resources' => $resources,
+            'endpoint' => $this->webEndpoint,
+            'projectId' => $this->getProject()['$id'],
+            'apiKey' => $this->getProject()['apiKey'],
+        ]);
+        $this->assertEquals('completed', $first['status']);
+
+        sleep(1);
+
+        // Dest divergence: ops loosens the column for a production-only need.
+        $destPatch = $this->client->call(Client::METHOD_PATCH, '/tablesdb/' . $databaseId . '/tables/' . $tableId . '/columns/string/name', $destHeaders, [
+            'required' => false,
+            'default' => 'dest-default',
+        ]);
+        $this->assertEquals(200, $destPatch['headers']['status-code']);
+
+        $this->assertEventually(function () use ($databaseId, $tableId, $destHeaders) {
+            $r = $this->client->call(Client::METHOD_GET, '/tablesdb/' . $databaseId . '/tables/' . $tableId . '/columns/name', $destHeaders);
+            $this->assertEquals(200, $r['headers']['status-code']);
+            $this->assertEquals('available', $r['body']['status']);
+            $this->assertFalse($r['body']['required']);
+        }, 5000, 500);
+
+        sleep(1);
+
+        // Source advances strictly later (and to a different value). Under
+        // Upsert this would propagate to dest; under Skip it must not.
+        $sourcePatch = $this->client->call(Client::METHOD_PATCH, '/tablesdb/' . $databaseId . '/tables/' . $tableId . '/columns/string/name', $sourceHeaders, [
+            'required' => true,
+            'default' => null,
+        ]);
+        $this->assertEquals(200, $sourcePatch['headers']['status-code']);
+
+        $this->assertEventually(function () use ($databaseId, $tableId, $sourceHeaders) {
+            $r = $this->client->call(Client::METHOD_GET, '/tablesdb/' . $databaseId . '/tables/' . $tableId . '/columns/name', $sourceHeaders);
+            $this->assertEquals(200, $r['headers']['status-code']);
+            $this->assertEquals('available', $r['body']['status']);
+            $this->assertTrue($r['body']['required']);
+        }, 5000, 500);
+
+        $skipResult = $this->performMigrationSync([
+            'resources' => $resources,
+            'endpoint' => $this->webEndpoint,
+            'projectId' => $this->getProject()['$id'],
+            'apiKey' => $this->getProject()['apiKey'],
+            'onDuplicate' => 'skip',
+        ]);
+        $this->assertEquals('completed', $skipResult['status']);
+
+        $destAttr = $this->client->call(Client::METHOD_GET, '/tablesdb/' . $databaseId . '/tables/' . $tableId . '/columns/name', $destHeaders);
+        $this->assertEquals(200, $destAttr['headers']['status-code']);
+        $this->assertFalse($destAttr['body']['required'], 'Skip must not propagate source required over dest drift');
+        $this->assertEquals('dest-default', $destAttr['body']['default'], 'Skip must preserve dest default');
+
+        $this->client->call(Client::METHOD_DELETE, '/databases/' . $databaseId, $destHeaders);
+        $this->client->call(Client::METHOD_DELETE, '/databases/' . $databaseId, $sourceHeaders);
+
+        self::$cachedDatabaseData = [];
+        self::$cachedTableData = [];
+    }
+
+    /**
+     * Upsert reconciles relationship `onDelete` drift through the SDK's
+     * `updateRelationshipAttribute` endpoint — the only relationship fields
+     * the SDK exposes for in-place edit are `onDelete` and `newKey`. Any
+     * structural change (`relationType`, `twoWay`, `twoWayKey`,
+     * `relatedCollection`) is a non-SDK field and must drop+recreate via
+     * `deleteRelationship`. This test exercises the in-place path: change
+     * `onDelete` cascade→restrict on source, re-migrate Upsert, assert dest
+     * reflects the new value without dropping the column.
+     */
+    public function testAppwriteMigrationUpsertUpdatesRelationshipOnDeleteInPlace(): void
+    {
+        $sourceHeaders = [
+            'content-type' => 'application/json',
+            'x-appwrite-project' => $this->getProject()['$id'],
+            'x-appwrite-key' => $this->getProject()['apiKey'],
+        ];
+        $destHeaders = [
+            'content-type' => 'application/json',
+            'x-appwrite-project' => $this->getDestinationProject()['$id'],
+            'x-appwrite-key' => $this->getDestinationProject()['apiKey'],
+        ];
+
+        $databaseId = ID::unique();
+        $createDb = $this->client->call(Client::METHOD_POST, '/databases', $sourceHeaders, [
+            'databaseId' => $databaseId,
+            'name' => 'Rel In-Place DB',
+        ]);
+        $this->assertEquals(201, $createDb['headers']['status-code']);
+
+        foreach (['parents', 'children'] as $tbl) {
+            $createTable = $this->client->call(Client::METHOD_POST, '/tablesdb/' . $databaseId . '/tables', $sourceHeaders, [
+                'tableId' => $tbl,
+                'name' => $tbl,
+            ]);
+            $this->assertEquals(201, $createTable['headers']['status-code']);
+        }
+
+        // One-way relationship parents → children. One-way is sufficient to
+        // exercise updateRelationshipInPlace; two-way pair-key dedup is
+        // covered by the existing two-way coverage in MigrationDocumentsDB.
+        $createRel = $this->client->call(Client::METHOD_POST, '/tablesdb/' . $databaseId . '/tables/parents/columns/relationship', $sourceHeaders, [
+            'relatedTableId' => 'children',
+            'type' => Database::RELATION_ONE_TO_MANY,
+            'twoWay' => false,
+            'key' => 'kids',
+            'onDelete' => Database::RELATION_MUTATE_CASCADE,
+        ]);
+        $this->assertEquals(202, $createRel['headers']['status-code']);
+
+        $this->assertEventually(function () use ($databaseId, $sourceHeaders) {
+            $r = $this->client->call(Client::METHOD_GET, '/tablesdb/' . $databaseId . '/tables/parents/columns/kids', $sourceHeaders);
+            $this->assertEquals(200, $r['headers']['status-code']);
+            $this->assertEquals('available', $r['body']['status']);
+            $this->assertEquals(Database::RELATION_MUTATE_CASCADE, $r['body']['onDelete']);
+        }, 10000, 500);
+
+        $resources = [
+            Resource::TYPE_DATABASE,
+            Resource::TYPE_TABLE,
+            Resource::TYPE_COLUMN,
+        ];
+
+        $first = $this->performMigrationSync([
+            'resources' => $resources,
+            'endpoint' => $this->webEndpoint,
+            'projectId' => $this->getProject()['$id'],
+            'apiKey' => $this->getProject()['apiKey'],
+        ]);
+        $this->assertEquals('completed', $first['status']);
+
+        $this->assertEventually(function () use ($databaseId, $destHeaders) {
+            $r = $this->client->call(Client::METHOD_GET, '/tablesdb/' . $databaseId . '/tables/parents/columns/kids', $destHeaders);
+            $this->assertEquals(200, $r['headers']['status-code']);
+            $this->assertEquals('available', $r['body']['status']);
+            $this->assertEquals(Database::RELATION_MUTATE_CASCADE, $r['body']['onDelete']);
+        }, 10000, 500);
+
+        sleep(1);
+
+        // SDK-reachable: PATCH /columns/:key/relationship accepts onDelete.
+        $patch = $this->client->call(Client::METHOD_PATCH, '/tablesdb/' . $databaseId . '/tables/parents/columns/kids/relationship', $sourceHeaders, [
+            'onDelete' => Database::RELATION_MUTATE_RESTRICT,
+        ]);
+        $this->assertEquals(200, $patch['headers']['status-code']);
+
+        $this->assertEventually(function () use ($databaseId, $sourceHeaders) {
+            $r = $this->client->call(Client::METHOD_GET, '/tablesdb/' . $databaseId . '/tables/parents/columns/kids', $sourceHeaders);
+            $this->assertEquals(200, $r['headers']['status-code']);
+            $this->assertEquals('available', $r['body']['status']);
+            $this->assertEquals(Database::RELATION_MUTATE_RESTRICT, $r['body']['onDelete']);
+        }, 5000, 500);
+
+        $upsertResult = $this->performMigrationSync([
+            'resources' => $resources,
+            'endpoint' => $this->webEndpoint,
+            'projectId' => $this->getProject()['$id'],
+            'apiKey' => $this->getProject()['apiKey'],
+            'onDuplicate' => 'upsert',
+        ]);
+        $this->assertEquals('completed', $upsertResult['status']);
+
+        $this->assertEventually(function () use ($databaseId, $destHeaders) {
+            $r = $this->client->call(Client::METHOD_GET, '/tablesdb/' . $databaseId . '/tables/parents/columns/kids', $destHeaders);
+            $this->assertEquals(200, $r['headers']['status-code']);
+            $this->assertEquals('available', $r['body']['status']);
+            $this->assertEquals(Database::RELATION_MUTATE_RESTRICT, $r['body']['onDelete'], 'updateRelationshipInPlace must propagate source onDelete');
+            $this->assertEquals(Database::RELATION_ONE_TO_MANY, $r['body']['relationType'], 'In-place update must not change relationType');
+            $this->assertFalse($r['body']['twoWay'], 'In-place update must not change twoWay');
+        }, 10000, 500);
+
+        $this->client->call(Client::METHOD_DELETE, '/databases/' . $databaseId, $destHeaders);
+        $this->client->call(Client::METHOD_DELETE, '/databases/' . $databaseId, $sourceHeaders);
+
+        self::$cachedDatabaseData = [];
+        self::$cachedTableData = [];
+    }
+
+    /**
      * Storage
      */
     public function testAppwriteMigrationStorageBucket(): void

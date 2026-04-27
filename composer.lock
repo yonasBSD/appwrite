@@ -4532,12 +4532,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/utopia-php/migration.git",
-                "reference": "6e6f8255fa52c8053fa2b9ad877c7797d93e32c5"
+                "reference": "a36d95f86d24b4f024a419191e69c3c034a593eb"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/utopia-php/migration/zipball/6e6f8255fa52c8053fa2b9ad877c7797d93e32c5",
-                "reference": "6e6f8255fa52c8053fa2b9ad877c7797d93e32c5",
+                "url": "https://api.github.com/repos/utopia-php/migration/zipball/a36d95f86d24b4f024a419191e69c3c034a593eb",
+                "reference": "a36d95f86d24b4f024a419191e69c3c034a593eb",
                 "shasum": ""
             },
             "require": {
@@ -4579,7 +4579,7 @@
                 "issues": "https://github.com/utopia-php/migration/issues",
                 "source": "https://github.com/utopia-php/migration/tree/feat/skip-duplicates"
             },
-            "time": "2026-04-24T10:33:58+00:00"
+            "time": "2026-04-27T11:29:25+00:00"
         },
         {
             "name": "utopia-php/mongo",
