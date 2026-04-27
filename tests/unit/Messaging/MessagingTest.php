@@ -396,6 +396,56 @@ class MessagingTest extends TestCase
         $this->assertArrayNotHasKey('account.456', $channels);
     }
 
+    public function test_convert_channels_rewrites_account_action_suffixes(): void
+    {
+        // A subscriber to `account.{action}` should receive the user-scoped
+        // `account.{userId}.{action}` channel that fromPayload publishes for
+        // top-level user events. Without the rewrite the channel would either be
+        // stripped (security guard against subscribing to other users' account)
+        // or, if left literal, leak every user's account events to this client.
+        $channels = Realtime::convertChannels(
+            ['account.create', 'account.update', 'account.upsert', 'account.delete'],
+            '123',
+        );
+
+        $this->assertArrayHasKey('account.123.create', $channels);
+        $this->assertArrayHasKey('account.123.update', $channels);
+        $this->assertArrayHasKey('account.123.upsert', $channels);
+        $this->assertArrayHasKey('account.123.delete', $channels);
+
+        // The literal forms must not survive — they would otherwise match every
+        // user's events, not just the subscribed user's.
+        $this->assertArrayNotHasKey('account.create', $channels);
+        $this->assertArrayNotHasKey('account.update', $channels);
+        $this->assertArrayNotHasKey('account.upsert', $channels);
+        $this->assertArrayNotHasKey('account.delete', $channels);
+
+        // Other-user channels and unknown action-like suffixes still get stripped.
+        $channels = Realtime::convertChannels(
+            ['account.other_id', 'account.bogus', 'account.123', 'account.create'],
+            '123',
+        );
+        $this->assertArrayNotHasKey('account.other_id', $channels);
+        $this->assertArrayNotHasKey('account.bogus', $channels);
+        $this->assertArrayNotHasKey('account.123', $channels);
+        $this->assertArrayHasKey('account.123.create', $channels);
+    }
+
+    public function test_convert_channels_drops_account_actions_for_guest(): void
+    {
+        // No userId → no place to scope the action-suffixed channel, so the
+        // action-suffixed forms are dropped entirely. Plain `account` survives
+        // (matching existing guest behavior — see test_convert_channels_guest).
+        $channels = Realtime::convertChannels(
+            ['account.create', 'account.update', 'account'],
+            '',
+        );
+
+        $this->assertArrayNotHasKey('account.create', $channels);
+        $this->assertArrayNotHasKey('account.update', $channels);
+        $this->assertArrayHasKey('account', $channels);
+    }
+
     public function test_from_payload_permissions(): void
     {
         /**
@@ -682,6 +732,45 @@ class MessagingTest extends TestCase
         $this->assertContains('memberships.membership_id.update', $membershipResult['channels']);
         $this->assertNotContains('memberships.status', $membershipResult['channels']);
         $this->assertNotContains('memberships.membership_id.status', $membershipResult['channels']);
+    }
+
+    public function test_from_payload_does_not_suffix_account_for_nested_user_events(): void
+    {
+        // Nested user events (challenges/sessions/recovery/verification) emit only
+        // user-level account channels in fromPayload. The trailing action belongs to
+        // the nested resource, NOT to the user account. A subscriber to
+        // `account.create` must not receive `users.U.challenges.C.create` or
+        // `users.U.sessions.S.delete` events — that would silently leak unrelated
+        // MFA / session traffic into account-level filters.
+        foreach (['challenges', 'sessions', 'recovery', 'verification'] as $sub) {
+            foreach (['create', 'update', 'delete'] as $action) {
+                $result = Realtime::fromPayload(
+                    event: "users.user_id.{$sub}.sub_id.{$action}",
+                    payload: new Document(['$id' => ID::custom('sub_id')])
+                );
+
+                $this->assertContains('account', $result['channels'], "{$sub}.{$action} should still emit base account channel");
+                $this->assertContains('account.user_id', $result['channels'], "{$sub}.{$action} should still emit user-scoped account channel");
+                $this->assertNotContains("account.{$action}", $result['channels'], "{$sub}.{$action} must NOT leak action suffix onto account channel");
+                $this->assertNotContains("account.user_id.{$action}", $result['channels'], "{$sub}.{$action} must NOT leak action suffix onto user-scoped account channel");
+            }
+        }
+
+        // Top-level user events SHOULD still suffix — guard against an over-eager fix
+        // that suppresses the suffix for legitimate account-level CRUD.
+        $createResult = Realtime::fromPayload(
+            event: 'users.user_id.create',
+            payload: new Document(['$id' => ID::custom('user_id')])
+        );
+        $this->assertContains('account.create', $createResult['channels']);
+        $this->assertContains('account.user_id.create', $createResult['channels']);
+
+        $updateResult = Realtime::fromPayload(
+            event: 'users.user_id.update.email',
+            payload: new Document(['$id' => ID::custom('user_id')])
+        );
+        $this->assertContains('account.update', $updateResult['channels']);
+        $this->assertContains('account.user_id.update', $updateResult['channels']);
     }
 
     public function test_action_suffix_delivers_only_matching_action_end_to_end(): void

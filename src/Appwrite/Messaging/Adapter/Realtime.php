@@ -399,7 +399,11 @@ class Realtime extends MessagingAdapter
 
     /**
      * Converts the channels from the Query Params into an array.
-     * Also renames the account channel to account.USER_ID and removes all illegal account channel variations.
+     * Also renames the account channel to account.USER_ID, rewrites action-suffixed
+     * account variants (`account.create`, `account.update`, `account.upsert`,
+     * `account.delete`) to `account.USER_ID.{action}` so they match the channels
+     * fromPayload() publishes for top-level user events, and removes all other
+     * illegal account channel variations (e.g. another user's `account.{otherId}`).
      */
     public static function convertChannels(array $channels, string $userId): array
     {
@@ -407,14 +411,25 @@ class Realtime extends MessagingAdapter
 
         foreach ($channels as $key => $value) {
             switch (true) {
-                case str_starts_with($key, 'account.'):
-                    unset($channels[$key]);
-                    break;
-
                 case $key === 'account':
                     if (! empty($userId)) {
                         $channels['account.'.$userId] = $value;
                     }
+                    break;
+
+                case \in_array(\substr($key, \strlen('account.')), self::SUPPORTED_ACTIONS, true) && str_starts_with($key, 'account.'):
+                    // Translate `account.{action}` into the user-scoped `account.{userId}.{action}`
+                    // so a subscriber only receives their own account events. Without the rewrite
+                    // the literal `account.{action}` channel would match every user's events.
+                    unset($channels[$key]);
+                    if (! empty($userId)) {
+                        $action = \substr($key, \strlen('account.'));
+                        $channels['account.'.$userId.'.'.$action] = $value;
+                    }
+                    break;
+
+                case str_starts_with($key, 'account.'):
+                    unset($channels[$key]);
                     break;
             }
         }
@@ -670,6 +685,21 @@ class Realtime extends MessagingAdapter
             $action = $parts[$count - 1];
         } elseif ($count >= 2 && \in_array($parts[$count - 2], self::SUPPORTED_ACTIONS, true)) {
             $action = $parts[$count - 2];
+        }
+
+        // The `users` branch emits only user-level account channels
+        // (`account`, `account.{userId}`) regardless of event depth, so nested events
+        // like `users.U.sessions.S.create` or `users.U.challenges.C.create` would
+        // otherwise be suffixed as `account.create` — making a subscription to
+        // `account.create` receive unrelated session/challenge/recovery/verification
+        // events. Restrict suffixing to top-level user events where the action sits
+        // at parts[2] (`users.U.create`, `users.U.update.email`, etc.).
+        if (
+            $action !== null
+            && ($parts[0] ?? null) === 'users'
+            && ($parts[2] ?? null) !== $action
+        ) {
+            $action = null;
         }
 
         if ($action !== null && ! empty($channels)) {
