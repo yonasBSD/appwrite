@@ -13,15 +13,24 @@ trait OAuth2Base
      * The ProjectCustom trait reuses the same project across tests in a class,
      * and the OAuth2 PATCH endpoint is additive (omitted fields are preserved),
      * so without a reset state would leak between tests.
+     *
+     * Assert on the reset response so a silently broken reset (e.g. validation
+     * change) surfaces immediately rather than corrupting downstream tests.
      */
     #[Before(priority: -1)]
     protected function resetProjectOAuth2(): void
     {
-        $this->updateOAuth2('amazon', [
+        $response = $this->updateOAuth2('amazon', [
             'clientId' => '',
             'clientSecret' => '',
             'enabled' => false,
         ]);
+
+        $this->assertSame(
+            200,
+            $response['headers']['status-code'],
+            'OAuth2 reset failed — downstream tests will be unreliable. Body: ' . \json_encode($response['body'] ?? null),
+        );
     }
 
     // =========================================================================
@@ -67,6 +76,34 @@ trait OAuth2Base
         foreach ($expected as $providerId) {
             $this->assertContains($providerId, $ids, "Missing provider {$providerId} in listOAuth2Providers response");
         }
+    }
+
+    /**
+     * Pin the exact set of registered providers — adding or removing a
+     * provider must be a deliberate change to this assertion. Catches
+     * registration drift (e.g. forgetting to wire a new provider into
+     * `Base::getProviderActions()`).
+     */
+    public function testListOAuth2ProvidersExposesEntireRegistry(): void
+    {
+        $response = $this->listOAuth2Providers();
+        $this->assertSame(200, $response['headers']['status-code']);
+
+        $ids = \array_column($response['body']['providers'], '$id');
+        \sort($ids);
+
+        $expected = [
+            'amazon', 'apple', 'auth0', 'authentik', 'autodesk', 'bitbucket',
+            'bitly', 'box', 'dailymotion', 'discord', 'disqus', 'dropbox',
+            'etsy', 'facebook', 'figma', 'github', 'gitlab', 'google', 'kick',
+            'linkedin', 'microsoft', 'notion', 'oidc', 'okta', 'paypal',
+            'paypalSandbox', 'podio', 'salesforce', 'slack', 'spotify',
+            'stripe', 'tradeshift', 'tradeshiftBox', 'twitch', 'wordpress',
+            'x', 'yahoo', 'yandex', 'zoho', 'zoom',
+        ];
+        \sort($expected);
+
+        $this->assertSame($expected, $ids, 'Registry drift — listed providers do not match the expected set.');
     }
 
     public function testListOAuth2ProvidersResponseShape(): void
@@ -153,17 +190,14 @@ trait OAuth2Base
         $list = $this->listOAuth2Providers();
         $this->assertSame(200, $list['headers']['status-code']);
 
-        $byId = [];
-        foreach ($list['body']['providers'] as $provider) {
-            $byId[$provider['$id']] = $provider;
-        }
-
-        // Match GET against LIST for one provider per shape.
-        foreach (['github', 'amazon', 'dropbox', 'gitlab', 'apple', 'oidc', 'microsoft'] as $providerId) {
+        // Drive the loop directly off the LIST result so any provider added
+        // to the registry is automatically checked for List/Get parity.
+        foreach ($list['body']['providers'] as $listEntry) {
+            $providerId = $listEntry['$id'];
             $get = $this->getOAuth2Provider($providerId);
-            $this->assertSame(200, $get['headers']['status-code']);
-            $this->assertArrayHasKey($providerId, $byId, "{$providerId} missing from list");
-            $this->assertSame($byId[$providerId], $get['body']);
+
+            $this->assertSame(200, $get['headers']['status-code'], "GET failed for {$providerId}");
+            $this->assertSame($listEntry, $get['body'], "List/Get drift on {$providerId}");
         }
     }
 
@@ -341,10 +375,17 @@ trait OAuth2Base
         ]);
 
         $this->assertSame(400, $response['headers']['status-code']);
+        $this->assertSame('general_argument_invalid', $response['body']['type']);
     }
 
     // =========================================================================
     // Update GitHub (verifyCredentials makes a real call to GitHub on enable)
+    //
+    // Only failure paths and the silent-on-disable branch are tested here.
+    // Happy-path enable would require real GitHub OAuth2 credentials, which
+    // CI doesn't have. Wiring, validation, and the non-enabling branch are
+    // sufficient to surface most regressions; success-path issues are caught
+    // by integration / staging environments instead.
     // =========================================================================
 
     public function testUpdateOAuth2GitHubInvalidCredentialsRejected(): void
@@ -511,6 +552,40 @@ trait OAuth2Base
         ]);
     }
 
+    public function testUpdateOAuth2AppleEnableAndReadBack(): void
+    {
+        // Apple has no verifyCredentials() hook, so enabling with arbitrary
+        // (well-formed) values succeeds without any real Apple network call.
+        $update = $this->updateOAuth2('apple', [
+            'serviceId' => 'ip.appwrite.app.enable',
+            'keyId' => 'ENABLEKEY',
+            'teamId' => 'ENABLETEAM',
+            'p8File' => '-----BEGIN PRIVATE KEY-----ENABLE-----END PRIVATE KEY-----',
+            'enabled' => true,
+        ]);
+
+        $this->assertSame(200, $update['headers']['status-code']);
+        $this->assertTrue($update['body']['enabled']);
+
+        // GET must hide all three secret-bearing fields while keeping serviceId.
+        $get = $this->getOAuth2Provider('apple');
+        $this->assertSame(200, $get['headers']['status-code']);
+        $this->assertTrue($get['body']['enabled']);
+        $this->assertSame('ip.appwrite.app.enable', $get['body']['serviceId']);
+        $this->assertSame('', $get['body']['keyId']);
+        $this->assertSame('', $get['body']['teamId']);
+        $this->assertSame('', $get['body']['p8File']);
+
+        // Cleanup
+        $this->updateOAuth2('apple', [
+            'serviceId' => '',
+            'keyId' => '',
+            'teamId' => '',
+            'p8File' => '',
+            'enabled' => false,
+        ]);
+    }
+
     // =========================================================================
     // Update Auth0 (clientId + clientSecret + optional endpoint)
     // =========================================================================
@@ -567,6 +642,35 @@ trait OAuth2Base
         ]);
     }
 
+    public function testUpdateOAuth2Auth0EnableAndReadBack(): void
+    {
+        $update = $this->updateOAuth2('auth0', [
+            'clientId' => 'auth0-enable-client',
+            'clientSecret' => 'auth0-enable-secret',
+            'endpoint' => 'enable.us.auth0.com',
+            'enabled' => true,
+        ]);
+
+        $this->assertSame(200, $update['headers']['status-code']);
+        $this->assertTrue($update['body']['enabled']);
+
+        // GET must hide clientSecret while keeping clientId and endpoint.
+        $get = $this->getOAuth2Provider('auth0');
+        $this->assertSame(200, $get['headers']['status-code']);
+        $this->assertTrue($get['body']['enabled']);
+        $this->assertSame('auth0-enable-client', $get['body']['clientId']);
+        $this->assertSame('enable.us.auth0.com', $get['body']['endpoint']);
+        $this->assertSame('', $get['body']['clientSecret']);
+
+        // Cleanup
+        $this->updateOAuth2('auth0', [
+            'clientId' => '',
+            'clientSecret' => '',
+            'endpoint' => '',
+            'enabled' => false,
+        ]);
+    }
+
     // =========================================================================
     // Update Authentik (clientId + clientSecret + REQUIRED endpoint)
     // =========================================================================
@@ -580,6 +684,7 @@ trait OAuth2Base
         ]);
 
         $this->assertSame(400, $response['headers']['status-code']);
+        $this->assertSame('general_argument_invalid', $response['body']['type']);
     }
 
     public function testUpdateOAuth2Authentik(): void
@@ -605,6 +710,35 @@ trait OAuth2Base
         ]);
     }
 
+    public function testUpdateOAuth2AuthentikEnableAndReadBack(): void
+    {
+        $update = $this->updateOAuth2('authentik', [
+            'clientId' => 'authentik-enable-client',
+            'clientSecret' => 'authentik-enable-secret',
+            'endpoint' => 'enable.authentik.com',
+            'enabled' => true,
+        ]);
+
+        $this->assertSame(200, $update['headers']['status-code']);
+        $this->assertTrue($update['body']['enabled']);
+
+        // GET must hide clientSecret while keeping clientId and endpoint.
+        $get = $this->getOAuth2Provider('authentik');
+        $this->assertSame(200, $get['headers']['status-code']);
+        $this->assertTrue($get['body']['enabled']);
+        $this->assertSame('authentik-enable-client', $get['body']['clientId']);
+        $this->assertSame('enable.authentik.com', $get['body']['endpoint']);
+        $this->assertSame('', $get['body']['clientSecret']);
+
+        // Cleanup — endpoint is required (Text(min=1)) so use a placeholder.
+        $this->updateOAuth2('authentik', [
+            'clientId' => '',
+            'clientSecret' => '',
+            'endpoint' => 'cleanup.authentik.com',
+            'enabled' => false,
+        ]);
+    }
+
     // =========================================================================
     // Update Microsoft (applicationId + applicationSecret + REQUIRED tenant)
     // =========================================================================
@@ -617,6 +751,7 @@ trait OAuth2Base
         ]);
 
         $this->assertSame(400, $response['headers']['status-code']);
+        $this->assertSame('general_argument_invalid', $response['body']['type']);
     }
 
     public function testUpdateOAuth2Microsoft(): void
@@ -676,6 +811,35 @@ trait OAuth2Base
         ]);
     }
 
+    public function testUpdateOAuth2MicrosoftEnableAndReadBack(): void
+    {
+        $update = $this->updateOAuth2('microsoft', [
+            'applicationId' => 'microsoft-enable-app',
+            'applicationSecret' => 'microsoft-enable-secret',
+            'tenant' => 'common',
+            'enabled' => true,
+        ]);
+
+        $this->assertSame(200, $update['headers']['status-code']);
+        $this->assertTrue($update['body']['enabled']);
+
+        // GET must hide applicationSecret while keeping applicationId/tenant.
+        $get = $this->getOAuth2Provider('microsoft');
+        $this->assertSame(200, $get['headers']['status-code']);
+        $this->assertTrue($get['body']['enabled']);
+        $this->assertSame('microsoft-enable-app', $get['body']['applicationId']);
+        $this->assertSame('common', $get['body']['tenant']);
+        $this->assertSame('', $get['body']['applicationSecret']);
+
+        // Cleanup — tenant is required (Text(min=1)) so use a placeholder.
+        $this->updateOAuth2('microsoft', [
+            'applicationId' => '',
+            'applicationSecret' => '',
+            'tenant' => 'common',
+            'enabled' => false,
+        ]);
+    }
+
     // =========================================================================
     // Update Gitlab (applicationId + secret + optional endpoint, custom names)
     // =========================================================================
@@ -715,6 +879,7 @@ trait OAuth2Base
         ]);
 
         $this->assertSame(400, $response['headers']['status-code']);
+        $this->assertSame('general_argument_invalid', $response['body']['type']);
     }
 
     public function testUpdateOAuth2GitlabPartialEndpoint(): void
@@ -733,6 +898,62 @@ trait OAuth2Base
         $this->assertSame(200, $response['headers']['status-code']);
         $this->assertSame('https://updated.gitlab.com', $response['body']['endpoint']);
         $this->assertSame('gitlab-seed-app', $response['body']['applicationId']);
+
+        // Cleanup
+        $this->updateOAuth2('gitlab', [
+            'applicationId' => '',
+            'secret' => '',
+            'endpoint' => '',
+            'enabled' => false,
+        ]);
+    }
+
+    public function testUpdateOAuth2GitlabEnableAndReadBack(): void
+    {
+        $update = $this->updateOAuth2('gitlab', [
+            'applicationId' => 'gitlab-enable-app',
+            'secret' => 'gitlab-enable-secret',
+            'endpoint' => 'https://enable.gitlab.com',
+            'enabled' => true,
+        ]);
+
+        $this->assertSame(200, $update['headers']['status-code']);
+        $this->assertTrue($update['body']['enabled']);
+
+        // GET must hide `secret` while keeping applicationId and endpoint.
+        $get = $this->getOAuth2Provider('gitlab');
+        $this->assertSame(200, $get['headers']['status-code']);
+        $this->assertTrue($get['body']['enabled']);
+        $this->assertSame('gitlab-enable-app', $get['body']['applicationId']);
+        $this->assertSame('https://enable.gitlab.com', $get['body']['endpoint']);
+        $this->assertSame('', $get['body']['secret']);
+
+        // Cleanup
+        $this->updateOAuth2('gitlab', [
+            'applicationId' => '',
+            'secret' => '',
+            'endpoint' => '',
+            'enabled' => false,
+        ]);
+    }
+
+    public function testUpdateOAuth2GitlabEndpointAcceptsEmpty(): void
+    {
+        // The `endpoint` validator is `Nullable(URL(empty: true))`. Passing
+        // `''` must clear the stored value rather than 400 on URL validation.
+        $this->updateOAuth2('gitlab', [
+            'applicationId' => 'gitlab-clear-app',
+            'secret' => 'gitlab-clear-secret',
+            'endpoint' => 'https://before.gitlab.com',
+            'enabled' => false,
+        ]);
+
+        $response = $this->updateOAuth2('gitlab', [
+            'endpoint' => '',
+        ]);
+
+        $this->assertSame(200, $response['headers']['status-code']);
+        $this->assertSame('', $response['body']['endpoint']);
 
         // Cleanup
         $this->updateOAuth2('gitlab', [
@@ -867,6 +1088,73 @@ trait OAuth2Base
         ]);
     }
 
+    public function testUpdateOAuth2OidcEnableSucceedsWithWellKnown(): void
+    {
+        $update = $this->updateOAuth2('oidc', [
+            'clientId' => 'oidc-enable-client',
+            'clientSecret' => 'oidc-enable-secret',
+            'wellKnownURL' => 'https://idp.example.com/.well-known/openid-configuration',
+            'enabled' => true,
+        ]);
+
+        $this->assertSame(200, $update['headers']['status-code']);
+        $this->assertTrue($update['body']['enabled']);
+
+        // GET must hide clientSecret while keeping clientId and the URL.
+        $get = $this->getOAuth2Provider('oidc');
+        $this->assertSame(200, $get['headers']['status-code']);
+        $this->assertTrue($get['body']['enabled']);
+        $this->assertSame('oidc-enable-client', $get['body']['clientId']);
+        $this->assertSame('https://idp.example.com/.well-known/openid-configuration', $get['body']['wellKnownURL']);
+        $this->assertSame('', $get['body']['clientSecret']);
+
+        // Cleanup
+        $this->updateOAuth2('oidc', [
+            'clientId' => '',
+            'clientSecret' => '',
+            'wellKnownURL' => '',
+            'authorizationURL' => '',
+            'tokenUrl' => '',
+            'userInfoUrl' => '',
+            'enabled' => false,
+        ]);
+    }
+
+    public function testUpdateOAuth2OidcURLsAcceptEmpty(): void
+    {
+        // All four URL fields use `Nullable(URL(empty: true))`. Passing `''`
+        // for each must clear them rather than 400 on URL validation.
+        $this->updateOAuth2('oidc', [
+            'clientId' => 'oidc-clear-client',
+            'clientSecret' => 'oidc-clear-secret',
+            'wellKnownURL' => 'https://idp.example.com/.well-known/openid-configuration',
+            'authorizationURL' => 'https://idp.example.com/oauth2/authorize',
+            'tokenUrl' => 'https://idp.example.com/oauth2/token',
+            'userInfoUrl' => 'https://idp.example.com/oauth2/userinfo',
+            'enabled' => false,
+        ]);
+
+        $response = $this->updateOAuth2('oidc', [
+            'wellKnownURL' => '',
+            'authorizationURL' => '',
+            'tokenUrl' => '',
+            'userInfoUrl' => '',
+        ]);
+
+        $this->assertSame(200, $response['headers']['status-code']);
+        $this->assertSame('', $response['body']['wellKnownURL']);
+        $this->assertSame('', $response['body']['authorizationURL']);
+        $this->assertSame('', $response['body']['tokenUrl']);
+        $this->assertSame('', $response['body']['userInfoUrl']);
+
+        // Cleanup
+        $this->updateOAuth2('oidc', [
+            'clientId' => '',
+            'clientSecret' => '',
+            'enabled' => false,
+        ]);
+    }
+
     // =========================================================================
     // Update Okta (clientId + clientSecret + optional domain/authServer)
     // =========================================================================
@@ -906,6 +1194,7 @@ trait OAuth2Base
         ]);
 
         $this->assertSame(400, $response['headers']['status-code']);
+        $this->assertSame('general_argument_invalid', $response['body']['type']);
     }
 
     public function testUpdateOAuth2OktaEnableRequiresDomain(): void
@@ -931,6 +1220,65 @@ trait OAuth2Base
         $this->updateOAuth2('okta', [
             'clientId' => '',
             'clientSecret' => '',
+            'enabled' => false,
+        ]);
+    }
+
+    public function testUpdateOAuth2OktaEnableSucceedsWithDomain(): void
+    {
+        $update = $this->updateOAuth2('okta', [
+            'clientId' => 'okta-enable-client',
+            'clientSecret' => 'okta-enable-secret',
+            'domain' => 'enable.okta.com',
+            'authorizationServerId' => 'aus000000000000000h7z',
+            'enabled' => true,
+        ]);
+
+        $this->assertSame(200, $update['headers']['status-code']);
+        $this->assertTrue($update['body']['enabled']);
+
+        // GET must hide clientSecret while keeping clientId, domain and authServerId.
+        $get = $this->getOAuth2Provider('okta');
+        $this->assertSame(200, $get['headers']['status-code']);
+        $this->assertTrue($get['body']['enabled']);
+        $this->assertSame('okta-enable-client', $get['body']['clientId']);
+        $this->assertSame('enable.okta.com', $get['body']['domain']);
+        $this->assertSame('aus000000000000000h7z', $get['body']['authorizationServerId']);
+        $this->assertSame('', $get['body']['clientSecret']);
+
+        // Cleanup
+        $this->updateOAuth2('okta', [
+            'clientId' => '',
+            'clientSecret' => '',
+            'domain' => '',
+            'authorizationServerId' => '',
+            'enabled' => false,
+        ]);
+    }
+
+    public function testUpdateOAuth2OktaDomainAcceptsEmpty(): void
+    {
+        // The `domain` validator is `Nullable(Domain(empty: true))`. Passing
+        // `''` must clear the stored value rather than 400 on Domain validation.
+        $this->updateOAuth2('okta', [
+            'clientId' => 'okta-clear-client',
+            'clientSecret' => 'okta-clear-secret',
+            'domain' => 'before.okta.com',
+            'enabled' => false,
+        ]);
+
+        $response = $this->updateOAuth2('okta', [
+            'domain' => '',
+        ]);
+
+        $this->assertSame(200, $response['headers']['status-code']);
+        $this->assertSame('', $response['body']['domain']);
+
+        // Cleanup
+        $this->updateOAuth2('okta', [
+            'clientId' => '',
+            'clientSecret' => '',
+            'domain' => '',
             'enabled' => false,
         ]);
     }
@@ -1000,6 +1348,32 @@ trait OAuth2Base
         ]);
     }
 
+    public function testUpdateOAuth2DropboxEnableAndReadBack(): void
+    {
+        $update = $this->updateOAuth2('dropbox', [
+            'appKey' => 'dropbox-enable-key',
+            'appSecret' => 'dropbox-enable-secret',
+            'enabled' => true,
+        ]);
+
+        $this->assertSame(200, $update['headers']['status-code']);
+        $this->assertTrue($update['body']['enabled']);
+
+        // GET must hide `appSecret` while keeping `appKey`.
+        $get = $this->getOAuth2Provider('dropbox');
+        $this->assertSame(200, $get['headers']['status-code']);
+        $this->assertTrue($get['body']['enabled']);
+        $this->assertSame('dropbox-enable-key', $get['body']['appKey']);
+        $this->assertSame('', $get['body']['appSecret']);
+
+        // Cleanup
+        $this->updateOAuth2('dropbox', [
+            'appKey' => '',
+            'appSecret' => '',
+            'enabled' => false,
+        ]);
+    }
+
     // =========================================================================
     // Update Paypal Sandbox (inherits from Paypal — independent provider ID)
     // =========================================================================
@@ -1030,6 +1404,38 @@ trait OAuth2Base
         ]);
     }
 
+    public function testUpdateOAuth2PaypalDoesNotAffectSandbox(): void
+    {
+        // Reverse direction: writing to regular paypal must leave sandbox state intact.
+        $this->updateOAuth2('paypalSandbox', [
+            'clientId' => 'sandbox-untouched',
+            'clientSecret' => 'sandbox-secret',
+            'enabled' => false,
+        ]);
+
+        $this->updateOAuth2('paypal', [
+            'clientId' => 'paypal-prod',
+            'secretKey' => 'paypal-prod-secret',
+            'enabled' => false,
+        ]);
+
+        $sandbox = $this->getOAuth2Provider('paypalSandbox');
+        $this->assertSame(200, $sandbox['headers']['status-code']);
+        $this->assertSame('sandbox-untouched', $sandbox['body']['clientId']);
+
+        // Cleanup both
+        $this->updateOAuth2('paypal', [
+            'clientId' => '',
+            'secretKey' => '',
+            'enabled' => false,
+        ]);
+        $this->updateOAuth2('paypalSandbox', [
+            'clientId' => '',
+            'clientSecret' => '',
+            'enabled' => false,
+        ]);
+    }
+
     // =========================================================================
     // Update Tradeshift Sandbox (inherits from Tradeshift — independent provider ID)
     // =========================================================================
@@ -1053,6 +1459,38 @@ trait OAuth2Base
         $this->assertNotSame('tradeshift-sandbox-client', $regular['body']['oauth2ClientId']);
 
         // Cleanup
+        $this->updateOAuth2('tradeshiftBox', [
+            'oauth2ClientId' => '',
+            'oauth2ClientSecret' => '',
+            'enabled' => false,
+        ]);
+    }
+
+    public function testUpdateOAuth2TradeshiftDoesNotAffectSandbox(): void
+    {
+        // Reverse direction: writing to regular tradeshift must not touch sandbox state.
+        $this->updateOAuth2('tradeshiftBox', [
+            'oauth2ClientId' => 'tradeshift-sandbox-untouched',
+            'oauth2ClientSecret' => 'tradeshift-sandbox-secret',
+            'enabled' => false,
+        ]);
+
+        $this->updateOAuth2('tradeshift', [
+            'oauth2ClientId' => 'tradeshift-prod',
+            'oauth2ClientSecret' => 'tradeshift-prod-secret',
+            'enabled' => false,
+        ]);
+
+        $sandbox = $this->getOAuth2Provider('tradeshiftBox');
+        $this->assertSame(200, $sandbox['headers']['status-code']);
+        $this->assertSame('tradeshift-sandbox-untouched', $sandbox['body']['oauth2ClientId']);
+
+        // Cleanup both
+        $this->updateOAuth2('tradeshift', [
+            'oauth2ClientId' => '',
+            'oauth2ClientSecret' => '',
+            'enabled' => false,
+        ]);
         $this->updateOAuth2('tradeshiftBox', [
             'oauth2ClientId' => '',
             'oauth2ClientSecret' => '',
@@ -1118,16 +1556,26 @@ trait OAuth2Base
         $clientId = $providerId . '-smoke-client';
         $clientSecret = $providerId . '-smoke-secret';
 
-        $response = $this->updateOAuth2($providerId, [
+        $update = $this->updateOAuth2($providerId, [
             $idField => $clientId,
             $secretField => $clientSecret,
             'enabled' => false,
         ]);
 
-        $this->assertSame(200, $response['headers']['status-code']);
-        $this->assertSame($providerId, $response['body']['$id']);
-        $this->assertSame($clientId, $response['body'][$idField]);
-        $this->assertSame(false, $response['body']['enabled']);
+        $this->assertSame(200, $update['headers']['status-code']);
+        $this->assertSame($providerId, $update['body']['$id']);
+        $this->assertSame($clientId, $update['body'][$idField]);
+        $this->assertFalse($update['body']['enabled']);
+
+        // GET round-trip — confirms the value actually persisted (catches a
+        // PATCH that only echoes input without writing) and that the secret
+        // is hidden on read.
+        $get = $this->getOAuth2Provider($providerId);
+        $this->assertSame(200, $get['headers']['status-code']);
+        $this->assertSame($providerId, $get['body']['$id']);
+        $this->assertSame($clientId, $get['body'][$idField]);
+        $this->assertSame('', $get['body'][$secretField]);
+        $this->assertFalse($get['body']['enabled']);
 
         // Cleanup
         $this->updateOAuth2($providerId, [
