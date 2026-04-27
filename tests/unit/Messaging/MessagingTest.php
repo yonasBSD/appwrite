@@ -832,6 +832,45 @@ class MessagingTest extends TestCase
         $this->assertNotContains('documents', $meta['sub-create']['channels']);
     }
 
+    public function testSubscribeWithSameSubIdReplacesActionsNotMerges(): void
+    {
+        $realtime = new Realtime();
+        $role = Role::any()->toString();
+
+        // Initial subscribe: only `create` events on the documents base.
+        $realtime->subscribe('1', 1, 'sub-x', [$role], ['documents.create']);
+
+        $createEvent = [
+            'project' => '1',
+            'roles' => [$role],
+            'data' => [
+                'channels' => ['documents'],
+                'events' => ['databases.db.collections.col.documents.doc.create'],
+                'payload' => [],
+            ],
+        ];
+        $this->assertArrayHasKey(1, $realtime->getSubscribers($createEvent));
+
+        // Re-subscribe with the SAME sub-id but a different action. Per the upsert
+        // contract documented on Realtime::subscribe, this fully replaces the prior
+        // state — actions are NOT unioned across calls (channels and queries already
+        // followed replace-not-merge semantics; actions match that rule).
+        $realtime->subscribe('1', 1, 'sub-x', [$role], ['documents.update']);
+
+        // Create no longer matches: previous filter is gone.
+        $this->assertEmpty($realtime->getSubscribers($createEvent));
+
+        // Update now matches.
+        $updateEvent = $createEvent;
+        $updateEvent['data']['events'] = ['databases.db.collections.col.documents.doc.update'];
+        $this->assertArrayHasKey(1, $realtime->getSubscribers($updateEvent));
+
+        // Metadata reflects only the new state.
+        $meta = $realtime->getSubscriptionMetadata(1);
+        $this->assertContains('documents.update', $meta['sub-x']['channels']);
+        $this->assertNotContains('documents.create', $meta['sub-x']['channels']);
+    }
+
     public function testActionAndBaseChannelTogetherRoundTripsLosslessly(): void
     {
         $realtime = new Realtime();
