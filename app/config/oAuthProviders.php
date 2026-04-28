@@ -211,6 +211,17 @@ return [
         'mock' => false,
         'class' => 'Appwrite\\Auth\\OAuth2\\Google',
     ],
+    'keycloak' => [
+        'name' => 'Keycloak',
+        'developers' => 'https://www.keycloak.org/documentation',
+        'icon' => 'icon-keycloak',
+        'enabled' => true,
+        'sandbox' => false,
+        'form' => 'keycloak.phtml',
+        'beta' => false,
+        'mock' => false,
+        'class' => 'Appwrite\\Auth\\OAuth2\\Keycloak',
+    ],
     'kick' => [
         'name' => 'Kick',
         'developers' => 'https://docs.kick.com/',

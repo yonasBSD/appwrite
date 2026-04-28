@@ -66,6 +66,7 @@ trait OAuth2Base
             'authentik',
             'fusionauth',
             'gitlab',
+            'keycloak',
             'oidc',
             'okta',
             'microsoft',
@@ -97,10 +98,10 @@ trait OAuth2Base
             'amazon', 'apple', 'auth0', 'authentik', 'autodesk', 'bitbucket',
             'bitly', 'box', 'dailymotion', 'discord', 'disqus', 'dropbox',
             'etsy', 'facebook', 'figma', 'fusionauth', 'github', 'gitlab',
-            'google', 'kick', 'linkedin', 'microsoft', 'notion', 'oidc',
-            'okta', 'paypal', 'paypalSandbox', 'podio', 'salesforce', 'slack',
-            'spotify', 'stripe', 'tradeshift', 'tradeshiftBox', 'twitch',
-            'wordpress', 'x', 'yahoo', 'yandex', 'zoho', 'zoom',
+            'google', 'keycloak', 'kick', 'linkedin', 'microsoft', 'notion',
+            'oidc', 'okta', 'paypal', 'paypalSandbox', 'podio', 'salesforce',
+            'slack', 'spotify', 'stripe', 'tradeshift', 'tradeshiftBox',
+            'twitch', 'wordpress', 'x', 'yahoo', 'yandex', 'zoho', 'zoom',
         ];
         \sort($expected);
 
@@ -1114,6 +1115,171 @@ trait OAuth2Base
             'clientId' => '',
             'clientSecret' => '',
             'endpoint' => 'cleanup.fusionauth.io',
+            'enabled' => false,
+        ]);
+    }
+
+    // =========================================================================
+    // Update Keycloak (clientId + clientSecret + REQUIRED endpoint + REQUIRED realmName)
+    // =========================================================================
+
+    public function testUpdateOAuth2KeycloakRequiresEndpoint(): void
+    {
+        // The `endpoint` param is required (Text(min=1)); omitting → 400.
+        $response = $this->updateOAuth2('keycloak', [
+            'clientId' => 'whatever',
+            'clientSecret' => 'whatever',
+            'realmName' => 'appwrite-realm',
+        ]);
+
+        $this->assertSame(400, $response['headers']['status-code']);
+        $this->assertSame('general_argument_invalid', $response['body']['type']);
+    }
+
+    public function testUpdateOAuth2KeycloakEmptyEndpointRejected(): void
+    {
+        // The `endpoint` validator is Text(min=1). Sending `''` must be
+        // rejected the same way as omitting — the validator should treat the
+        // empty-string degenerate case as a missing required field.
+        $response = $this->updateOAuth2('keycloak', [
+            'clientId' => 'whatever',
+            'clientSecret' => 'whatever',
+            'endpoint' => '',
+            'realmName' => 'appwrite-realm',
+        ]);
+
+        $this->assertSame(400, $response['headers']['status-code']);
+        $this->assertSame('general_argument_invalid', $response['body']['type']);
+    }
+
+    public function testUpdateOAuth2KeycloakRequiresRealmName(): void
+    {
+        // The `realmName` param is required (Text(min=1)); omitting → 400.
+        $response = $this->updateOAuth2('keycloak', [
+            'clientId' => 'whatever',
+            'clientSecret' => 'whatever',
+            'endpoint' => 'keycloak.example.com',
+        ]);
+
+        $this->assertSame(400, $response['headers']['status-code']);
+        $this->assertSame('general_argument_invalid', $response['body']['type']);
+    }
+
+    public function testUpdateOAuth2KeycloakEmptyRealmNameRejected(): void
+    {
+        // The `realmName` validator is Text(min=1). Sending `''` must be
+        // rejected the same way as omitting.
+        $response = $this->updateOAuth2('keycloak', [
+            'clientId' => 'whatever',
+            'clientSecret' => 'whatever',
+            'endpoint' => 'keycloak.example.com',
+            'realmName' => '',
+        ]);
+
+        $this->assertSame(400, $response['headers']['status-code']);
+        $this->assertSame('general_argument_invalid', $response['body']['type']);
+    }
+
+    public function testUpdateOAuth2Keycloak(): void
+    {
+        $response = $this->updateOAuth2('keycloak', [
+            'clientId' => 'appwrite-o0000000st-app',
+            'clientSecret' => 'keycloak-secret',
+            'endpoint' => 'keycloak.example.com',
+            'realmName' => 'appwrite-realm',
+            'enabled' => false,
+        ]);
+
+        $this->assertSame(200, $response['headers']['status-code']);
+        $this->assertSame('keycloak', $response['body']['$id']);
+        $this->assertSame('appwrite-o0000000st-app', $response['body']['clientId']);
+        $this->assertSame('keycloak.example.com', $response['body']['endpoint']);
+        $this->assertSame('appwrite-realm', $response['body']['realmName']);
+
+        // Cleanup
+        $this->updateOAuth2('keycloak', [
+            'clientId' => '',
+            'clientSecret' => '',
+            'endpoint' => 'cleanup.keycloak.com',
+            'realmName' => 'cleanup-realm',
+            'enabled' => false,
+        ]);
+    }
+
+    public function testUpdateOAuth2KeycloakPartialPreservesSecret(): void
+    {
+        // Keycloak's `endpoint` and `realmName` are required on every call,
+        // so we always re-send them. The `clientSecret` lives in the JSON
+        // blob and must survive when omitted on a subsequent call that only
+        // changes clientId.
+        $this->updateOAuth2('keycloak', [
+            'clientId' => 'keycloak-merge-client',
+            'clientSecret' => 'keycloak-merge-secret',
+            'endpoint' => 'merge.keycloak.com',
+            'realmName' => 'merge-realm',
+            'enabled' => false,
+        ]);
+
+        $response = $this->updateOAuth2('keycloak', [
+            'clientId' => 'keycloak-rotated-client',
+            'endpoint' => 'merge.keycloak.com',
+            'realmName' => 'merge-realm',
+        ]);
+        $this->assertSame(200, $response['headers']['status-code']);
+        $this->assertSame('keycloak-rotated-client', $response['body']['clientId']);
+        $this->assertSame('merge.keycloak.com', $response['body']['endpoint']);
+        $this->assertSame('merge-realm', $response['body']['realmName']);
+
+        // Confirm clientSecret survived the omitted-field merge by enabling
+        // — Keycloak has no verifyCredentials() hook, so non-empty stored
+        // secret is enough. `endpoint`/`realmName` must be re-sent (required
+        // on enable too).
+        $enable = $this->updateOAuth2('keycloak', [
+            'endpoint' => 'merge.keycloak.com',
+            'realmName' => 'merge-realm',
+            'enabled' => true,
+        ]);
+        $this->assertSame(200, $enable['headers']['status-code']);
+        $this->assertTrue($enable['body']['enabled']);
+
+        // Cleanup — endpoint and realmName are required, use placeholders.
+        $this->updateOAuth2('keycloak', [
+            'clientId' => '',
+            'clientSecret' => '',
+            'endpoint' => 'cleanup.keycloak.com',
+            'realmName' => 'cleanup-realm',
+            'enabled' => false,
+        ]);
+    }
+
+    public function testUpdateOAuth2KeycloakEnableAndReadBack(): void
+    {
+        $update = $this->updateOAuth2('keycloak', [
+            'clientId' => 'keycloak-enable-client',
+            'clientSecret' => 'keycloak-enable-secret',
+            'endpoint' => 'enable.keycloak.com',
+            'realmName' => 'enable-realm',
+            'enabled' => true,
+        ]);
+
+        $this->assertSame(200, $update['headers']['status-code']);
+        $this->assertTrue($update['body']['enabled']);
+
+        // GET must hide clientSecret while keeping clientId, endpoint, realmName.
+        $get = $this->getOAuth2Provider('keycloak');
+        $this->assertSame(200, $get['headers']['status-code']);
+        $this->assertTrue($get['body']['enabled']);
+        $this->assertSame('keycloak-enable-client', $get['body']['clientId']);
+        $this->assertSame('enable.keycloak.com', $get['body']['endpoint']);
+        $this->assertSame('enable-realm', $get['body']['realmName']);
+        $this->assertSame('', $get['body']['clientSecret']);
+
+        // Cleanup — endpoint and realmName are required (Text(min=1)) so use placeholders.
+        $this->updateOAuth2('keycloak', [
+            'clientId' => '',
+            'clientSecret' => '',
+            'endpoint' => 'cleanup.keycloak.com',
+            'realmName' => 'cleanup-realm',
             'enabled' => false,
         ]);
     }

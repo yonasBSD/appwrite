@@ -36,6 +36,7 @@ use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Get as GetOAuth2Provid
 use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\GitHub\Update as UpdateOAuth2GitHub;
 use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Gitlab\Update as UpdateOAuth2Gitlab;
 use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Google\Update as UpdateOAuth2Google;
+use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Keycloak\Update as UpdateOAuth2Keycloak;
 use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Kick\Update as UpdateOAuth2Kick;
 use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Linkedin\Update as UpdateOAuth2Linkedin;
 use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Microsoft\Update as UpdateOAuth2Microsoft;
@@ -212,6 +213,7 @@ class Http extends Service
         $this->addAction(UpdateOAuth2Authentik::getName(), new UpdateOAuth2Authentik());
         $this->addAction(UpdateOAuth2Auth0::getName(), new UpdateOAuth2Auth0());
         $this->addAction(UpdateOAuth2FusionAuth::getName(), new UpdateOAuth2FusionAuth());
+        $this->addAction(UpdateOAuth2Keycloak::getName(), new UpdateOAuth2Keycloak());
         $this->addAction(UpdateOAuth2Oidc::getName(), new UpdateOAuth2Oidc());
         $this->addAction(UpdateOAuth2Okta::getName(), new UpdateOAuth2Okta());
         $this->addAction(UpdateOAuth2Kick::getName(), new UpdateOAuth2Kick());

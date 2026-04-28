@@ -312,6 +312,7 @@ class Response extends SwooleResponse
     public const MODEL_OAUTH2_AUTHENTIK = 'oAuth2Authentik';
     public const MODEL_OAUTH2_AUTH0 = 'oAuth2Auth0';
     public const MODEL_OAUTH2_FUSIONAUTH = 'oAuth2FusionAuth';
+    public const MODEL_OAUTH2_KEYCLOAK = 'oAuth2Keycloak';
     public const MODEL_OAUTH2_OIDC = 'oAuth2Oidc';
     public const MODEL_OAUTH2_APPLE = 'oAuth2Apple';
     public const MODEL_OAUTH2_OKTA = 'oAuth2Okta';
