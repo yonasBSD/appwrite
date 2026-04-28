@@ -573,8 +573,8 @@ return function (Container $container): void {
 
         // Impersonation: if current user has impersonator capability and headers/params are set, act as another user
         $impersonateUserId = $request->getHeader('x-appwrite-impersonate-user-id', $request->getParam('impersonateUserId', ''));
-        $impersonateEmail = $request->getHeader('x-appwrite-impersonate-user-email', $request->getParam('impersonateEmail', ''));
-        $impersonatePhone = $request->getHeader('x-appwrite-impersonate-user-phone', $request->getParam('impersonatePhone', ''));
+        $impersonateEmail = $request->getHeader('x-appwrite-impersonate-user-email', '');
+        $impersonatePhone = $request->getHeader('x-appwrite-impersonate-user-phone', '');
         if (!$user->isEmpty() && $user->getAttribute('impersonator', false)) {
             $userDb = (APP_MODE_ADMIN === $mode || $project->getId() === 'console') ? $dbForPlatform : $dbForProject;
             $targetUser = null;
