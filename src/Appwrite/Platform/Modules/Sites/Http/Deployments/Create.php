@@ -260,6 +260,8 @@ class Create extends Action
                     'sourcePath' => $path,
                     'sourceSize' => $fileSize,
                     'totalSize' => $fileSize,
+                    'sourceChunksTotal' => $chunks,
+                    'sourceChunksUploaded' => $chunksUploaded,
                     'activate' => $activate,
                     'sourceMetadata' => $metadata,
                     'type' => $type,
