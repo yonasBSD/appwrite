@@ -1991,6 +1991,120 @@ trait MigrationsBase
     }
 
     /**
+     * Source drops + recreates a column with the EXACT same spec. createdAt
+     * advances on source, but the spec-match guard short-circuits the
+     * DropAndRecreate to Tolerate — dest's column meta doc stays untouched
+     * (verified via $createdAt invariance). Row pass under Upsert still
+     * propagates source's new row values via upsertDocuments.
+     *
+     * Companion to testAppwriteMigrationUpsertAttributeRecreateDropsAndRecreates
+     * which exercises the spec-DIFFERS path: same precondition, different
+     * outcome based on whether spec matches.
+     */
+    public function testAppwriteMigrationUpsertSameSpecRecreateTolerates(): void
+    {
+        $sourceHeaders = [
+            'content-type' => 'application/json',
+            'x-appwrite-project' => $this->getProject()['$id'],
+            'x-appwrite-key' => $this->getProject()['apiKey'],
+        ];
+        $destHeaders = [
+            'content-type' => 'application/json',
+            'x-appwrite-project' => $this->getDestinationProject()['$id'],
+            'x-appwrite-key' => $this->getDestinationProject()['apiKey'],
+        ];
+
+        $data = $this->setupMigrationTable();
+        $databaseId = $data['databaseId'];
+        $tableId = $data['tableId'];
+        $rowId = 'row-spec-match';
+
+        $this->client->call(Client::METHOD_POST, '/tablesdb/' . $databaseId . '/tables/' . $tableId . '/rows', $sourceHeaders, [
+            'rowId' => $rowId,
+            'data' => ['name' => 'before-recreate'],
+        ]);
+
+        $resources = [
+            Resource::TYPE_DATABASE,
+            Resource::TYPE_TABLE,
+            Resource::TYPE_COLUMN,
+            Resource::TYPE_ROW,
+        ];
+
+        $first = $this->performMigrationSync([
+            'resources' => $resources,
+            'endpoint' => $this->webEndpoint,
+            'projectId' => $this->getProject()['$id'],
+            'apiKey' => $this->getProject()['apiKey'],
+        ]);
+        $this->assertEquals('completed', $first['status']);
+
+        $destBefore = $this->client->call(Client::METHOD_GET, '/tablesdb/' . $databaseId . '/tables/' . $tableId . '/columns/name', $destHeaders);
+        $this->assertEquals(200, $destBefore['headers']['status-code']);
+        $destCreatedAtBefore = $destBefore['body']['$createdAt'];
+
+        sleep(1);
+
+        // Drop + recreate with the EXACT same spec as setupMigrationTable
+        // (size=100, required=true). Source's $createdAt advances but the
+        // spec is identical → spec-match guard must force Tolerate.
+        $delete = $this->client->call(Client::METHOD_DELETE, '/tablesdb/' . $databaseId . '/tables/' . $tableId . '/columns/name', $sourceHeaders);
+        $this->assertEquals(204, $delete['headers']['status-code']);
+
+        $this->assertEventually(function () use ($databaseId, $tableId, $sourceHeaders) {
+            $r = $this->client->call(Client::METHOD_GET, '/tablesdb/' . $databaseId . '/tables/' . $tableId . '/columns/name', $sourceHeaders);
+            $this->assertEquals(404, $r['headers']['status-code']);
+        }, 10000, 500);
+
+        $recreate = $this->client->call(Client::METHOD_POST, '/tablesdb/' . $databaseId . '/tables/' . $tableId . '/columns/string', $sourceHeaders, [
+            'key' => 'name',
+            'size' => 100,
+            'required' => true,
+        ]);
+        $this->assertEquals(202, $recreate['headers']['status-code']);
+
+        $this->assertEventually(function () use ($databaseId, $tableId, $sourceHeaders) {
+            $r = $this->client->call(Client::METHOD_GET, '/tablesdb/' . $databaseId . '/tables/' . $tableId . '/columns/name', $sourceHeaders);
+            $this->assertEquals(200, $r['headers']['status-code']);
+            $this->assertEquals('available', $r['body']['status']);
+        }, 10000, 500);
+
+        $relink = $this->client->call(Client::METHOD_PATCH, '/tablesdb/' . $databaseId . '/tables/' . $tableId . '/rows/' . $rowId, $sourceHeaders, [
+            'data' => ['name' => 'after-recreate'],
+        ]);
+        $this->assertEquals(200, $relink['headers']['status-code']);
+
+        $upsertResult = $this->performMigrationSync([
+            'resources' => $resources,
+            'endpoint' => $this->webEndpoint,
+            'projectId' => $this->getProject()['$id'],
+            'apiKey' => $this->getProject()['apiKey'],
+            'onDuplicate' => 'upsert',
+        ]);
+        $this->assertEquals('completed', $upsertResult['status']);
+
+        // Spec-match guard fired → dest column's $createdAt stayed at the
+        // first-migration value. If DropAndRecreate had run, $createdAt
+        // would have been bumped to source's NEW createdAt.
+        $destAfter = $this->client->call(Client::METHOD_GET, '/tablesdb/' . $databaseId . '/tables/' . $tableId . '/columns/name', $destHeaders);
+        $this->assertEquals(200, $destAfter['headers']['status-code']);
+        $this->assertEquals($destCreatedAtBefore, $destAfter['body']['$createdAt'], 'spec-match guard must keep dest column meta untouched');
+        $this->assertEquals(100, $destAfter['body']['size']);
+        $this->assertTrue($destAfter['body']['required']);
+
+        // Row pass under Upsert still propagated source's new row value.
+        $rowAfter = $this->client->call(Client::METHOD_GET, '/tablesdb/' . $databaseId . '/tables/' . $tableId . '/rows/' . $rowId, $destHeaders);
+        $this->assertEquals(200, $rowAfter['headers']['status-code']);
+        $this->assertEquals('after-recreate', $rowAfter['body']['name']);
+
+        $this->client->call(Client::METHOD_DELETE, '/databases/' . $databaseId, $destHeaders);
+        $this->client->call(Client::METHOD_DELETE, '/databases/' . $databaseId, $sourceHeaders);
+
+        self::$cachedDatabaseData = [];
+        self::$cachedTableData = [];
+    }
+
+    /**
      * Storage
      */
     public function testAppwriteMigrationStorageBucket(): void
