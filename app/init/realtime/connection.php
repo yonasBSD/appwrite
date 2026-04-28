@@ -327,9 +327,9 @@ return function (Container $container): void {
             }
         }
 
-        $impersonateUserId = $request->getHeader('x-appwrite-impersonate-user-id', '');
-        $impersonateEmail = $request->getHeader('x-appwrite-impersonate-user-email', '');
-        $impersonatePhone = $request->getHeader('x-appwrite-impersonate-user-phone', '');
+        $impersonateUserId = $request->getHeader('x-appwrite-impersonate-user-id', $request->getParam('impersonateUserId', ''));
+        $impersonateEmail = $request->getHeader('x-appwrite-impersonate-user-email', $request->getParam('impersonateEmail', ''));
+        $impersonatePhone = $request->getHeader('x-appwrite-impersonate-user-phone', $request->getParam('impersonatePhone', ''));
 
         if (!$user->isEmpty() && $user->getAttribute('impersonator', false)) {
             $userDb = ($mode === APP_MODE_ADMIN || $project->getId() === 'console') ? $dbForPlatform : $dbForProject;
