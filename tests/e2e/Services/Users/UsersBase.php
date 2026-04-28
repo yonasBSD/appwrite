@@ -2746,7 +2746,8 @@ trait UsersBase
         $this->assertEquals(201, $session['headers']['status-code']);
         $sessionSecret = $session['body']['secret'];
 
-        // Query param works when Sec-Fetch-Site indicates a same-origin browser request
+        // Query param works only when Sec-Fetch-Site is exactly same-origin.
+        // same-site is intentionally excluded to prevent subdomain-based CSRF attacks.
         $account = $this->client->call(Client::METHOD_GET, '/account', [
             'content-type' => 'application/json',
             'x-appwrite-project' => $projectId,

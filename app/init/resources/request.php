@@ -577,7 +577,7 @@ return function (Container $container): void {
         // Query-param fallback is blocked for cross-site requests (Sec-Fetch-Site: cross-site) to prevent CSRF;
         // Sec-Fetch-Site is a browser-enforced forbidden header that cannot be spoofed by JavaScript.
         $fetchSite = $request->getHeader('sec-fetch-site', '');
-        $isSameOrigin = \in_array($fetchSite, ['same-origin', 'same-site'], true);
+        $isSameOrigin = $fetchSite === 'same-origin';
         $impersonateUserId = $request->getHeader('x-appwrite-impersonate-user-id', $isSameOrigin ? (string)$request->getParam('impersonateUserId', '') : '');
         $impersonateEmail = $request->getHeader('x-appwrite-impersonate-user-email', '');
         $impersonatePhone = $request->getHeader('x-appwrite-impersonate-user-phone', '');
