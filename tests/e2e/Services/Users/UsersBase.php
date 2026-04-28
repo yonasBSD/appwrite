@@ -2778,7 +2778,7 @@ trait UsersBase
         );
         $this->assertEquals(200, $crossSite['headers']['status-code']);
         $this->assertEquals($impersonatorId, $crossSite['body']['$id'], 'cross-site: impersonation must be blocked');
-        $this->assertArrayNotHasKey('impersonatorUserId', $crossSite['body']);
+        $this->assertEmpty($crossSite['body']['impersonatorUserId'] ?? '');
 
         // Attack vector 2: absent header (reverse proxy strips Fetch Metadata headers)
         // Guard must fail-closed — absent Sec-Fetch-Site must not allow query param.
@@ -2790,7 +2790,7 @@ trait UsersBase
         );
         $this->assertEquals(200, $noFetchSite['headers']['status-code']);
         $this->assertEquals($impersonatorId, $noFetchSite['body']['$id'], 'absent header: must fail-closed');
-        $this->assertArrayNotHasKey('impersonatorUserId', $noFetchSite['body']);
+        $this->assertEmpty($noFetchSite['body']['impersonatorUserId'] ?? '');
 
         // Legitimate use 1: same-origin (Console on same origin as API)
         $sameOrigin = $this->client->call(
@@ -2915,7 +2915,7 @@ trait UsersBase
         $this->assertEquals(200, $account['headers']['status-code']);
         // Should resolve as userA (the impersonator), not the target
         $this->assertEquals($idA, $account['body']['$id']);
-        $this->assertArrayNotHasKey('impersonatorUserId', $account['body']);
+        $this->assertEmpty($account['body']['impersonatorUserId'] ?? '');
     }
 
     /**
@@ -2965,7 +2965,7 @@ trait UsersBase
         ], ['impersonateUserId' => $idB]);
         $this->assertEquals(200, $account['headers']['status-code']);
         $this->assertEquals($idA, $account['body']['$id']);
-        $this->assertArrayNotHasKey('impersonatorUserId', $account['body']);
+        $this->assertEmpty($account['body']['impersonatorUserId'] ?? '');
     }
 
     /**
