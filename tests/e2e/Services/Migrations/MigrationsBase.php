@@ -761,15 +761,7 @@ trait MigrationsBase
         self::$cachedTableData = [];
     }
 
-    /**
-     * Appwrite → Appwrite row re-migration honoring onDuplicate=skip and onDuplicate=upsert.
-     *
-     * With utopia-php/migration's DestinationAppwrite handling schema tolerance
-     * (pre-check the destination `_metadata` for each database / table / column
-     * / index, tolerate existing in Skip/Upsert), re-migration completes
-     * cleanly — no more schema-level errors to tolerate. The test asserts
-     * strict 'completed' status via performMigrationSync on every run.
-     */
+    /** Rows under all three modes; schema tolerance lets every run hit 'completed'. */
     public function testAppwriteMigrationRowsOnDuplicate(): void
     {
         $sourceHeaders = [
@@ -854,14 +846,7 @@ trait MigrationsBase
         self::$cachedTableData = [];
     }
 
-    /**
-     * Re-migrating unchanged source (Skip / Upsert) completes cleanly without
-     * touching destination rows. Proves the schema-tolerance path: every
-     * database / table / attribute on destination already exists with a
-     * matching spec, so DestinationAppwrite's pre-check returns Tolerate for
-     * every resource and no-ops row writes go through the DB-native conflict
-     * primitives (INSERT IGNORE / ON DUPLICATE KEY UPDATE).
-     */
+    /** Unchanged source under Skip/Upsert is a no-op — every resource Tolerated. */
     public function testAppwriteMigrationReRunIsIdempotent(): void
     {
         $sourceHeaders = [
@@ -939,13 +924,7 @@ trait MigrationsBase
         self::$cachedTableData = [];
     }
 
-    /**
-     * Upsert re-migration reconciles container metadata drift: when source's
-     * database or table was modified between runs (rename, enabled flag,
-     * permissions tightening), the Upsert pre-check returns UpdateInPlace
-     * and migration's updateDocument propagates source values to dest.
-     * Children (rows) are preserved.
-     */
+    /** Upsert reconciles container drift via UpdateInPlace; children (rows) preserved. */
     public function testAppwriteMigrationUpsertUpdatesContainerMetadata(): void
     {
         $sourceHeaders = [
@@ -1035,14 +1014,7 @@ trait MigrationsBase
         self::$cachedTableData = [];
     }
 
-    /**
-     * Skip mode is strict "don't touch" — destination container metadata
-     * drift (permissions tightened post-migration, rename on dest) is
-     * preserved on every re-run, even when source has diverged. Guards
-     * against a common production workflow: dev→prod migrate, ops tightens
-     * prod permissions, later schema-only re-sync must not wipe out the
-     * tightening.
-     */
+    /** Skip preserves dest container drift even when source has diverged. */
     public function testAppwriteMigrationSkipPreservesContainerDrift(): void
     {
         $sourceHeaders = [
@@ -1117,14 +1089,7 @@ trait MigrationsBase
         self::$cachedTableData = [];
     }
 
-    /**
-     * Upsert re-migration reconciles column-level drift: a column that
-     * exists only on destination (e.g. from a subsequent dest-side edit, or
-     * left over after a source-side rename) must be dropped so destination's
-     * schema matches what source declares. Source-declared columns are
-     * preserved. Rows land after the orphan drop so row upsert doesn't
-     * fail on orphan required columns.
-     */
+    /** Upsert drops dest columns source no longer declares; cleanup runs before rows land. */
     public function testAppwriteMigrationUpsertDropsOrphanColumn(): void
     {
         $sourceHeaders = [
@@ -1211,11 +1176,7 @@ trait MigrationsBase
         self::$cachedTableData = [];
     }
 
-    /**
-     * Skip mode never touches destination, including orphan columns.
-     * Pairs with testAppwriteMigrationUpsertDropsOrphanColumn to prove the
-     * cleanup is gated correctly: only Upsert reconciles, Skip tolerates.
-     */
+    /** Skip preserves orphan columns; cleanup is Upsert-only. */
     public function testAppwriteMigrationSkipKeepsOrphanColumn(): void
     {
         $sourceHeaders = [
@@ -1291,14 +1252,7 @@ trait MigrationsBase
         self::$cachedTableData = [];
     }
 
-    /**
-     * Upsert reconciles attribute-level metadata edits using the Appwrite SDK's
-     * per-type updateXAttribute endpoint instead of drop+recreate. Source-side
-     * PATCH of fields the SDK can express (`required`, `default`, `size` for
-     * strings) — same `$createdAt` on both sides, source `$updatedAt` newer —
-     * routes through `updateAttributeInPlace` on DestinationAppwrite. Existing
-     * row data must survive (drop+recreate would have wiped the column).
-     */
+    /** SDK-reachable attribute change propagates via updateAttributeInPlace; row data preserved. */
     public function testAppwriteMigrationUpsertUpdatesAttributeInPlace(): void
     {
         $sourceHeaders = [
@@ -1396,14 +1350,7 @@ trait MigrationsBase
         self::$cachedTableData = [];
     }
 
-    /**
-     * Skip mode is "don't touch" at the attribute level too: destination
-     * column drift (ops loosened a column post-migration) must survive a
-     * Skip re-run, even when source's `$updatedAt` is strictly newer.
-     * Pairs with testAppwriteMigrationSkipPreservesContainerDrift but
-     * exercises the leaf path (`canDrop = true`) instead of the container
-     * path. Regression guard against Skip ever consulting timestamps.
-     */
+    /** Skip preserves dest attribute drift; leaf-level analog of the container drift test. */
     public function testAppwriteMigrationSkipPreservesAttributeDrift(): void
     {
         $sourceHeaders = [
@@ -1489,17 +1436,7 @@ trait MigrationsBase
         self::$cachedTableData = [];
     }
 
-    /**
-     * Upsert reconciles two-way relationship `onDelete` drift via the SDK's
-     * updateRelationshipAttribute (only `onDelete`/`newKey` are SDK-reachable).
-     * Two-way is required to exercise updateRelationshipInPlace — one-way +
-     * onDelete change falls through to DropAndRecreate (utopia's
-     * updateRelationship partner-cascade throws on one-way).
-     *
-     * Asserts both sides of the relationship reflect the new onDelete on dest:
-     * utopia's updateRelationship syncs the physical constraint on both sides,
-     * but the Appwrite-level partner meta doc has to be refreshed explicitly.
-     */
+    /** Two-way onDelete change updates in place on both sides; partner meta refreshed by hand. */
     public function testAppwriteMigrationUpsertUpdatesRelationshipOnDeleteInPlace(): void
     {
         $sourceHeaders = [
@@ -1621,16 +1558,7 @@ trait MigrationsBase
         self::$cachedTableData = [];
     }
 
-    /**
-     * Two-way DropAndRecreate path: source recreates the relationship between
-     * runs (createdAt diff). Without partner-side pair-key dedup, the second
-     * createField pass for the partner can re-fire DropAndRecreate after the
-     * first side already reconciled both physical columns, destroying rows
-     * already migrated to the partner table this run.
-     *
-     * Asserts: migration completes, both sides exist on dest, child rows
-     * referencing the parent are preserved end-to-end.
-     */
+    /** Pair-key dedup prevents partner DropAndRecreate from wiping rows already migrated this run. */
     public function testAppwriteMigrationUpsertTwoWayRecreateSkipsPartnerSide(): void
     {
         $sourceHeaders = [
@@ -1775,14 +1703,7 @@ trait MigrationsBase
         self::$cachedTableData = [];
     }
 
-    /**
-     * One-way + onDelete change is gated to false in updateRelationshipInPlace
-     * (utopia's updateRelationship partner-cascade throws on one-way), so the
-     * caller falls through to DropAndRecreate via deleteRelationship. Asserts
-     * dest's onDelete reflects source's new value end-to-end. Companion to
-     * testAppwriteMigrationUpsertUpdatesRelationshipOnDeleteInPlace which
-     * exercises the two-way in-place path.
-     */
+    /** One-way + onDelete change falls through to DropAndRecreate (in-place gated off for one-way). */
     public function testAppwriteMigrationUpsertOneWayRelationshipDropAndRecreate(): void
     {
         $sourceHeaders = [
@@ -1885,14 +1806,7 @@ trait MigrationsBase
         self::$cachedTableData = [];
     }
 
-    /**
-     * Source drops + recreates a regular attribute between runs (createdAt
-     * differs, leaf, canDrop=true). Re-migration must DropAndRecreate the
-     * destination attribute and re-flow the row data — proving the
-     * createdAt-aware decision distinguishes "physically recreated" from
-     * "metadata edit". Pairs with testAppwriteMigrationUpsertUpdatesAttributeInPlace
-     * which exercises the same-createdAt + newer-updatedAt path.
-     */
+    /** Source drops+recreates with DIFFERENT spec: DropAndRecreate, row pass refills. */
     public function testAppwriteMigrationUpsertAttributeRecreateDropsAndRecreates(): void
     {
         $sourceHeaders = [
@@ -1990,17 +1904,7 @@ trait MigrationsBase
         self::$cachedTableData = [];
     }
 
-    /**
-     * Source drops + recreates a column with the EXACT same spec. createdAt
-     * advances on source, but the spec-match guard short-circuits the
-     * DropAndRecreate to Tolerate — dest's column meta doc stays untouched
-     * (verified via $createdAt invariance). Row pass under Upsert still
-     * propagates source's new row values via upsertDocuments.
-     *
-     * Companion to testAppwriteMigrationUpsertAttributeRecreateDropsAndRecreates
-     * which exercises the spec-DIFFERS path: same precondition, different
-     * outcome based on whether spec matches.
-     */
+    /** Source drops+recreates with SAME spec: spec-match guard forces Tolerate; dest meta untouched. */
     public function testAppwriteMigrationUpsertSameSpecRecreateTolerates(): void
     {
         $sourceHeaders = [
