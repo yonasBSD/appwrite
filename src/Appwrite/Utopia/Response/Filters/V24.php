@@ -26,10 +26,21 @@ class V24 extends Filter
         unset($content['sdks']);
         unset($content['accessedAt']);
 
+        $projectId = '';
+        if (isset($content['secret'])) {
+            $parts = explode('_', $content['secret'], 2);
+            if (count($parts) === 2) {
+                $jwtParts = explode('.', $parts[1]);
+                if (count($jwtParts) >= 2) {
+                    $payload = json_decode(base64_decode(str_replace(['-', '_'], ['+', '/'], $jwtParts[1])), true);
+                    $projectId = $payload['projectId'] ?? '';
+                }
+            }
+        }
+        $content['projectId'] = $projectId;
+
         $content['jwt'] = $content['secret'] ?? '';
         unset($content['secret']);
-
-        $content['projectId'] = 'WHAT DO I DO NOW?!';
 
         return $content;
     }
