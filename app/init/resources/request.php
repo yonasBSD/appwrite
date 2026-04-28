@@ -574,7 +574,7 @@ return function (Container $container): void {
         // Impersonation: if current user has impersonator capability and headers/params are set, act as another user
         // impersonateUserId also accepts a query param to allow embedding in direct file/image URLs (e.g. <img src>)
         // where custom headers cannot be set. Email and phone are intentionally header-only to avoid PII in URLs/logs.
-        $impersonateUserId = $request->getHeader('x-appwrite-impersonate-user-id', $request->getParam('impersonateUserId', ''));
+        $impersonateUserId = $request->getHeader('x-appwrite-impersonate-user-id', (string)$request->getParam('impersonateUserId', ''));
         $impersonateEmail = $request->getHeader('x-appwrite-impersonate-user-email', '');
         $impersonatePhone = $request->getHeader('x-appwrite-impersonate-user-phone', '');
         if (!$user->isEmpty() && $user->getAttribute('impersonator', false)) {

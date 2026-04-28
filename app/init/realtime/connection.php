@@ -329,7 +329,7 @@ return function (Container $container): void {
 
         // impersonateUserId also accepts a query param to support embedding in WebSocket URLs.
         // Email and phone are intentionally header-only to avoid PII exposure in proxy/LB logs.
-        $impersonateUserId = $request->getHeader('x-appwrite-impersonate-user-id', $request->getParam('impersonateUserId', ''));
+        $impersonateUserId = $request->getHeader('x-appwrite-impersonate-user-id', (string)$request->getParam('impersonateUserId', ''));
         $impersonateEmail = $request->getHeader('x-appwrite-impersonate-user-email', '');
         $impersonatePhone = $request->getHeader('x-appwrite-impersonate-user-phone', '');
 
