@@ -4,7 +4,7 @@ namespace Appwrite\Utopia\Response\Model;
 
 use Appwrite\Utopia\Response;
 
-class DynamicKey extends Key
+class EphemeralKey extends Key
 {
     public function __construct()
     {
@@ -18,7 +18,7 @@ class DynamicKey extends Key
      */
     public function getName(): string
     {
-        return 'Dynamic Key';
+        return 'Ephemeral Key';
     }
 
     /**
@@ -28,6 +28,6 @@ class DynamicKey extends Key
      */
     public function getType(): string
     {
-        return Response::MODEL_DYNAMIC_KEY;
+        return Response::MODEL_EPHEMERAL_KEY;
     }
 }

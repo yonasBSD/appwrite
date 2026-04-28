@@ -14,12 +14,12 @@ class V24 extends Filter
     public function parse(array $content, string $model): array
     {
         return match ($model) {
-            Response::MODEL_DYNAMIC_KEY => $this->parseDynamicKey($content),
+            Response::MODEL_EPHEMERAL_KEY => $this->parseEphemeralKey($content),
             default => $content,
         };
     }
 
-    private function parseDynamicKey(array $content): array
+    private function parseEphemeralKey(array $content): array
     {
         unset($content['$id']);
         unset($content['$createdAt']);

@@ -1,6 +1,6 @@
 <?php
 
-namespace Appwrite\Platform\Modules\Project\Http\Project\Keys\Dynamic;
+namespace Appwrite\Platform\Modules\Project\Http\Project\Keys\Ephemeral;
 
 use Ahc\Jwt\JWT;
 use Appwrite\Event\Event as QueueEvent;
@@ -26,16 +26,16 @@ class Create extends Base
 
     public static function getName()
     {
-        return 'createDynamicProjectKey';
+        return 'createEphemeralProjectKey';
     }
 
     public function __construct()
     {
         $this
             ->setHttpMethod(Action::HTTP_REQUEST_METHOD_POST)
-            ->setHttpPath('/v1/project/keys/dynamic')
+            ->setHttpPath('/v1/project/keys/ephemeral')
             ->httpAlias('/v1/projects/:projectId/jwts')
-            ->desc('Create dynamic project key')
+            ->desc('Create ephemeral project key')
             ->groups(['api', 'project'])
             ->label('scope', 'keys.write')
             ->label('event', 'keys.[keyId].create')
@@ -44,22 +44,22 @@ class Create extends Base
             ->label('sdk', new Method(
                 namespace: 'project',
                 group: 'keys',
-                name: 'createDynamicKey',
+                name: 'createEphemeralKey',
                 description: <<<EOT
-                Create a new dynamic API key. It's recommended to have multiple API keys with strict scopes for separate functions within your project.
-                
+                Create a new ephemeral API key. It's recommended to have multiple API keys with strict scopes for separate functions within your project.
+
                 You can also create a standard API key if you need a longer-lived key instead.
                 EOT,
                 auth: [AuthType::ADMIN, AuthType::KEY],
                 responses: [
                     new SDKResponse(
                         code: Response::STATUS_CODE_CREATED,
-                        model: Response::MODEL_DYNAMIC_KEY,
+                        model: Response::MODEL_EPHEMERAL_KEY,
                     )
                 ],
             ))
             ->param('scopes', [], new ArrayList(new WhiteList(array_keys(Config::getParam('projectScopes')), true), APP_LIMIT_ARRAY_PARAMS_SIZE), 'Key scopes list. Maximum of ' . APP_LIMIT_ARRAY_PARAMS_SIZE . ' scopes are allowed.', optional: false)
-            ->param('duration', 900, new Range(1, 3600), 'Time in seconds before dynamic key expires. Default duration is 900 seconds, and maximum is 3600 seconds.', true)
+            ->param('duration', 900, new Range(1, 3600), 'Time in seconds before ephemeral key expires. Default duration is 900 seconds, and maximum is 3600 seconds.', true)
             ->inject('response')
             ->inject('queueForEvents')
             ->inject('project')
@@ -94,13 +94,13 @@ class Create extends Base
             'expire' => $expire,
             'sdks' => [],
             'accessedAt' => null,
-            'secret' => API_KEY_DYNAMIC . '_' . $secret,
+            'secret' => API_KEY_EPHEMERAL . '_' . $secret,
         ]);
 
         $queueForEvents->setParam('keyId', $key->getId());
 
         $response
             ->setStatusCode(Response::STATUS_CODE_CREATED)
-            ->dynamic($key, Response::MODEL_DYNAMIC_KEY);
+            ->dynamic($key, Response::MODEL_EPHEMERAL_KEY);
     }
 }

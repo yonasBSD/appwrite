@@ -399,7 +399,7 @@ function router(Http $utopia, Database $dbForPlatform, callable $getProjectDB, S
             'projectId' => $project->getId(),
             'scopes' => $resource->getAttribute('scopes', [])
         ]);
-        $headers['x-appwrite-key'] = API_KEY_DYNAMIC . '_' . $jwtKey;
+        $headers['x-appwrite-key'] = API_KEY_EPHEMERAL . '_' . $jwtKey;
         $headers['x-appwrite-trigger'] = 'http';
         $headers['x-appwrite-user-jwt'] = '';
 
