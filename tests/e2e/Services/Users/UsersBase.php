@@ -2709,6 +2709,106 @@ trait UsersBase
     }
 
     /**
+     * Proves that the Sec-Fetch-Site CSRF guard prevents forced impersonation via query params.
+     *
+     * Attack scenario (without the guard):
+     *   A malicious page on attacker.com embeds:
+     *   <img src="https://appwrite.io/v1/storage/.../view?impersonateUserId=victim_id">
+     *   The browser automatically attaches the impersonator's session cookies.
+     *   Without any guard, the server would impersonate victim_id silently.
+     *
+     * Why Sec-Fetch-Site works:
+     *   Browsers set Sec-Fetch-Site: cross-site on all cross-origin requests (img, fetch, etc.).
+     *   It is a browser-enforced forbidden header — JavaScript cannot set or spoof it.
+     *   We only accept ?impersonateUserId when Sec-Fetch-Site is exactly same-origin.
+     *
+     * This test proves three attack vectors are all blocked:
+     *   1. cross-site  — attacker.com embeds <img> pointing at Appwrite
+     *   2. same-site   — attacker controls a subdomain (e.g. evil.appwrite.io)
+     *   3. absent      — reverse proxy strips Fetch Metadata headers (fail-closed)
+     */
+    public function testImpersonateQueryParamCsrfAttackPrevented(): void
+    {
+        $projectId = $this->getProject()['$id'];
+        $headers = array_merge([
+            'content-type' => 'application/json',
+            'x-appwrite-project' => $projectId,
+        ], $this->getHeaders());
+
+        // Impersonator user (the victim whose session gets hijacked in the attack)
+        $impersonator = $this->client->call(Client::METHOD_POST, '/users', $headers, [
+            'userId' => ID::unique(),
+            'email' => 'csrf-guard-impersonator@appwrite.io',
+            'password' => 'password',
+            'name' => 'CSRF Guard Impersonator',
+        ]);
+        $this->assertEquals(201, $impersonator['headers']['status-code']);
+        $impersonatorId = $impersonator['body']['$id'];
+
+        // Target user (who the attacker wants to impersonate)
+        $target = $this->client->call(Client::METHOD_POST, '/users', $headers, [
+            'userId' => ID::unique(),
+            'email' => 'csrf-guard-target@appwrite.io',
+            'password' => 'password',
+            'name' => 'CSRF Guard Target',
+        ]);
+        $this->assertEquals(201, $target['headers']['status-code']);
+        $targetId = $target['body']['$id'];
+
+        $this->client->call(Client::METHOD_PATCH, '/users/' . $impersonatorId . '/impersonator', $headers, ['impersonator' => true]);
+
+        $session = $this->client->call(Client::METHOD_POST, '/users/' . $impersonatorId . '/sessions', $headers);
+        $this->assertEquals(201, $session['headers']['status-code']);
+        $sessionSecret = $session['body']['secret'];
+
+        $sessionHeaders = [
+            'content-type' => 'application/json',
+            'x-appwrite-project' => $projectId,
+            'x-appwrite-session' => $sessionSecret,
+        ];
+
+        // Attack vector 1: cross-site (attacker.com embeds <img src="...?impersonateUserId=victim">)
+        // Browser sends Sec-Fetch-Site: cross-site — must be blocked.
+        $crossSite = $this->client->call(Client::METHOD_GET, '/account',
+            array_merge($sessionHeaders, ['sec-fetch-site' => 'cross-site']),
+            ['impersonateUserId' => $targetId]
+        );
+        $this->assertEquals(200, $crossSite['headers']['status-code']);
+        $this->assertEquals($impersonatorId, $crossSite['body']['$id'], 'cross-site: impersonation must be blocked');
+        $this->assertArrayNotHasKey('impersonatorUserId', $crossSite['body']);
+
+        // Attack vector 2: same-site (attacker controls evil.appwrite.io subdomain)
+        // Browser sends Sec-Fetch-Site: same-site — must also be blocked.
+        $sameSite = $this->client->call(Client::METHOD_GET, '/account',
+            array_merge($sessionHeaders, ['sec-fetch-site' => 'same-site']),
+            ['impersonateUserId' => $targetId]
+        );
+        $this->assertEquals(200, $sameSite['headers']['status-code']);
+        $this->assertEquals($impersonatorId, $sameSite['body']['$id'], 'same-site: subdomain attack must be blocked');
+        $this->assertArrayNotHasKey('impersonatorUserId', $sameSite['body']);
+
+        // Attack vector 3: absent header (reverse proxy strips Fetch Metadata headers)
+        // Guard must fail-closed — absent Sec-Fetch-Site must not allow query param.
+        $noFetchSite = $this->client->call(Client::METHOD_GET, '/account',
+            $sessionHeaders,
+            ['impersonateUserId' => $targetId]
+        );
+        $this->assertEquals(200, $noFetchSite['headers']['status-code']);
+        $this->assertEquals($impersonatorId, $noFetchSite['body']['$id'], 'absent header: must fail-closed');
+        $this->assertArrayNotHasKey('impersonatorUserId', $noFetchSite['body']);
+
+        // Legitimate use: same-origin (Console loading a file URL with impersonation embedded)
+        // Browser sends Sec-Fetch-Site: same-origin — must succeed.
+        $sameOrigin = $this->client->call(Client::METHOD_GET, '/account',
+            array_merge($sessionHeaders, ['sec-fetch-site' => 'same-origin']),
+            ['impersonateUserId' => $targetId]
+        );
+        $this->assertEquals(200, $sameOrigin['headers']['status-code']);
+        $this->assertEquals($targetId, $sameOrigin['body']['$id'], 'same-origin: impersonation must succeed');
+        $this->assertEquals($impersonatorId, $sameOrigin['body']['impersonatorUserId']);
+    }
+
+    /**
      * Test impersonation via ?impersonateUserId= query param (same-origin browser request).
      * This is the primary use case for embedding impersonation in file/image URLs where
      * custom headers cannot be set (e.g. <img src>, deployment source/output download links).
