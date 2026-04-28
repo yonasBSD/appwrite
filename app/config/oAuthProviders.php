@@ -167,6 +167,17 @@ return [
         'mock' => false,
         'class' => 'Appwrite\\Auth\\OAuth2\\Figma',
     ],
+    'fusionauth' => [
+        'name' => 'FusionAuth',
+        'developers' => 'https://fusionauth.io/docs/',
+        'icon' => 'icon-fusionauth',
+        'enabled' => true,
+        'sandbox' => false,
+        'form' => 'fusionauth.phtml',
+        'beta' => false,
+        'mock' => false,
+        'class' => 'Appwrite\\Auth\\OAuth2\\FusionAuth',
+    ],
     'github' => [
         'name' => 'GitHub',
         'developers' => 'https://developer.github.com/',

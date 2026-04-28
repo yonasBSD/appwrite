@@ -311,6 +311,7 @@ abstract class Base extends Action
             'gitlab' => Gitlab\Update::class,
             'authentik' => Authentik\Update::class,
             'auth0' => Auth0\Update::class,
+            'fusionauth' => FusionAuth\Update::class,
             'oidc' => Oidc\Update::class,
             'okta' => Okta\Update::class,
             'kick' => Kick\Update::class,

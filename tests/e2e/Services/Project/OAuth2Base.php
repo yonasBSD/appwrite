@@ -64,6 +64,7 @@ trait OAuth2Base
             'apple',
             'auth0',
             'authentik',
+            'fusionauth',
             'gitlab',
             'oidc',
             'okta',
@@ -95,11 +96,11 @@ trait OAuth2Base
         $expected = [
             'amazon', 'apple', 'auth0', 'authentik', 'autodesk', 'bitbucket',
             'bitly', 'box', 'dailymotion', 'discord', 'disqus', 'dropbox',
-            'etsy', 'facebook', 'figma', 'github', 'gitlab', 'google', 'kick',
-            'linkedin', 'microsoft', 'notion', 'oidc', 'okta', 'paypal',
-            'paypalSandbox', 'podio', 'salesforce', 'slack', 'spotify',
-            'stripe', 'tradeshift', 'tradeshiftBox', 'twitch', 'wordpress',
-            'x', 'yahoo', 'yandex', 'zoho', 'zoom',
+            'etsy', 'facebook', 'figma', 'fusionauth', 'github', 'gitlab',
+            'google', 'kick', 'linkedin', 'microsoft', 'notion', 'oidc',
+            'okta', 'paypal', 'paypalSandbox', 'podio', 'salesforce', 'slack',
+            'spotify', 'stripe', 'tradeshift', 'tradeshiftBox', 'twitch',
+            'wordpress', 'x', 'yahoo', 'yandex', 'zoho', 'zoom',
         ];
         \sort($expected);
 
@@ -991,6 +992,128 @@ trait OAuth2Base
             'clientId' => '',
             'clientSecret' => '',
             'endpoint' => 'cleanup.authentik.com',
+            'enabled' => false,
+        ]);
+    }
+
+    // =========================================================================
+    // Update FusionAuth (clientId + clientSecret + REQUIRED endpoint)
+    // =========================================================================
+
+    public function testUpdateOAuth2FusionAuthRequiresEndpoint(): void
+    {
+        // The `endpoint` param is required (Text(min=1)); omitting → 400.
+        $response = $this->updateOAuth2('fusionauth', [
+            'clientId' => 'whatever',
+            'clientSecret' => 'whatever',
+        ]);
+
+        $this->assertSame(400, $response['headers']['status-code']);
+        $this->assertSame('general_argument_invalid', $response['body']['type']);
+    }
+
+    public function testUpdateOAuth2FusionAuthEmptyEndpointRejected(): void
+    {
+        // The `endpoint` validator is Text(min=1). Sending `''` must be
+        // rejected the same way as omitting — the validator should treat the
+        // empty-string degenerate case as a missing required field.
+        $response = $this->updateOAuth2('fusionauth', [
+            'clientId' => 'whatever',
+            'clientSecret' => 'whatever',
+            'endpoint' => '',
+        ]);
+
+        $this->assertSame(400, $response['headers']['status-code']);
+        $this->assertSame('general_argument_invalid', $response['body']['type']);
+    }
+
+    public function testUpdateOAuth2FusionAuth(): void
+    {
+        $response = $this->updateOAuth2('fusionauth', [
+            'clientId' => 'b2222c00-0000-0000-0000-000000862097',
+            'clientSecret' => 'fusionauth-secret',
+            'endpoint' => 'example.fusionauth.io',
+            'enabled' => false,
+        ]);
+
+        $this->assertSame(200, $response['headers']['status-code']);
+        $this->assertSame('fusionauth', $response['body']['$id']);
+        $this->assertSame('b2222c00-0000-0000-0000-000000862097', $response['body']['clientId']);
+        $this->assertSame('example.fusionauth.io', $response['body']['endpoint']);
+
+        // Cleanup
+        $this->updateOAuth2('fusionauth', [
+            'clientId' => '',
+            'clientSecret' => '',
+            'endpoint' => 'cleanup.fusionauth.io',
+            'enabled' => false,
+        ]);
+    }
+
+    public function testUpdateOAuth2FusionAuthPartialPreservesSecret(): void
+    {
+        // FusionAuth's `endpoint` is required on every call, so we always
+        // re-send it. The `clientSecret` lives in the JSON blob and must
+        // survive when omitted on a subsequent call that only changes clientId.
+        $this->updateOAuth2('fusionauth', [
+            'clientId' => 'fusionauth-merge-client',
+            'clientSecret' => 'fusionauth-merge-secret',
+            'endpoint' => 'merge.fusionauth.io',
+            'enabled' => false,
+        ]);
+
+        $response = $this->updateOAuth2('fusionauth', [
+            'clientId' => 'fusionauth-rotated-client',
+            'endpoint' => 'merge.fusionauth.io',
+        ]);
+        $this->assertSame(200, $response['headers']['status-code']);
+        $this->assertSame('fusionauth-rotated-client', $response['body']['clientId']);
+        $this->assertSame('merge.fusionauth.io', $response['body']['endpoint']);
+
+        // Confirm clientSecret survived the omitted-field merge by enabling
+        // — FusionAuth has no verifyCredentials() hook, so non-empty stored
+        // secret is enough. `endpoint` must be re-sent (required on enable too).
+        $enable = $this->updateOAuth2('fusionauth', [
+            'endpoint' => 'merge.fusionauth.io',
+            'enabled' => true,
+        ]);
+        $this->assertSame(200, $enable['headers']['status-code']);
+        $this->assertTrue($enable['body']['enabled']);
+
+        // Cleanup — endpoint is required, use a placeholder.
+        $this->updateOAuth2('fusionauth', [
+            'clientId' => '',
+            'clientSecret' => '',
+            'endpoint' => 'cleanup.fusionauth.io',
+            'enabled' => false,
+        ]);
+    }
+
+    public function testUpdateOAuth2FusionAuthEnableAndReadBack(): void
+    {
+        $update = $this->updateOAuth2('fusionauth', [
+            'clientId' => 'fusionauth-enable-client',
+            'clientSecret' => 'fusionauth-enable-secret',
+            'endpoint' => 'enable.fusionauth.io',
+            'enabled' => true,
+        ]);
+
+        $this->assertSame(200, $update['headers']['status-code']);
+        $this->assertTrue($update['body']['enabled']);
+
+        // GET must hide clientSecret while keeping clientId and endpoint.
+        $get = $this->getOAuth2Provider('fusionauth');
+        $this->assertSame(200, $get['headers']['status-code']);
+        $this->assertTrue($get['body']['enabled']);
+        $this->assertSame('fusionauth-enable-client', $get['body']['clientId']);
+        $this->assertSame('enable.fusionauth.io', $get['body']['endpoint']);
+        $this->assertSame('', $get['body']['clientSecret']);
+
+        // Cleanup — endpoint is required (Text(min=1)) so use a placeholder.
+        $this->updateOAuth2('fusionauth', [
+            'clientId' => '',
+            'clientSecret' => '',
+            'endpoint' => 'cleanup.fusionauth.io',
             'enabled' => false,
         ]);
     }

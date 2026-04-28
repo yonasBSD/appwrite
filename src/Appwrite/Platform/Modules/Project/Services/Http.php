@@ -31,6 +31,7 @@ use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Dropbox\Update as Upda
 use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Etsy\Update as UpdateOAuth2Etsy;
 use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Facebook\Update as UpdateOAuth2Facebook;
 use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Figma\Update as UpdateOAuth2Figma;
+use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\FusionAuth\Update as UpdateOAuth2FusionAuth;
 use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Get as GetOAuth2Provider;
 use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\GitHub\Update as UpdateOAuth2GitHub;
 use Appwrite\Platform\Modules\Project\Http\Project\OAuth2\Gitlab\Update as UpdateOAuth2Gitlab;
@@ -210,6 +211,7 @@ class Http extends Service
         $this->addAction(UpdateOAuth2Gitlab::getName(), new UpdateOAuth2Gitlab());
         $this->addAction(UpdateOAuth2Authentik::getName(), new UpdateOAuth2Authentik());
         $this->addAction(UpdateOAuth2Auth0::getName(), new UpdateOAuth2Auth0());
+        $this->addAction(UpdateOAuth2FusionAuth::getName(), new UpdateOAuth2FusionAuth());
         $this->addAction(UpdateOAuth2Oidc::getName(), new UpdateOAuth2Oidc());
         $this->addAction(UpdateOAuth2Okta::getName(), new UpdateOAuth2Okta());
         $this->addAction(UpdateOAuth2Kick::getName(), new UpdateOAuth2Kick());

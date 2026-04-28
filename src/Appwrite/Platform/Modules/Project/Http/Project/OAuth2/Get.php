@@ -75,6 +75,7 @@ class Get extends Action
                             Response::MODEL_OAUTH2_GITLAB,
                             Response::MODEL_OAUTH2_AUTHENTIK,
                             Response::MODEL_OAUTH2_AUTH0,
+                            Response::MODEL_OAUTH2_FUSIONAUTH,
                             Response::MODEL_OAUTH2_OIDC,
                             Response::MODEL_OAUTH2_APPLE,
                             Response::MODEL_OAUTH2_OKTA,
