@@ -42,4 +42,24 @@ class Update extends Base
     {
         return '\'Client Secret\' of Box OAuth2 app. For example: OKM1f100000000000000000000eshEif';
     }
+
+    public static function getClientIdName(): string
+    {
+        return 'Client ID';
+    }
+
+    public static function getClientIdExample(): string
+    {
+        return 'deglcs00000000000000000000x2og6y';
+    }
+
+    public static function getClientSecretName(): string
+    {
+        return 'Client Secret';
+    }
+
+    public static function getClientSecretExample(): string
+    {
+        return 'OKM1f100000000000000000000eshEif';
+    }
 }

@@ -56,6 +56,44 @@ class Update extends Base
         return '\'Client Secret\' of Okta OAuth2 app. For example: Kiq0000000000000000000000000000000000000-00000000000H2L5-3SJ-vRV';
     }
 
+    public static function getClientIdName(): string
+    {
+        return 'Client ID';
+    }
+
+    public static function getClientIdExample(): string
+    {
+        return '0oa00000000000000698';
+    }
+
+    public static function getClientSecretName(): string
+    {
+        return 'Client Secret';
+    }
+
+    public static function getClientSecretExample(): string
+    {
+        return 'Kiq0000000000000000000000000000000000000-00000000000H2L5-3SJ-vRV';
+    }
+
+    public static function getParameters(): array
+    {
+        return \array_merge(parent::getParameters(), [
+            [
+                '$id' => 'domain',
+                'name' => 'Domain',
+                'example' => 'trial-6400025.okta.com',
+                'hint' => 'Example of wrong value: trial-6400025-admin.okta.com, or https://trial-6400025.okta.com/',
+            ],
+            [
+                '$id' => 'authorizationServerId',
+                'name' => 'Authorization Server ID',
+                'example' => 'aus000000000000000h7z',
+                'hint' => '',
+            ],
+        ]);
+    }
+
     public function __construct()
     {
         $providerId = static::getProviderId();

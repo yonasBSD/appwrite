@@ -47,4 +47,24 @@ class Update extends Base
     {
         return '\'Secret key 1\', or \'Secret key 2\', of ' . static::getProviderLabel() . ' OAuth2 app. For example: EH8KCXtew--000000000000000000000000000000000000000_C-1_5UP_000000000000000CB7KDp';
     }
+
+    public static function getClientIdName(): string
+    {
+        return 'Client ID';
+    }
+
+    public static function getClientIdExample(): string
+    {
+        return 'AdhIEG7-000000000000-0000000000000000000000000000000-0000000000000000000000-2pyB';
+    }
+
+    public static function getClientSecretName(): string
+    {
+        return 'Secret Key 1 or Secret Key 2';
+    }
+
+    public static function getClientSecretExample(): string
+    {
+        return 'EH8KCXtew--000000000000000000000000000000000000000_C-1_5UP_000000000000000CB7KDp';
+    }
 }

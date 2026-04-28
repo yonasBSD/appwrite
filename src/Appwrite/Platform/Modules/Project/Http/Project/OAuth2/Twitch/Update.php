@@ -42,4 +42,24 @@ class Update extends Base
     {
         return '\'Client Secret\' of Twitch OAuth2 app. For example: pmapue000000000000000000zylw3v';
     }
+
+    public static function getClientIdName(): string
+    {
+        return 'Client ID';
+    }
+
+    public static function getClientIdExample(): string
+    {
+        return 'vvi0in000000000000000000ikmt9p';
+    }
+
+    public static function getClientSecretName(): string
+    {
+        return 'Client Secret';
+    }
+
+    public static function getClientSecretExample(): string
+    {
+        return 'pmapue000000000000000000zylw3v';
+    }
 }

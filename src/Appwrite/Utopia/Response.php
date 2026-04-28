@@ -329,6 +329,9 @@ class Response extends SwooleResponse
 
     // Console
     public const MODEL_CONSOLE_VARIABLES = 'consoleVariables';
+    public const MODEL_CONSOLE_OAUTH2_PROVIDER_PARAMETER = 'consoleOAuth2ProviderParameter';
+    public const MODEL_CONSOLE_OAUTH2_PROVIDER = 'consoleOAuth2Provider';
+    public const MODEL_CONSOLE_OAUTH2_PROVIDER_LIST = 'consoleOAuth2ProviderList';
 
     // Deprecated
     public const MODEL_PERMISSIONS = 'permissions';

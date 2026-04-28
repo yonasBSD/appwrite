@@ -42,4 +42,29 @@ class Update extends Base
     {
         return '\'Client secret\' of GitHub OAuth2 app, or GitHub generic app. For example: 5e07c00000000000000000000000000000198bcc';
     }
+
+    public static function getClientIdName(): string
+    {
+        return 'Client ID or App ID';
+    }
+
+    public static function getClientIdExample(): string
+    {
+        return 'e4d87900000000540733';
+    }
+
+    public static function getClientIdHint(): string
+    {
+        return 'Example of wrong value: 370006';
+    }
+
+    public static function getClientSecretName(): string
+    {
+        return 'Client Secret';
+    }
+
+    public static function getClientSecretExample(): string
+    {
+        return '5e07c00000000000000000000000000000198bcc';
+    }
 }

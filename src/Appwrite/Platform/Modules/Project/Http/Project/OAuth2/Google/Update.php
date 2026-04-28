@@ -42,4 +42,24 @@ class Update extends Base
     {
         return '\'Client secret\' of Google OAuth2 app. For example: GOCSPX-2k8gsR0000000000000000VNahJj';
     }
+
+    public static function getClientIdName(): string
+    {
+        return 'Client ID';
+    }
+
+    public static function getClientIdExample(): string
+    {
+        return '120000000095-92ifjb00000000000000000000g7ijfb.apps.googleusercontent.com';
+    }
+
+    public static function getClientSecretName(): string
+    {
+        return 'Client Secret';
+    }
+
+    public static function getClientSecretExample(): string
+    {
+        return 'GOCSPX-2k8gsR0000000000000000VNahJj';
+    }
 }

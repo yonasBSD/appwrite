@@ -65,6 +65,38 @@ class Update extends Base
         return '\'Secret\' of GitLab OAuth2 app. For example: gloas-838cfa0000000000000000000000000000000000000000000000000000ecbb38';
     }
 
+    public static function getClientIdName(): string
+    {
+        return 'Application ID';
+    }
+
+    public static function getClientIdExample(): string
+    {
+        return 'd41ffe0000000000000000000000000000000000000000000000000000d5e252';
+    }
+
+    public static function getClientSecretName(): string
+    {
+        return 'Secret';
+    }
+
+    public static function getClientSecretExample(): string
+    {
+        return 'gloas-838cfa0000000000000000000000000000000000000000000000000000ecbb38';
+    }
+
+    public static function getParameters(): array
+    {
+        return \array_merge(parent::getParameters(), [
+            [
+                '$id' => 'endpoint',
+                'name' => 'Endpoint',
+                'example' => 'https://gitlab.com',
+                'hint' => '',
+            ],
+        ]);
+    }
+
     public function __construct()
     {
         $providerId = static::getProviderId();

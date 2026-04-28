@@ -54,6 +54,38 @@ class Update extends Base
         return '\'Client Secret\' of Authentik OAuth2 app. For example: ntQadq000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000Hp5WK';
     }
 
+    public static function getClientIdName(): string
+    {
+        return 'Client ID';
+    }
+
+    public static function getClientIdExample(): string
+    {
+        return 'dTKOPa0000000000000000000000000000e7G8hv';
+    }
+
+    public static function getClientSecretName(): string
+    {
+        return 'Client Secret';
+    }
+
+    public static function getClientSecretExample(): string
+    {
+        return 'ntQadq000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000Hp5WK';
+    }
+
+    public static function getParameters(): array
+    {
+        return \array_merge(parent::getParameters(), [
+            [
+                '$id' => 'endpoint',
+                'name' => 'Domain',
+                'example' => 'example.authentik.com',
+                'hint' => '',
+            ],
+        ]);
+    }
+
     public function __construct()
     {
         $providerId = static::getProviderId();

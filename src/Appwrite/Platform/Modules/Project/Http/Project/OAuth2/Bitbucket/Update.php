@@ -52,4 +52,24 @@ class Update extends Base
     {
         return '\'Secret\' of Bitbucket OAuth2 app. For example: NMfLZJ00000000000000000000TLQdDx';
     }
+
+    public static function getClientIdName(): string
+    {
+        return 'Key';
+    }
+
+    public static function getClientIdExample(): string
+    {
+        return 'Knt70000000000ByRc';
+    }
+
+    public static function getClientSecretName(): string
+    {
+        return 'Secret';
+    }
+
+    public static function getClientSecretExample(): string
+    {
+        return 'NMfLZJ00000000000000000000TLQdDx';
+    }
 }

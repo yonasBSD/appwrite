@@ -52,4 +52,24 @@ class Update extends Base
     {
         return '\'App secret\' of Facebook OAuth2 app. For example: 2d0b2800000000000000000000d38af4';
     }
+
+    public static function getClientIdName(): string
+    {
+        return 'App ID';
+    }
+
+    public static function getClientIdExample(): string
+    {
+        return '260600000007694';
+    }
+
+    public static function getClientSecretName(): string
+    {
+        return 'App Secret';
+    }
+
+    public static function getClientSecretExample(): string
+    {
+        return '2d0b2800000000000000000000d38af4';
+    }
 }

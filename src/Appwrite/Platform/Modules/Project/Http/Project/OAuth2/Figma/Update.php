@@ -42,4 +42,24 @@ class Update extends Base
     {
         return '\'Client Secret\' of Figma OAuth2 app. For example: yEpOYn0000000000000000004iIsU5';
     }
+
+    public static function getClientIdName(): string
+    {
+        return 'Client ID';
+    }
+
+    public static function getClientIdExample(): string
+    {
+        return 'byay5H0000000000VtiI40';
+    }
+
+    public static function getClientSecretName(): string
+    {
+        return 'Client Secret';
+    }
+
+    public static function getClientSecretExample(): string
+    {
+        return 'yEpOYn0000000000000000004iIsU5';
+    }
 }

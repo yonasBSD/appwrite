@@ -52,4 +52,24 @@ class Update extends Base
     {
         return '\'App secret\' of Dropbox OAuth2 app. For example: g200000000000vw';
     }
+
+    public static function getClientIdName(): string
+    {
+        return 'App Key';
+    }
+
+    public static function getClientIdExample(): string
+    {
+        return 'jl000000000009t';
+    }
+
+    public static function getClientSecretName(): string
+    {
+        return 'App Secret';
+    }
+
+    public static function getClientSecretExample(): string
+    {
+        return 'g200000000000vw';
+    }
 }

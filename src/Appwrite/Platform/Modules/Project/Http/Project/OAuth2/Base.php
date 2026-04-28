@@ -65,6 +65,97 @@ abstract class Base extends Action
     abstract public static function getClientSecretDescription(): string;
 
     /**
+     * Verbose, user-facing name of the clientId param. Includes alternate
+     * names when the provider exposes more than one (e.g. "Client ID or App
+     * ID", "Application ID (also known as Client ID)").
+     *
+     * @return string
+     */
+    abstract public static function getClientIdName(): string;
+
+    /**
+     * Example value of the clientId param. Used to build the public OAuth2
+     * providers metadata response.
+     *
+     * @return string
+     */
+    abstract public static function getClientIdExample(): string;
+
+    /**
+     * Optional hint for the clientId param. Typically used to call out a
+     * common wrong value (e.g. "Example of wrong value: 370006"). Defaults
+     * to an empty string.
+     */
+    public static function getClientIdHint(): string
+    {
+        return '';
+    }
+
+    /**
+     * Verbose, user-facing name of the clientSecret param. Returns an empty
+     * string for providers that don't have a single clientSecret param
+     * (e.g. Apple uses keyId/teamId/p8File instead).
+     *
+     * @return string
+     */
+    abstract public static function getClientSecretName(): string;
+
+    /**
+     * Example value of the clientSecret param. Returns an empty string for
+     * providers without a clientSecret param.
+     *
+     * @return string
+     */
+    abstract public static function getClientSecretExample(): string;
+
+    /**
+     * Optional hint for the clientSecret param. Defaults to an empty string.
+     */
+    public static function getClientSecretHint(): string
+    {
+        return '';
+    }
+
+    /**
+     * Public-facing parameter metadata for this provider. Used by the public
+     * console OAuth2 providers endpoint to describe the form fields a project
+     * owner must fill in to configure the provider.
+     *
+     * Default shape: clientId + clientSecret. Providers that take additional
+     * fields (Apple, Auth0, Authentik, Gitlab, Microsoft, Oidc, Okta)
+     * override this method to add or replace entries. Each parameter is an
+     * associative array with keys `$id`, `name`, `example`, `hint`.
+     *
+     * @return array<int, array<string, string>>
+     */
+    public static function getParameters(): array
+    {
+        $parameters = [];
+
+        $clientIdName = static::getClientIdName();
+        if ($clientIdName !== '') {
+            $parameters[] = [
+                '$id' => static::getClientIdParamName(),
+                'name' => $clientIdName,
+                'example' => static::getClientIdExample(),
+                'hint' => static::getClientIdHint(),
+            ];
+        }
+
+        $clientSecretName = static::getClientSecretName();
+        if ($clientSecretName !== '') {
+            $parameters[] = [
+                '$id' => static::getClientSecretParamName(),
+                'name' => $clientSecretName,
+                'example' => static::getClientSecretExample(),
+                'hint' => static::getClientSecretHint(),
+            ];
+        }
+
+        return $parameters;
+    }
+
+    /**
      * Public-facing name of the clientId param. Some providers use a different
      * terminology (e.g. Dropbox calls it "App key"), so the param name and the
      * corresponding response field can be customized by overriding this method.

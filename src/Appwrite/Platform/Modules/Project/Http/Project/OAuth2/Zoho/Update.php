@@ -42,4 +42,24 @@ class Update extends Base
     {
         return '\'Client Secret\' of Zoho OAuth2 app. For example: fb5cac000000000000000000000000000000a68f6e';
     }
+
+    public static function getClientIdName(): string
+    {
+        return 'Client ID';
+    }
+
+    public static function getClientIdExample(): string
+    {
+        return '1000.83C178000000000000000000RPNX0B';
+    }
+
+    public static function getClientSecretName(): string
+    {
+        return 'Client Secret';
+    }
+
+    public static function getClientSecretExample(): string
+    {
+        return 'fb5cac000000000000000000000000000000a68f6e';
+    }
 }

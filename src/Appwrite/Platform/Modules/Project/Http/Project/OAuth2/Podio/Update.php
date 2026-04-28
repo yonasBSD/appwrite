@@ -42,4 +42,24 @@ class Update extends Base
     {
         return '\'Client Secret\' of Podio OAuth2 app. For example: Rn247T0000000000000000000000000000000000000000000000000000W2zWTN';
     }
+
+    public static function getClientIdName(): string
+    {
+        return 'Client ID';
+    }
+
+    public static function getClientIdExample(): string
+    {
+        return 'appwrite-o0000000st-app';
+    }
+
+    public static function getClientSecretName(): string
+    {
+        return 'Client Secret';
+    }
+
+    public static function getClientSecretExample(): string
+    {
+        return 'Rn247T0000000000000000000000000000000000000000000000000000W2zWTN';
+    }
 }

@@ -42,4 +42,24 @@ class Update extends Base
     {
         return '\'Client Secret\' of Bitly OAuth2 app. For example: a13e250000000000000000000000000000d73095';
     }
+
+    public static function getClientIdName(): string
+    {
+        return 'Client ID';
+    }
+
+    public static function getClientIdExample(): string
+    {
+        return 'd95151000000000000000000000000000067af9b';
+    }
+
+    public static function getClientSecretName(): string
+    {
+        return 'Client Secret';
+    }
+
+    public static function getClientSecretExample(): string
+    {
+        return 'a13e250000000000000000000000000000d73095';
+    }
 }

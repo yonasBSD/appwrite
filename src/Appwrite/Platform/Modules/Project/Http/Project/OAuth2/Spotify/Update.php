@@ -42,4 +42,24 @@ class Update extends Base
     {
         return '\'Client secret\' of Spotify OAuth2 app. For example: db068a000000000000000000008b5b9f';
     }
+
+    public static function getClientIdName(): string
+    {
+        return 'Client ID';
+    }
+
+    public static function getClientIdExample(): string
+    {
+        return '6ec271000000000000000000009beace';
+    }
+
+    public static function getClientSecretName(): string
+    {
+        return 'Client Secret';
+    }
+
+    public static function getClientSecretExample(): string
+    {
+        return 'db068a000000000000000000008b5b9f';
+    }
 }

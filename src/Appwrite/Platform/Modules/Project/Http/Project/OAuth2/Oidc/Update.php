@@ -56,6 +56,56 @@ class Update extends Base
         return '\'Client Secret\' of OpenID Connect OAuth2 app. For example: Ah68ed000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000003qpcHV';
     }
 
+    public static function getClientIdName(): string
+    {
+        return 'Client ID';
+    }
+
+    public static function getClientIdExample(): string
+    {
+        return 'qibI2x0000000000000000000000000006L2YFoG';
+    }
+
+    public static function getClientSecretName(): string
+    {
+        return 'Client Secret';
+    }
+
+    public static function getClientSecretExample(): string
+    {
+        return 'Ah68ed000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000003qpcHV';
+    }
+
+    public static function getParameters(): array
+    {
+        return \array_merge(parent::getParameters(), [
+            [
+                '$id' => 'wellKnownURL',
+                'name' => 'Well-known URL',
+                'example' => 'https://myoauth.com/.well-known/openid-configuration',
+                'hint' => '',
+            ],
+            [
+                '$id' => 'authorizationURL',
+                'name' => 'Authorization URL',
+                'example' => 'https://myoauth.com/oauth2/authorize',
+                'hint' => '',
+            ],
+            [
+                '$id' => 'tokenUrl',
+                'name' => 'Token URL',
+                'example' => 'https://myoauth.com/oauth2/token',
+                'hint' => '',
+            ],
+            [
+                '$id' => 'userInfoUrl',
+                'name' => 'User Info URL',
+                'example' => 'https://myoauth.com/oauth2/userinfo',
+                'hint' => '',
+            ],
+        ]);
+    }
+
     public function __construct()
     {
         $providerId = static::getProviderId();

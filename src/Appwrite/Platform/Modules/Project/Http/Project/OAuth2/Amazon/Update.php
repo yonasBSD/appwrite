@@ -42,4 +42,24 @@ class Update extends Base
     {
         return '\'Client Secret\' of Amazon OAuth2 app. For example: 79ffe4000000000000000000000000000000000000000000000000000002de55';
     }
+
+    public static function getClientIdName(): string
+    {
+        return 'Client ID';
+    }
+
+    public static function getClientIdExample(): string
+    {
+        return 'amzn1.application-oa2-client.87400c00000000000000000000063d5b2';
+    }
+
+    public static function getClientSecretName(): string
+    {
+        return 'Client Secret';
+    }
+
+    public static function getClientSecretExample(): string
+    {
+        return '79ffe4000000000000000000000000000000000000000000000000000002de55';
+    }
 }

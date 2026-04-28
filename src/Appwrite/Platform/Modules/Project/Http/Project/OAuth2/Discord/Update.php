@@ -42,4 +42,24 @@ class Update extends Base
     {
         return '\'Client Secret\' of Discord OAuth2 app. For example: YmPXnM000000000000000000002zFg5D';
     }
+
+    public static function getClientIdName(): string
+    {
+        return 'Client ID';
+    }
+
+    public static function getClientIdExample(): string
+    {
+        return '950722000000343754';
+    }
+
+    public static function getClientSecretName(): string
+    {
+        return 'Client Secret';
+    }
+
+    public static function getClientSecretExample(): string
+    {
+        return 'YmPXnM000000000000000000002zFg5D';
+    }
 }

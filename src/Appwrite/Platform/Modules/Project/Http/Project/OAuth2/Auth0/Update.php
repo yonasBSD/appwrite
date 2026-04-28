@@ -54,6 +54,38 @@ class Update extends Base
         return '\'Client Secret\' of Auth0 OAuth2 app. For example: zXz0000-00000000000000000000000000000-00000000000000000000PJafnF';
     }
 
+    public static function getClientIdName(): string
+    {
+        return 'Client ID';
+    }
+
+    public static function getClientIdExample(): string
+    {
+        return 'OaOkIA000000000000000000005KLSYq';
+    }
+
+    public static function getClientSecretName(): string
+    {
+        return 'Client Secret';
+    }
+
+    public static function getClientSecretExample(): string
+    {
+        return 'zXz0000-00000000000000000000000000000-00000000000000000000PJafnF';
+    }
+
+    public static function getParameters(): array
+    {
+        return \array_merge(parent::getParameters(), [
+            [
+                '$id' => 'endpoint',
+                'name' => 'Domain',
+                'example' => 'example.us.auth0.com',
+                'hint' => '',
+            ],
+        ]);
+    }
+
     public function __construct()
     {
         $providerId = static::getProviderId();

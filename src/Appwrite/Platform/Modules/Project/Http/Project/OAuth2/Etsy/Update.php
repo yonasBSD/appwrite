@@ -52,4 +52,24 @@ class Update extends Base
     {
         return '\'Shared Secret\' of Etsy OAuth2 app. For example: tp000000ru';
     }
+
+    public static function getClientIdName(): string
+    {
+        return 'Keystring';
+    }
+
+    public static function getClientIdExample(): string
+    {
+        return 'nsgzxh0000000000008j85a2';
+    }
+
+    public static function getClientSecretName(): string
+    {
+        return 'Shared Secret';
+    }
+
+    public static function getClientSecretExample(): string
+    {
+        return 'tp000000ru';
+    }
 }

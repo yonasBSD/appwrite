@@ -52,4 +52,24 @@ class Update extends Base
     {
         return '\'Secret Key\', also known as \'API Secret\', of Disqus OAuth2 app. For example: W7Bykj00000000000000000000000000000000000000000000000000003o43w9';
     }
+
+    public static function getClientIdName(): string
+    {
+        return 'Public Key, also known as API Key';
+    }
+
+    public static function getClientIdExample(): string
+    {
+        return 'cgegH70000000000000000000000000000000000000000000000000000Hr1nYX';
+    }
+
+    public static function getClientSecretName(): string
+    {
+        return 'Secret Key, also known as API Secret';
+    }
+
+    public static function getClientSecretExample(): string
+    {
+        return 'W7Bykj00000000000000000000000000000000000000000000000000003o43w9';
+    }
 }

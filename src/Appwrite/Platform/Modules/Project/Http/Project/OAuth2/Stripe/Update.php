@@ -47,4 +47,24 @@ class Update extends Base
     {
         return '\'API Secret key\' of Stripe OAuth2 app. For example: sk_51SfOd000000000000000000000000000000000000000000000000000000000000000000000000000000000000000QGWYfp';
     }
+
+    public static function getClientIdName(): string
+    {
+        return 'Client ID';
+    }
+
+    public static function getClientIdExample(): string
+    {
+        return 'ca_UKibXX0000000000000000000006byvR';
+    }
+
+    public static function getClientSecretName(): string
+    {
+        return 'API Secret Key';
+    }
+
+    public static function getClientSecretExample(): string
+    {
+        return 'sk_51SfOd000000000000000000000000000000000000000000000000000000000000000000000000000000000000000QGWYfp';
+    }
 }

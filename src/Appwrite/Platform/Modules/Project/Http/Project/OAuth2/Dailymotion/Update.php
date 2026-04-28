@@ -52,4 +52,24 @@ class Update extends Base
     {
         return '\'API secret\' of Dailymotion OAuth2 app. For example: a399a90000000000000000000000000000d90639';
     }
+
+    public static function getClientIdName(): string
+    {
+        return 'API Key';
+    }
+
+    public static function getClientIdExample(): string
+    {
+        return '07a9000000000000067f';
+    }
+
+    public static function getClientSecretName(): string
+    {
+        return 'API Secret';
+    }
+
+    public static function getClientSecretExample(): string
+    {
+        return 'a399a90000000000000000000000000000d90639';
+    }
 }

@@ -64,6 +64,38 @@ class Update extends Base
         return '\'Application Secret\' (also known as Client Secret) of Microsoft Entra ID app. For example: A1bC2dE3fH4iJ5kL6mN7oP8qR9sT0u';
     }
 
+    public static function getClientIdName(): string
+    {
+        return 'Application ID (also known as Client ID)';
+    }
+
+    public static function getClientIdExample(): string
+    {
+        return '00001111-aaaa-2222-bbbb-3333cccc4444';
+    }
+
+    public static function getClientSecretName(): string
+    {
+        return 'Application Secret (also known as Client Secret)';
+    }
+
+    public static function getClientSecretExample(): string
+    {
+        return 'A1bC2dE3fH4iJ5kL6mN7oP8qR9sT0u';
+    }
+
+    public static function getParameters(): array
+    {
+        return \array_merge(parent::getParameters(), [
+            [
+                '$id' => 'tenant',
+                'name' => 'Tenant',
+                'example' => 'common',
+                'hint' => '',
+            ],
+        ]);
+    }
+
     public function __construct()
     {
         $providerId = static::getProviderId();

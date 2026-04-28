@@ -42,4 +42,24 @@ class Update extends Base
     {
         return '\'client secret\' of Autodesk OAuth2 app. For example: 7I000000000000MW';
     }
+
+    public static function getClientIdName(): string
+    {
+        return 'Client ID';
+    }
+
+    public static function getClientIdExample(): string
+    {
+        return '5zw90v00000000000000000000kVYXN7';
+    }
+
+    public static function getClientSecretName(): string
+    {
+        return 'Client Secret';
+    }
+
+    public static function getClientSecretExample(): string
+    {
+        return '7I000000000000MW';
+    }
 }

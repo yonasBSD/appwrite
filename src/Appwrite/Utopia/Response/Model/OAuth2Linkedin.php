@@ -22,7 +22,7 @@ class OAuth2Linkedin extends OAuth2Base
 
     public function getClientSecretExample(): string
     {
-        return 'WPL_AP1.2Bf0000000000000';
+        return 'WPL_AP1.2Bf0000000000000./HtlYw==';
     }
 
     public function getClientSecretFieldName(): string

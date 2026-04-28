@@ -61,6 +61,59 @@ class Update extends Base
         return '';
     }
 
+    public static function getClientIdName(): string
+    {
+        return 'Service ID';
+    }
+
+    public static function getClientIdExample(): string
+    {
+        return 'ip.appwrite.app.web';
+    }
+
+    public static function getClientSecretName(): string
+    {
+        // Apple does not use a single clientSecret param. Returning an empty
+        // string causes the default getParameters() to skip it; the override
+        // below adds the three real fields (keyId, teamId, p8File).
+        return '';
+    }
+
+    public static function getClientSecretExample(): string
+    {
+        return '';
+    }
+
+    public static function getParameters(): array
+    {
+        return [
+            [
+                '$id' => static::getClientIdParamName(),
+                'name' => static::getClientIdName(),
+                'example' => static::getClientIdExample(),
+                'hint' => '',
+            ],
+            [
+                '$id' => 'keyId',
+                'name' => 'Key ID',
+                'example' => 'P4000000N8',
+                'hint' => '',
+            ],
+            [
+                '$id' => 'teamId',
+                'name' => 'Team ID',
+                'example' => 'D4000000R6',
+                'hint' => '',
+            ],
+            [
+                '$id' => 'p8File',
+                'name' => 'P8 File',
+                'example' => '-----BEGIN PRIVATE KEY-----MIGTAg...jy2Xbna-----END PRIVATE KEY-----',
+                'hint' => '',
+            ],
+        ];
+    }
+
     public function __construct()
     {
         $providerId = static::getProviderId();

@@ -42,4 +42,24 @@ class Update extends Base
     {
         return '\'Client Secret\', also known as \'Customer Secret\', of Yahoo OAuth2 app. For example: cf978f0000000000000000000000000000c5e2e9';
     }
+
+    public static function getClientIdName(): string
+    {
+        return 'Client ID, also known as Customer Key';
+    }
+
+    public static function getClientIdExample(): string
+    {
+        return 'dj0yJm000000000000000000000000000000000000000000000000000000000000000000000000000000000000Z4PWRm';
+    }
+
+    public static function getClientSecretName(): string
+    {
+        return 'Client Secret, also known as Customer Secret';
+    }
+
+    public static function getClientSecretExample(): string
+    {
+        return 'cf978f0000000000000000000000000000c5e2e9';
+    }
 }
