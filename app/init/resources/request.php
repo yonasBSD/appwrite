@@ -576,8 +576,9 @@ return function (Container $container): void {
         // where custom headers cannot be set. Email and phone are intentionally header-only to avoid PII in URLs/logs.
         // Query-param fallback is blocked for cross-site requests (Sec-Fetch-Site: cross-site) to prevent CSRF;
         // Sec-Fetch-Site is a browser-enforced forbidden header that cannot be spoofed by JavaScript.
-        $isCrossSite = $request->getHeader('sec-fetch-site', '') === 'cross-site';
-        $impersonateUserId = $request->getHeader('x-appwrite-impersonate-user-id', $isCrossSite ? '' : (string)$request->getParam('impersonateUserId', ''));
+        $fetchSite = $request->getHeader('sec-fetch-site', '');
+        $isSameOrigin = \in_array($fetchSite, ['same-origin', 'same-site'], true);
+        $impersonateUserId = $request->getHeader('x-appwrite-impersonate-user-id', $isSameOrigin ? (string)$request->getParam('impersonateUserId', '') : '');
         $impersonateEmail = $request->getHeader('x-appwrite-impersonate-user-email', '');
         $impersonatePhone = $request->getHeader('x-appwrite-impersonate-user-phone', '');
         if (!$user->isEmpty() && $user->getAttribute('impersonator', false)) {
