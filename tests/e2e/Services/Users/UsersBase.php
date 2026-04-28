@@ -2726,7 +2726,7 @@ trait UsersBase
      *   Blocked: cross-site  — attacker.com embeds <img> pointing at Appwrite
      *   Blocked: absent      — reverse proxy strips Fetch Metadata headers (fail-closed)
      *   Allowed: same-origin — Console on the same origin as the API
-     *   Allowed: same-site   — Console on a subdomain (e.g. vibes.appwrite.io vs appwrite.io)
+     *   Allowed: same-site   — Console on a different subdomain than the API
      */
     public function testImpersonateQueryParamCsrfAttackPrevented(): void
     {
@@ -2803,7 +2803,7 @@ trait UsersBase
         $this->assertEquals($targetId, $sameOrigin['body']['$id'], 'same-origin: impersonation must succeed');
         $this->assertEquals($impersonatorId, $sameOrigin['body']['impersonatorUserId']);
 
-        // Legitimate use 2: same-site (Console on subdomain, e.g. vibes.appwrite.io vs appwrite.io)
+        // Legitimate use 2: same-site (Console on a different subdomain than the API)
         $sameSite = $this->client->call(
             Client::METHOD_GET,
             '/account',
@@ -2854,7 +2854,7 @@ trait UsersBase
         $sessionSecret = $session['body']['secret'];
 
         // Query param works when Sec-Fetch-Site is same-origin or same-site.
-        // same-site covers Console deployed on a subdomain (e.g. vibes.appwrite.io).
+        // same-site covers Console deployed on a different subdomain than the API.
         $account = $this->client->call(Client::METHOD_GET, '/account', [
             'content-type' => 'application/json',
             'x-appwrite-project' => $projectId,
