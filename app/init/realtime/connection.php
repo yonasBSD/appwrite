@@ -329,7 +329,10 @@ return function (Container $container): void {
 
         // impersonateUserId also accepts a query param to support embedding in WebSocket URLs.
         // Email and phone are intentionally header-only to avoid PII exposure in proxy/LB logs.
-        $impersonateUserId = $request->getHeader('x-appwrite-impersonate-user-id', (string)$request->getParam('impersonateUserId', ''));
+        // Query-param fallback is blocked for cross-site requests to prevent CSRF attacks via
+        // third-party pages; Sec-Fetch-Site is a browser-enforced forbidden header.
+        $isCrossSite = $request->getHeader('sec-fetch-site', '') === 'cross-site';
+        $impersonateUserId = $request->getHeader('x-appwrite-impersonate-user-id', $isCrossSite ? '' : (string)$request->getParam('impersonateUserId', ''));
         $impersonateEmail = $request->getHeader('x-appwrite-impersonate-user-email', '');
         $impersonatePhone = $request->getHeader('x-appwrite-impersonate-user-phone', '');
 
