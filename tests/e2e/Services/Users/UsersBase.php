@@ -2709,118 +2709,10 @@ trait UsersBase
     }
 
     /**
-     * Proves that the Sec-Fetch-Site CSRF guard prevents forced impersonation via query params.
-     *
-     * Attack scenario (without the guard):
-     *   A malicious page on attacker.com embeds:
-     *   <img src="https://appwrite.io/v1/storage/.../view?impersonateUserId=victim_id">
-     *   The browser automatically attaches the impersonator's session cookies.
-     *   Without any guard, the server would impersonate victim_id silently.
-     *
-     * Why Sec-Fetch-Site works:
-     *   Browsers set Sec-Fetch-Site: cross-site on all cross-origin requests (img, fetch, etc.).
-     *   It is a browser-enforced forbidden header — JavaScript cannot set or spoof it.
-     *   We only accept ?impersonateUserId when Sec-Fetch-Site is exactly same-origin.
-     *
-     * This test proves two attack vectors are blocked and two legitimate origins are allowed:
-     *   Blocked: cross-site  — attacker.com embeds <img> pointing at Appwrite
-     *   Blocked: absent      — reverse proxy strips Fetch Metadata headers (fail-closed)
-     *   Allowed: same-origin — Console on the same origin as the API
-     *   Allowed: same-site   — Console on a different subdomain than the API
+     * Test impersonation via URL query params — mirrors the ?project= and ?devKey= pattern.
+     * Allows Console to embed impersonation in direct file/image URLs where headers cannot be set.
      */
-    public function testImpersonateQueryParamCsrfAttackPrevented(): void
-    {
-        $projectId = $this->getProject()['$id'];
-        $headers = array_merge([
-            'content-type' => 'application/json',
-            'x-appwrite-project' => $projectId,
-        ], $this->getHeaders());
-
-        // Impersonator user (the victim whose session gets hijacked in the attack)
-        $impersonator = $this->client->call(Client::METHOD_POST, '/users', $headers, [
-            'userId' => ID::unique(),
-            'email' => 'csrf-guard-impersonator@appwrite.io',
-            'password' => 'password',
-            'name' => 'CSRF Guard Impersonator',
-        ]);
-        $this->assertEquals(201, $impersonator['headers']['status-code']);
-        $impersonatorId = $impersonator['body']['$id'];
-
-        // Target user (who the attacker wants to impersonate)
-        $target = $this->client->call(Client::METHOD_POST, '/users', $headers, [
-            'userId' => ID::unique(),
-            'email' => 'csrf-guard-target@appwrite.io',
-            'password' => 'password',
-            'name' => 'CSRF Guard Target',
-        ]);
-        $this->assertEquals(201, $target['headers']['status-code']);
-        $targetId = $target['body']['$id'];
-
-        $this->client->call(Client::METHOD_PATCH, '/users/' . $impersonatorId . '/impersonator', $headers, ['impersonator' => true]);
-
-        $session = $this->client->call(Client::METHOD_POST, '/users/' . $impersonatorId . '/sessions', $headers);
-        $this->assertEquals(201, $session['headers']['status-code']);
-        $sessionSecret = $session['body']['secret'];
-
-        $sessionHeaders = [
-            'content-type' => 'application/json',
-            'x-appwrite-project' => $projectId,
-            'x-appwrite-session' => $sessionSecret,
-        ];
-
-        // Attack vector 1: cross-site (attacker.com embeds <img src="...?impersonateUserId=victim">)
-        // Browser sends Sec-Fetch-Site: cross-site — must be blocked.
-        $crossSite = $this->client->call(
-            Client::METHOD_GET,
-            '/account',
-            array_merge($sessionHeaders, ['sec-fetch-site' => 'cross-site']),
-            ['impersonateUserId' => $targetId]
-        );
-        $this->assertEquals(200, $crossSite['headers']['status-code']);
-        $this->assertEquals($impersonatorId, $crossSite['body']['$id'], 'cross-site: impersonation must be blocked');
-        $this->assertEmpty($crossSite['body']['impersonatorUserId'] ?? '');
-
-        // Attack vector 2: absent header (reverse proxy strips Fetch Metadata headers)
-        // Guard must fail-closed — absent Sec-Fetch-Site must not allow query param.
-        $noFetchSite = $this->client->call(
-            Client::METHOD_GET,
-            '/account',
-            $sessionHeaders,
-            ['impersonateUserId' => $targetId]
-        );
-        $this->assertEquals(200, $noFetchSite['headers']['status-code']);
-        $this->assertEquals($impersonatorId, $noFetchSite['body']['$id'], 'absent header: must fail-closed');
-        $this->assertEmpty($noFetchSite['body']['impersonatorUserId'] ?? '');
-
-        // Legitimate use 1: same-origin (Console on same origin as API)
-        $sameOrigin = $this->client->call(
-            Client::METHOD_GET,
-            '/account',
-            array_merge($sessionHeaders, ['sec-fetch-site' => 'same-origin']),
-            ['impersonateUserId' => $targetId]
-        );
-        $this->assertEquals(200, $sameOrigin['headers']['status-code']);
-        $this->assertEquals($targetId, $sameOrigin['body']['$id'], 'same-origin: impersonation must succeed');
-        $this->assertEquals($impersonatorId, $sameOrigin['body']['impersonatorUserId']);
-
-        // Legitimate use 2: same-site (Console on a different subdomain than the API)
-        $sameSite = $this->client->call(
-            Client::METHOD_GET,
-            '/account',
-            array_merge($sessionHeaders, ['sec-fetch-site' => 'same-site']),
-            ['impersonateUserId' => $targetId]
-        );
-        $this->assertEquals(200, $sameSite['headers']['status-code']);
-        $this->assertEquals($targetId, $sameSite['body']['$id'], 'same-site: impersonation must succeed');
-        $this->assertEquals($impersonatorId, $sameSite['body']['impersonatorUserId']);
-    }
-
-    /**
-     * Test impersonation via ?impersonateUserId= query param (same-origin browser request).
-     * This is the primary use case for embedding impersonation in file/image URLs where
-     * custom headers cannot be set (e.g. <img src>, deployment source/output download links).
-     */
-    public function testImpersonateByUserIdQueryParam(): void
+    public function testImpersonateByQueryParams(): void
     {
         $projectId = $this->getProject()['$id'];
         $headers = array_merge([
@@ -2853,119 +2745,58 @@ trait UsersBase
         $this->assertEquals(201, $session['headers']['status-code']);
         $sessionSecret = $session['body']['secret'];
 
-        // Query param works when Sec-Fetch-Site is same-origin or same-site.
-        // same-site covers Console deployed on a different subdomain than the API.
-        $account = $this->client->call(Client::METHOD_GET, '/account', [
+        $sessionHeaders = [
             'content-type' => 'application/json',
             'x-appwrite-project' => $projectId,
             'x-appwrite-session' => $sessionSecret,
-            'sec-fetch-site' => 'same-origin',
-        ], ['impersonateUserId' => $idB]);
+        ];
+
+        // Impersonate by user ID via query param
+        $account = $this->client->call(Client::METHOD_GET, '/account', $sessionHeaders, [
+            'impersonateUserId' => $idB,
+        ]);
         $this->assertEquals(200, $account['headers']['status-code']);
         $this->assertEquals($idB, $account['body']['$id']);
         $this->assertEquals('Query Param Target', $account['body']['name']);
         $this->assertEquals($idA, $account['body']['impersonatorUserId']);
-    }
 
-    /**
-     * Test that ?impersonateUserId= query param is ignored for cross-site requests (CSRF guard).
-     * Sec-Fetch-Site is a browser-enforced forbidden header; cross-site value means the request
-     * originated from a third-party page and must not be allowed to trigger impersonation.
-     */
-    public function testImpersonateQueryParamIgnoredCrossSite(): void
-    {
-        $projectId = $this->getProject()['$id'];
-        $headers = array_merge([
-            'content-type' => 'application/json',
-            'x-appwrite-project' => $projectId,
-        ], $this->getHeaders());
-
-        $userA = $this->client->call(Client::METHOD_POST, '/users', $headers, [
-            'userId' => ID::unique(),
-            'email' => 'csrf-impersonator@appwrite.io',
-            'password' => 'password',
-            'name' => 'CSRF Impersonator',
+        // Impersonate by email via query param
+        $accountByEmail = $this->client->call(Client::METHOD_GET, '/account', $sessionHeaders, [
+            'impersonateEmail' => 'queryparam-target@appwrite.io',
         ]);
-        $this->assertEquals(201, $userA['headers']['status-code']);
-        $idA = $userA['body']['$id'];
+        $this->assertEquals(200, $accountByEmail['headers']['status-code']);
+        $this->assertEquals($idB, $accountByEmail['body']['$id']);
+        $this->assertEquals($idA, $accountByEmail['body']['impersonatorUserId']);
 
-        $userB = $this->client->call(Client::METHOD_POST, '/users', $headers, [
-            'userId' => ID::unique(),
-            'email' => 'csrf-target@appwrite.io',
-            'password' => 'password',
-            'name' => 'CSRF Target',
+        // Impersonate by phone via query param (update target user with a phone first)
+        $this->client->call(Client::METHOD_PATCH, '/users/' . $idB . '/phone', $headers, [
+            'number' => '+12345678901',
         ]);
-        $this->assertEquals(201, $userB['headers']['status-code']);
-        $idB = $userB['body']['$id'];
-
-        $patch = $this->client->call(Client::METHOD_PATCH, '/users/' . $idA . '/impersonator', $headers, ['impersonator' => true]);
-        $this->assertEquals(200, $patch['headers']['status-code']);
-
-        $session = $this->client->call(Client::METHOD_POST, '/users/' . $idA . '/sessions', $headers);
-        $this->assertEquals(201, $session['headers']['status-code']);
-        $sessionSecret = $session['body']['secret'];
-
-        // Query param must be ignored when Sec-Fetch-Site is cross-site (third-party page embed)
-        $account = $this->client->call(Client::METHOD_GET, '/account', [
-            'content-type' => 'application/json',
-            'x-appwrite-project' => $projectId,
-            'x-appwrite-session' => $sessionSecret,
-            'sec-fetch-site' => 'cross-site',
-        ], ['impersonateUserId' => $idB]);
-        $this->assertEquals(200, $account['headers']['status-code']);
-        // Should resolve as userA (the impersonator), not the target
-        $this->assertEquals($idA, $account['body']['$id']);
-        $this->assertEmpty($account['body']['impersonatorUserId'] ?? '');
-    }
-
-    /**
-     * Test that ?impersonateUserId= query param is ignored when Sec-Fetch-Site is absent
-     * (fail-closed CSRF guard). Absent header means a reverse proxy stripped Fetch Metadata
-     * headers or a non-browser client is calling — query param must be silently ignored.
-     */
-    public function testImpersonateQueryParamIgnoredWhenSecFetchSiteAbsent(): void
-    {
-        $projectId = $this->getProject()['$id'];
-        $headers = array_merge([
-            'content-type' => 'application/json',
-            'x-appwrite-project' => $projectId,
-        ], $this->getHeaders());
-
-        $userA = $this->client->call(Client::METHOD_POST, '/users', $headers, [
-            'userId' => ID::unique(),
-            'email' => 'absent-fetch-impersonator@appwrite.io',
-            'password' => 'password',
-            'name' => 'Absent Fetch Impersonator',
+        $accountByPhone = $this->client->call(Client::METHOD_GET, '/account', $sessionHeaders, [
+            'impersonatePhone' => '+12345678901',
         ]);
-        $this->assertEquals(201, $userA['headers']['status-code']);
-        $idA = $userA['body']['$id'];
+        $this->assertEquals(200, $accountByPhone['headers']['status-code']);
+        $this->assertEquals($idB, $accountByPhone['body']['$id']);
+        $this->assertEquals($idA, $accountByPhone['body']['impersonatorUserId']);
 
-        $userB = $this->client->call(Client::METHOD_POST, '/users', $headers, [
+        // Header takes priority over query param when both are present
+        $userC = $this->client->call(Client::METHOD_POST, '/users', $headers, [
             'userId' => ID::unique(),
-            'email' => 'absent-fetch-target@appwrite.io',
+            'email' => 'queryparam-target-c@appwrite.io',
             'password' => 'password',
-            'name' => 'Absent Fetch Target',
+            'name' => 'Query Param Target C',
         ]);
-        $this->assertEquals(201, $userB['headers']['status-code']);
-        $idB = $userB['body']['$id'];
+        $this->assertEquals(201, $userC['headers']['status-code']);
+        $idC = $userC['body']['$id'];
 
-        $patch = $this->client->call(Client::METHOD_PATCH, '/users/' . $idA . '/impersonator', $headers, ['impersonator' => true]);
-        $this->assertEquals(200, $patch['headers']['status-code']);
-
-        $session = $this->client->call(Client::METHOD_POST, '/users/' . $idA . '/sessions', $headers);
-        $this->assertEquals(201, $session['headers']['status-code']);
-        $sessionSecret = $session['body']['secret'];
-
-        // Query param must be ignored when Sec-Fetch-Site is absent (proxy-stripped or API client)
-        $account = $this->client->call(Client::METHOD_GET, '/account', [
-            'content-type' => 'application/json',
-            'x-appwrite-project' => $projectId,
-            'x-appwrite-session' => $sessionSecret,
-            // no sec-fetch-site header
-        ], ['impersonateUserId' => $idB]);
-        $this->assertEquals(200, $account['headers']['status-code']);
-        $this->assertEquals($idA, $account['body']['$id']);
-        $this->assertEmpty($account['body']['impersonatorUserId'] ?? '');
+        $accountHeaderPriority = $this->client->call(
+            Client::METHOD_GET,
+            '/account',
+            array_merge($sessionHeaders, ['x-appwrite-impersonate-user-id' => $idC]),
+            ['impersonateUserId' => $idB]
+        );
+        $this->assertEquals(200, $accountHeaderPriority['headers']['status-code']);
+        $this->assertEquals($idC, $accountHeaderPriority['body']['$id'], 'header must take priority over query param');
     }
 
     /**

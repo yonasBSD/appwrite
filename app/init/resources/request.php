@@ -572,18 +572,11 @@ return function (Container $container): void {
         }
 
         // Impersonation: if current user has impersonator capability and headers/params are set, act as another user
-        // impersonateUserId also accepts a query param to allow embedding in direct file/image URLs (e.g. <img src>)
-        // where custom headers cannot be set. Email and phone are intentionally header-only to avoid PII in URLs/logs.
-        // Query-param fallback is blocked for cross-site requests (Sec-Fetch-Site: cross-site) to prevent CSRF;
-        // Sec-Fetch-Site is a browser-enforced forbidden header that cannot be spoofed by JavaScript.
-        $fetchSite = $request->getHeader('sec-fetch-site', '');
-        // Allow same-origin and same-site: Console may be served from a different subdomain
-        // than the API, in which case the browser sends same-site.
-        // cross-site and absent are blocked to prevent CSRF via third-party <img> embeds.
-        $isSameOrigin = \in_array($fetchSite, ['same-origin', 'same-site'], true);
-        $impersonateUserId = $request->getHeader('x-appwrite-impersonate-user-id', $isSameOrigin ? (string)$request->getParam('impersonateUserId', '') : '');
-        $impersonateEmail = $request->getHeader('x-appwrite-impersonate-user-email', '');
-        $impersonatePhone = $request->getHeader('x-appwrite-impersonate-user-phone', '');
+        // Query params mirror the header fallback pattern used by ?project= and ?devKey=,
+        // allowing Console to embed impersonation in direct file/image URLs where headers cannot be set.
+        $impersonateUserId = $request->getHeader('x-appwrite-impersonate-user-id', (string)$request->getParam('impersonateUserId', ''));
+        $impersonateEmail = $request->getHeader('x-appwrite-impersonate-user-email', (string)$request->getParam('impersonateEmail', ''));
+        $impersonatePhone = $request->getHeader('x-appwrite-impersonate-user-phone', (string)$request->getParam('impersonatePhone', ''));
         if (!$user->isEmpty() && $user->getAttribute('impersonator', false)) {
             $userDb = (APP_MODE_ADMIN === $mode || $project->getId() === 'console') ? $dbForPlatform : $dbForProject;
             $targetUser = null;

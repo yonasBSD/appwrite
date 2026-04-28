@@ -327,18 +327,11 @@ return function (Container $container): void {
             }
         }
 
-        // impersonateUserId also accepts a query param to support embedding in WebSocket URLs.
-        // Email and phone are intentionally header-only to avoid PII exposure in proxy/LB logs.
-        // Query-param fallback is blocked for cross-site requests to prevent CSRF attacks via
-        // third-party pages; Sec-Fetch-Site is a browser-enforced forbidden header.
-        $fetchSite = $request->getHeader('sec-fetch-site', '');
-        // Allow same-origin and same-site: Console may be served from a different subdomain
-        // than the API, in which case the browser sends same-site.
-        // cross-site and absent are blocked to prevent CSRF via third-party <img> embeds.
-        $isSameOrigin = \in_array($fetchSite, ['same-origin', 'same-site'], true);
-        $impersonateUserId = $request->getHeader('x-appwrite-impersonate-user-id', $isSameOrigin ? (string)$request->getParam('impersonateUserId', '') : '');
-        $impersonateEmail = $request->getHeader('x-appwrite-impersonate-user-email', '');
-        $impersonatePhone = $request->getHeader('x-appwrite-impersonate-user-phone', '');
+        // Query params mirror the header fallback pattern used by ?project= and ?devKey=,
+        // allowing Console to embed impersonation in direct file/image URLs where headers cannot be set.
+        $impersonateUserId = $request->getHeader('x-appwrite-impersonate-user-id', (string)$request->getParam('impersonateUserId', ''));
+        $impersonateEmail = $request->getHeader('x-appwrite-impersonate-user-email', (string)$request->getParam('impersonateEmail', ''));
+        $impersonatePhone = $request->getHeader('x-appwrite-impersonate-user-phone', (string)$request->getParam('impersonatePhone', ''));
 
         if (!$user->isEmpty() && $user->getAttribute('impersonator', false)) {
             $userDb = ($mode === APP_MODE_ADMIN || $project->getId() === 'console') ? $dbForPlatform : $dbForProject;
