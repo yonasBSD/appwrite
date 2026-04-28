@@ -2720,9 +2720,14 @@ trait UsersBase
             'x-appwrite-project' => $projectId,
         ], $this->getHeaders());
 
+        $emailA = 'queryparam-impersonator-' . \uniqid() . '@appwrite.io';
+        $emailB = 'queryparam-target-' . \uniqid() . '@appwrite.io';
+        $emailC = 'queryparam-target-c-' . \uniqid() . '@appwrite.io';
+        $phone = '+1' . \rand(1000000000, 9999999999);
+
         $userA = $this->client->call(Client::METHOD_POST, '/users', $headers, [
             'userId' => ID::unique(),
-            'email' => 'queryparam-impersonator@appwrite.io',
+            'email' => $emailA,
             'password' => 'password',
             'name' => 'Query Param Impersonator',
         ]);
@@ -2731,7 +2736,7 @@ trait UsersBase
 
         $userB = $this->client->call(Client::METHOD_POST, '/users', $headers, [
             'userId' => ID::unique(),
-            'email' => 'queryparam-target@appwrite.io',
+            'email' => $emailB,
             'password' => 'password',
             'name' => 'Query Param Target',
         ]);
@@ -2762,7 +2767,7 @@ trait UsersBase
 
         // Impersonate by email via query param
         $accountByEmail = $this->client->call(Client::METHOD_GET, '/account', $sessionHeaders, [
-            'impersonateEmail' => 'queryparam-target@appwrite.io',
+            'impersonateEmail' => $emailB,
         ]);
         $this->assertEquals(200, $accountByEmail['headers']['status-code']);
         $this->assertEquals($idB, $accountByEmail['body']['$id']);
@@ -2770,10 +2775,10 @@ trait UsersBase
 
         // Impersonate by phone via query param (update target user with a phone first)
         $this->client->call(Client::METHOD_PATCH, '/users/' . $idB . '/phone', $headers, [
-            'number' => '+12345678901',
+            'number' => $phone,
         ]);
         $accountByPhone = $this->client->call(Client::METHOD_GET, '/account', $sessionHeaders, [
-            'impersonatePhone' => '+12345678901',
+            'impersonatePhone' => $phone,
         ]);
         $this->assertEquals(200, $accountByPhone['headers']['status-code']);
         $this->assertEquals($idB, $accountByPhone['body']['$id']);
@@ -2782,7 +2787,7 @@ trait UsersBase
         // Header takes priority over query param when both are present
         $userC = $this->client->call(Client::METHOD_POST, '/users', $headers, [
             'userId' => ID::unique(),
-            'email' => 'queryparam-target-c@appwrite.io',
+            'email' => $emailC,
             'password' => 'password',
             'name' => 'Query Param Target C',
         ]);
