@@ -11,10 +11,17 @@ class V24 extends Filter
     {
         switch ($model) {
             case 'project.createStandardKey':
+                $content = $this->fillKeyId($content);
                 $content = $this->parseKeyScopes($content);
                 break;
         }
 
+        return $content;
+    }
+
+    protected function fillKeyId(array $content): array
+    {
+        $content['keyId'] = $content['keyId'] ?? 'unique()';
         return $content;
     }
 
