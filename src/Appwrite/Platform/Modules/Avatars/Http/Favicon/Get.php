@@ -97,7 +97,7 @@ class Get extends Action
         $body = $res->getBody();
         $doc = new DOMDocument();
         $doc->strictErrorChecking = false;
-        if ($body !== '') {
+        if (!empty($body)) {
             @$doc->loadHTML($body);
         }
 
