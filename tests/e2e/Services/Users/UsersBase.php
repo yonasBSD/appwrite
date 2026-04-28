@@ -2722,10 +2722,11 @@ trait UsersBase
      *   It is a browser-enforced forbidden header — JavaScript cannot set or spoof it.
      *   We only accept ?impersonateUserId when Sec-Fetch-Site is exactly same-origin.
      *
-     * This test proves three attack vectors are all blocked:
-     *   1. cross-site  — attacker.com embeds <img> pointing at Appwrite
-     *   2. same-site   — attacker controls a subdomain (e.g. evil.appwrite.io)
-     *   3. absent      — reverse proxy strips Fetch Metadata headers (fail-closed)
+     * This test proves two attack vectors are blocked and two legitimate origins are allowed:
+     *   Blocked: cross-site  — attacker.com embeds <img> pointing at Appwrite
+     *   Blocked: absent      — reverse proxy strips Fetch Metadata headers (fail-closed)
+     *   Allowed: same-origin — Console on the same origin as the API
+     *   Allowed: same-site   — Console on a subdomain (e.g. vibes.appwrite.io vs appwrite.io)
      */
     public function testImpersonateQueryParamCsrfAttackPrevented(): void
     {
@@ -2777,17 +2778,7 @@ trait UsersBase
         $this->assertEquals($impersonatorId, $crossSite['body']['$id'], 'cross-site: impersonation must be blocked');
         $this->assertArrayNotHasKey('impersonatorUserId', $crossSite['body']);
 
-        // Attack vector 2: same-site (attacker controls evil.appwrite.io subdomain)
-        // Browser sends Sec-Fetch-Site: same-site — must also be blocked.
-        $sameSite = $this->client->call(Client::METHOD_GET, '/account',
-            array_merge($sessionHeaders, ['sec-fetch-site' => 'same-site']),
-            ['impersonateUserId' => $targetId]
-        );
-        $this->assertEquals(200, $sameSite['headers']['status-code']);
-        $this->assertEquals($impersonatorId, $sameSite['body']['$id'], 'same-site: subdomain attack must be blocked');
-        $this->assertArrayNotHasKey('impersonatorUserId', $sameSite['body']);
-
-        // Attack vector 3: absent header (reverse proxy strips Fetch Metadata headers)
+        // Attack vector 2: absent header (reverse proxy strips Fetch Metadata headers)
         // Guard must fail-closed — absent Sec-Fetch-Site must not allow query param.
         $noFetchSite = $this->client->call(Client::METHOD_GET, '/account',
             $sessionHeaders,
@@ -2797,8 +2788,7 @@ trait UsersBase
         $this->assertEquals($impersonatorId, $noFetchSite['body']['$id'], 'absent header: must fail-closed');
         $this->assertArrayNotHasKey('impersonatorUserId', $noFetchSite['body']);
 
-        // Legitimate use: same-origin (Console loading a file URL with impersonation embedded)
-        // Browser sends Sec-Fetch-Site: same-origin — must succeed.
+        // Legitimate use 1: same-origin (Console on same origin as API)
         $sameOrigin = $this->client->call(Client::METHOD_GET, '/account',
             array_merge($sessionHeaders, ['sec-fetch-site' => 'same-origin']),
             ['impersonateUserId' => $targetId]
@@ -2806,6 +2796,15 @@ trait UsersBase
         $this->assertEquals(200, $sameOrigin['headers']['status-code']);
         $this->assertEquals($targetId, $sameOrigin['body']['$id'], 'same-origin: impersonation must succeed');
         $this->assertEquals($impersonatorId, $sameOrigin['body']['impersonatorUserId']);
+
+        // Legitimate use 2: same-site (Console on subdomain, e.g. vibes.appwrite.io vs appwrite.io)
+        $sameSite = $this->client->call(Client::METHOD_GET, '/account',
+            array_merge($sessionHeaders, ['sec-fetch-site' => 'same-site']),
+            ['impersonateUserId' => $targetId]
+        );
+        $this->assertEquals(200, $sameSite['headers']['status-code']);
+        $this->assertEquals($targetId, $sameSite['body']['$id'], 'same-site: impersonation must succeed');
+        $this->assertEquals($impersonatorId, $sameSite['body']['impersonatorUserId']);
     }
 
     /**
@@ -2846,8 +2845,8 @@ trait UsersBase
         $this->assertEquals(201, $session['headers']['status-code']);
         $sessionSecret = $session['body']['secret'];
 
-        // Query param works only when Sec-Fetch-Site is exactly same-origin.
-        // same-site is intentionally excluded to prevent subdomain-based CSRF attacks.
+        // Query param works when Sec-Fetch-Site is same-origin or same-site.
+        // same-site covers Console deployed on a subdomain (e.g. vibes.appwrite.io).
         $account = $this->client->call(Client::METHOD_GET, '/account', [
             'content-type' => 'application/json',
             'x-appwrite-project' => $projectId,

@@ -577,7 +577,10 @@ return function (Container $container): void {
         // Query-param fallback is blocked for cross-site requests (Sec-Fetch-Site: cross-site) to prevent CSRF;
         // Sec-Fetch-Site is a browser-enforced forbidden header that cannot be spoofed by JavaScript.
         $fetchSite = $request->getHeader('sec-fetch-site', '');
-        $isSameOrigin = $fetchSite === 'same-origin';
+        // Allow same-origin and same-site: Console may be served from a different subdomain
+        // (e.g. vibes.appwrite.io) than the API, in which case the browser sends same-site.
+        // cross-site and absent are blocked to prevent CSRF via third-party <img> embeds.
+        $isSameOrigin = \in_array($fetchSite, ['same-origin', 'same-site'], true);
         $impersonateUserId = $request->getHeader('x-appwrite-impersonate-user-id', $isSameOrigin ? (string)$request->getParam('impersonateUserId', '') : '');
         $impersonateEmail = $request->getHeader('x-appwrite-impersonate-user-email', '');
         $impersonatePhone = $request->getHeader('x-appwrite-impersonate-user-phone', '');
