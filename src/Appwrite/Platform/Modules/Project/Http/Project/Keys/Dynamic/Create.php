@@ -1,6 +1,6 @@
 <?php
 
-namespace Appwrite\Platform\Modules\Project\Http\Project\Keys\Dynami;
+namespace Appwrite\Platform\Modules\Project\Http\Project\Keys\Dynamic;
 
 use Ahc\Jwt\JWT;
 use Appwrite\Event\Event as QueueEvent;
@@ -67,7 +67,6 @@ class Create extends Base
     }
 
     public function action(
-        string $keyId,
         array $scopes,
         int $duration,
         Response $response,
@@ -88,8 +87,8 @@ class Create extends Base
 
         $key = new Document([
             '$id' => $keyId,
-            '$createdAt' => new DatabaseDateTime(),
-            '$updatedAt' => new DatabaseDateTime(),
+            '$createdAt' => DatabaseDateTime::now(),
+            '$updatedAt' => DatabaseDateTime::now(),
             'name' => '',
             'scopes' => $scopes,
             'expire' => $expire,

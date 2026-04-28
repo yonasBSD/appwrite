@@ -3952,6 +3952,7 @@ class ProjectsConsoleClientTest extends Scope
         $response = $this->client->call(Client::METHOD_POST, '/projects/' . $id . '/jwts', array_merge([
             'content-type' => 'application/json',
             'x-appwrite-project' => $this->getProject()['$id'],
+            'x-appwrite-response-format' => '1.9.2',
         ], $this->getHeaders()), [
             'duration' => 5,
             'scopes' => ['users.read'],
