@@ -35,7 +35,7 @@ class Update extends Base
 
     public static function getClientIdName(): string
     {
-        return 'Client ID or App ID';
+        return 'OAuth 2 app Client ID, or App ID';
     }
 
     public static function getClientIdExample(): string

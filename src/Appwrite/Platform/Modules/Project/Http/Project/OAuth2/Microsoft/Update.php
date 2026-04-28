@@ -56,7 +56,7 @@ class Update extends Base
 
     public static function getClientIdName(): string
     {
-        return 'Application ID (also known as Client ID)';
+        return 'Entra ID Application ID, also known as Client ID';
     }
 
     public static function getClientIdExample(): string
@@ -66,7 +66,7 @@ class Update extends Base
 
     public static function getClientSecretName(): string
     {
-        return 'Application Secret (also known as Client Secret)';
+        return 'Entra ID Application Secret, also known as Client Secret';
     }
 
     public static function getClientSecretExample(): string
