@@ -256,7 +256,7 @@ trait KeysBase
         $this->assertNotEmpty($key['body']['secret']);
         $this->assertStringStartsWith(API_KEY_DYNAMIC . '_', $key['body']['secret']);
         $this->assertSame([], $key['body']['sdks']);
-        $this->assertNull($key['body']['accessedAt']);
+        $this->assertSame('', $key['body']['accessedAt']);
 
         $dateValidator = new DatetimeValidator();
         $this->assertSame(true, $dateValidator->isValid($key['body']['$createdAt']));
