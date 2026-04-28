@@ -46,7 +46,7 @@ use Utopia\WebSocket\Server;
 
 require_once __DIR__ . '/init.php';
 
-if (!defined('APPWRITE_SKIP_CE_SPAN_INIT')) {
+if (System::getEnv('_APP_EDITION', 'self-hosted') === 'self-hosted') {
     require_once __DIR__ . '/init/span.php';
 }
 
