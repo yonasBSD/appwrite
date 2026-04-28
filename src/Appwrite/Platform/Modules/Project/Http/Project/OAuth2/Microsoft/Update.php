@@ -54,16 +54,6 @@ class Update extends Base
         return 'applicationSecret';
     }
 
-    public static function getClientIdDescription(): string
-    {
-        return '\'Application ID\' (also known as Client ID) of Microsoft Entra ID app. For example: 00001111-aaaa-2222-bbbb-3333cccc4444';
-    }
-
-    public static function getClientSecretDescription(): string
-    {
-        return '\'Application Secret\' (also known as Client Secret) of Microsoft Entra ID app. For example: A1bC2dE3fH4iJ5kL6mN7oP8qR9sT0u';
-    }
-
     public static function getClientIdName(): string
     {
         return 'Application ID (also known as Client ID)';

@@ -43,16 +43,6 @@ class Update extends Base
         return 'oauth2ClientSecret';
     }
 
-    public static function getClientIdDescription(): string
-    {
-        return '\'Oauth2 Client ID\' of ' . static::getProviderLabel() . ' OAuth2 app. For example: appwrite-tes00000.0000000000est-app';
-    }
-
-    public static function getClientSecretDescription(): string
-    {
-        return '\'Oauth2 Client secret\' of ' . static::getProviderLabel() . ' OAuth2 app. For example: 7cb52700-0000-0000-0000-000000ca5b83';
-    }
-
     public static function getClientIdName(): string
     {
         return 'OAuth2 Client ID';

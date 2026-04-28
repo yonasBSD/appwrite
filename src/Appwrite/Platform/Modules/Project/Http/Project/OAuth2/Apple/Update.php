@@ -49,18 +49,6 @@ class Update extends Base
         return 'serviceId';
     }
 
-    public static function getClientIdDescription(): string
-    {
-        return '\'Service ID\' of Apple OAuth2 app. For example: ip.appwrite.app.web';
-    }
-
-    public static function getClientSecretDescription(): string
-    {
-        // Unused: this adapter replaces the single clientSecret param with
-        // keyId, teamId and p8File by overriding __construct() and handle().
-        return '';
-    }
-
     public static function getClientIdName(): string
     {
         return 'Service ID';

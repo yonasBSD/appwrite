@@ -33,16 +33,6 @@ class Update extends Base
         return Response::MODEL_OAUTH2_AUTODESK;
     }
 
-    public static function getClientIdDescription(): string
-    {
-        return '\'client ID\' of Autodesk OAuth2 app. For example: 5zw90v00000000000000000000kVYXN7';
-    }
-
-    public static function getClientSecretDescription(): string
-    {
-        return '\'client secret\' of Autodesk OAuth2 app. For example: 7I000000000000MW';
-    }
-
     public static function getClientIdName(): string
     {
         return 'Client ID';

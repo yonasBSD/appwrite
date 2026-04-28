@@ -38,16 +38,6 @@ class Update extends Base
         return 'primaryClientSecret';
     }
 
-    public static function getClientIdDescription(): string
-    {
-        return '\'Client ID\' of LinkedIn OAuth2 app. For example: 770000000000dv';
-    }
-
-    public static function getClientSecretDescription(): string
-    {
-        return '\'Primary Client Secret\' or \'Secondary Client Secret\', of LinkedIn OAuth2 app. For example: WPL_AP1.2Bf0000000000000./HtlYw==';
-    }
-
     public static function getClientIdName(): string
     {
         return 'Client ID';

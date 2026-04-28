@@ -46,16 +46,6 @@ class Update extends Base
         return Response::MODEL_OAUTH2_OKTA;
     }
 
-    public static function getClientIdDescription(): string
-    {
-        return '\'Client ID\' of Okta OAuth2 app. For example: 0oa00000000000000698';
-    }
-
-    public static function getClientSecretDescription(): string
-    {
-        return '\'Client Secret\' of Okta OAuth2 app. For example: Kiq0000000000000000000000000000000000000-00000000000H2L5-3SJ-vRV';
-    }
-
     public static function getClientIdName(): string
     {
         return 'Client ID';

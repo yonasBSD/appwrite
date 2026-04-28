@@ -33,16 +33,6 @@ class Update extends Base
         return Response::MODEL_OAUTH2_BITLY;
     }
 
-    public static function getClientIdDescription(): string
-    {
-        return '\'Client ID\' of Bitly OAuth2 app. For example: d95151000000000000000000000000000067af9b';
-    }
-
-    public static function getClientSecretDescription(): string
-    {
-        return '\'Client Secret\' of Bitly OAuth2 app. For example: a13e250000000000000000000000000000d73095';
-    }
-
     public static function getClientIdName(): string
     {
         return 'Client ID';

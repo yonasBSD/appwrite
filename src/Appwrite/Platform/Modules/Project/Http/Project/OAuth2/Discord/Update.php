@@ -33,16 +33,6 @@ class Update extends Base
         return Response::MODEL_OAUTH2_DISCORD;
     }
 
-    public static function getClientIdDescription(): string
-    {
-        return '\'Client ID\' of Discord OAuth2 app. For example: 950722000000343754';
-    }
-
-    public static function getClientSecretDescription(): string
-    {
-        return '\'Client Secret\' of Discord OAuth2 app. For example: YmPXnM000000000000000000002zFg5D';
-    }
-
     public static function getClientIdName(): string
     {
         return 'Client ID';

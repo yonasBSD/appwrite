@@ -38,16 +38,6 @@ class Update extends Base
         return 'apiSecretKey';
     }
 
-    public static function getClientIdDescription(): string
-    {
-        return '\'client ID\' of Stripe OAuth2 app. For example: ca_UKibXX0000000000000000000006byvR';
-    }
-
-    public static function getClientSecretDescription(): string
-    {
-        return '\'API Secret key\' of Stripe OAuth2 app. For example: sk_51SfOd000000000000000000000000000000000000000000000000000000000000000000000000000000000000000QGWYfp';
-    }
-
     public static function getClientIdName(): string
     {
         return 'Client ID';

@@ -33,16 +33,6 @@ class Update extends Base
         return Response::MODEL_OAUTH2_YANDEX;
     }
 
-    public static function getClientIdDescription(): string
-    {
-        return '\'ClientID\' of Yandex OAuth2 app. For example: 6a8a6a0000000000000000000091483c';
-    }
-
-    public static function getClientSecretDescription(): string
-    {
-        return '\'Client secret\' of Yandex OAuth2 app. For example: bbf98500000000000000000000c75a63';
-    }
-
     public static function getClientIdName(): string
     {
         return 'Client ID';

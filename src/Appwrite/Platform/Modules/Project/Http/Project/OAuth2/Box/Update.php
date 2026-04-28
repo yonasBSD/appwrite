@@ -33,16 +33,6 @@ class Update extends Base
         return Response::MODEL_OAUTH2_BOX;
     }
 
-    public static function getClientIdDescription(): string
-    {
-        return '\'Client ID\' of Box OAuth2 app. For example: deglcs00000000000000000000x2og6y';
-    }
-
-    public static function getClientSecretDescription(): string
-    {
-        return '\'Client Secret\' of Box OAuth2 app. For example: OKM1f100000000000000000000eshEif';
-    }
-
     public static function getClientIdName(): string
     {
         return 'Client ID';

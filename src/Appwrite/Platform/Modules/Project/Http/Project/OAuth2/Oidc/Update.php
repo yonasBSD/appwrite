@@ -46,16 +46,6 @@ class Update extends Base
         return Response::MODEL_OAUTH2_OIDC;
     }
 
-    public static function getClientIdDescription(): string
-    {
-        return '\'Client ID\' of OpenID Connect OAuth2 app. For example: qibI2x0000000000000000000000000006L2YFoG';
-    }
-
-    public static function getClientSecretDescription(): string
-    {
-        return '\'Client Secret\' of OpenID Connect OAuth2 app. For example: Ah68ed000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000003qpcHV';
-    }
-
     public static function getClientIdName(): string
     {
         return 'Client ID';

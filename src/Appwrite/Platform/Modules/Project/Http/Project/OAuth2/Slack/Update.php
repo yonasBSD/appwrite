@@ -33,16 +33,6 @@ class Update extends Base
         return Response::MODEL_OAUTH2_SLACK;
     }
 
-    public static function getClientIdDescription(): string
-    {
-        return '\'Client ID\' of Slack OAuth2 app. For example: 23000000089.15000000000023';
-    }
-
-    public static function getClientSecretDescription(): string
-    {
-        return '\'Client Secret\' of Slack OAuth2 app. For example: 81656000000000000000000000f3d2fd';
-    }
-
     public static function getClientIdName(): string
     {
         return 'Client ID';

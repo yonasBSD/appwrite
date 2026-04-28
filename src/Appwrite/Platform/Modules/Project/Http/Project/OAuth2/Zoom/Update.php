@@ -33,16 +33,6 @@ class Update extends Base
         return Response::MODEL_OAUTH2_ZOOM;
     }
 
-    public static function getClientIdDescription(): string
-    {
-        return '\'Client ID\' of Zoom OAuth2 app. For example: QMAC00000000000000w0AQ';
-    }
-
-    public static function getClientSecretDescription(): string
-    {
-        return '\'Client Secret\' of Zoom OAuth2 app. For example: GAWsG4000000000000000000007U01ON';
-    }
-
     public static function getClientIdName(): string
     {
         return 'Client ID';

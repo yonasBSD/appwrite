@@ -33,16 +33,6 @@ class Update extends Base
         return Response::MODEL_OAUTH2_SPOTIFY;
     }
 
-    public static function getClientIdDescription(): string
-    {
-        return '\'Client ID\' of Spotify OAuth2 app. For example: 6ec271000000000000000000009beace';
-    }
-
-    public static function getClientSecretDescription(): string
-    {
-        return '\'Client secret\' of Spotify OAuth2 app. For example: db068a000000000000000000008b5b9f';
-    }
-
     public static function getClientIdName(): string
     {
         return 'Client ID';

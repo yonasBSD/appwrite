@@ -44,16 +44,6 @@ class Update extends Base
         return Response::MODEL_OAUTH2_AUTH0;
     }
 
-    public static function getClientIdDescription(): string
-    {
-        return '\'Client ID\' of Auth0 OAuth2 app. For example: OaOkIA000000000000000000005KLSYq';
-    }
-
-    public static function getClientSecretDescription(): string
-    {
-        return '\'Client Secret\' of Auth0 OAuth2 app. For example: zXz0000-00000000000000000000000000000-00000000000000000000PJafnF';
-    }
-
     public static function getClientIdName(): string
     {
         return 'Client ID';

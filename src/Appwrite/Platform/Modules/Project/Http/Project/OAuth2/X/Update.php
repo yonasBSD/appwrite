@@ -43,16 +43,6 @@ class Update extends Base
         return 'secretKey';
     }
 
-    public static function getClientIdDescription(): string
-    {
-        return '\'Customer Key\' of X OAuth2 app. For example: slzZV0000000000000NFLaWT';
-    }
-
-    public static function getClientSecretDescription(): string
-    {
-        return '\'Secret Key\' of X OAuth2 app. For example: tkEPkp00000000000000000000000000000000000000FTxbI9';
-    }
-
     public static function getClientIdName(): string
     {
         return 'Customer Key';

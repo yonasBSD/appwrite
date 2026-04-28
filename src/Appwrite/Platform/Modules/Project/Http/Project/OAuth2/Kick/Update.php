@@ -33,16 +33,6 @@ class Update extends Base
         return Response::MODEL_OAUTH2_KICK;
     }
 
-    public static function getClientIdDescription(): string
-    {
-        return '\'Client ID\' of Kick OAuth2 app. For example: 01KQ7C00000000000001MFHS32';
-    }
-
-    public static function getClientSecretDescription(): string
-    {
-        return '\'Client Secret\' of Kick OAuth2 app. For example: 34ac5600000000000000000000000000000000000000000000000000e830c8b';
-    }
-
     public static function getClientIdName(): string
     {
         return 'Client ID';

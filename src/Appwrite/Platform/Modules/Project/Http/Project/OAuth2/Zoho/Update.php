@@ -33,16 +33,6 @@ class Update extends Base
         return Response::MODEL_OAUTH2_ZOHO;
     }
 
-    public static function getClientIdDescription(): string
-    {
-        return '\'Client ID\' of Zoho OAuth2 app. For example: 1000.83C178000000000000000000RPNX0B';
-    }
-
-    public static function getClientSecretDescription(): string
-    {
-        return '\'Client Secret\' of Zoho OAuth2 app. For example: fb5cac000000000000000000000000000000a68f6e';
-    }
-
     public static function getClientIdName(): string
     {
         return 'Client ID';

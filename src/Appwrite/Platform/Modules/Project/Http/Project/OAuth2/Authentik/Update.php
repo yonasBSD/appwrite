@@ -44,16 +44,6 @@ class Update extends Base
         return Response::MODEL_OAUTH2_AUTHENTIK;
     }
 
-    public static function getClientIdDescription(): string
-    {
-        return '\'Client ID\' of Authentik OAuth2 app. For example: dTKOPa0000000000000000000000000000e7G8hv';
-    }
-
-    public static function getClientSecretDescription(): string
-    {
-        return '\'Client Secret\' of Authentik OAuth2 app. For example: ntQadq000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000Hp5WK';
-    }
-
     public static function getClientIdName(): string
     {
         return 'Client ID';

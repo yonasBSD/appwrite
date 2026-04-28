@@ -51,18 +51,54 @@ abstract class Base extends Action
     abstract public static function getResponseModel(): string;
 
     /**
-     * Description of the clientId param, including an example value.
-     *
-     * @return string
+     * Description of the clientId param, auto-built from
+     * {@see getClientIdName()}, {@see getClientIdExample()} and
+     * {@see getClientIdHint()}. Returns an empty string when the name is
+     * empty (e.g. providers like Apple that don't expose a single clientId
+     * description but still need to bypass this default).
      */
-    abstract public static function getClientIdDescription(): string;
+    public static function getClientIdDescription(): string
+    {
+        return self::buildParamDescription(
+            static::getClientIdName(),
+            static::getClientIdExample(),
+            static::getClientIdHint()
+        );
+    }
 
     /**
-     * Description of the clientSecret param, including an example value.
-     *
-     * @return string
+     * Description of the clientSecret param, auto-built from
+     * {@see getClientSecretName()}, {@see getClientSecretExample()} and
+     * {@see getClientSecretHint()}. Returns an empty string when the name
+     * is empty (e.g. Apple, which uses keyId/teamId/p8File instead).
      */
-    abstract public static function getClientSecretDescription(): string;
+    public static function getClientSecretDescription(): string
+    {
+        return self::buildParamDescription(
+            static::getClientSecretName(),
+            static::getClientSecretExample(),
+            static::getClientSecretHint()
+        );
+    }
+
+    /**
+     * Format a parameter description as
+     * "'<name>' of <providerLabel> OAuth2 app. For example: <example>[. <hint>]".
+     * Returns an empty string when the name is empty.
+     */
+    private static function buildParamDescription(string $name, string $example, string $hint): string
+    {
+        if ($name === '') {
+            return '';
+        }
+
+        $description = '\'' . $name . '\' of ' . static::getProviderLabel() . ' OAuth2 app. For example: ' . $example;
+        if ($hint !== '') {
+            $description .= '. ' . $hint;
+        }
+
+        return $description;
+    }
 
     /**
      * Verbose, user-facing name of the clientId param. Includes alternate

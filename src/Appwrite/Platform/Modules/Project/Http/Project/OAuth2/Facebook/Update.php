@@ -43,16 +43,6 @@ class Update extends Base
         return 'appSecret';
     }
 
-    public static function getClientIdDescription(): string
-    {
-        return '\'App ID\' of Facebook OAuth2 app. For example: 260600000007694';
-    }
-
-    public static function getClientSecretDescription(): string
-    {
-        return '\'App secret\' of Facebook OAuth2 app. For example: 2d0b2800000000000000000000d38af4';
-    }
-
     public static function getClientIdName(): string
     {
         return 'App ID';
