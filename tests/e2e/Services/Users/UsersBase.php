@@ -2770,7 +2770,9 @@ trait UsersBase
 
         // Attack vector 1: cross-site (attacker.com embeds <img src="...?impersonateUserId=victim">)
         // Browser sends Sec-Fetch-Site: cross-site — must be blocked.
-        $crossSite = $this->client->call(Client::METHOD_GET, '/account',
+        $crossSite = $this->client->call(
+            Client::METHOD_GET,
+            '/account',
             array_merge($sessionHeaders, ['sec-fetch-site' => 'cross-site']),
             ['impersonateUserId' => $targetId]
         );
@@ -2780,7 +2782,9 @@ trait UsersBase
 
         // Attack vector 2: absent header (reverse proxy strips Fetch Metadata headers)
         // Guard must fail-closed — absent Sec-Fetch-Site must not allow query param.
-        $noFetchSite = $this->client->call(Client::METHOD_GET, '/account',
+        $noFetchSite = $this->client->call(
+            Client::METHOD_GET,
+            '/account',
             $sessionHeaders,
             ['impersonateUserId' => $targetId]
         );
@@ -2789,7 +2793,9 @@ trait UsersBase
         $this->assertArrayNotHasKey('impersonatorUserId', $noFetchSite['body']);
 
         // Legitimate use 1: same-origin (Console on same origin as API)
-        $sameOrigin = $this->client->call(Client::METHOD_GET, '/account',
+        $sameOrigin = $this->client->call(
+            Client::METHOD_GET,
+            '/account',
             array_merge($sessionHeaders, ['sec-fetch-site' => 'same-origin']),
             ['impersonateUserId' => $targetId]
         );
@@ -2798,7 +2804,9 @@ trait UsersBase
         $this->assertEquals($impersonatorId, $sameOrigin['body']['impersonatorUserId']);
 
         // Legitimate use 2: same-site (Console on subdomain, e.g. vibes.appwrite.io vs appwrite.io)
-        $sameSite = $this->client->call(Client::METHOD_GET, '/account',
+        $sameSite = $this->client->call(
+            Client::METHOD_GET,
+            '/account',
             array_merge($sessionHeaders, ['sec-fetch-site' => 'same-site']),
             ['impersonateUserId' => $targetId]
         );
