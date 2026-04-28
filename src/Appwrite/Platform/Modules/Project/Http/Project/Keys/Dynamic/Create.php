@@ -1,7 +1,8 @@
 <?php
 
-namespace Appwrite\Platform\Modules\Project\Http\Project\Keys;
+namespace Appwrite\Platform\Modules\Project\Http\Project\Keys\Dynami;
 
+use Ahc\Jwt\JWT;
 use Appwrite\Event\Event as QueueEvent;
 use Appwrite\Extend\Exception;
 use Appwrite\Platform\Modules\Compute\Base;
@@ -12,6 +13,7 @@ use Appwrite\Utopia\Database\Validator\CustomId;
 use Appwrite\Utopia\Response;
 use Utopia\Config\Config;
 use Utopia\Database\Database;
+use Utopia\Database\DateTime as DatabaseDateTime;
 use Utopia\Database\Document;
 use Utopia\Database\Exception\Duplicate as DuplicateException;
 use Utopia\Database\Helpers\ID;
@@ -19,8 +21,10 @@ use Utopia\Database\Validator\Authorization;
 use Utopia\Database\Validator\Datetime;
 use Utopia\Platform\Action;
 use Utopia\Platform\Scope\HTTP;
+use Utopia\System\System;
 use Utopia\Validator\ArrayList;
 use Utopia\Validator\Nullable;
+use Utopia\Validator\Range;
 use Utopia\Validator\Text;
 use Utopia\Validator\WhiteList;
 
@@ -30,16 +34,16 @@ class Create extends Base
 
     public static function getName()
     {
-        return 'createProjectKey';
+        return 'createDynamicProjectKey';
     }
 
     public function __construct()
     {
         $this
             ->setHttpMethod(Action::HTTP_REQUEST_METHOD_POST)
-            ->setHttpPath('/v1/project/keys')
-            ->httpAlias('/v1/projects/:projectId/keys')
-            ->desc('Create project key')
+            ->setHttpPath('/v1/project/keys/dynamic')
+            ->httpAlias('/v1/projects/:projectId/jwts')
+            ->desc('Create dynamic project key')
             ->groups(['api', 'project'])
             ->label('scope', 'keys.write')
             ->label('event', 'keys.[keyId].create')
@@ -48,9 +52,11 @@ class Create extends Base
             ->label('sdk', new Method(
                 namespace: 'project',
                 group: 'keys',
-                name: 'createKey',
+                name: 'createDynamicKey',
                 description: <<<EOT
-                Create a new API key. It's recommended to have multiple API keys with strict scopes for separate functions within your project.
+                Create a new dynamic API key. It's recommended to have multiple API keys with strict scopes for separate functions within your project.
+                
+                You can also create a standard API key if you need a longer-lived key instead.
                 EOT,
                 auth: [AuthType::ADMIN, AuthType::KEY],
                 responses: [
@@ -60,52 +66,45 @@ class Create extends Base
                     )
                 ],
             ))
-            ->param('keyId', '', fn (Database $dbForPlatform) => new CustomId(false, $dbForPlatform->getAdapter()->getMaxUIDLength()), 'Key ID. Choose a custom ID or generate a random ID with `ID.unique()`. Valid chars are a-z, A-Z, 0-9, period, hyphen, and underscore. Can\'t start with a special char. Max length is 36 chars.', false, ['dbForPlatform'])
-            ->param('name', null, new Text(128), 'Key name. Max length: 128 chars.')
             ->param('scopes', [], new ArrayList(new WhiteList(array_keys(Config::getParam('projectScopes')), true), APP_LIMIT_ARRAY_PARAMS_SIZE), 'Key scopes list. Maximum of ' . APP_LIMIT_ARRAY_PARAMS_SIZE . ' scopes are allowed.', optional: false)
-            ->param('expire', null, new Nullable(new Datetime()), 'Expiration time in [ISO 8601](https://www.iso.org/iso-8601-date-and-time-format.html) format. Use null for unlimited expiration.', true)
+            ->param('duration', 900, new Range(1, 3600), 'Time in seconds before dynamic key expires. Default duration is 900 seconds, and maximum is 3600 seconds.', true)
             ->inject('response')
             ->inject('queueForEvents')
-            ->inject('dbForPlatform')
             ->inject('project')
-            ->inject('authorization')
             ->callback($this->action(...));
     }
 
     public function action(
         string $keyId,
-        string $name,
         array $scopes,
-        ?string $expire,
+        int $duration,
         Response $response,
         QueueEvent $queueForEvents,
-        Database $dbForPlatform,
         Document $project,
-        Authorization $authorization,
     ) {
-        $keyId = ($keyId == 'unique()') ? ID::unique() : $keyId;
+        $keyId = ID::unique();
 
+          $jwt = new JWT(System::getEnv('_APP_OPENSSL_KEY_V1'), 'HS256', $duration, 0);
+          
+          $secret = $jwt->encode([
+              'projectId' => $project->getId(),
+              'scopes' => $scopes
+          ]);
+          
+          $now = new \DateTime();
+          $expire = $now->add(new \DateInterval('PT' . $duration . 'S'))->format('Y-m-d\TH:i:s.u\Z');
+          
         $key = new Document([
             '$id' => $keyId,
-            '$permissions' => [],
-            'resourceInternalId' => $project->getSequence(),
-            'resourceId' => $project->getId(),
-            'resourceType' => 'projects',
-            'name' => $name,
+            '$createdAt' => new DatabaseDateTime(),
+            '$updatedAt' => new DatabaseDateTime(),
+            'name' => '',
             'scopes' => $scopes,
             'expire' => $expire,
             'sdks' => [],
             'accessedAt' => null,
-            'secret' => API_KEY_STANDARD . '_' . \bin2hex(\random_bytes(128)),
+            'secret' => API_KEY_DYNAMIC . '_' . $secret,
         ]);
-
-        try {
-            $key = $authorization->skip(fn () => $dbForPlatform->createDocument('keys', $key));
-        } catch (DuplicateException) {
-            throw new Exception(Exception::KEY_ALREADY_EXISTS);
-        }
-
-        $authorization->skip(fn () => $dbForPlatform->purgeCachedDocument('projects', $project->getId()));
 
         $queueForEvents->setParam('keyId', $key->getId());
 

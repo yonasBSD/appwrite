@@ -3959,6 +3959,8 @@ class ProjectsConsoleClientTest extends Scope
 
         $this->assertEquals(201, $response['headers']['status-code']);
         $this->assertNotEmpty($response['body']['jwt']);
+        $this->assertNotEmpty($response['body']['projectId']);
+        $this->assertSame($id, $response['body']['projectId']);
 
         $jwt = $response['body']['jwt'];
 

@@ -60,48 +60,6 @@ Http::get('/v1/projects/:projectId')
         $response->dynamic($project, Response::MODEL_PROJECT);
     });
 
-// JWT Keys
-
-Http::post('/v1/projects/:projectId/jwts')
-    ->groups(['api', 'projects'])
-    ->desc('Create JWT')
-    ->label('scope', 'projects.write')
-    ->label('sdk', new Method(
-        namespace: 'projects',
-        group: 'auth',
-        name: 'createJWT',
-        description: '/docs/references/projects/create-jwt.md',
-        auth: [AuthType::ADMIN],
-        responses: [
-            new SDKResponse(
-                code: Response::STATUS_CODE_CREATED,
-                model: Response::MODEL_JWT,
-            )
-        ]
-    ))
-    ->param('projectId', '', fn (Database $dbForPlatform) => new UID($dbForPlatform->getAdapter()->getMaxUIDLength()), 'Project unique ID.', false, ['dbForPlatform'])
-    ->param('scopes', [], new ArrayList(new WhiteList(array_keys(Config::getParam('projectScopes')), true), APP_LIMIT_ARRAY_PARAMS_SIZE), 'List of scopes allowed for JWT key. Maximum of ' . APP_LIMIT_ARRAY_PARAMS_SIZE . ' scopes are allowed.')
-    ->param('duration', 900, new Range(0, 3600), 'Time in seconds before JWT expires. Default duration is 900 seconds, and maximum is 3600 seconds.', true)
-    ->inject('response')
-    ->inject('dbForPlatform')
-    ->action(function (string $projectId, array $scopes, int $duration, Response $response, Database $dbForPlatform) {
-
-        $project = $dbForPlatform->getDocument('projects', $projectId);
-
-        if ($project->isEmpty()) {
-            throw new Exception(Exception::PROJECT_NOT_FOUND);
-        }
-
-        $jwt = new JWT(System::getEnv('_APP_OPENSSL_KEY_V1'), 'HS256', $duration, 0);
-
-        $response
-            ->setStatusCode(Response::STATUS_CODE_CREATED)
-            ->dynamic(new Document(['jwt' => API_KEY_DYNAMIC . '_' . $jwt->encode([
-                'projectId' => $project->getId(),
-                'scopes' => $scopes
-            ])]), Response::MODEL_JWT);
-    });
-
 // Backwards compatibility
 Http::patch('/v1/projects/:projectId/oauth2')
     ->desc('Update project OAuth2')
