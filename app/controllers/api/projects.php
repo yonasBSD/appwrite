@@ -1,6 +1,5 @@
 <?php
 
-use Ahc\Jwt\JWT;
 use Appwrite\Auth\Validator\MockNumber;
 use Appwrite\Extend\Exception;
 use Appwrite\SDK\AuthType;
@@ -16,7 +15,6 @@ use Utopia\System\System;
 use Utopia\Validator\ArrayList;
 use Utopia\Validator\Boolean;
 use Utopia\Validator\Nullable;
-use Utopia\Validator\Range;
 use Utopia\Validator\Text;
 use Utopia\Validator\WhiteList;
 

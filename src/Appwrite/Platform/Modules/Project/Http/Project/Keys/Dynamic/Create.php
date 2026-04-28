@@ -4,28 +4,20 @@ namespace Appwrite\Platform\Modules\Project\Http\Project\Keys\Dynami;
 
 use Ahc\Jwt\JWT;
 use Appwrite\Event\Event as QueueEvent;
-use Appwrite\Extend\Exception;
 use Appwrite\Platform\Modules\Compute\Base;
 use Appwrite\SDK\AuthType;
 use Appwrite\SDK\Method;
 use Appwrite\SDK\Response as SDKResponse;
-use Appwrite\Utopia\Database\Validator\CustomId;
 use Appwrite\Utopia\Response;
 use Utopia\Config\Config;
-use Utopia\Database\Database;
 use Utopia\Database\DateTime as DatabaseDateTime;
 use Utopia\Database\Document;
-use Utopia\Database\Exception\Duplicate as DuplicateException;
 use Utopia\Database\Helpers\ID;
-use Utopia\Database\Validator\Authorization;
-use Utopia\Database\Validator\Datetime;
 use Utopia\Platform\Action;
 use Utopia\Platform\Scope\HTTP;
 use Utopia\System\System;
 use Utopia\Validator\ArrayList;
-use Utopia\Validator\Nullable;
 use Utopia\Validator\Range;
-use Utopia\Validator\Text;
 use Utopia\Validator\WhiteList;
 
 class Create extends Base
@@ -62,7 +54,7 @@ class Create extends Base
                 responses: [
                     new SDKResponse(
                         code: Response::STATUS_CODE_CREATED,
-                        model: Response::MODEL_KEY,
+                        model: Response::MODEL_DYNAMIC_KEY,
                     )
                 ],
             ))
@@ -84,16 +76,16 @@ class Create extends Base
     ) {
         $keyId = ID::unique();
 
-          $jwt = new JWT(System::getEnv('_APP_OPENSSL_KEY_V1'), 'HS256', $duration, 0);
-          
-          $secret = $jwt->encode([
-              'projectId' => $project->getId(),
-              'scopes' => $scopes
-          ]);
-          
-          $now = new \DateTime();
-          $expire = $now->add(new \DateInterval('PT' . $duration . 'S'))->format('Y-m-d\TH:i:s.u\Z');
-          
+        $jwt = new JWT(System::getEnv('_APP_OPENSSL_KEY_V1'), 'HS256', $duration, 0);
+
+        $secret = $jwt->encode([
+            'projectId' => $project->getId(),
+            'scopes' => $scopes
+        ]);
+
+        $now = new \DateTime();
+        $expire = $now->add(new \DateInterval('PT' . $duration . 'S'))->format('Y-m-d\TH:i:s.u\Z');
+
         $key = new Document([
             '$id' => $keyId,
             '$createdAt' => new DatabaseDateTime(),
@@ -110,6 +102,6 @@ class Create extends Base
 
         $response
             ->setStatusCode(Response::STATUS_CODE_CREATED)
-            ->dynamic($key, Response::MODEL_KEY);
+            ->dynamic($key, Response::MODEL_DYNAMIC_KEY);
     }
 }
