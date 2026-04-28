@@ -1558,7 +1558,7 @@ trait MigrationsBase
         self::$cachedTableData = [];
     }
 
-    /** Pair-key dedup prevents partner DropAndRecreate from wiping rows already migrated this run. */
+    /** Two-way recreate with same spec: spec-match guard tolerates parent; pair-key dedup tolerates partner. Both sides + child rows preserved. */
     public function testAppwriteMigrationUpsertTwoWayRecreateSkipsPartnerSide(): void
     {
         $sourceHeaders = [
@@ -1806,7 +1806,7 @@ trait MigrationsBase
         self::$cachedTableData = [];
     }
 
-    /** Source drops+recreates with DIFFERENT spec: DropAndRecreate, row pass refills. */
+    /** Recreate with non-SDK spec change (array toggle): updateAttributeInPlace bails → drop+recreate; row pass refills. */
     public function testAppwriteMigrationUpsertAttributeRecreateDropsAndRecreates(): void
     {
         $sourceHeaders = [
@@ -1858,10 +1858,15 @@ trait MigrationsBase
             $this->assertEquals(404, $r['headers']['status-code']);
         }, 10000, 500);
 
+        // Recreate with `array: true` — a non-SDK change (`array` is in
+        // ATTRIBUTE_NON_SDK_FIELDS). Forces updateAttributeInPlace to bail
+        // and the caller to fall through to drop+recreate, which is what
+        // this test pins.
         $recreate = $this->client->call(Client::METHOD_POST, '/tablesdb/' . $databaseId . '/tables/' . $tableId . '/columns/string', $sourceHeaders, [
             'key' => 'name',
             'size' => 100,
             'required' => false,
+            'array' => true,
         ]);
         $this->assertEquals(202, $recreate['headers']['status-code']);
 
@@ -1871,9 +1876,9 @@ trait MigrationsBase
             $this->assertEquals('available', $r['body']['status']);
         }, 10000, 500);
 
-        // Source row's data was nulled by the source-side delete. Set fresh value.
+        // Source row's data was nulled by the source-side delete. Set a list value (column is array=true now).
         $relink = $this->client->call(Client::METHOD_PATCH, '/tablesdb/' . $databaseId . '/tables/' . $tableId . '/rows/' . $rowId, $sourceHeaders, [
-            'data' => ['name' => 'after-recreate'],
+            'data' => ['name' => ['after-recreate']],
         ]);
         $this->assertEquals(200, $relink['headers']['status-code']);
 
@@ -1890,12 +1895,13 @@ trait MigrationsBase
             $col = $this->client->call(Client::METHOD_GET, '/tablesdb/' . $databaseId . '/tables/' . $tableId . '/columns/name', $destHeaders);
             $this->assertEquals(200, $col['headers']['status-code']);
             $this->assertEquals('available', $col['body']['status']);
-            $this->assertFalse($col['body']['required'], 'recreated column must reflect the new spec (required=false)');
+            $this->assertTrue($col['body']['array'], 'recreated column must reflect the new spec (array=true)');
+            $this->assertFalse($col['body']['required']);
         }, 10000, 500);
 
         $rowAfter = $this->client->call(Client::METHOD_GET, '/tablesdb/' . $databaseId . '/tables/' . $tableId . '/rows/' . $rowId, $destHeaders);
         $this->assertEquals(200, $rowAfter['headers']['status-code']);
-        $this->assertEquals('after-recreate', $rowAfter['body']['name'], 'row pass must repopulate the recreated column with source value');
+        $this->assertEquals(['after-recreate'], $rowAfter['body']['name'], 'row pass must repopulate the recreated column with source value');
 
         $this->client->call(Client::METHOD_DELETE, '/databases/' . $databaseId, $destHeaders);
         $this->client->call(Client::METHOD_DELETE, '/databases/' . $databaseId, $sourceHeaders);
