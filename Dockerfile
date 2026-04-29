@@ -24,6 +24,11 @@ ENV _APP_VERSION=$VERSION \
     _APP_HOME=https://appwrite.io
 
 RUN \
+    apk add --update --no-cache git && \
+    if [ "$DEBUG" != "true" ]; then \
+    rm -f /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini && \
+    rm -f /usr/local/lib/php/extensions/no-debug-non-zts-*/xdebug.so; \
+    fi && \
     if [ "$DEBUG" == "true" ]; then \
     apk add boost boost-dev; \
     fi
@@ -100,7 +105,8 @@ RUN mkdir -p /etc/letsencrypt/live/ && chmod -Rf 755 /etc/letsencrypt/live/
 FROM base AS production
 
 RUN rm -rf /usr/src/code/app/config/specs && \
-    rm -f /usr/local/lib/php/extensions/no-debug-non-zts-20250925/xdebug.so && \
+    rm -f /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini /usr/local/etc/php/conf.d/xdebug.ini && \
+    rm -f /usr/local/lib/php/extensions/no-debug-non-zts-*/xdebug.so && \
     find /usr -name '*.a' -delete 2>/dev/null || true && \
     find /usr -type d -name '__pycache__' -exec rm -rf {} + 2>/dev/null || true && \
     find /usr -name '*.pyc' -delete 2>/dev/null || true
