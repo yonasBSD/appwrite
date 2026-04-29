@@ -633,6 +633,57 @@ class Deletes extends Action
             $dsn = new DSN('mysql://' . $document->getAttribute('database', 'console'));
         }
 
+        // Delete Platforms
+        $this->deleteByGroup('platforms', [
+            Query::equal('projectInternalId', [$projectInternalId]),
+            Query::orderAsc()
+        ], $dbForPlatform);
+
+        // Delete project and function rules
+        $this->deleteByGroup('rules', [
+            Query::equal('projectInternalId', [$projectInternalId]),
+            Query::orderAsc()
+        ], $dbForPlatform, function (Document $document) use ($dbForPlatform, $certificates) {
+            $this->deleteRule($dbForPlatform, $document, $certificates);
+        });
+
+        // Delete Keys
+        $this->deleteByGroup('keys', [
+            Query::equal('resourceType', ['projects']),
+            Query::equal('resourceInternalId', [$projectInternalId]),
+            Query::orderAsc()
+        ], $dbForPlatform);
+
+        // Delete Webhooks
+        $this->deleteByGroup('webhooks', [
+            Query::equal('projectInternalId', [$projectInternalId]),
+            Query::orderAsc()
+        ], $dbForPlatform);
+
+        // Delete VCS Installations
+        $this->deleteByGroup('installations', [
+            Query::equal('projectInternalId', [$projectInternalId]),
+            Query::orderAsc()
+        ], $dbForPlatform);
+
+        // Delete VCS Repositories
+        $this->deleteByGroup('repositories', [
+            Query::equal('projectInternalId', [$projectInternalId]),
+            Query::orderAsc()
+        ], $dbForPlatform);
+
+        // Delete VCS comments
+        $this->deleteByGroup('vcsComments', [
+            Query::equal('projectInternalId', [$projectInternalId]),
+            Query::orderAsc()
+        ], $dbForPlatform);
+
+        // Delete Schedules
+        $this->deleteByGroup('schedules', [
+            Query::equal('projectId', [$projectId]),
+            Query::orderAsc()
+        ], $dbForPlatform);
+
         /**
          * @var Database $dbForProject
          */
@@ -693,57 +744,6 @@ class Deletes extends Action
                 ),
                 $databasesToClean
             ));
-
-            // Delete Platforms
-            $this->deleteByGroup('platforms', [
-                Query::equal('projectInternalId', [$projectInternalId]),
-                Query::orderAsc()
-            ], $dbForPlatform);
-
-            // Delete project and function rules
-            $this->deleteByGroup('rules', [
-                Query::equal('projectInternalId', [$projectInternalId]),
-                Query::orderAsc()
-            ], $dbForPlatform, function (Document $document) use ($dbForPlatform, $certificates) {
-                $this->deleteRule($dbForPlatform, $document, $certificates);
-            });
-
-            // Delete Keys
-            $this->deleteByGroup('keys', [
-                Query::equal('resourceType', ['projects']),
-                Query::equal('resourceInternalId', [$projectInternalId]),
-                Query::orderAsc()
-            ], $dbForPlatform);
-
-            // Delete Webhooks
-            $this->deleteByGroup('webhooks', [
-                Query::equal('projectInternalId', [$projectInternalId]),
-                Query::orderAsc()
-            ], $dbForPlatform);
-
-            // Delete VCS Installations
-            $this->deleteByGroup('installations', [
-                Query::equal('projectInternalId', [$projectInternalId]),
-                Query::orderAsc()
-            ], $dbForPlatform);
-
-            // Delete VCS Repositories
-            $this->deleteByGroup('repositories', [
-                Query::equal('projectInternalId', [$projectInternalId]),
-                Query::orderAsc()
-            ], $dbForPlatform);
-
-            // Delete VCS comments
-            $this->deleteByGroup('vcsComments', [
-                Query::equal('projectInternalId', [$projectInternalId]),
-                Query::orderAsc()
-            ], $dbForPlatform);
-
-            // Delete Schedules
-            $this->deleteByGroup('schedules', [
-                Query::equal('projectId', [$projectId]),
-                Query::orderAsc()
-            ], $dbForPlatform);
 
             // Delete metadata table
             if ($projectTables) {
