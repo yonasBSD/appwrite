@@ -1314,6 +1314,13 @@ return function (Container $container): void {
             $database = new Database($adapter, $cache);
             $sharedTables = \array_filter(\explode(',', System::getEnv('_APP_DATABASE_SHARED_TABLES', '')));
 
+            //Do we need to set it for DOCUMENTSDB/VECTORSDB???
+            /** @var array $collections */
+            $collections = Config::getParam('collections', []);
+            $projectCollections = $collections['projects'] ?? [];
+            $projectsGlobalCollections = array_keys($projectCollections);
+            $projectsGlobalCollections[] = 'audit';
+
             $database
                 ->setDatabase(APP_DATABASE)
                 ->setAuthorization($authorization)
@@ -1336,6 +1343,7 @@ return function (Container $container): void {
                 if (\in_array($databaseHost, $dbTypeSharedTables)) {
                     $database
                         ->setSharedTables(true)
+                        ->setGlobalCollections($projectsGlobalCollections)
                         ->setTenant($project->getSequence())
                         ->setNamespace($databaseDSN->getParam('namespace'));
                 } else {
@@ -1347,6 +1355,7 @@ return function (Container $container): void {
             } elseif (\in_array($dsn->getHost(), $sharedTables)) {
                 $database
                     ->setSharedTables(true)
+                    ->setGlobalCollections($projectsGlobalCollections)
                     ->setTenant($project->getSequence())
                     ->setNamespace($dsn->getParam('namespace'));
             } else {
@@ -1358,17 +1367,6 @@ return function (Container $container): void {
             $timeout = \intval($request->getHeader('x-appwrite-timeout'));
             if (!empty($timeout) && Http::isDevelopment()) {
                 $database->setTimeout($timeout);
-            }
-
-            if ($database->getSharedTables() && $database->getTenant() !== null) {
-                //Do we need to set it for DOCUMENTSDB/VECTORSDB???
-                /** @var array $collections */
-                $collections = Config::getParam('collections', []);
-                $projectCollections = $collections['projects'] ?? [];
-                $projectsGlobalCollections = array_keys($projectCollections);
-                $projectsGlobalCollections[] = 'audit';
-
-                $database->setGlobalCollections($projectsGlobalCollections);
             }
 
             // Register database event listeners for usage stats collection
