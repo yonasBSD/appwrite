@@ -25,6 +25,7 @@ jobs:
           severity: 'CRITICAL,HIGH'
       - name: Upload Docker Image Scan Results
         uses: github/codeql-action/upload-sarif@v4
+        if: always() && hashFiles('trivy-image-results.sarif') != ''
         with:
           sarif_file: 'trivy-image-results.sarif'
           category: 'trivy-image'
@@ -44,6 +45,7 @@ jobs:
           severity: 'CRITICAL,HIGH'
       - name: Upload Code Scan Results
         uses: github/codeql-action/upload-sarif@v4
+        if: always() && hashFiles('trivy-fs-results.sarif') != ''
         with:
           sarif_file: 'trivy-fs-results.sarif'
           category: 'trivy-source'
