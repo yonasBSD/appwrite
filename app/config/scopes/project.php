@@ -311,5 +311,30 @@ return [
         'description' => 'Access to create, update, and delete migrations.',
         'category' => 'Other',
     ],
-    // TODO: Figure out schedules.read, schedules.write. Remove, likely
+
+    // TODO: Figure out where to move those
+    'schedules.read' => [
+        'description' => 'Access to read schedules.',
+        'category' => 'Other',
+    ],
+    'schedules.write' => [
+        'description' => 'Access to create, update, and delete schedules.',
+        'category' => 'Other',
+    ],
+    'vcs.read' => [
+        'description' => 'Access to read resources under VCS service.',
+        'category' => 'Other',
+    ],
+    'vcs.write' => [
+        'description' => 'Access to create, update, and delete resources under VCS service.',
+        'category' => 'Other',
+    ],
+    'rules.read' => [
+        'description' => 'Access to read proxy rules.',
+        'category' => 'Other',
+    ],
+    'rules.write' => [
+        'description' => 'Access to create, update, and delete proxy rules.',
+        'category' => 'Other',
+    ],
 ];
