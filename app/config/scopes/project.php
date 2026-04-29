@@ -276,18 +276,6 @@ return [
         'category' => 'Messaging',
     ],
 
-    // Proxy
-    'rules.read' => [
-        'description' => 'Access to read proxy rules',
-        'category' => 'Proxy',
-    ],
-    'rules.write' => [
-        'description' => 'Access to create, update, and delete proxy rules',
-        'category' => 'Proxy',
-    ],
-
-    // TODO: VCS
-
     // Other
     "webhooks.read" => [
         "description" =>
@@ -323,5 +311,5 @@ return [
         'description' => 'Access to create, update, and delete migrations.',
         'category' => 'Other',
     ],
-    // TODO: Figure out schedules.read, schedules.write
+    // TODO: Figure out schedules.read, schedules.write. Remove, likely
 ];
