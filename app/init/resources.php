@@ -169,7 +169,15 @@ $container->set('getLogsDB', function (Group $pools, Cache $cache, Authorization
 
         // set tenant
         if ($project !== null && !$project->isEmpty() && $project->getId() !== 'console') {
-            $database->setTenant($project->getSequence());
+            /** @var array $collections */
+            $collections = Config::getParam('collections', []);
+            $logsCollections = $collections['logs'] ?? [];
+            $logsCollections = array_keys($logsCollections);
+
+            $database
+                ->setTenant($project->getSequence())
+                ->setGlobalCollections($logsCollections)
+            ;
         }
 
         return $database;

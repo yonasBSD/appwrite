@@ -204,9 +204,16 @@ return function (Container $container): void {
             $sharedTables = \explode(',', System::getEnv('_APP_DATABASE_SHARED_TABLES', ''));
 
             if (\in_array($dsn->getHost(), $sharedTables)) {
+                /** @var array $collections */
+                $collections = Config::getParam('collections', []);
+                $projectCollections = $collections['projects'] ?? [];
+                $projectsGlobalCollections = array_keys($projectCollections);
+                $projectsGlobalCollections[] = 'audit';
+
                 $database
                     ->setSharedTables(true)
                     ->setTenant($project->getSequence())
+                    ->setGlobalCollections($projectsGlobalCollections)
                     ->setNamespace($dsn->getParam('namespace'));
             } else {
                 $database
@@ -235,7 +242,15 @@ return function (Container $container): void {
                 ->setMaxQueryValues(APP_DATABASE_QUERY_MAX_VALUES);
 
             if ($project !== null && !$project->isEmpty() && $project->getId() !== 'console') {
-                $database->setTenant($project->getSequence());
+                /** @var array $collections */
+                $collections = Config::getParam('collections', []);
+                $logsCollections = $collections['logs'] ?? [];
+                $logsCollections = array_keys($logsCollections);
+
+                $database
+                    ->setTenant($project->getSequence())
+                    ->setGlobalCollections($logsCollections)
+                ;
             }
 
             return $database;
@@ -690,8 +705,15 @@ return function (Container $container): void {
         $sharedTables = \explode(',', System::getEnv('_APP_DATABASE_SHARED_TABLES', ''));
 
         if (\in_array($dsn->getHost(), $sharedTables)) {
+            /** @var array $collections */
+            $collections = Config::getParam('collections', []);
+            $projectCollections = $collections['projects'] ?? [];
+            $projectsGlobalCollections = array_keys($projectCollections);
+            $projectsGlobalCollections[] = 'audit';
+
             $database
                 ->setSharedTables(true)
+                ->setGlobalCollections($projectsGlobalCollections)
                 ->setTenant($project->getSequence())
                 ->setNamespace($dsn->getParam('namespace'));
         } else {
@@ -1336,6 +1358,17 @@ return function (Container $container): void {
             $timeout = \intval($request->getHeader('x-appwrite-timeout'));
             if (!empty($timeout) && Http::isDevelopment()) {
                 $database->setTimeout($timeout);
+            }
+
+            if ($database->getSharedTables() && $database->getTenant() !== null) {
+                //Do we need to set it for DOCUMENTSDB/VECTORSDB???
+                /** @var array $collections */
+                $collections = Config::getParam('collections', []);
+                $projectCollections = $collections['projects'] ?? [];
+                $projectsGlobalCollections = array_keys($projectCollections);
+                $projectsGlobalCollections[] = 'audit';
+
+                $database->setGlobalCollections($projectsGlobalCollections);
             }
 
             // Register database event listeners for usage stats collection

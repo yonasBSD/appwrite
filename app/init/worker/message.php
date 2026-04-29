@@ -14,6 +14,7 @@ use Appwrite\Utopia\Database\Documents\User;
 use Utopia\Audit\Adapter\Database as AdapterDatabase;
 use Utopia\Audit\Audit as UtopiaAudit;
 use Utopia\Cache\Cache;
+use Utopia\Config\Config;
 use Utopia\Console;
 use Utopia\Database\Adapter\Pool as DatabasePool;
 use Utopia\Database\Database;
@@ -90,8 +91,15 @@ return function (Container $container): void {
         $sharedTables = \explode(',', System::getEnv('_APP_DATABASE_SHARED_TABLES', ''));
 
         if (\in_array($dsn->getHost(), $sharedTables)) {
+            /** @var array $collections */
+            $collections = Config::getParam('collections', []);
+            $projectCollections = $collections['projects'] ?? [];
+            $projectsGlobalCollections = array_keys($projectCollections);
+            $projectsGlobalCollections[] = 'audit';
+
             $database
                 ->setSharedTables(true)
+                ->setGlobalCollections($projectsGlobalCollections)
                 ->setTenant($project->getSequence())
                 ->setNamespace($dsn->getParam('namespace'));
         } else {
@@ -130,8 +138,15 @@ return function (Container $container): void {
                 $sharedTables = \explode(',', System::getEnv('_APP_DATABASE_SHARED_TABLES', ''));
 
                 if (\in_array($dsn->getHost(), $sharedTables)) {
+                    /** @var array $collections */
+                    $collections = Config::getParam('collections', []);
+                    $projectCollections = $collections['projects'] ?? [];
+                    $projectsGlobalCollections = array_keys($projectCollections);
+                    $projectsGlobalCollections[] = 'audit';
+
                     $database
                         ->setSharedTables(true)
+                        ->setGlobalCollections($projectsGlobalCollections)
                         ->setTenant($project->getSequence())
                         ->setNamespace($dsn->getParam('namespace'));
                 } else {
@@ -152,8 +167,15 @@ return function (Container $container): void {
             $sharedTables = \explode(',', System::getEnv('_APP_DATABASE_SHARED_TABLES', ''));
 
             if (\in_array($dsn->getHost(), $sharedTables)) {
+                /** @var array $collections */
+                $collections = Config::getParam('collections', []);
+                $projectCollections = $collections['projects'] ?? [];
+                $projectsGlobalCollections = array_keys($projectCollections);
+                $projectsGlobalCollections[] = 'audit';
+
                 $database
                     ->setSharedTables(true)
+                    ->setGlobalCollections($projectsGlobalCollections)
                     ->setTenant($project->getSequence())
                     ->setNamespace($dsn->getParam('namespace'));
             } else {
@@ -243,6 +265,18 @@ return function (Container $container): void {
             }
 
             $database->setTimeout(APP_DATABASE_TIMEOUT_MILLISECONDS_WORKER);
+
+            if ($database->getSharedTables() && $database->getTenant() !== null){
+                // Do we need to set for DOCUMENTSDB/VECTORSDB???
+                /** @var array $collections */
+                $collections = Config::getParam('collections', []);
+                $projectCollections = $collections['projects'] ?? [];
+                $projectsGlobalCollections = array_keys($projectCollections);
+                $projectsGlobalCollections[] = 'audit';
+
+                $database->setGlobalCollections($projectsGlobalCollections);
+            }
+
             return $database;
         };
     }, ['cache', 'register', 'project', 'authorization']);
@@ -269,7 +303,15 @@ return function (Container $container): void {
                 ->setMaxQueryValues(APP_DATABASE_QUERY_MAX_VALUES_WORKER);
 
             if ($project !== null && !$project->isEmpty() && $project->getId() !== 'console') {
-                $database->setTenant($project->getSequence());
+                /** @var array $collections */
+                $collections = Config::getParam('collections', []);
+                $logsCollections = $collections['logs'] ?? [];
+                $logsCollections = array_keys($logsCollections);
+
+                $database
+                    ->setTenant($project->getSequence())
+                    ->setGlobalCollections($logsCollections)
+                ;
             }
 
             return $database;
