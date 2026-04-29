@@ -12,7 +12,7 @@ RUN composer install --ignore-platform-reqs --optimize-autoloader \
     --no-plugins --no-scripts --prefer-dist \
     `if [ "$TESTING" != "true" ]; then echo "--no-dev"; fi`
 
-FROM appwrite/base:1.2.0 AS base
+FROM appwrite/base:1.2.1 AS base
 
 LABEL maintainer="team@appwrite.io"
 
@@ -24,7 +24,6 @@ ENV _APP_VERSION=$VERSION \
     _APP_HOME=https://appwrite.io
 
 RUN \
-    apk add --update --no-cache git && \
     if [ "$DEBUG" != "true" ]; then \
     rm -f /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini && \
     rm -f /usr/local/lib/php/extensions/no-debug-non-zts-*/xdebug.so; \
