@@ -335,6 +335,8 @@ class Response extends SwooleResponse
     public const MODEL_CONSOLE_OAUTH2_PROVIDER_PARAMETER = 'consoleOAuth2ProviderParameter';
     public const MODEL_CONSOLE_OAUTH2_PROVIDER = 'consoleOAuth2Provider';
     public const MODEL_CONSOLE_OAUTH2_PROVIDER_LIST = 'consoleOAuth2ProviderList';
+    public const MODEL_CONSOLE_KEY_SCOPE = 'consoleKeyScope';
+    public const MODEL_CONSOLE_KEY_SCOPE_LIST = 'consoleKeyScopeList';
 
     // Deprecated
     public const MODEL_PERMISSIONS = 'permissions';
