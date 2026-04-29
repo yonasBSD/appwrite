@@ -11,67 +11,67 @@ return [
     "project.write" => [
         "description" =>
             "Access to update project\'s information",
-            "category" => "Project",
+        "category" => "Project",
     ],
     "keys.read" => [
         "description" =>
             "Access to read project\'s keys",
-            "category" => "Project",
+        "category" => "Project",
     ],
     "keys.write" => [
         "description" =>
             "Access to create, update, and delete project\'s keys",
-            "category" => "Project",
+        "category" => "Project",
     ],
     "platforms.read" => [
         "description" =>
             "Access to read project\'s platforms",
-            "category" => "Project",
+        "category" => "Project",
     ],
     "platforms.write" => [
         "description" =>
             "Access to create, update, and delete project\'s platforms",
-            "category" => "Project",
+        "category" => "Project",
     ],
     "mocks.read" => [
         "description" =>
             "Access to read project\'s mocks",
-            "category" => "Project",
+        "category" => "Project",
     ],
     "mocks.write" => [
         "description" =>
             "Access to create, update, and delete project\'s mocks",
-            "category" => "Project",
+        "category" => "Project",
     ],
     "policies.read" => [
         "description" =>
             "Access to read project\'s policies",
-            "category" => "Project",
+        "category" => "Project",
     ],
     "policies.write" => [
         "description" =>
             "Access to update project\'s policies",
-            "category" => "Project",
+        "category" => "Project",
     ],
     "templates.read" => [
         "description" =>
             "Access to read project\'s templates",
-            "category" => "Project",
+        "category" => "Project",
     ],
     "templates.write" => [
         "description" =>
             "Access to create, update, and delete project\'s templates",
-            "category" => "Project",
+        "category" => "Project",
     ],
     "oauth2.read" => [
         "description" =>
             "Access to read project\'s OAuth2 configuration",
-            "category" => "Project",
+        "category" => "Project",
     ],
     "oauth2.write" => [
         "description" =>
             "Access to update project\'s OAuth2 configuration",
-            "category" => "Project",
+        "category" => "Project",
     ],
 
     // Auth
@@ -99,7 +99,7 @@ return [
         'description' => 'Access to create, update, and delete teams',
         'category' => 'Auth',
     ],
-    
+
     // Databases
     'databases.read' => [
         'description' => 'Access to read databases',
@@ -197,7 +197,7 @@ return [
         'description' => 'Access to create, update, and delete storage file tokens',
         'category' => 'Storage',
     ],
-    
+
     // Functions
     'functions.read' => [
         'description' => 'Access to read functions and deployments',
@@ -215,7 +215,7 @@ return [
         'description' => 'Access to create function executions',
         'category' => 'Functions',
     ],
-    
+
     // Sites
     'sites.read' => [
         'description' => 'Access to read sites and deployments',
@@ -233,7 +233,7 @@ return [
         'description' => 'Access to update, and delete site logs',
         'category' => 'Sites',
     ],
-    
+
     // Messaging
     'providers.read' => [
         'description' => 'Access to read messaging providers',
@@ -275,7 +275,7 @@ return [
         'description' => 'Access to create, update, and delete messaging messages',
         'category' => 'Messaging',
     ],
-    
+
     // Proxy
     'rules.read' => [
         'description' => 'Access to read proxy rules',
@@ -285,19 +285,19 @@ return [
         'description' => 'Access to create, update, and delete proxy rules',
         'category' => 'Proxy',
     ],
-    
+
     // TODO: VCS
-    
+
     // Other
     "webhooks.read" => [
         "description" =>
             "Access to read webhooks",
-            'category' => 'Other',
+        'category' => 'Other',
     ],
     "webhooks.write" => [
         "description" =>
             "Access to create, update, and delete webhooks",
-            'category' => 'Other',
+        'category' => 'Other',
     ],
     'locale.read' => [
         'description' => 'Access to use Locale service',
