@@ -167,7 +167,7 @@ return [
         'deprecated' => true,
     ],
     'documents.write' => [
-        'description' => 'Access to create, update, and delete database collection\ documents',
+        'description' => 'Access to create, update, and delete database collection documents',
         'category' => 'Databases',
         'deprecated' => true,
     ],
