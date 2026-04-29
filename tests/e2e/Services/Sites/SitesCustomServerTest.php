@@ -2166,7 +2166,7 @@ class SitesCustomServerTest extends Scope
             'previewAuthDisabled' => true,
         ]);
         $response = $proxyClient->call(Client::METHOD_GET, '/', followRedirects: false, headers: [
-            'x-appwrite-key' => API_KEY_DYNAMIC . '_' . $apiKey,
+            'x-appwrite-key' => API_KEY_EPHEMERAL . '_' . $apiKey,
         ]);
         $this->assertEquals(200, $response['headers']['status-code']);
         $this->assertStringContainsString("Hello Appwrite", $response['body']);
@@ -2174,7 +2174,7 @@ class SitesCustomServerTest extends Scope
         $this->assertGreaterThan($contentLength, $response['headers']['content-length']);
 
         $response = $proxyClient->call(Client::METHOD_GET, '/non-existing-path', followRedirects: false, headers: [
-            'x-appwrite-key' => API_KEY_DYNAMIC . '_' . $apiKey,
+            'x-appwrite-key' => API_KEY_EPHEMERAL . '_' . $apiKey,
         ]);
         $this->assertEquals(404, $response['headers']['status-code']);
         $this->assertStringContainsString("Page not found", $response['body']);
@@ -3010,7 +3010,7 @@ class SitesCustomServerTest extends Scope
         ]);
 
         $response = $proxyClient->call(Client::METHOD_GET, '/', followRedirects: false, headers: [
-            'x-appwrite-key' => API_KEY_DYNAMIC . '_' . $apiKey,
+            'x-appwrite-key' => API_KEY_EPHEMERAL . '_' . $apiKey,
         ]);
         $this->assertEquals(400, $response['headers']['status-code']);
         $deployment = $this->getDeployment($siteId, $deploymentId);
@@ -3052,7 +3052,7 @@ class SitesCustomServerTest extends Scope
 
         // deployment is still building error page
         $response = $proxyClient->call(Client::METHOD_GET, '/', followRedirects: false, headers: [
-            'x-appwrite-key' => API_KEY_DYNAMIC . '_' . $apiKey,
+            'x-appwrite-key' => API_KEY_EPHEMERAL . '_' . $apiKey,
         ]);
         $this->assertEquals(400, $response['headers']['status-code']);
         $this->assertStringContainsString("Deployment is still building", $response['body']);
@@ -3067,7 +3067,7 @@ class SitesCustomServerTest extends Scope
 
         // deployment failed error page
         $response = $proxyClient->call(Client::METHOD_GET, '/', followRedirects: false, headers: [
-            'x-appwrite-key' => API_KEY_DYNAMIC . '_' . $apiKey,
+            'x-appwrite-key' => API_KEY_EPHEMERAL . '_' . $apiKey,
         ]);
         $this->assertEquals(400, $response['headers']['status-code']);
         $this->assertStringContainsString("Deployment build failed", $response['body']);
