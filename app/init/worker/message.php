@@ -232,7 +232,6 @@ return function (Container $container): void {
 
             $sharedTables = \array_filter(\explode(',', System::getEnv('_APP_DATABASE_SHARED_TABLES', '')));
 
-            // Do we need to set for DOCUMENTSDB/VECTORSDB????????
             /** @var array $collections */
             $collections = Config::getParam('collections', []);
             $projectCollections = $collections['projects'] ?? [];
@@ -291,6 +290,11 @@ return function (Container $container): void {
                 return $database;
             }
 
+            /** @var array $collections */
+            $collections = Config::getParam('collections', []);
+            $logsCollections = $collections['logs'] ?? [];
+            $logsCollections = array_keys($logsCollections);
+
             $adapter = new DatabasePool($pools->get('logs'));
             $database = new Database($adapter, $cache);
 
@@ -298,20 +302,13 @@ return function (Container $container): void {
                 ->setDatabase(APP_DATABASE)
                 ->setAuthorization($authorization)
                 ->setSharedTables(true)
+                ->setGlobalCollections($logsCollections)
                 ->setNamespace('logsV1')
                 ->setTimeout(APP_DATABASE_TIMEOUT_MILLISECONDS_WORKER)
                 ->setMaxQueryValues(APP_DATABASE_QUERY_MAX_VALUES_WORKER);
 
             if ($project !== null && !$project->isEmpty() && $project->getId() !== 'console') {
-                /** @var array $collections */
-                $collections = Config::getParam('collections', []);
-                $logsCollections = $collections['logs'] ?? [];
-                $logsCollections = array_keys($logsCollections);
-
-                $database
-                    ->setTenant($project->getSequence())
-                    ->setGlobalCollections($logsCollections)
-                ;
+                $database->setTenant($project->getSequence());
             }
 
             return $database;

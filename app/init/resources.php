@@ -159,25 +159,23 @@ $container->set('getLogsDB', function (Group $pools, Cache $cache, Authorization
         $adapter = new DatabasePool($pools->get('logs'));
         $database = new Database($adapter, $cache);
 
+        /** @var array $collections */
+        $collections = Config::getParam('collections', []);
+        $logsCollections = $collections['logs'] ?? [];
+        $logsCollections = array_keys($logsCollections);
+
         $database
             ->setDatabase(APP_DATABASE)
             ->setAuthorization($authorization)
             ->setSharedTables(true)
+            ->setGlobalCollections($logsCollections)
             ->setNamespace('logsV1')
             ->setTimeout(APP_DATABASE_TIMEOUT_MILLISECONDS_API)
             ->setMaxQueryValues(APP_DATABASE_QUERY_MAX_VALUES);
 
         // set tenant
         if ($project !== null && !$project->isEmpty() && $project->getId() !== 'console') {
-            /** @var array $collections */
-            $collections = Config::getParam('collections', []);
-            $logsCollections = $collections['logs'] ?? [];
-            $logsCollections = array_keys($logsCollections);
-
-            $database
-                ->setTenant($project->getSequence())
-                ->setGlobalCollections($logsCollections)
-            ;
+            $database->setTenant($project->getSequence());
         }
 
         return $database;
