@@ -275,7 +275,6 @@ return function (Container $container): void {
             }
 
             $database->setTimeout(APP_DATABASE_TIMEOUT_MILLISECONDS_WORKER);
-
             return $database;
         };
     }, ['cache', 'register', 'project', 'authorization']);
