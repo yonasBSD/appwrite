@@ -111,8 +111,8 @@ class Update extends Base
             ))
             ->param(static::getClientIdParamName(), null, new Nullable(new Text(256, 0)), static::getClientIdDescription(), optional: true)
             ->param(static::getClientSecretParamName(), null, new Nullable(new Text(512, 0)), static::getClientSecretDescription(), optional: true)
-            ->param('endpoint', '', new Text(256, 1), 'Domain of Keycloak instance. For example: keycloak.example.com', optional: true)
-            ->param('realmName', '', new Text(256, 1), 'Keycloak realm name. For example: appwrite-realm', optional: true)
+            ->param('endpoint', null, new Nullable(new Text(256, 0)), 'Domain of Keycloak instance. For example: keycloak.example.com', optional: true)
+            ->param('realmName', null, new Nullable(new Text(256, 0)), 'Keycloak realm name. For example: appwrite-realm', optional: true)
             ->param('enabled', null, new Nullable(new Boolean()), 'OAuth2 sign-in method status. Set to true to enable new session creation. Setting to true will trigger end-to-end credentials validation, and will throw if the credentials are invalid.', true)
             ->inject('response')
             ->inject('dbForPlatform')
@@ -147,8 +147,8 @@ class Update extends Base
     public function handle(
         ?string $clientId,
         ?string $clientSecret,
-        string $endpoint,
-        string $realmName,
+        ?string $endpoint,
+        ?string $realmName,
         ?bool $enabled,
         Response $response,
         Database $dbForPlatform,
@@ -170,8 +170,8 @@ class Update extends Base
         }
         $encodedSecret = \json_encode([
             'clientSecret' => $clientSecret ?? ($existing['clientSecret'] ?? ''),
-            'keycloakDomain' => $endpoint !== '' ? $endpoint : ($existing['keycloakDomain'] ?? ''),
-            'keycloakRealm' => $realmName !== '' ? $realmName : ($existing['keycloakRealm'] ?? ''),
+            'keycloakDomain' => $endpoint ?? ($existing['keycloakDomain'] ?? ''),
+            'keycloakRealm' => $realmName ?? ($existing['keycloakRealm'] ?? ''),
         ]);
 
         $project = $this->persistCredentials($project, $dbForPlatform, $authorization, $clientId, $encodedSecret, $enabled);

@@ -105,7 +105,7 @@ class Update extends Base
             ))
             ->param(static::getClientIdParamName(), null, new Nullable(new Text(256, 0)), static::getClientIdDescription(), optional: true)
             ->param(static::getClientSecretParamName(), null, new Nullable(new Text(512, 0)), static::getClientSecretDescription(), optional: true)
-            ->param('endpoint', '', new Text(256, 1), 'Domain of FusionAuth instance. For example: example.fusionauth.io', optional: true)
+            ->param('endpoint', null, new Nullable(new Text(256, 0)), 'Domain of FusionAuth instance. For example: example.fusionauth.io', optional: true)
             ->param('enabled', null, new Nullable(new Boolean()), 'OAuth2 sign-in method status. Set to true to enable new session creation. Setting to true will trigger end-to-end credentials validation, and will throw if the credentials are invalid.', true)
             ->inject('response')
             ->inject('dbForPlatform')
@@ -138,7 +138,7 @@ class Update extends Base
     public function handle(
         ?string $clientId,
         ?string $clientSecret,
-        string $endpoint,
+        ?string $endpoint,
         ?bool $enabled,
         Response $response,
         Database $dbForPlatform,
@@ -160,7 +160,7 @@ class Update extends Base
         }
         $encodedSecret = \json_encode([
             'clientSecret' => $clientSecret ?? ($existing['clientSecret'] ?? ''),
-            'fusionAuthDomain' => $endpoint !== '' ? $endpoint : ($existing['fusionAuthDomain'] ?? ''),
+            'fusionAuthDomain' => $endpoint ?? ($existing['fusionAuthDomain'] ?? ''),
         ]);
 
         $project = $this->persistCredentials($project, $dbForPlatform, $authorization, $clientId, $encodedSecret, $enabled);
