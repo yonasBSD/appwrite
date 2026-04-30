@@ -824,20 +824,20 @@ trait MigrationsBase
         $this->assertEquals(200, $rowAfterSkip['headers']['status-code']);
         $this->assertEquals('Mutated', $rowAfterSkip['body']['name'], 'onDuplicate=skip must not overwrite destination row');
 
-        // Re-migration with onDuplicate=upsert — strict completion; destination
+        // Re-migration with onDuplicate=overwrite — strict completion; destination
         // row restored to source value.
-        $upsertResult = $this->performMigrationSync([
+        $overwriteResult = $this->performMigrationSync([
             'resources' => $resources,
             'endpoint' => $this->webEndpoint,
             'projectId' => $this->getProject()['$id'],
             'apiKey' => $this->getProject()['apiKey'],
-            'onDuplicate' => 'upsert',
+            'onDuplicate' => 'overwrite',
         ]);
-        $this->assertEquals('completed', $upsertResult['status']);
+        $this->assertEquals('completed', $overwriteResult['status']);
 
-        $rowAfterUpsert = $this->client->call(Client::METHOD_GET, '/tablesdb/' . $databaseId . '/tables/' . $tableId . '/rows/' . $rowId, $destHeaders);
-        $this->assertEquals(200, $rowAfterUpsert['headers']['status-code']);
-        $this->assertEquals('Original', $rowAfterUpsert['body']['name'], 'onDuplicate=upsert must restore source value');
+        $rowAfterOverwrite = $this->client->call(Client::METHOD_GET, '/tablesdb/' . $databaseId . '/tables/' . $tableId . '/rows/' . $rowId, $destHeaders);
+        $this->assertEquals(200, $rowAfterOverwrite['headers']['status-code']);
+        $this->assertEquals('Original', $rowAfterOverwrite['body']['name'], 'onDuplicate=overwrite must restore source value');
 
         $this->client->call(Client::METHOD_DELETE, '/databases/' . $databaseId, $destHeaders);
         $this->client->call(Client::METHOD_DELETE, '/databases/' . $databaseId, $sourceHeaders);
@@ -846,7 +846,7 @@ trait MigrationsBase
         self::$cachedTableData = [];
     }
 
-    /** Unchanged source under Skip/Upsert is a no-op — every resource Tolerated. */
+    /** Unchanged source under Skip/Overwrite is a no-op — every resource Tolerated. */
     public function testAppwriteMigrationReRunIsIdempotent(): void
     {
         $sourceHeaders = [
@@ -900,16 +900,16 @@ trait MigrationsBase
         ]);
         $this->assertEquals('completed', $reRunSkip['status']);
 
-        // Re-run under Upsert: same unchanged source. Schema tolerance path
+        // Re-run under Overwrite: same unchanged source. Schema tolerance path
         // fires for each resource; rows go through DB-native upsert.
-        $reRunUpsert = $this->performMigrationSync([
+        $reRunOverwrite = $this->performMigrationSync([
             'resources' => $resources,
             'endpoint' => $this->webEndpoint,
             'projectId' => $this->getProject()['$id'],
             'apiKey' => $this->getProject()['apiKey'],
-            'onDuplicate' => 'upsert',
+            'onDuplicate' => 'overwrite',
         ]);
-        $this->assertEquals('completed', $reRunUpsert['status']);
+        $this->assertEquals('completed', $reRunOverwrite['status']);
 
         foreach (['row-a', 'row-b'] as $rowId) {
             $check = $this->client->call(Client::METHOD_GET, '/tablesdb/' . $databaseId . '/tables/' . $tableId . '/rows/' . $rowId, $destHeaders);
@@ -924,8 +924,8 @@ trait MigrationsBase
         self::$cachedTableData = [];
     }
 
-    /** Upsert reconciles container drift via UpdateInPlace; children (rows) preserved. */
-    public function testAppwriteMigrationUpsertUpdatesContainerMetadata(): void
+    /** Overwrite reconciles container drift via UpdateInPlace; children (rows) preserved. */
+    public function testAppwriteMigrationOverwriteUpdatesContainerMetadata(): void
     {
         $sourceHeaders = [
             'content-type' => 'application/json',
@@ -980,15 +980,15 @@ trait MigrationsBase
             'enabled' => false,
         ]);
 
-        // Upsert re-migration: UpdateInPlace path fires for database + table.
-        $upsertResult = $this->performMigrationSync([
+        // Overwrite re-migration: UpdateInPlace path fires for database + table.
+        $overwriteResult = $this->performMigrationSync([
             'resources' => $resources,
             'endpoint' => $this->webEndpoint,
             'projectId' => $this->getProject()['$id'],
             'apiKey' => $this->getProject()['apiKey'],
-            'onDuplicate' => 'upsert',
+            'onDuplicate' => 'overwrite',
         ]);
-        $this->assertEquals('completed', $upsertResult['status']);
+        $this->assertEquals('completed', $overwriteResult['status']);
 
         // Assert dest database metadata reflects source's new values.
         $destDb = $this->client->call(Client::METHOD_GET, '/databases/' . $databaseId, $destHeaders);
@@ -999,13 +999,13 @@ trait MigrationsBase
         $destTable = $this->client->call(Client::METHOD_GET, '/tablesdb/' . $databaseId . '/tables/' . $tableId, $destHeaders);
         $this->assertEquals(200, $destTable['headers']['status-code']);
         $this->assertEquals('Renamed Source Table', $destTable['body']['name']);
-        $this->assertFalse($destTable['body']['enabled'], 'Upsert must propagate source enabled=false');
-        $this->assertTrue($destTable['body']['documentSecurity'] ?? $destTable['body']['rowSecurity'], 'Upsert must propagate source rowSecurity=true');
+        $this->assertFalse($destTable['body']['enabled'], 'Overwrite must propagate source enabled=false');
+        $this->assertTrue($destTable['body']['documentSecurity'] ?? $destTable['body']['rowSecurity'], 'Overwrite must propagate source rowSecurity=true');
 
         // Child row untouched — UpdateInPlace only rewrites container metadata.
         $row = $this->client->call(Client::METHOD_GET, '/tablesdb/' . $databaseId . '/tables/' . $tableId . '/rows/' . $rowId, $destHeaders);
         $this->assertEquals(200, $row['headers']['status-code']);
-        $this->assertEquals('SeedRow', $row['body']['name'], 'Upsert must not touch child rows when updating container metadata');
+        $this->assertEquals('SeedRow', $row['body']['name'], 'Overwrite must not touch child rows when updating container metadata');
 
         $this->client->call(Client::METHOD_DELETE, '/databases/' . $databaseId, $destHeaders);
         $this->client->call(Client::METHOD_DELETE, '/databases/' . $databaseId, $sourceHeaders);
@@ -1089,8 +1089,8 @@ trait MigrationsBase
         self::$cachedTableData = [];
     }
 
-    /** Upsert drops dest columns source no longer declares; cleanup runs before rows land. */
-    public function testAppwriteMigrationUpsertDropsOrphanColumn(): void
+    /** Overwrite drops dest columns source no longer declares; cleanup runs before rows land. */
+    public function testAppwriteMigrationOverwriteDropsOrphanColumn(): void
     {
         $sourceHeaders = [
             'content-type' => 'application/json',
@@ -1151,23 +1151,23 @@ trait MigrationsBase
             'data' => ['name' => 'seed'],
         ]);
 
-        // Upsert re-migration: orphan_col must be dropped from dest.
-        $upsertResult = $this->performMigrationSync([
+        // Overwrite re-migration: orphan_col must be dropped from dest.
+        $overwriteResult = $this->performMigrationSync([
             'resources' => $resources,
             'endpoint' => $this->webEndpoint,
             'projectId' => $this->getProject()['$id'],
             'apiKey' => $this->getProject()['apiKey'],
-            'onDuplicate' => 'upsert',
+            'onDuplicate' => 'overwrite',
         ]);
-        $this->assertEquals('completed', $upsertResult['status']);
+        $this->assertEquals('completed', $overwriteResult['status']);
 
         // Orphan column dropped.
         $orphanCheck = $this->client->call(Client::METHOD_GET, '/tablesdb/' . $databaseId . '/tables/' . $tableId . '/columns/orphan_col', $destHeaders);
-        $this->assertEquals(404, $orphanCheck['headers']['status-code'], 'Upsert must drop destination column source no longer declares');
+        $this->assertEquals(404, $orphanCheck['headers']['status-code'], 'Overwrite must drop destination column source no longer declares');
 
         // Source's column preserved.
         $nameCheck = $this->client->call(Client::METHOD_GET, '/tablesdb/' . $databaseId . '/tables/' . $tableId . '/columns/name', $destHeaders);
-        $this->assertEquals(200, $nameCheck['headers']['status-code'], 'Upsert must preserve columns source declared');
+        $this->assertEquals(200, $nameCheck['headers']['status-code'], 'Overwrite must preserve columns source declared');
 
         $this->client->call(Client::METHOD_DELETE, '/databases/' . $databaseId, $destHeaders);
         $this->client->call(Client::METHOD_DELETE, '/databases/' . $databaseId, $sourceHeaders);
@@ -1176,7 +1176,7 @@ trait MigrationsBase
         self::$cachedTableData = [];
     }
 
-    /** Skip preserves orphan columns; cleanup is Upsert-only. */
+    /** Skip preserves orphan columns; cleanup is Overwrite-only. */
     public function testAppwriteMigrationSkipKeepsOrphanColumn(): void
     {
         $sourceHeaders = [
@@ -1253,7 +1253,7 @@ trait MigrationsBase
     }
 
     /** SDK-reachable attribute change propagates via updateAttributeInPlace; row data preserved. */
-    public function testAppwriteMigrationUpsertUpdatesAttributeInPlace(): void
+    public function testAppwriteMigrationOverwriteUpdatesAttributeInPlace(): void
     {
         $sourceHeaders = [
             'content-type' => 'application/json',
@@ -1320,14 +1320,14 @@ trait MigrationsBase
             $this->assertEquals('unknown', $r['body']['default']);
         }, 5000, 500);
 
-        $upsertResult = $this->performMigrationSync([
+        $overwriteResult = $this->performMigrationSync([
             'resources' => $resources,
             'endpoint' => $this->webEndpoint,
             'projectId' => $this->getProject()['$id'],
             'apiKey' => $this->getProject()['apiKey'],
-            'onDuplicate' => 'upsert',
+            'onDuplicate' => 'overwrite',
         ]);
-        $this->assertEquals('completed', $upsertResult['status']);
+        $this->assertEquals('completed', $overwriteResult['status']);
 
         $this->assertEventually(function () use ($databaseId, $tableId, $destHeaders) {
             $r = $this->client->call(Client::METHOD_GET, '/tablesdb/' . $databaseId . '/tables/' . $tableId . '/columns/name', $destHeaders);
@@ -1401,7 +1401,7 @@ trait MigrationsBase
         sleep(1);
 
         // Source advances strictly later (and to a different value). Under
-        // Upsert this would propagate to dest; under Skip it must not.
+        // Overwrite this would propagate to dest; under Skip it must not.
         $sourcePatch = $this->client->call(Client::METHOD_PATCH, '/tablesdb/' . $databaseId . '/tables/' . $tableId . '/columns/string/name', $sourceHeaders, [
             'required' => true,
             'default' => null,
@@ -1437,7 +1437,7 @@ trait MigrationsBase
     }
 
     /** Two-way onDelete change updates in place on both sides; partner meta refreshed by hand. */
-    public function testAppwriteMigrationUpsertUpdatesRelationshipOnDeleteInPlace(): void
+    public function testAppwriteMigrationOverwriteUpdatesRelationshipOnDeleteInPlace(): void
     {
         $sourceHeaders = [
             'content-type' => 'application/json',
@@ -1525,14 +1525,14 @@ trait MigrationsBase
             $this->assertEquals(Database::RELATION_MUTATE_RESTRICT, $r['body']['onDelete']);
         }, 5000, 500);
 
-        $upsertResult = $this->performMigrationSync([
+        $overwriteResult = $this->performMigrationSync([
             'resources' => $resources,
             'endpoint' => $this->webEndpoint,
             'projectId' => $this->getProject()['$id'],
             'apiKey' => $this->getProject()['apiKey'],
-            'onDuplicate' => 'upsert',
+            'onDuplicate' => 'overwrite',
         ]);
-        $this->assertEquals('completed', $upsertResult['status']);
+        $this->assertEquals('completed', $overwriteResult['status']);
 
         // Both sides on dest must reflect onDelete=restrict. Asserting the
         // partner side is the regression guard for the previously-missed
@@ -1559,7 +1559,7 @@ trait MigrationsBase
     }
 
     /** Two-way recreate with same spec: spec-match guard tolerates parent; pair-key dedup tolerates partner. Both sides + child rows preserved. */
-    public function testAppwriteMigrationUpsertTwoWayRecreateSkipsPartnerSide(): void
+    public function testAppwriteMigrationOverwriteTwoWayRecreateSkipsPartnerSide(): void
     {
         $sourceHeaders = [
             'content-type' => 'application/json',
@@ -1670,14 +1670,14 @@ trait MigrationsBase
         ]);
         $this->assertEquals(200, $relink['headers']['status-code']);
 
-        $upsertResult = $this->performMigrationSync([
+        $overwriteResult = $this->performMigrationSync([
             'resources' => $resources,
             'endpoint' => $this->webEndpoint,
             'projectId' => $this->getProject()['$id'],
             'apiKey' => $this->getProject()['apiKey'],
-            'onDuplicate' => 'upsert',
+            'onDuplicate' => 'overwrite',
         ]);
-        $this->assertEquals('completed', $upsertResult['status']);
+        $this->assertEquals('completed', $overwriteResult['status']);
 
         $this->assertEventually(function () use ($databaseId, $destHeaders) {
             $parent = $this->client->call(Client::METHOD_GET, '/tablesdb/' . $databaseId . '/tables/parents/columns/kids', $destHeaders);
@@ -1704,7 +1704,7 @@ trait MigrationsBase
     }
 
     /** One-way + onDelete change falls through to DropAndRecreate (in-place gated off for one-way). */
-    public function testAppwriteMigrationUpsertOneWayRelationshipDropAndRecreate(): void
+    public function testAppwriteMigrationOverwriteOneWayRelationshipDropAndRecreate(): void
     {
         $sourceHeaders = [
             'content-type' => 'application/json',
@@ -1781,14 +1781,14 @@ trait MigrationsBase
             $this->assertEquals(Database::RELATION_MUTATE_RESTRICT, $r['body']['onDelete']);
         }, 5000, 500);
 
-        $upsertResult = $this->performMigrationSync([
+        $overwriteResult = $this->performMigrationSync([
             'resources' => $resources,
             'endpoint' => $this->webEndpoint,
             'projectId' => $this->getProject()['$id'],
             'apiKey' => $this->getProject()['apiKey'],
-            'onDuplicate' => 'upsert',
+            'onDuplicate' => 'overwrite',
         ]);
-        $this->assertEquals('completed', $upsertResult['status']);
+        $this->assertEquals('completed', $overwriteResult['status']);
 
         $this->assertEventually(function () use ($databaseId, $destHeaders) {
             $r = $this->client->call(Client::METHOD_GET, '/tablesdb/' . $databaseId . '/tables/parents/columns/kids', $destHeaders);
@@ -1807,7 +1807,7 @@ trait MigrationsBase
     }
 
     /** Recreate with non-SDK spec change (array toggle): updateAttributeInPlace bails → drop+recreate; row pass refills. */
-    public function testAppwriteMigrationUpsertAttributeRecreateDropsAndRecreates(): void
+    public function testAppwriteMigrationOverwriteAttributeRecreateDropsAndRecreates(): void
     {
         $sourceHeaders = [
             'content-type' => 'application/json',
@@ -1882,14 +1882,14 @@ trait MigrationsBase
         ]);
         $this->assertEquals(200, $relink['headers']['status-code']);
 
-        $upsertResult = $this->performMigrationSync([
+        $overwriteResult = $this->performMigrationSync([
             'resources' => $resources,
             'endpoint' => $this->webEndpoint,
             'projectId' => $this->getProject()['$id'],
             'apiKey' => $this->getProject()['apiKey'],
-            'onDuplicate' => 'upsert',
+            'onDuplicate' => 'overwrite',
         ]);
-        $this->assertEquals('completed', $upsertResult['status']);
+        $this->assertEquals('completed', $overwriteResult['status']);
 
         $this->assertEventually(function () use ($databaseId, $tableId, $destHeaders) {
             $col = $this->client->call(Client::METHOD_GET, '/tablesdb/' . $databaseId . '/tables/' . $tableId . '/columns/name', $destHeaders);
@@ -1911,7 +1911,7 @@ trait MigrationsBase
     }
 
     /** Source drops+recreates with SAME spec: spec-match guard forces Tolerate; dest meta untouched. */
-    public function testAppwriteMigrationUpsertSameSpecRecreateTolerates(): void
+    public function testAppwriteMigrationOverwriteSameSpecRecreateTolerates(): void
     {
         $sourceHeaders = [
             'content-type' => 'application/json',
@@ -1984,14 +1984,14 @@ trait MigrationsBase
         ]);
         $this->assertEquals(200, $relink['headers']['status-code']);
 
-        $upsertResult = $this->performMigrationSync([
+        $overwriteResult = $this->performMigrationSync([
             'resources' => $resources,
             'endpoint' => $this->webEndpoint,
             'projectId' => $this->getProject()['$id'],
             'apiKey' => $this->getProject()['apiKey'],
-            'onDuplicate' => 'upsert',
+            'onDuplicate' => 'overwrite',
         ]);
-        $this->assertEquals('completed', $upsertResult['status']);
+        $this->assertEquals('completed', $overwriteResult['status']);
 
         // Spec-match guard fired → dest column's $createdAt stayed at the
         // first-migration value. If DropAndRecreate had run, $createdAt
@@ -2002,7 +2002,7 @@ trait MigrationsBase
         $this->assertEquals(100, $destAfter['body']['size']);
         $this->assertTrue($destAfter['body']['required']);
 
-        // Row pass under Upsert still propagated source's new row value.
+        // Row pass under Overwrite still propagated source's new row value.
         $rowAfter = $this->client->call(Client::METHOD_GET, '/tablesdb/' . $databaseId . '/tables/' . $tableId . '/rows/' . $rowId, $destHeaders);
         $this->assertEquals(200, $rowAfter['headers']['status-code']);
         $this->assertEquals('after-recreate', $rowAfter['body']['name']);
@@ -2884,7 +2884,7 @@ trait MigrationsBase
     }
 
     /**
-     * onDuplicate=upsert on re-import: existing rows are replaced with imported values.
+     * onDuplicate=overwrite on re-import: existing rows are replaced with imported values.
      */
     public function testCreateCSVImportOverwrite(): void
     {
@@ -2905,7 +2905,7 @@ trait MigrationsBase
             $this->assertEquals(100, $migration['body']['statusCounters'][Resource::TYPE_ROW]['success']);
         }, 10_000, 500);
 
-        // Mutate one row so we can prove upsert restores it to the CSV's original value
+        // Mutate one row so we can prove overwrite restores it to the CSV's original value
         $mutate = $this->client->call(Client::METHOD_PATCH, '/tablesdb/' . $databaseId . '/tables/' . $tableId . '/rows/' . $rowId, [
             'content-type' => 'application/json',
             'x-appwrite-project' => $this->getProject()['$id'],
@@ -2916,12 +2916,12 @@ trait MigrationsBase
         $this->assertEquals(200, $mutate['headers']['status-code']);
         $this->assertEquals(22, $mutate['body']['age']);
 
-        // Second import with onDuplicate=upsert: mutated row restored to CSV value
+        // Second import with onDuplicate=overwrite: mutated row restored to CSV value
         $second = $this->performCsvMigration([
             'fileId' => $fileId,
             'bucketId' => $bucketId,
             'resourceId' => $databaseId . ':' . $tableId,
-            'onDuplicate' => 'upsert',
+            'onDuplicate' => 'overwrite',
         ]);
         $this->assertEventually(function () use ($second) {
             $migration = $this->client->call(Client::METHOD_GET, '/migrations/' . $second['body']['$id'], array_merge([
@@ -2931,14 +2931,14 @@ trait MigrationsBase
             $this->assertEquals('completed', $migration['body']['status']);
         }, 10_000, 500);
 
-        // Mutated row is back to CSV's original age (proving upsert actually replaced the row)
+        // Mutated row is back to CSV's original age (proving overwrite actually replaced the row)
         $row = $this->client->call(Client::METHOD_GET, '/tablesdb/' . $databaseId . '/tables/' . $tableId . '/rows/' . $rowId, array_merge([
             'content-type' => 'application/json',
             'x-appwrite-project' => $this->getProject()['$id'],
         ], $this->getHeaders()));
         $this->assertEquals(200, $row['headers']['status-code']);
         $this->assertEquals($originalName, $row['body']['name']);
-        $this->assertEquals($originalAge, $row['body']['age'], 'onDuplicate=upsert must restore row to imported value');
+        $this->assertEquals($originalAge, $row['body']['age'], 'onDuplicate=overwrite must restore row to imported value');
 
         // Row count still 100 (no duplicates created)
         $rows = $this->client->call(Client::METHOD_GET, '/tablesdb/' . $databaseId . '/tables/' . $tableId . '/rows', array_merge([
@@ -3141,7 +3141,7 @@ trait MigrationsBase
     }
 
     /**
-     * onDuplicate=upsert on JSON re-import: existing rows replaced with imported values.
+     * onDuplicate=overwrite on JSON re-import: existing rows replaced with imported values.
      */
     public function testCreateJSONImportOverwrite(): void
     {
@@ -3175,7 +3175,7 @@ trait MigrationsBase
             'fileId' => $fileId,
             'bucketId' => $bucketId,
             'resourceId' => $databaseId . ':' . $tableId,
-            'onDuplicate' => 'upsert',
+            'onDuplicate' => 'overwrite',
         ]);
         $this->assertEventually(function () use ($second) {
             $migration = $this->client->call(Client::METHOD_GET, '/migrations/' . $second['body']['$id'], array_merge([
@@ -3191,7 +3191,7 @@ trait MigrationsBase
         ], $this->getHeaders()));
         $this->assertEquals(200, $row['headers']['status-code']);
         $this->assertEquals($originalName, $row['body']['name']);
-        $this->assertEquals($originalAge, $row['body']['age'], 'onDuplicate=upsert must restore row to imported value');
+        $this->assertEquals($originalAge, $row['body']['age'], 'onDuplicate=overwrite must restore row to imported value');
 
         $rows = $this->client->call(Client::METHOD_GET, '/tablesdb/' . $databaseId . '/tables/' . $tableId . '/rows', array_merge([
             'content-type' => 'application/json',
