@@ -251,18 +251,75 @@ class Response extends SwooleResponse
     public const MODEL_WEBHOOK_LIST = 'webhookList';
     public const MODEL_KEY = 'key';
     public const MODEL_KEY_LIST = 'keyList';
+    public const MODEL_EPHEMERAL_KEY = 'ephemeralKey';
     public const MODEL_DEV_KEY = 'devKey';
     public const MODEL_DEV_KEY_LIST = 'devKeyList';
     public const MODEL_MOCK_NUMBER = 'mockNumber';
+    public const MODEL_MOCK_NUMBER_LIST = 'mockNumberList';
+    public const MODEL_POLICY_LIST = 'policyList';
+    public const MODEL_POLICY_PASSWORD_DICTIONARY = 'policyPasswordDictionary';
+    public const MODEL_POLICY_PASSWORD_HISTORY = 'policyPasswordHistory';
+    public const MODEL_POLICY_PASSWORD_PERSONAL_DATA = 'policyPasswordPersonalData';
+    public const MODEL_POLICY_SESSION_ALERT = 'policySessionAlert';
+    public const MODEL_POLICY_SESSION_DURATION = 'policySessionDuration';
+    public const MODEL_POLICY_SESSION_INVALIDATION = 'policySessionInvalidation';
+    public const MODEL_POLICY_SESSION_LIMIT = 'policySessionLimit';
+    public const MODEL_POLICY_USER_LIMIT = 'policyUserLimit';
+    public const MODEL_POLICY_MEMBERSHIP_PRIVACY = 'policyMembershipPrivacy';
     public const MODEL_AUTH_PROVIDER = 'authProvider';
     public const MODEL_AUTH_PROVIDER_LIST = 'authProviderList';
-    public const MODEL_PLATFORM = 'platform';
+    public const MODEL_PLATFORM_APPLE = 'platformApple';
+    public const MODEL_PLATFORM_ANDROID = 'platformAndroid';
+    public const MODEL_PLATFORM_WINDOWS = 'platformWindows';
+    public const MODEL_PLATFORM_LINUX = 'platformLinux';
+    public const MODEL_PLATFORM_WEB = 'platformWeb';
     public const MODEL_PLATFORM_LIST = 'platformList';
     public const MODEL_VARIABLE = 'variable';
     public const MODEL_VARIABLE_LIST = 'variableList';
     public const MODEL_VCS = 'vcs';
-    public const MODEL_SMS_TEMPLATE = 'smsTemplate';
     public const MODEL_EMAIL_TEMPLATE = 'emailTemplate';
+    public const MODEL_EMAIL_TEMPLATE_LIST = 'emailTemplateList';
+    public const MODEL_OAUTH2_GITHUB = 'oAuth2Github';
+    public const MODEL_OAUTH2_DISCORD = 'oAuth2Discord';
+    public const MODEL_OAUTH2_FIGMA = 'oAuth2Figma';
+    public const MODEL_OAUTH2_DROPBOX = 'oAuth2Dropbox';
+    public const MODEL_OAUTH2_DAILYMOTION = 'oAuth2Dailymotion';
+    public const MODEL_OAUTH2_BITBUCKET = 'oAuth2Bitbucket';
+    public const MODEL_OAUTH2_BITLY = 'oAuth2Bitly';
+    public const MODEL_OAUTH2_BOX = 'oAuth2Box';
+    public const MODEL_OAUTH2_AUTODESK = 'oAuth2Autodesk';
+    public const MODEL_OAUTH2_GOOGLE = 'oAuth2Google';
+    public const MODEL_OAUTH2_ZOOM = 'oAuth2Zoom';
+    public const MODEL_OAUTH2_ZOHO = 'oAuth2Zoho';
+    public const MODEL_OAUTH2_YANDEX = 'oAuth2Yandex';
+    public const MODEL_OAUTH2_X = 'oAuth2X';
+    public const MODEL_OAUTH2_WORDPRESS = 'oAuth2WordPress';
+    public const MODEL_OAUTH2_TWITCH = 'oAuth2Twitch';
+    public const MODEL_OAUTH2_STRIPE = 'oAuth2Stripe';
+    public const MODEL_OAUTH2_SPOTIFY = 'oAuth2Spotify';
+    public const MODEL_OAUTH2_SLACK = 'oAuth2Slack';
+    public const MODEL_OAUTH2_PODIO = 'oAuth2Podio';
+    public const MODEL_OAUTH2_NOTION = 'oAuth2Notion';
+    public const MODEL_OAUTH2_SALESFORCE = 'oAuth2Salesforce';
+    public const MODEL_OAUTH2_YAHOO = 'oAuth2Yahoo';
+    public const MODEL_OAUTH2_LINKEDIN = 'oAuth2Linkedin';
+    public const MODEL_OAUTH2_DISQUS = 'oAuth2Disqus';
+    public const MODEL_OAUTH2_AMAZON = 'oAuth2Amazon';
+    public const MODEL_OAUTH2_ETSY = 'oAuth2Etsy';
+    public const MODEL_OAUTH2_FACEBOOK = 'oAuth2Facebook';
+    public const MODEL_OAUTH2_TRADESHIFT = 'oAuth2Tradeshift';
+    public const MODEL_OAUTH2_PAYPAL = 'oAuth2Paypal';
+    public const MODEL_OAUTH2_GITLAB = 'oAuth2Gitlab';
+    public const MODEL_OAUTH2_AUTHENTIK = 'oAuth2Authentik';
+    public const MODEL_OAUTH2_AUTH0 = 'oAuth2Auth0';
+    public const MODEL_OAUTH2_FUSIONAUTH = 'oAuth2FusionAuth';
+    public const MODEL_OAUTH2_KEYCLOAK = 'oAuth2Keycloak';
+    public const MODEL_OAUTH2_OIDC = 'oAuth2Oidc';
+    public const MODEL_OAUTH2_APPLE = 'oAuth2Apple';
+    public const MODEL_OAUTH2_OKTA = 'oAuth2Okta';
+    public const MODEL_OAUTH2_KICK = 'oAuth2Kick';
+    public const MODEL_OAUTH2_MICROSOFT = 'oAuth2Microsoft';
+    public const MODEL_OAUTH2_PROVIDER_LIST = 'oAuth2ProviderList';
 
     // Health
     public const MODEL_HEALTH_STATUS = 'healthStatus';
@@ -275,6 +332,11 @@ class Response extends SwooleResponse
 
     // Console
     public const MODEL_CONSOLE_VARIABLES = 'consoleVariables';
+    public const MODEL_CONSOLE_OAUTH2_PROVIDER_PARAMETER = 'consoleOAuth2ProviderParameter';
+    public const MODEL_CONSOLE_OAUTH2_PROVIDER = 'consoleOAuth2Provider';
+    public const MODEL_CONSOLE_OAUTH2_PROVIDER_LIST = 'consoleOAuth2ProviderList';
+    public const MODEL_CONSOLE_KEY_SCOPE = 'consoleKeyScope';
+    public const MODEL_CONSOLE_KEY_SCOPE_LIST = 'consoleKeyScopeList';
 
     // Deprecated
     public const MODEL_PERMISSIONS = 'permissions';
@@ -299,7 +361,7 @@ class Response extends SwooleResponse
     /**
      * @var bool
      */
-    protected static bool $showSensitive = false;
+    protected bool $showSensitive = false;
 
     /**
      * @var array<string, Model>
@@ -476,7 +538,13 @@ class Response extends SwooleResponse
                             foreach ($rule['type'] as $type) {
                                 $condition = false;
                                 foreach ($this->getModel($type)->conditions as $attribute => $val) {
-                                    $condition = $item->getAttribute($attribute) === $val;
+
+                                    if (\is_array($val)) {
+                                        $condition = \in_array($item->getAttribute($attribute), $val);
+                                    } else {
+                                        $condition = $item->getAttribute($attribute) === $val;
+                                    }
+
                                     if (!$condition) {
                                         break;
                                     }
@@ -505,10 +573,11 @@ class Response extends SwooleResponse
 
             if ($rule['sensitive']) {
                 $roles = $this->authorization->getRoles();
-                $isPrivilegedUser = DBUser::isPrivileged($roles);
-                $isAppUser = DBUser::isApp($roles);
+                $user = $this->user ?? new DBUser();
+                $isPrivilegedUser = $user->isPrivileged($roles);
+                $isAppUser = $user->isApp($roles);
 
-                if ((!$isPrivilegedUser && !$isAppUser) && !self::$showSensitive) {
+                if ((!$isPrivilegedUser && !$isAppUser) && !$this->showSensitive) {
                     $data->setAttribute($key, '');
                 }
             }
@@ -602,6 +671,8 @@ class Response extends SwooleResponse
             throw new \Exception('Response body is not a valid JSON object.');
         }
 
+        $this->payload = \is_array($data) ? $data : (array) $data;
+
         $this
             ->setContentType(Response::CONTENT_TYPE_JSON, self::CHARSET_UTF8)
             ->send(\json_encode($data, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR));
@@ -613,6 +684,16 @@ class Response extends SwooleResponse
     public function getPayload(): array
     {
         return $this->payload;
+    }
+
+    /**
+     * Set the sent flag on the response. Pass false to allow reuse
+     * (e.g. batched GraphQL queries), true to prevent further writes.
+     */
+    public function setSent(bool $sent): static
+    {
+        $this->sent = $sent;
+        return $this;
     }
 
     /**
@@ -628,9 +709,9 @@ class Response extends SwooleResponse
     }
 
     /**
-     * Return the currently set filter
+     * Return the currently set filters
      *
-     * @return Filter
+     * @return array<Filter>
      */
     public function getFilters(): array
     {
@@ -658,25 +739,33 @@ class Response extends SwooleResponse
     }
 
     /**
-     * Static wrapper to show sensitive data in response
+     * Wrapper to show sensitive data in response
      *
-     * @param callable The callback to show sensitive information for
+     * @param callable(): array $callback The callback to show sensitive information for
      * @return array
      */
-    public static function showSensitive(callable $callback): array
+    public function showSensitive(callable $callback): array
     {
+        $previous = $this->showSensitive;
+
         try {
-            self::$showSensitive = true;
+            $this->showSensitive = true;
             return $callback();
         } finally {
-            self::$showSensitive = false;
+            $this->showSensitive = $previous;
         }
     }
 
     private ?Authorization $authorization = null;
+    private ?DBUser $user = null;
 
     public function setAuthorization(Authorization $authorization): void
     {
         $this->authorization = $authorization;
+    }
+
+    public function setUser(DBUser $user): void
+    {
+        $this->user = $user;
     }
 }

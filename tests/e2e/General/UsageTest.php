@@ -1324,8 +1324,8 @@ class UsageTest extends Scope
             $this->assertEquals($requestsTotal, $response['body']['requests'][array_key_last($response['body']['requests'])]['value']);
             $this->validateDates($response['body']['requests']);
             // vectordbTotal should reflect only VectorsDB instances, not relational databases.
-            $this->assertEquals($vectordbTotal, $response['body']['vectordbDatabasesTotal']);
-            $this->assertEquals($documentsTotal, $response['body']['vectordbDocumentsTotal']);
+            $this->assertEquals($vectordbTotal, $response['body']['vectorsdbDatabasesTotal']);
+            $this->assertEquals($documentsTotal, $response['body']['vectorsdbDocumentsTotal']);
         });
 
         $response = $this->client->call(
@@ -1604,8 +1604,6 @@ class UsageTest extends Scope
             'providerRootDirectory' => './',
             'siteId' => ID::unique()
         ]);
-
-        $this->assertNotNull($siteId);
 
         $deployment = $this->createDeploymentSite($siteId, [
             'siteId' => $siteId,

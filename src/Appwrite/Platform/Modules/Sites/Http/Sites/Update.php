@@ -164,15 +164,9 @@ class Update extends Base
             throw new Exception(Exception::GENERAL_ARGUMENT_INVALID, 'When connecting to VCS (Version Control System), you need to provide "installationId" and "providerBranch".');
         }
 
-        if ($site->isEmpty()) {
-            throw new Exception(Exception::SITE_NOT_FOUND);
-        }
-
         if (empty($framework)) {
             $framework = $site->getAttribute('framework');
         }
-
-        $enabled ??= $site->getAttribute('enabled', true);
 
         $repositoryId = $site->getAttribute('repositoryId', '');
         $repositoryInternalId = $site->getAttribute('repositoryInternalId', '');

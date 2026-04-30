@@ -137,8 +137,8 @@ trait ProjectCustom
                     'functions.write',
                     'sites.read',
                     'sites.write',
-                    'execution.read',
-                    'execution.write',
+                    'executions.read',
+                    'executions.write',
                     'log.read',
                     'log.write',
                     'locale.read',
@@ -164,7 +164,19 @@ trait ProjectCustom
                     'webhooks.read',
                     'webhooks.write',
                     'project.read',
-                    'project.write'
+                    'project.write',
+                    'keys.read',
+                    'keys.write',
+                    'platforms.read',
+                    'platforms.write',
+                    'oauth2.read',
+                    'oauth2.write',
+                    'mocks.read',
+                    'mocks.write',
+                    'policies.read',
+                    'policies.write',
+                    'templates.read',
+                    'templates.write',
                 ],
             ]);
 
@@ -212,7 +224,7 @@ trait ProjectCustom
                 'users.*'
             ],
             'url' => 'http://request-catcher-webhook:5000/',
-            'security' => false,
+            'tls' => false,
         ]);
 
         $this->assertEquals(201, $webhook['headers']['status-code']);
@@ -239,7 +251,7 @@ trait ProjectCustom
             'apiKey' => $key['body']['secret'],
             'devKey' => $devKey['body']['secret'],
             'webhookId' => $webhook['body']['$id'],
-            'signatureKey' => $webhook['body']['signatureKey'],
+            'signatureKey' => $webhook['body']['secret'],
         ];
     }
 

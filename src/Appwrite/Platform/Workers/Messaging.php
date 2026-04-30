@@ -96,7 +96,7 @@ class Messaging extends Action
         UsagePublisher $publisherForUsage
     ): void {
         Runtime::setHookFlags(SWOOLE_HOOK_ALL ^ SWOOLE_HOOK_TCP);
-        $payload = $message->getPayload() ?? [];
+        $payload = $message->getPayload();
 
         if (empty($payload)) {
             throw new \Exception('Missing payload');
@@ -257,7 +257,9 @@ class Messaging extends Action
 
                 $identifiersForProvider = $identifiers[$providerId];
 
-                $adapter = match ($provider->getAttribute('type')) {
+                $providerType = $provider->getAttribute('type');
+
+                $adapter = match ($providerType) {
                     MESSAGE_TYPE_SMS => $this->getSmsAdapter($provider),
                     MESSAGE_TYPE_PUSH => $this->getPushAdapter($provider),
                     MESSAGE_TYPE_EMAIL => $this->getEmailAdapter($provider),
@@ -269,23 +271,22 @@ class Messaging extends Action
                     $adapter->getMaxMessagesPerRequest()
                 );
 
-                return batch(\array_map(function ($batch) use ($message, $provider, $adapter, $dbForProject, $deviceForFiles, $project, $publisherForUsage) {
-                    return function () use ($batch, $message, $provider, $adapter, $dbForProject, $deviceForFiles, $project, $publisherForUsage) {
+                return batch(\array_map(function ($batch) use ($message, $provider, $providerType, $adapter, $dbForProject, $deviceForFiles, $project, $publisherForUsage) {
+                    return function () use ($batch, $message, $provider, $providerType, $adapter, $dbForProject, $deviceForFiles, $project, $publisherForUsage) {
                         $deliveredTotal = 0;
                         $deliveryErrors = [];
                         $messageData = clone $message;
                         $messageData->setAttribute('to', $batch);
 
-                        $data = match ($provider->getAttribute('type')) {
+                        $data = match ($providerType) {
                             MESSAGE_TYPE_SMS => $this->buildSmsMessage($messageData, $provider),
                             MESSAGE_TYPE_PUSH => $this->buildPushMessage($messageData),
                             MESSAGE_TYPE_EMAIL => $this->buildEmailMessage($dbForProject, $messageData, $provider, $deviceForFiles, $project),
-                            default => throw new \Exception('Provider with the requested ID is of the incorrect type')
                         };
 
                         try {
                             $response = $adapter->send($data);
-                            $deliveredTotal += $response['deliveredTo'];
+                            $deliveredTotal += (int) $response['deliveredTo'];
                             foreach ($response['results'] as $result) {
                                 if ($result['status'] === 'failure') {
                                     $deliveryErrors[] = "Failed sending to target {$result['recipient']} with error: {$result['error']}";
@@ -380,7 +381,7 @@ class Messaging extends Action
         ]));
 
         // Delete any attachments that were downloaded to local storage
-        if ($provider->getAttribute('type') === MESSAGE_TYPE_EMAIL) {
+        if ($providerType === MESSAGE_TYPE_EMAIL) {
             if ($deviceForFiles->getType() === Storage::DEVICE_LOCAL) {
                 return;
             }

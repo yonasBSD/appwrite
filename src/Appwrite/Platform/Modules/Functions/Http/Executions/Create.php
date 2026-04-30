@@ -60,7 +60,7 @@ class Create extends Base
             ->setHttpPath('/v1/functions/:functionId/executions')
             ->desc('Create execution')
             ->groups(['api', 'functions'])
-            ->label('scope', 'execution.write')
+            ->label('scope', ['executions.write', 'execution.write'])
             ->label('resourceType', RESOURCE_TYPE_FUNCTIONS)
             ->label('event', 'functions.[functionId].executions.[executionId].create')
             ->label('sdk', new Method(
@@ -119,7 +119,7 @@ class Create extends Base
         Document $project,
         Database $dbForProject,
         Database $dbForPlatform,
-        Document $user,
+        User $user,
         Event $queueForEvents,
         Context $usage,
         Func $queueForFunctions,
@@ -145,21 +145,8 @@ class Create extends Base
             }
         }
 
-        /**
-         * @var array<string, mixed> $headers
-         */
-        $assocParams = ['headers'];
-        foreach ($assocParams as $assocParam) {
-            if (!empty('headers') && !is_array($$assocParam)) {
-                $$assocParam = \json_decode($$assocParam, true);
-            }
-        }
-
-        $booleanParams = ['async'];
-        foreach ($booleanParams as $booleamParam) {
-            if (!empty($$booleamParam) && !is_bool($$booleamParam)) {
-                $$booleamParam = $$booleamParam === "true" ? true : false;
-            }
+        if (!is_array($headers)) {
+            $headers = \json_decode($headers, true);
         }
 
         // 'headers' validator
@@ -171,8 +158,8 @@ class Create extends Base
         /* @var Document $function */
         $function = $authorization->skip(fn () => $dbForProject->getDocument('functions', $functionId));
 
-        $isAPIKey = User::isApp($authorization->getRoles());
-        $isPrivilegedUser = User::isPrivileged($authorization->getRoles());
+        $isAPIKey = $user->isApp($authorization->getRoles());
+        $isPrivilegedUser = $user->isPrivileged($authorization->getRoles());
 
         if ($function->isEmpty() || (!$function->getAttribute('enabled') && !$isAPIKey && !$isPrivilegedUser)) {
             throw new Exception(Exception::FUNCTION_NOT_FOUND);
@@ -213,7 +200,10 @@ class Create extends Base
             $current = new Document();
 
             foreach ($sessions as $session) {
-                /** @var Utopia\Database\Document $session */
+                if (!$session instanceof Document) {
+                    continue;
+                }
+
                 if ($proofForToken->verify($store->getProperty('secret', ''), $session->getAttribute('secret'))) { // Find most recent active session for user ID and JWT headers
                     $current = $session;
                 }
@@ -237,11 +227,11 @@ class Create extends Base
         ]);
 
         $executionId = ID::unique();
-        $headers['x-appwrite-execution-id'] = $executionId ?? '';
-        $headers['x-appwrite-key'] = API_KEY_DYNAMIC . '_' . $apiKey;
+        $headers['x-appwrite-execution-id'] = $executionId;
+        $headers['x-appwrite-key'] = API_KEY_EPHEMERAL . '_' . $apiKey;
         $headers['x-appwrite-trigger'] = 'http';
-        $headers['x-appwrite-user-id'] = $user->getId() ?? '';
-        $headers['x-appwrite-user-jwt'] = $jwt ?? '';
+        $headers['x-appwrite-user-id'] = $user->getId();
+        $headers['x-appwrite-user-jwt'] = $jwt;
         $headers['x-appwrite-country-code'] = '';
         $headers['x-appwrite-continent-code'] = '';
         $headers['x-appwrite-continent-eu'] = 'false';
@@ -302,9 +292,7 @@ class Create extends Base
 
         if ($async) {
             if (is_null($scheduledAt)) {
-                if ($project->getId() != '6862e6a6000cce69f9da') {
-                    $execution = $authorization->skip(fn () => $dbForProject->createDocument('executions', $execution));
-                }
+                $execution = $authorization->skip(fn () => $dbForProject->createDocument('executions', $execution));
                 $queueForFunctions
                     ->setType('http')
                     ->setExecution($execution)
@@ -345,21 +333,21 @@ class Create extends Base
                     ->setAttribute('scheduleInternalId', $schedule->getSequence())
                     ->setAttribute('scheduledAt', $scheduledAt);
 
-                if ($project->getId() != '6862e6a6000cce69f9da') {
-                    $execution = $authorization->skip(fn () => $dbForProject->createDocument('executions', $execution));
-                }
+                $execution = $authorization->skip(fn () => $dbForProject->createDocument('executions', $execution));
             }
 
-            $this->enqueueDeletes(
-                $project,
-                $function->getSequence(),
-                $executionsRetentionCount,
+            if ($executionsRetentionCount > 0 && ENABLE_EXECUTIONS_LIMIT_ON_ROUTE) {
                 $queueForDeletes
-            );
+                    ->setProject($project)
+                    ->setResource($function->getSequence())
+                    ->setResourceType(RESOURCE_TYPE_FUNCTIONS)
+                    ->setType(DELETE_TYPE_EXECUTIONS_LIMIT)
+                    ->trigger();
+            }
 
-            return $response
-                ->setStatusCode(Response::STATUS_CODE_ACCEPTED)
-                ->dynamic($execution, Response::MODEL_EXECUTION);
+            $response->setStatusCode(Response::STATUS_CODE_ACCEPTED);
+            $response->dynamic($execution, Response::MODEL_EXECUTION);
+            return;
         }
 
         $durationStart = \microtime(true);
@@ -369,10 +357,10 @@ class Create extends Base
         // V2 vars
         if ($version === 'v2') {
             $vars = \array_merge($vars, [
-                'APPWRITE_FUNCTION_TRIGGER' => $headers['x-appwrite-trigger'] ?? '',
-                'APPWRITE_FUNCTION_DATA' => $body ?? '',
-                'APPWRITE_FUNCTION_USER_ID' => $headers['x-appwrite-user-id'] ?? '',
-                'APPWRITE_FUNCTION_JWT' => $headers['x-appwrite-user-jwt'] ?? ''
+                'APPWRITE_FUNCTION_TRIGGER' => $headers['x-appwrite-trigger'],
+                'APPWRITE_FUNCTION_DATA' => $body,
+                'APPWRITE_FUNCTION_USER_ID' => $headers['x-appwrite-user-id'],
+                'APPWRITE_FUNCTION_JWT' => $headers['x-appwrite-user-jwt']
             ]);
         }
 
@@ -511,9 +499,7 @@ class Create extends Base
                 ->addMetric(str_replace(['{resourceType}', '{resourceInternalId}'], [RESOURCE_TYPE_FUNCTIONS, $function->getSequence()], METRIC_RESOURCE_TYPE_ID_EXECUTIONS_MB_SECONDS), (int)(($spec['memory'] ?? APP_COMPUTE_MEMORY_DEFAULT) * $execution->getAttribute('duration', 0) * ($spec['cpus'] ?? APP_COMPUTE_CPUS_DEFAULT)))
             ;
 
-            if ($project->getId() != '6862e6a6000cce69f9da') {
-                $execution = $authorization->skip(fn () => $dbForProject->createDocument('executions', $execution));
-            }
+            $execution = $authorization->skip(fn () => $dbForProject->createDocument('executions', $execution));
         }
 
         $executionResponse['headers']['x-appwrite-execution-id'] = $execution->getId();
@@ -537,32 +523,18 @@ class Create extends Base
             }
         }
 
-        $this->enqueueDeletes(
-            $project,
-            $function->getSequence(),
-            $executionsRetentionCount,
+        if ($executionsRetentionCount > 0 && ENABLE_EXECUTIONS_LIMIT_ON_ROUTE) {
             $queueForDeletes
-        );
+                ->setProject($project)
+                ->setResource($function->getSequence())
+                ->setResourceType(RESOURCE_TYPE_FUNCTIONS)
+                ->setType(DELETE_TYPE_EXECUTIONS_LIMIT)
+                ->trigger();
+        }
 
         $response
             ->setStatusCode(Response::STATUS_CODE_CREATED)
             ->dynamic($execution, Response::MODEL_EXECUTION);
     }
 
-    private function enqueueDeletes(
-        Document $project,
-        string $resourceId,
-        int $executionsRetentionCount,
-        DeleteEvent $queueForDeletes
-    ): void {
-        /* cleanup */
-        if ($executionsRetentionCount > 0 && ENABLE_EXECUTIONS_LIMIT_ON_ROUTE) {
-            $queueForDeletes
-                ->setProject($project)
-                ->setResource($resourceId)
-                ->setResourceType(RESOURCE_TYPE_FUNCTIONS)
-                ->setType(DELETE_TYPE_EXECUTIONS_LIMIT)
-                ->trigger();
-        }
-    }
 }

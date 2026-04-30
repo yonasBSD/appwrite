@@ -82,6 +82,9 @@ class Exception extends \Exception
     public const string USER_PASSWORD_RECENTLY_USED = 'password_recently_used';
     public const string USER_PASSWORD_PERSONAL_DATA = 'password_personal_data';
     public const string USER_EMAIL_ALREADY_EXISTS = 'user_email_already_exists';
+    public const string USER_EMAIL_DISPOSABLE = 'user_email_disposable';
+    public const string USER_EMAIL_FREE = 'user_email_free';
+    public const string USER_EMAIL_NOT_CANONICAL = 'user_email_not_canonical';
     public const string USER_PASSWORD_MISMATCH = 'user_password_mismatch';
     public const string USER_SESSION_NOT_FOUND = 'user_session_not_found';
     public const string USER_IDENTITY_NOT_FOUND = 'user_identity_not_found';
@@ -330,6 +333,8 @@ class Exception extends \Exception
 
     /** Platform */
     public const string PLATFORM_NOT_FOUND = 'platform_not_found';
+    public const string PLATFORM_METHOD_UNSUPPORTED = 'platform_method_unsupported';
+    public const string PLATFORM_ALREADY_EXISTS = 'platform_already_exists';
 
     /** GraphqQL */
     public const string GRAPHQL_NO_QUERY = 'graphql_no_query';
@@ -378,6 +383,11 @@ class Exception extends \Exception
     public const string MESSAGE_TARGET_NOT_SMS = 'message_target_not_sms';
     public const string MESSAGE_TARGET_NOT_PUSH = 'message_target_not_push';
     public const string MESSAGE_MISSING_SCHEDULE = 'message_missing_schedule';
+
+    /** Mocks */
+    public const string MOCK_NUMBER_ALREADY_EXISTS = 'mock_number_already_exists';
+    public const string MOCK_NUMBER_NOT_FOUND = 'mock_number_not_found';
+    public const string MOCK_NUMBER_LIMIT_EXCEEDED = 'mock_number_limit_exceeded';
 
     /** Targets */
     public const string TARGET_PROVIDER_INVALID_TYPE = 'target_provider_invalid_type';

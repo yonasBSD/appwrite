@@ -43,6 +43,7 @@ class Install extends Action
             ->param('database', '', new WhiteList(['mongodb', 'mariadb', 'postgresql']), 'Database adapter', true)
             ->param('installId', '', new Text(64, 0), 'Installation ID', true)
             ->param('retryStep', null, new Nullable(new WhiteList([Server::STEP_DOCKER_COMPOSE, Server::STEP_ENV_VARS, Server::STEP_DOCKER_CONTAINERS], true)), 'Retry from step', true)
+            ->param('migrate', false, new \Utopia\Validator\Boolean(true), 'Run database migration after upgrade', true)
             ->inject('request')
             ->inject('response')
             ->inject('swooleResponse')
@@ -64,6 +65,7 @@ class Install extends Action
         string $database,
         string $installId,
         ?string $retryStep,
+        bool $migrate,
         Request $request,
         Response $response,
         SwooleResponse $swooleResponse,
@@ -238,9 +240,7 @@ class Install extends Action
                             $inputValue = trim($inputValue);
                         }
                         if ($storedValue !== $inputValue) {
-                            if ($installId !== '') {
-                                $state->updateGlobalLock($installId, Server::STATUS_ERROR);
-                            }
+                            $state->updateGlobalLock($installId, Server::STATUS_ERROR);
                             $this->sendBadRequest($response, $swooleResponse, $wantsStream, 'Installation payload mismatch');
                             return;
                         }
@@ -260,16 +260,12 @@ class Install extends Action
                     $incomingHash = $state->hashSensitiveValue($incomingValue);
                     if (isset($stored[$hashField])) {
                         if (!hash_equals((string) $stored[$hashField], $incomingHash)) {
-                            if ($installId !== '') {
-                                $state->updateGlobalLock($installId, Server::STATUS_ERROR);
-                            }
+                            $state->updateGlobalLock($installId, Server::STATUS_ERROR);
                             $this->sendBadRequest($response, $swooleResponse, $wantsStream, 'Installation payload mismatch');
                             return;
                         }
                     } elseif (isset($stored[$field]) && $incomingValue !== '' && (string) $stored[$field] !== $incomingValue) {
-                        if ($installId !== '') {
-                            $state->updateGlobalLock($installId, Server::STATUS_ERROR);
-                        }
+                        $state->updateGlobalLock($installId, Server::STATUS_ERROR);
                         $this->sendBadRequest($response, $swooleResponse, $wantsStream, 'Installation payload mismatch');
                         return;
                     }
@@ -321,6 +317,28 @@ class Install extends Action
                 }
             };
 
+            $responseSent = false;
+            $onComplete = function () use ($wantsStream, $swooleResponse, $response, $installId, $state, &$responseSent) {
+                if ($responseSent) {
+                    return;
+                }
+                $responseSent = true;
+                $state->updateGlobalLock($installId, Server::STATUS_COMPLETED);
+                if ($wantsStream) {
+                    $this->writeSseEvent($swooleResponse, 'done', ['installId' => $installId, 'success' => true]);
+                    usleep(self::SSE_KEEPALIVE_DELAY_MICROSECONDS);
+                    $swooleResponse->write(": keepalive\n\n");
+                    usleep(self::SSE_KEEPALIVE_DELAY_MICROSECONDS);
+                    $swooleResponse->end();
+                } else {
+                    $response->json([
+                        'success' => true,
+                        'installId' => $installId,
+                        'message' => 'Installation completed successfully',
+                    ]);
+                }
+            };
+
             $installer->performInstallation(
                 $httpPort ?: $config->getDefaultHttpPort(),
                 $httpsPort ?: $config->getDefaultHttpsPort(),
@@ -331,23 +349,12 @@ class Install extends Action
                 $progress,
                 $retryStep,
                 $config->isUpgrade(),
-                $account
+                $account,
+                $onComplete,
+                $migrate,
             );
 
-            if ($wantsStream) {
-                $this->writeSseEvent($swooleResponse, 'done', ['installId' => $installId, 'success' => true]);
-                usleep(self::SSE_KEEPALIVE_DELAY_MICROSECONDS);
-                $swooleResponse->write(": keepalive\n\n");
-                usleep(self::SSE_KEEPALIVE_DELAY_MICROSECONDS);
-                $swooleResponse->end();
-            } else {
-                $response->json([
-                    'success' => true,
-                    'installId' => $installId,
-                    'message' => 'Installation completed successfully',
-                ]);
-            }
-            $state->updateGlobalLock($installId, Server::STATUS_COMPLETED);
+            $onComplete();
         } catch (\Throwable $e) {
             $this->handleInstallationError($e, $installId, $wantsStream, $response, $swooleResponse, $state);
         }
@@ -417,7 +424,7 @@ class Install extends Action
     private function deriveNameFromEmail(string $email): string
     {
         $parts = explode('@', $email);
-        $username = $parts[0] ?? '';
+        $username = $parts[0];
         $cleaned = preg_replace('/[^a-zA-Z0-9]/', '', $username);
         return ucfirst($cleaned);
     }

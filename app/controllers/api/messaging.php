@@ -482,7 +482,6 @@ Http::post('/v1/messaging/providers/msg91')
             $enabled === true
             && \array_key_exists('senderId', $credentials)
             && \array_key_exists('authKey', $credentials)
-            && \array_key_exists('from', $options)
         ) {
             $enabled = true;
         } else {
@@ -1180,6 +1179,7 @@ Http::get('/v1/messaging/providers/:providerId/logs')
                 'userEmail' => $log['data']['userEmail'] ?? null,
                 'userName' => $log['data']['userName'] ?? null,
                 'mode' => $log['data']['mode'] ?? null,
+                'userType' => $log['data']['userType'] ?? null,
                 'ip' => $log['ip'],
                 'time' => $log['time'],
                 'osCode' => $os['osCode'],
@@ -2585,6 +2585,7 @@ Http::get('/v1/messaging/topics/:topicId/logs')
                 'userEmail' => $log['data']['userEmail'] ?? null,
                 'userName' => $log['data']['userName'] ?? null,
                 'mode' => $log['data']['mode'] ?? null,
+                'userType' => $log['data']['userType'] ?? null,
                 'ip' => $log['ip'],
                 'time' => $log['time'],
                 'osCode' => $os['osCode'],
@@ -3000,6 +3001,7 @@ Http::get('/v1/messaging/subscribers/:subscriberId/logs')
                 'userEmail' => $log['data']['userEmail'] ?? null,
                 'userName' => $log['data']['userName'] ?? null,
                 'mode' => $log['data']['mode'] ?? null,
+                'userType' => $log['data']['userType'] ?? null,
                 'ip' => $log['ip'],
                 'time' => $log['time'],
                 'osCode' => $os['osCode'],
@@ -3204,10 +3206,6 @@ Http::post('/v1/messaging/messages/email')
             throw new Exception(Exception::MESSAGE_MISSING_TARGET);
         }
 
-        if ($status === MessageStatus::SCHEDULED && \is_null($scheduledAt)) {
-            throw new Exception(Exception::MESSAGE_MISSING_SCHEDULE);
-        }
-
         $mergedTargets = \array_merge($targets, $cc, $bcc);
 
         if (!empty($mergedTargets)) {
@@ -3383,10 +3381,6 @@ Http::post('/v1/messaging/messages/sms')
             throw new Exception(Exception::MESSAGE_MISSING_TARGET);
         }
 
-        if ($status === MessageStatus::SCHEDULED && \is_null($scheduledAt)) {
-            throw new Exception(Exception::MESSAGE_MISSING_SCHEDULE);
-        }
-
         if (!empty($targets)) {
             $foundTargets = $dbForProject->find('targets', [
                 Query::equal('$id', $targets),
@@ -3524,10 +3518,6 @@ Http::post('/v1/messaging/messages/push')
             throw new Exception(Exception::MESSAGE_MISSING_TARGET);
         }
 
-        if ($status === MessageStatus::SCHEDULED && \is_null($scheduledAt)) {
-            throw new Exception(Exception::MESSAGE_MISSING_SCHEDULE);
-        }
-
         if (!empty($targets)) {
             $foundTargets = $dbForProject->find('targets', [
                 Query::equal('$id', $targets),
@@ -3566,7 +3556,7 @@ Http::post('/v1/messaging/messages/push')
             $protocol = System::getEnv('_APP_OPTIONS_FORCE_HTTPS') == 'disabled' ? 'http' : 'https';
             $endpoint = "$protocol://{$platform['apiHostname']}/v1";
 
-            $scheduleTime = $currentScheduledAt ?? $scheduledAt;
+            $scheduleTime = $scheduledAt;
             if (!\is_null($scheduleTime)) {
                 $expiry = (new \DateTime($scheduleTime))->add(new \DateInterval('P15D'))->format('U');
             } else {
@@ -3813,6 +3803,7 @@ Http::get('/v1/messaging/messages/:messageId/logs')
                 'userEmail' => $log['data']['userEmail'] ?? null,
                 'userName' => $log['data']['userName'] ?? null,
                 'mode' => $log['data']['mode'] ?? null,
+                'userType' => $log['data']['userType'] ?? null,
                 'ip' => $log['ip'],
                 'time' => $log['time'],
                 'osCode' => $os['osCode'],
@@ -4656,7 +4647,7 @@ Http::delete('/v1/messaging/messages/:messageId')
                 if (!empty($scheduleId)) {
                     try {
                         $dbForPlatform->deleteDocument('schedules', $scheduleId);
-                    } catch (Exception) {
+                    } catch (\Throwable) {
                         // Ignore
                     }
                 }

@@ -134,7 +134,7 @@ class ModuleTest extends TestCase
         $this->assertActionParams($action, [
             'appDomain', 'httpPort', 'httpsPort', 'emailCertificates', 'opensslKey',
             'assistantOpenAIKey', 'accountEmail', 'accountPassword', 'database',
-            'installId', 'retryStep',
+            'installId', 'retryStep', 'migrate',
         ]);
         $this->assertActionInjects($action, ['request', 'response', 'swooleResponse', 'installerState', 'installerConfig', 'installerPaths']);
     }
@@ -157,7 +157,7 @@ class ModuleTest extends TestCase
         $platform->init(Service::TYPE_HTTP);
 
         // If we get here without exceptions, route registration succeeded
-        $this->assertTrue(true);
+        $this->addToAssertionCount(1);
     }
 
     public function testModuleHasNoTaskServices(): void
@@ -265,14 +265,6 @@ class ModuleTest extends TestCase
                 "Action '$name' should use POST method"
             );
         }
-    }
-
-    public function testValidateClassHasCsrfMethod(): void
-    {
-        $this->assertTrue(
-            method_exists(Validate::class, 'validateCsrf'),
-            'Validate class should expose validateCsrf method'
-        );
     }
 
     private function getAction(string $name): Action

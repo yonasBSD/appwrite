@@ -86,12 +86,11 @@ class XList extends Action
                 responses: [
                     new SDKResponse(
                         code: Response::STATUS_CODE_OK,
-                        model: Response::MODEL_PROVIDER_REPOSITORY_RUNTIME_LIST,
+                        model: [
+                            Response::MODEL_PROVIDER_REPOSITORY_RUNTIME_LIST,
+                            Response::MODEL_PROVIDER_REPOSITORY_FRAMEWORK_LIST,
+                        ],
                     ),
-                    new SDKResponse(
-                        code: Response::STATUS_CODE_OK,
-                        model: Response::MODEL_PROVIDER_REPOSITORY_FRAMEWORK_LIST,
-                    )
                 ]
             ))
             ->param('installationId', '', new Text(256), 'Installation Id')
@@ -314,6 +313,7 @@ class XList extends Action
         }, $repos);
 
         $response->dynamic(new Document([
+            'type' => $type,
             $type === 'framework' ? 'frameworkProviderRepositories' : 'runtimeProviderRepositories' => $repos,
             'total' => $total,
         ]), ($type === 'framework') ? Response::MODEL_PROVIDER_REPOSITORY_FRAMEWORK_LIST : Response::MODEL_PROVIDER_REPOSITORY_RUNTIME_LIST);
