@@ -463,7 +463,7 @@ const INSIGHT_STATUSES = [
 ];
 
 // Insight CTA actions
-const INSIGHT_CTA_ACTION_DATABASES_CREATE_INDEX = 'databases.createIndex';
+const INSIGHT_CTA_ACTION_DATABASES_INDEXES_CREATE = 'databases.indexes.create';
 
 // Resource types for Tokens
 const TOKENS_RESOURCE_TYPE_FILES = 'files';

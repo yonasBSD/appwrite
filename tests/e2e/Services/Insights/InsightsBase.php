@@ -40,7 +40,7 @@ trait InsightsBase
             'ctas' => [[
                 'id' => 'createIndex',
                 'label' => 'Create missing index',
-                'action' => 'databases.createIndex',
+                'action' => 'databases.indexes.create',
                 'params' => [
                     'databaseId' => 'main',
                     'collectionId' => 'orders',
@@ -168,7 +168,7 @@ trait InsightsBase
         $this->assertSame(200, $response['headers']['status-code']);
         $this->assertSame($insightId, $response['body']['insightId']);
         $this->assertSame('createIndex', $response['body']['ctaId']);
-        $this->assertSame('databases.createIndex', $response['body']['action']);
+        $this->assertSame('databases.indexes.create', $response['body']['action']);
         $this->assertContains($response['body']['status'], ['succeeded', 'failed']);
     }
 

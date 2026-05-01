@@ -26,7 +26,7 @@ class InsightCTA extends Model
                 'type' => self::TYPE_STRING,
                 'description' => 'Registered server-side action name to execute when this CTA is triggered.',
                 'default' => '',
-                'example' => 'databases.createIndex',
+                'example' => 'databases.indexes.create',
             ])
             ->addRule('params', [
                 'type' => self::TYPE_JSON,

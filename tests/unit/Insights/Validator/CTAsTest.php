@@ -30,7 +30,7 @@ class CTAsTest extends TestCase
         $this->assertTrue($validator->isValid([[
             'id' => 'createIndex',
             'label' => 'Create missing index',
-            'action' => 'databases.createIndex',
+            'action' => 'databases.indexes.create',
             'params' => [
                 'databaseId' => 'main',
                 'collectionId' => 'orders',
@@ -45,7 +45,7 @@ class CTAsTest extends TestCase
         $this->assertTrue($validator->isValid([[
             'id' => 'createIndex',
             'label' => 'Create missing index',
-            'action' => 'databases.createIndex',
+            'action' => 'databases.indexes.create',
         ]]));
     }
 
@@ -64,7 +64,7 @@ class CTAsTest extends TestCase
         $this->assertFalse($validator->isValid([[
             'id' => '',
             'label' => 'Create missing index',
-            'action' => 'databases.createIndex',
+            'action' => 'databases.indexes.create',
         ]]));
     }
 
@@ -75,7 +75,7 @@ class CTAsTest extends TestCase
         $this->assertFalse($validator->isValid([[
             'id' => 123,
             'label' => 'Create missing index',
-            'action' => 'databases.createIndex',
+            'action' => 'databases.indexes.create',
         ]]));
     }
 
@@ -86,7 +86,7 @@ class CTAsTest extends TestCase
         $this->assertFalse($validator->isValid([[
             'id' => 'createIndex',
             'label' => 'Create missing index',
-            'action' => 'databases.createIndex',
+            'action' => 'databases.indexes.create',
             'params' => 'not-a-map',
         ]]));
     }

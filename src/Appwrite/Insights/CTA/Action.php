@@ -11,7 +11,7 @@ use Utopia\Platform\Action as PlatformAction;
  * a call-to-action attached to an insight. Subclasses declare their inputs via `param()`
  * and dependencies via `inject()`, and provide their executable body via `callback()`.
  *
- * Convention for `getName()`: `domain.verb` in camelCase, e.g. `databases.createIndex`.
+ * Convention for `getName()`: dot-separated `domain.<sub>.verb` in camelCase, e.g. `databases.indexes.create`.
  * The required project scope is declared via `label('scope', '...')`.
  */
 abstract class Action extends PlatformAction

@@ -1,6 +1,6 @@
 <?php
 
-namespace Appwrite\Insights\CTA\Action;
+namespace Appwrite\Insights\CTA\Action\Databases\Indexes;
 
 use Appwrite\Event\Database as EventDatabase;
 use Appwrite\Event\Event;
@@ -15,11 +15,11 @@ use Utopia\Database\Query;
 use Utopia\Database\Validator\Authorization;
 use Utopia\Database\Validator\Index as IndexValidator;
 
-class DatabasesCreateIndex extends Action
+class Create extends Action
 {
     public static function getName(): string
     {
-        return INSIGHT_CTA_ACTION_DATABASES_CREATE_INDEX;
+        return INSIGHT_CTA_ACTION_DATABASES_INDEXES_CREATE;
     }
 
     public function __construct()

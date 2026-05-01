@@ -26,7 +26,7 @@ class InsightCTAExecution extends Model
                 'type' => self::TYPE_STRING,
                 'description' => 'Registered server-side action that was executed.',
                 'default' => '',
-                'example' => 'databases.createIndex',
+                'example' => 'databases.indexes.create',
             ])
             ->addRule('status', [
                 'type' => self::TYPE_STRING,
