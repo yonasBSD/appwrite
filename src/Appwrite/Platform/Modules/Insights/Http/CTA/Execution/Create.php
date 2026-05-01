@@ -5,7 +5,7 @@ namespace Appwrite\Platform\Modules\Insights\Http\CTA\Execution;
 use Appwrite\Event\Database as EventDatabase;
 use Appwrite\Event\Event;
 use Appwrite\Extend\Exception;
-use Appwrite\Insights\Cta\Action as CtaAction;
+use Appwrite\Insights\CTA\Action as CTAAction;
 use Appwrite\SDK\AuthType;
 use Appwrite\SDK\Method;
 use Appwrite\SDK\Response as SDKResponse;
@@ -25,7 +25,7 @@ class Create extends Action
 
     public static function getName()
     {
-        return 'createInsightCtaExecution';
+        return 'createInsightCTAExecution';
     }
 
     public function __construct()
@@ -46,7 +46,7 @@ class Create extends Action
             ->label('sdk', new Method(
                 namespace: 'insights',
                 group: 'insights',
-                name: 'createCtaExecution',
+                name: 'createCTAExecution',
                 description: <<<EOT
                 Execute a CTA attached to an insight. Looks up the registered server-side action by name, validates the CTA params, and runs the action on behalf of the caller.
                 EOT,
@@ -64,7 +64,7 @@ class Create extends Action
             ->inject('project')
             ->inject('dbForProject')
             ->inject('getDatabasesDB')
-            ->inject('insightCtaRegistry')
+            ->inject('insightCTARegistry')
             ->inject('queueForDatabase')
             ->inject('queueForEvents')
             ->inject('authorization')
@@ -78,7 +78,7 @@ class Create extends Action
         Document $project,
         Database $dbForProject,
         callable $getDatabasesDB,
-        UtopiaRegistry $insightCtaRegistry,
+        UtopiaRegistry $insightCTARegistry,
         EventDatabase $queueForDatabase,
         Event $queueForEvents,
         Authorization $authorization
@@ -113,12 +113,12 @@ class Create extends Action
         }
 
         try {
-            $action = $insightCtaRegistry->get($actionName);
+            $action = $insightCTARegistry->get($actionName);
         } catch (\Throwable) {
             throw new Exception(Exception::INSIGHT_CTA_NOT_FOUND);
         }
 
-        if (!$action instanceof CtaAction) {
+        if (!$action instanceof CTAAction) {
             throw new Exception(Exception::INSIGHT_CTA_NOT_FOUND);
         }
 

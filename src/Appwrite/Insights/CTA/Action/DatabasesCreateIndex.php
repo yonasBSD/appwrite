@@ -1,12 +1,12 @@
 <?php
 
-namespace Appwrite\Insights\Cta\Action;
+namespace Appwrite\Insights\CTA\Action;
 
 use Appwrite\Event\Database as EventDatabase;
 use Appwrite\Event\Event;
 use Appwrite\Extend\Exception;
-use Appwrite\Insights\Cta\Action;
-use Appwrite\Insights\Validator\CtaParams\DatabasesCreateIndex as DatabasesCreateIndexParams;
+use Appwrite\Insights\CTA\Action;
+use Appwrite\Insights\Validator\CTAParams\DatabasesCreateIndex as DatabasesCreateIndexParams;
 use Utopia\Database\Database;
 use Utopia\Database\Document;
 use Utopia\Database\Exception\Duplicate as DuplicateException;

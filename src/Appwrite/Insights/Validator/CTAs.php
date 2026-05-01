@@ -4,7 +4,7 @@ namespace Appwrite\Insights\Validator;
 
 use Utopia\Validator;
 
-class Ctas extends Validator
+class CTAs extends Validator
 {
     protected string $message = 'Value must be an array of CTA descriptors. Each entry must define `id`, `label`, `action`, and an optional `params` object.';
 

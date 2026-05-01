@@ -2,7 +2,7 @@
 
 namespace Appwrite\Platform\Modules\Insights\Services;
 
-use Appwrite\Platform\Modules\Insights\Http\CTA\Execution\Create as CreateInsightCtaExecution;
+use Appwrite\Platform\Modules\Insights\Http\CTA\Execution\Create as CreateInsightCTAExecution;
 use Appwrite\Platform\Modules\Insights\Http\Insights\Create as CreateInsight;
 use Appwrite\Platform\Modules\Insights\Http\Insights\Delete as DeleteInsight;
 use Appwrite\Platform\Modules\Insights\Http\Insights\Dismissal\Create as CreateInsightDismissal;
@@ -23,6 +23,6 @@ class Http extends Service
         $this->addAction(UpdateInsight::getName(), new UpdateInsight());
         $this->addAction(DeleteInsight::getName(), new DeleteInsight());
         $this->addAction(CreateInsightDismissal::getName(), new CreateInsightDismissal());
-        $this->addAction(CreateInsightCtaExecution::getName(), new CreateInsightCtaExecution());
+        $this->addAction(CreateInsightCTAExecution::getName(), new CreateInsightCTAExecution());
     }
 }

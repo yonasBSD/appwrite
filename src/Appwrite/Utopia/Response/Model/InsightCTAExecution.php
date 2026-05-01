@@ -5,7 +5,7 @@ namespace Appwrite\Utopia\Response\Model;
 use Appwrite\Utopia\Response;
 use Appwrite\Utopia\Response\Model;
 
-class InsightCtaExecution extends Model
+class InsightCTAExecution extends Model
 {
     public function __construct()
     {
@@ -44,7 +44,7 @@ class InsightCtaExecution extends Model
 
     public function getName(): string
     {
-        return 'InsightCtaExecution';
+        return 'InsightCTAExecution';
     }
 
     public function getType(): string

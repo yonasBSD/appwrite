@@ -1,8 +1,8 @@
 <?php
 
-namespace Tests\Unit\Insights\Validator\CtaParams;
+namespace Tests\Unit\Insights\Validator\CTAParams;
 
-use Appwrite\Insights\Validator\CtaParams\DatabasesCreateIndex;
+use Appwrite\Insights\Validator\CTAParams\DatabasesCreateIndex;
 use PHPUnit\Framework\TestCase;
 
 class DatabasesCreateIndexTest extends TestCase

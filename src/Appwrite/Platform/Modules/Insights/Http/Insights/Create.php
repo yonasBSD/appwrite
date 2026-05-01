@@ -4,7 +4,7 @@ namespace Appwrite\Platform\Modules\Insights\Http\Insights;
 
 use Appwrite\Event\Event;
 use Appwrite\Extend\Exception;
-use Appwrite\Insights\Validator\Ctas as CtasValidator;
+use Appwrite\Insights\Validator\CTAs as CTAsValidator;
 use Appwrite\SDK\AuthType;
 use Appwrite\SDK\Method;
 use Appwrite\SDK\Response as SDKResponse;
@@ -70,7 +70,7 @@ class Create extends Action
             ->param('title', '', new Text(256), 'Short, human-readable title.')
             ->param('summary', '', new Text(4096, 0), 'Markdown summary describing the insight.', true)
             ->param('payload', null, new Nullable(new JSON()), 'Type-specific structured payload.', true)
-            ->param('ctas', [], new CtasValidator(), 'Array of call-to-action descriptors. Each must contain `id`, `label`, `action`, and optional `params`.', true)
+            ->param('ctas', [], new CTAsValidator(), 'Array of call-to-action descriptors. Each must contain `id`, `label`, `action`, and optional `params`.', true)
             ->param('analyzedAt', null, new Nullable(new DatetimeValidator()), 'Time the insight was analyzed in ISO 8601 format. Defaults to now.', true)
             ->inject('response')
             ->inject('dbForProject')
@@ -96,9 +96,9 @@ class Create extends Action
     ) {
         $insightId = ($insightId === 'unique()') ? ID::unique() : $insightId;
 
-        $normalizedCtas = [];
+        $normalizedCTAs = [];
         foreach ($ctas as $cta) {
-            $normalizedCtas[] = [
+            $normalizedCTAs[] = [
                 'id' => (string) $cta['id'],
                 'label' => (string) $cta['label'],
                 'action' => (string) $cta['action'],
@@ -117,7 +117,7 @@ class Create extends Action
                 'title' => $title,
                 'summary' => $summary,
                 'payload' => $payload,
-                'ctas' => $normalizedCtas,
+                'ctas' => $normalizedCTAs,
                 'analyzedAt' => $analyzedAt,
                 'dismissedAt' => null,
                 'dismissedBy' => '',

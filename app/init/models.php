@@ -91,8 +91,8 @@ use Appwrite\Utopia\Response\Model\HealthVersion;
 use Appwrite\Utopia\Response\Model\Identity;
 use Appwrite\Utopia\Response\Model\Index;
 use Appwrite\Utopia\Response\Model\Insight;
-use Appwrite\Utopia\Response\Model\InsightCta;
-use Appwrite\Utopia\Response\Model\InsightCtaExecution;
+use Appwrite\Utopia\Response\Model\InsightCTA;
+use Appwrite\Utopia\Response\Model\InsightCTAExecution;
 use Appwrite\Utopia\Response\Model\Installation;
 use Appwrite\Utopia\Response\Model\JWT;
 use Appwrite\Utopia\Response\Model\Key;
@@ -510,8 +510,8 @@ Response::setModel(new Migration());
 Response::setModel(new MigrationReport());
 Response::setModel(new MigrationFirebaseProject());
 Response::setModel(new Insight());
-Response::setModel(new InsightCta());
-Response::setModel(new InsightCtaExecution());
+Response::setModel(new InsightCTA());
+Response::setModel(new InsightCTAExecution());
 
 // Tests (keep last)
 Response::setModel(new Mock());

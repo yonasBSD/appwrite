@@ -128,8 +128,8 @@ $container->set('authorization', function () {
     return new Authorization();
 }, []);
 
-$container->set('insightCtaRegistry', function ($register) {
-    return $register->get('insightCtaRegistry');
+$container->set('insightCTARegistry', function ($register) {
+    return $register->get('insightCTARegistry');
 }, ['register']);
 
 $container->set('dbForPlatform', function (Group $pools, Cache $cache, Authorization $authorization) {

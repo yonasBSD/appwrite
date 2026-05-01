@@ -1,6 +1,6 @@
 <?php
 
-namespace Appwrite\Insights\Validator\CtaParams;
+namespace Appwrite\Insights\Validator\CTAParams;
 
 use Utopia\Validator;
 

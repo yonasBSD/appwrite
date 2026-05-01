@@ -144,13 +144,13 @@ trait InsightsBase
     /**
      * @depends testCreateDismissal
      */
-    public function testCreateCtaExecution(array $data): void
+    public function testCreateCTAExecution(array $data): void
     {
         $insightId = $data['insightId'];
 
-        $missingCta = $this->client->call(Client::METHOD_POST, '/insights/' . $insightId . '/ctas/missing/executions', $this->serverHeaders());
-        $this->assertSame(404, $missingCta['headers']['status-code']);
-        $this->assertSame('insight_cta_not_found', $missingCta['body']['type']);
+        $missingCTA = $this->client->call(Client::METHOD_POST, '/insights/' . $insightId . '/ctas/missing/executions', $this->serverHeaders());
+        $this->assertSame(404, $missingCTA['headers']['status-code']);
+        $this->assertSame('insight_cta_not_found', $missingCTA['body']['type']);
 
         $response = $this->client->call(Client::METHOD_POST, '/insights/' . $insightId . '/ctas/createIndex/executions', $this->serverHeaders());
 

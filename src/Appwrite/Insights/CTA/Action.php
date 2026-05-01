@@ -1,6 +1,6 @@
 <?php
 
-namespace Appwrite\Insights\Cta;
+namespace Appwrite\Insights\CTA;
 
 use Utopia\Platform\Action as PlatformAction;
 

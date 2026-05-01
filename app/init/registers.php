@@ -3,7 +3,7 @@
 use Appwrite\Extend\Exception;
 use Appwrite\GraphQL\Promises\Adapter\Swoole;
 use Appwrite\Hooks\Hooks;
-use Appwrite\Insights\Cta\Action\DatabasesCreateIndex;
+use Appwrite\Insights\CTA\Action\DatabasesCreateIndex;
 use Appwrite\PubSub\Adapter\Redis as PubSub;
 use Appwrite\URL\URL as AppwriteURL;
 use MaxMind\Db\Reader;
@@ -452,7 +452,7 @@ $register->set('promiseAdapter', function () {
 $register->set('hooks', function () {
     return new Hooks();
 });
-$register->set('insightCtaRegistry', function () {
+$register->set('insightCTARegistry', function () {
     $registry = new Registry();
     $registry->set(DatabasesCreateIndex::getName(), fn () => new DatabasesCreateIndex());
     return $registry;
