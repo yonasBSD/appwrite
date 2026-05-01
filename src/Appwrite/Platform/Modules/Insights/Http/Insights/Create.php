@@ -111,6 +111,7 @@ class Create extends Action
                 '$id' => $insightId,
                 'type' => $type,
                 'severity' => $severity,
+                'status' => INSIGHT_STATUS_ACTIVE,
                 'resourceType' => $resourceType,
                 'resourceId' => $resourceId,
                 'resourceInternalId' => $resourceInternalId,

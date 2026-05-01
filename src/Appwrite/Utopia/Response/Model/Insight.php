@@ -47,6 +47,12 @@ class Insight extends Model
                 'default' => 'info',
                 'example' => 'warning',
             ])
+            ->addRule('status', [
+                'type' => self::TYPE_STRING,
+                'description' => 'Insight status. One of active, dismissed.',
+                'default' => 'active',
+                'example' => 'active',
+            ])
             ->addRule('resourceType', [
                 'type' => self::TYPE_STRING,
                 'description' => 'Type of the resource the insight is about. Plural noun, e.g. databases, sites, functions.',

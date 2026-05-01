@@ -129,20 +129,31 @@ trait InsightsBase
     /**
      * @depends testUpdate
      */
-    public function testCreateDismissal(array $data): array
+    public function testDismissViaUpdate(array $data): array
     {
         $insightId = $data['insightId'];
 
-        $response = $this->client->call(Client::METHOD_POST, '/insights/' . $insightId . '/dismissals', $this->serverHeaders());
+        $response = $this->client->call(Client::METHOD_PATCH, '/insights/' . $insightId, $this->serverHeaders(), [
+            'status' => 'dismissed',
+        ]);
 
         $this->assertSame(200, $response['headers']['status-code']);
+        $this->assertSame('dismissed', $response['body']['status']);
         $this->assertNotEmpty($response['body']['dismissedAt']);
+
+        $undismiss = $this->client->call(Client::METHOD_PATCH, '/insights/' . $insightId, $this->serverHeaders(), [
+            'status' => 'active',
+        ]);
+
+        $this->assertSame(200, $undismiss['headers']['status-code']);
+        $this->assertSame('active', $undismiss['body']['status']);
+        $this->assertEmpty($undismiss['body']['dismissedAt']);
 
         return $data;
     }
 
     /**
-     * @depends testCreateDismissal
+     * @depends testDismissViaUpdate
      */
     public function testCreateCTAExecution(array $data): void
     {

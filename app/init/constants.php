@@ -453,6 +453,15 @@ const INSIGHT_SEVERITIES = [
     INSIGHT_SEVERITY_CRITICAL,
 ];
 
+// Insight statuses
+const INSIGHT_STATUS_ACTIVE = 'active';
+const INSIGHT_STATUS_DISMISSED = 'dismissed';
+
+const INSIGHT_STATUSES = [
+    INSIGHT_STATUS_ACTIVE,
+    INSIGHT_STATUS_DISMISSED,
+];
+
 // Insight CTA actions
 const INSIGHT_CTA_ACTION_DATABASES_CREATE_INDEX = 'databases.createIndex';
 

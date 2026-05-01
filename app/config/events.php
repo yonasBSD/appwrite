@@ -440,14 +440,6 @@ return [
         'delete' => [
             '$description' => 'This event triggers when an insight is deleted.',
         ],
-        'dismissals' => [
-            '$model' => Response::MODEL_INSIGHT,
-            '$resource' => true,
-            '$description' => 'This event triggers on any insight dismissal event.',
-            'create' => [
-                '$description' => 'This event triggers when an insight is dismissed.',
-            ],
-        ],
         'ctas' => [
             '$model' => Response::MODEL_INSIGHT_CTA,
             '$resource' => true,

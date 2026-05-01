@@ -9,6 +9,7 @@ use Appwrite\SDK\Method;
 use Appwrite\SDK\Response as SDKResponse;
 use Appwrite\Utopia\Response;
 use Utopia\Database\Database;
+use Utopia\Database\DateTime;
 use Utopia\Database\Document;
 use Utopia\Database\Validator\Datetime as DatetimeValidator;
 use Utopia\Database\Validator\UID;
@@ -61,12 +62,14 @@ class Update extends Action
             ))
             ->param('insightId', '', fn (Database $dbForProject) => new UID($dbForProject->getAdapter()->getMaxUIDLength()), 'Insight ID.', false, ['dbForProject'])
             ->param('severity', null, new Nullable(new WhiteList(INSIGHT_SEVERITIES, true)), 'Insight severity. One of `info`, `warning`, `critical`.', true)
+            ->param('status', null, new Nullable(new WhiteList(INSIGHT_STATUSES, true)), 'Insight status. Set to `dismissed` to dismiss the insight, `active` to undo a dismissal.', true)
             ->param('title', null, new Nullable(new Text(256)), 'Short, human-readable title.', true)
             ->param('summary', null, new Nullable(new Text(4096, 0)), 'Markdown summary describing the insight.', true)
             ->param('payload', null, new Nullable(new JSON()), 'Type-specific structured payload.', true)
             ->param('ctas', null, new Nullable(new ArrayList(new JSON(), 16)), 'Array of call-to-action descriptors.', true)
             ->param('analyzedAt', null, new Nullable(new DatetimeValidator()), 'Time the insight was analyzed in ISO 8601 format.', true)
             ->inject('response')
+            ->inject('user')
             ->inject('dbForProject')
             ->inject('queueForEvents')
             ->callback($this->action(...));
@@ -75,12 +78,14 @@ class Update extends Action
     public function action(
         string $insightId,
         ?string $severity,
+        ?string $status,
         ?string $title,
         ?string $summary,
         ?array $payload,
         ?array $ctas,
         ?string $analyzedAt,
         Response $response,
+        Document $user,
         Database $dbForProject,
         Event $queueForEvents
     ) {
@@ -94,6 +99,16 @@ class Update extends Action
 
         if ($severity !== null) {
             $changes['severity'] = $severity;
+        }
+        if ($status !== null && $status !== $insight->getAttribute('status')) {
+            $changes['status'] = $status;
+            if ($status === INSIGHT_STATUS_DISMISSED) {
+                $changes['dismissedAt'] = DateTime::now();
+                $changes['dismissedBy'] = $user->getId();
+            } else {
+                $changes['dismissedAt'] = null;
+                $changes['dismissedBy'] = '';
+            }
         }
         if ($title !== null) {
             $changes['title'] = $title;

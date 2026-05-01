@@ -2783,6 +2783,17 @@ return [
                 'filters' => [],
             ],
             [
+                // Possible values: active, dismissed
+                '$id' => ID::custom('status'),
+                'type' => Database::VAR_STRING,
+                'size' => 16,
+                'signed' => true,
+                'required' => true,
+                'default' => 'active',
+                'array' => false,
+                'filters' => [],
+            ],
+            [
                 // Possible values: databases, collections, sites, functions
                 '$id' => ID::custom('resourceType'),
                 'type' => Database::VAR_STRING,
