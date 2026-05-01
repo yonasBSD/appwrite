@@ -2,18 +2,21 @@
 
 namespace Appwrite\Platform\Modules\Insights\Http\Cta;
 
+use Appwrite\Event\Database as EventDatabase;
 use Appwrite\Event\Event;
 use Appwrite\Extend\Exception;
-use Appwrite\Insights\Cta\Registry as InsightCtaRegistry;
+use Appwrite\Insights\Cta\Action as CtaAction;
 use Appwrite\SDK\AuthType;
 use Appwrite\SDK\Method;
 use Appwrite\SDK\Response as SDKResponse;
 use Appwrite\Utopia\Response;
 use Utopia\Database\Database;
 use Utopia\Database\Document;
+use Utopia\Database\Validator\Authorization;
 use Utopia\Database\Validator\UID;
 use Utopia\Platform\Action;
 use Utopia\Platform\Scope\HTTP;
+use Utopia\Registry\Registry as UtopiaRegistry;
 use Utopia\Validator\Text;
 
 class Trigger extends Action
@@ -60,8 +63,11 @@ class Trigger extends Action
             ->inject('response')
             ->inject('project')
             ->inject('dbForProject')
+            ->inject('getDatabasesDB')
             ->inject('insightCtaRegistry')
+            ->inject('queueForDatabase')
             ->inject('queueForEvents')
+            ->inject('authorization')
             ->callback($this->action(...));
     }
 
@@ -71,8 +77,11 @@ class Trigger extends Action
         Response $response,
         Document $project,
         Database $dbForProject,
-        InsightCtaRegistry $insightCtaRegistry,
-        Event $queueForEvents
+        callable $getDatabasesDB,
+        UtopiaRegistry $insightCtaRegistry,
+        EventDatabase $queueForDatabase,
+        Event $queueForEvents,
+        Authorization $authorization
     ) {
         $insight = $dbForProject->getDocument('insights', $insightId);
 
@@ -94,19 +103,52 @@ class Trigger extends Action
 
         $actionName = (string) ($cta['action'] ?? '');
         $params = $cta['params'] ?? [];
+
+        if (\is_object($params)) {
+            $params = (array) $params;
+        }
+
         if (!\is_array($params)) {
             $params = [];
         }
 
-        $action = $insightCtaRegistry->get($actionName);
-        $action->validate($params);
+        try {
+            $action = $insightCtaRegistry->get($actionName);
+        } catch (\Throwable) {
+            throw new Exception(Exception::INSIGHT_CTA_NOT_FOUND);
+        }
+
+        if (!$action instanceof CtaAction) {
+            throw new Exception(Exception::INSIGHT_CTA_NOT_FOUND);
+        }
+
+        $paramsValidator = $action->getParams()['params']['validator'] ?? null;
+
+        if ($paramsValidator !== null && !$paramsValidator->isValid($params)) {
+            throw new Exception(Exception::GENERAL_ARGUMENT_INVALID, $paramsValidator->getDescription());
+        }
 
         $status = 'succeeded';
         $resultPayload = new \stdClass();
 
+        $callback = $action->getCallback();
+
+        if (!\is_callable($callback)) {
+            throw new Exception(Exception::INSIGHT_CTA_NOT_FOUND);
+        }
+
         try {
-            $result = $action->execute($params, $insight, $project, $dbForProject);
-            $resultPayload = $result->getArrayCopy();
+            $result = $callback(
+                $params,
+                $insight,
+                $project,
+                $dbForProject,
+                $getDatabasesDB,
+                $queueForDatabase,
+                $queueForEvents,
+                $authorization
+            );
+            $resultPayload = $result instanceof Document ? $result->getArrayCopy() : (array) $result;
         } catch (Exception $e) {
             if ($e->getType() === Exception::GENERAL_NOT_IMPLEMENTED) {
                 throw $e;

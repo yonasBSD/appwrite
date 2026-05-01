@@ -9,7 +9,6 @@ use Appwrite\Event\Publisher\Screenshot as ScreenshotPublisher;
 use Appwrite\Event\Publisher\StatsResources as StatsResourcesPublisher;
 use Appwrite\Event\Publisher\Usage as UsagePublisher;
 use Appwrite\Insights\Cta\Action\DatabasesCreateIndex;
-use Appwrite\Insights\Cta\Registry as InsightCtaRegistry;
 use Appwrite\Utopia\Database\Documents\User;
 use Executor\Executor;
 use Utopia\Abuse\Adapters\TimeLimit\Redis as TimeLimitRedis;
@@ -28,6 +27,7 @@ use Utopia\Pools\Group;
 use Utopia\Queue\Broker\Pool as BrokerPool;
 use Utopia\Queue\Publisher;
 use Utopia\Queue\Queue;
+use Utopia\Registry\Registry as UtopiaRegistry;
 use Utopia\Storage\Device;
 use Utopia\Storage\Device\AWS;
 use Utopia\Storage\Device\Backblaze;
@@ -131,8 +131,8 @@ $container->set('authorization', function () {
 }, []);
 
 $container->set('insightCtaRegistry', function () {
-    $registry = new InsightCtaRegistry();
-    $registry->register(new DatabasesCreateIndex());
+    $registry = new UtopiaRegistry();
+    $registry->set(DatabasesCreateIndex::getName(), fn () => new DatabasesCreateIndex());
     return $registry;
 }, []);
 
