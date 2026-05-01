@@ -50,7 +50,7 @@ class Update extends Action
                 group: 'insights',
                 name: 'update',
                 description: <<<EOT
-                Update an insight. Pass only the attributes you want to change.
+                Update an insight. Pass only the attributes you want to change. Set `status` to `dismissed` to dismiss the insight (the dismissal timestamp and user are recorded automatically) or back to `active` to undo a dismissal.
                 EOT,
                 auth: [AuthType::ADMIN, AuthType::KEY],
                 responses: [

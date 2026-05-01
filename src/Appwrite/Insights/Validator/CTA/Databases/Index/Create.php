@@ -1,10 +1,10 @@
 <?php
 
-namespace Appwrite\Insights\Validator\CTAParams;
+namespace Appwrite\Insights\Validator\CTA\Databases\Index;
 
 use Utopia\Validator;
 
-class DatabasesCreateIndex extends Validator
+class Create extends Validator
 {
     /**
      * @var array<int, string>

@@ -48,7 +48,7 @@ class Create extends Action
                 group: 'insights',
                 name: 'createCTAExecution',
                 description: <<<EOT
-                Execute a CTA attached to an insight. Looks up the registered server-side action by name, validates the CTA params, and runs the action on behalf of the caller.
+                Execute a call-to-action attached to an insight. Looks up the server-side handler registered for the CTA's `action` name, validates its params, and runs the handler on behalf of the caller. The execution result captures the resource produced (e.g. the created index document) and a `succeeded` or `failed` status.
                 EOT,
                 auth: [AuthType::ADMIN, AuthType::KEY],
                 responses: [

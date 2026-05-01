@@ -6,7 +6,7 @@ use Appwrite\Event\Database as EventDatabase;
 use Appwrite\Event\Event;
 use Appwrite\Extend\Exception;
 use Appwrite\Insights\CTA\Action as CTAAction;
-use Appwrite\Insights\Validator\CTAParams\DatabasesCreateIndex as DatabasesCreateIndexParams;
+use Appwrite\Insights\Validator\CTA\Databases\Index\Create as IndexCreateParams;
 use Appwrite\Platform\Modules\Databases\Http\Databases\Collections\Indexes\Create as IndexCreate;
 use Appwrite\Utopia\Response;
 use Utopia\Database\Database;
@@ -41,7 +41,7 @@ class Create extends IndexCreate implements CTAAction
         Event $queueForEvents,
         Authorization $authorization,
     ): Document {
-        $validator = new DatabasesCreateIndexParams();
+        $validator = new IndexCreateParams();
         if (!$validator->isValid($params)) {
             throw new Exception(Exception::GENERAL_ARGUMENT_INVALID, $validator->getDescription());
         }

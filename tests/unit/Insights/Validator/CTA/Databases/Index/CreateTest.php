@@ -1,15 +1,15 @@
 <?php
 
-namespace Tests\Unit\Insights\Validator\CTAParams;
+namespace Tests\Unit\Insights\Validator\CTA\Databases\Index;
 
-use Appwrite\Insights\Validator\CTAParams\DatabasesCreateIndex;
+use Appwrite\Insights\Validator\CTA\Databases\Index\Create;
 use PHPUnit\Framework\TestCase;
 
-class DatabasesCreateIndexTest extends TestCase
+class CreateTest extends TestCase
 {
     public function testAcceptsCompleteParams(): void
     {
-        $validator = new DatabasesCreateIndex();
+        $validator = new Create();
 
         $this->assertTrue($validator->isValid([
             'databaseId' => 'main',
@@ -22,7 +22,7 @@ class DatabasesCreateIndexTest extends TestCase
 
     public function testRejectsNonArray(): void
     {
-        $validator = new DatabasesCreateIndex();
+        $validator = new Create();
 
         $this->assertFalse($validator->isValid('not-an-array'));
         $this->assertFalse($validator->isValid(null));
@@ -30,7 +30,7 @@ class DatabasesCreateIndexTest extends TestCase
 
     public function testRejectsMissingRequiredParam(): void
     {
-        $validator = new DatabasesCreateIndex();
+        $validator = new Create();
 
         $this->assertFalse($validator->isValid([
             'databaseId' => 'main',
@@ -43,7 +43,7 @@ class DatabasesCreateIndexTest extends TestCase
 
     public function testRejectsEmptyAttributes(): void
     {
-        $validator = new DatabasesCreateIndex();
+        $validator = new Create();
 
         $this->assertFalse($validator->isValid([
             'databaseId' => 'main',
@@ -57,7 +57,7 @@ class DatabasesCreateIndexTest extends TestCase
 
     public function testReportsArrayType(): void
     {
-        $validator = new DatabasesCreateIndex();
+        $validator = new Create();
 
         $this->assertTrue($validator->isArray());
         $this->assertSame($validator::TYPE_ARRAY, $validator->getType());
