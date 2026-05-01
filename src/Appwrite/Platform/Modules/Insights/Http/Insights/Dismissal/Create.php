@@ -1,6 +1,6 @@
 <?php
 
-namespace Appwrite\Platform\Modules\Insights\Http\Insights;
+namespace Appwrite\Platform\Modules\Insights\Http\Insights\Dismissal;
 
 use Appwrite\Event\Event;
 use Appwrite\Extend\Exception;
@@ -15,26 +15,26 @@ use Utopia\Database\Validator\UID;
 use Utopia\Platform\Action;
 use Utopia\Platform\Scope\HTTP;
 
-class Dismiss extends Action
+class Create extends Action
 {
     use HTTP;
 
     public static function getName()
     {
-        return 'dismissInsight';
+        return 'createInsightDismissal';
     }
 
     public function __construct()
     {
         $this
             ->setHttpMethod(Action::HTTP_REQUEST_METHOD_POST)
-            ->setHttpPath('/v1/insights/:insightId/dismiss')
-            ->desc('Dismiss insight')
+            ->setHttpPath('/v1/insights/:insightId/dismissals')
+            ->desc('Create insight dismissal')
             ->groups(['api', 'insights'])
             ->label('scope', 'insights.write')
-            ->label('event', 'insights.[insightId].dismiss')
+            ->label('event', 'insights.[insightId].dismissals.create')
             ->label('resourceType', RESOURCE_TYPE_INSIGHTS)
-            ->label('audits.event', 'insight.dismiss')
+            ->label('audits.event', 'insight.dismissal.create')
             ->label('audits.resource', 'insight/{response.$id}')
             ->label('abuse-key', 'projectId:{projectId},userId:{userId}')
             ->label('abuse-limit', APP_LIMIT_WRITE_RATE_DEFAULT)
@@ -42,7 +42,7 @@ class Dismiss extends Action
             ->label('sdk', new Method(
                 namespace: 'insights',
                 group: 'insights',
-                name: 'dismiss',
+                name: 'createDismissal',
                 description: <<<EOT
                 Dismiss an insight. Stamps the current user and time on the insight without deleting it, so analyzers can see it has been acknowledged.
                 EOT,

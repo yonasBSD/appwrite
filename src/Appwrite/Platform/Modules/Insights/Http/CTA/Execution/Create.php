@@ -1,6 +1,6 @@
 <?php
 
-namespace Appwrite\Platform\Modules\Insights\Http\Cta;
+namespace Appwrite\Platform\Modules\Insights\Http\CTA\Execution;
 
 use Appwrite\Event\Database as EventDatabase;
 use Appwrite\Event\Event;
@@ -19,26 +19,26 @@ use Utopia\Platform\Scope\HTTP;
 use Utopia\Registry\Registry as UtopiaRegistry;
 use Utopia\Validator\Text;
 
-class Trigger extends Action
+class Create extends Action
 {
     use HTTP;
 
     public static function getName()
     {
-        return 'triggerInsightCta';
+        return 'createInsightCtaExecution';
     }
 
     public function __construct()
     {
         $this
             ->setHttpMethod(Action::HTTP_REQUEST_METHOD_POST)
-            ->setHttpPath('/v1/insights/:insightId/ctas/:ctaId/trigger')
-            ->desc('Trigger insight CTA')
+            ->setHttpPath('/v1/insights/:insightId/ctas/:ctaId/executions')
+            ->desc('Create insight CTA execution')
             ->groups(['api', 'insights'])
             ->label('scope', 'insights.write')
-            ->label('event', 'insights.[insightId].ctas.[ctaId].trigger')
+            ->label('event', 'insights.[insightId].ctas.[ctaId].executions.create')
             ->label('resourceType', RESOURCE_TYPE_INSIGHTS)
-            ->label('audits.event', 'insight.cta.trigger')
+            ->label('audits.event', 'insight.cta.execution.create')
             ->label('audits.resource', 'insight/{request.insightId}')
             ->label('abuse-key', 'projectId:{projectId},userId:{userId}')
             ->label('abuse-limit', APP_LIMIT_WRITE_RATE_DEFAULT)
@@ -46,15 +46,15 @@ class Trigger extends Action
             ->label('sdk', new Method(
                 namespace: 'insights',
                 group: 'insights',
-                name: 'triggerCta',
+                name: 'createCtaExecution',
                 description: <<<EOT
-                Trigger a CTA attached to an insight. Looks up the registered server-side action by name, validates the CTA params, and executes the action on behalf of the caller.
+                Execute a CTA attached to an insight. Looks up the registered server-side action by name, validates the CTA params, and runs the action on behalf of the caller.
                 EOT,
                 auth: [AuthType::ADMIN, AuthType::KEY],
                 responses: [
                     new SDKResponse(
                         code: Response::STATUS_CODE_OK,
-                        model: Response::MODEL_INSIGHT_CTA_RESULT,
+                        model: Response::MODEL_INSIGHT_CTA_EXECUTION,
                     ),
                 ]
             ))
@@ -167,6 +167,6 @@ class Trigger extends Action
             'action' => $actionName,
             'status' => $status,
             'result' => $resultPayload,
-        ]), Response::MODEL_INSIGHT_CTA_RESULT);
+        ]), Response::MODEL_INSIGHT_CTA_EXECUTION);
     }
 }

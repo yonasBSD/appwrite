@@ -5,20 +5,20 @@ namespace Appwrite\Utopia\Response\Model;
 use Appwrite\Utopia\Response;
 use Appwrite\Utopia\Response\Model;
 
-class InsightCtaResult extends Model
+class InsightCtaExecution extends Model
 {
     public function __construct()
     {
         $this
             ->addRule('insightId', [
                 'type' => self::TYPE_STRING,
-                'description' => 'ID of the insight the CTA was triggered against.',
+                'description' => 'ID of the insight the CTA was executed against.',
                 'default' => '',
                 'example' => '5e5ea5c16897e',
             ])
             ->addRule('ctaId', [
                 'type' => self::TYPE_STRING,
-                'description' => 'ID of the CTA that was triggered.',
+                'description' => 'ID of the CTA that was executed.',
                 'default' => '',
                 'example' => 'createIndex',
             ])
@@ -44,11 +44,11 @@ class InsightCtaResult extends Model
 
     public function getName(): string
     {
-        return 'InsightCtaResult';
+        return 'InsightCtaExecution';
     }
 
     public function getType(): string
     {
-        return Response::MODEL_INSIGHT_CTA_RESULT;
+        return Response::MODEL_INSIGHT_CTA_EXECUTION;
     }
 }

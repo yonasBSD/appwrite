@@ -440,15 +440,25 @@ return [
         'delete' => [
             '$description' => 'This event triggers when an insight is deleted.',
         ],
-        'dismiss' => [
-            '$description' => 'This event triggers when an insight is dismissed.',
+        'dismissals' => [
+            '$model' => Response::MODEL_INSIGHT,
+            '$resource' => true,
+            '$description' => 'This event triggers on any insight dismissal event.',
+            'create' => [
+                '$description' => 'This event triggers when an insight is dismissed.',
+            ],
         ],
         'ctas' => [
             '$model' => Response::MODEL_INSIGHT_CTA,
             '$resource' => true,
             '$description' => 'This event triggers on any insight CTA event.',
-            'trigger' => [
-                '$description' => 'This event triggers when an insight CTA is executed.',
+            'executions' => [
+                '$model' => Response::MODEL_INSIGHT_CTA_EXECUTION,
+                '$resource' => true,
+                '$description' => 'This event triggers on any insight CTA execution event.',
+                'create' => [
+                    '$description' => 'This event triggers when an insight CTA is executed.',
+                ],
             ],
         ],
     ],

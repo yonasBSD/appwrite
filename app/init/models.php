@@ -92,7 +92,7 @@ use Appwrite\Utopia\Response\Model\Identity;
 use Appwrite\Utopia\Response\Model\Index;
 use Appwrite\Utopia\Response\Model\Insight;
 use Appwrite\Utopia\Response\Model\InsightCta;
-use Appwrite\Utopia\Response\Model\InsightCtaResult;
+use Appwrite\Utopia\Response\Model\InsightCtaExecution;
 use Appwrite\Utopia\Response\Model\Installation;
 use Appwrite\Utopia\Response\Model\JWT;
 use Appwrite\Utopia\Response\Model\Key;
@@ -511,7 +511,7 @@ Response::setModel(new MigrationReport());
 Response::setModel(new MigrationFirebaseProject());
 Response::setModel(new Insight());
 Response::setModel(new InsightCta());
-Response::setModel(new InsightCtaResult());
+Response::setModel(new InsightCtaExecution());
 
 // Tests (keep last)
 Response::setModel(new Mock());
