@@ -5,7 +5,7 @@ namespace Appwrite\Insights\Validator;
 use Utopia\Database\Document;
 use Utopia\Validator;
 
-class InsightDocument extends Validator
+class Insight extends Validator
 {
     protected string $message = 'Value must be a non-empty insight Document with `type` and `ctas` attributes.';
 

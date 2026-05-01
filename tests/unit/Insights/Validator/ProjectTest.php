@@ -2,15 +2,15 @@
 
 namespace Tests\Unit\Insights\Validator;
 
-use Appwrite\Insights\Validator\ProjectDocument;
+use Appwrite\Insights\Validator\Project;
 use PHPUnit\Framework\TestCase;
 use Utopia\Database\Document;
 
-class ProjectDocumentTest extends TestCase
+class ProjectTest extends TestCase
 {
     public function testAcceptsValidProject(): void
     {
-        $validator = new ProjectDocument();
+        $validator = new Project();
         $project = new Document([
             '$id' => 'project-1',
             'name' => 'Test',
@@ -21,7 +21,7 @@ class ProjectDocumentTest extends TestCase
 
     public function testRejectsNonDocument(): void
     {
-        $validator = new ProjectDocument();
+        $validator = new Project();
 
         $this->assertFalse($validator->isValid('not a document'));
         $this->assertFalse($validator->isValid(null));
@@ -30,14 +30,14 @@ class ProjectDocumentTest extends TestCase
 
     public function testRejectsEmptyDocument(): void
     {
-        $validator = new ProjectDocument();
+        $validator = new Project();
 
         $this->assertFalse($validator->isValid(new Document()));
     }
 
     public function testRejectsMissingId(): void
     {
-        $validator = new ProjectDocument();
+        $validator = new Project();
         $project = new Document(['name' => 'Test']);
 
         $this->assertFalse($validator->isValid($project));
@@ -45,7 +45,7 @@ class ProjectDocumentTest extends TestCase
 
     public function testReportsObjectType(): void
     {
-        $validator = new ProjectDocument();
+        $validator = new Project();
 
         $this->assertSame('object', $validator->getType());
         $this->assertFalse($validator->isArray());

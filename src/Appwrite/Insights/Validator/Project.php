@@ -5,7 +5,7 @@ namespace Appwrite\Insights\Validator;
 use Utopia\Database\Document;
 use Utopia\Validator;
 
-class ProjectDocument extends Validator
+class Project extends Validator
 {
     protected string $message = 'Value must be a non-empty project Document with an `$id`.';
 

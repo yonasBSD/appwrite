@@ -2,15 +2,15 @@
 
 namespace Tests\Unit\Insights\Validator;
 
-use Appwrite\Insights\Validator\InsightDocument;
+use Appwrite\Insights\Validator\Insight;
 use PHPUnit\Framework\TestCase;
 use Utopia\Database\Document;
 
-class InsightDocumentTest extends TestCase
+class InsightTest extends TestCase
 {
     public function testAcceptsValidInsight(): void
     {
-        $validator = new InsightDocument();
+        $validator = new Insight();
         $insight = new Document([
             '$id' => 'insight-1',
             'type' => 'databaseIndex',
@@ -22,7 +22,7 @@ class InsightDocumentTest extends TestCase
 
     public function testRejectsNonDocument(): void
     {
-        $validator = new InsightDocument();
+        $validator = new Insight();
 
         $this->assertFalse($validator->isValid('not a document'));
         $this->assertFalse($validator->isValid(null));
@@ -31,14 +31,14 @@ class InsightDocumentTest extends TestCase
 
     public function testRejectsEmptyDocument(): void
     {
-        $validator = new InsightDocument();
+        $validator = new Insight();
 
         $this->assertFalse($validator->isValid(new Document()));
     }
 
     public function testRejectsMissingType(): void
     {
-        $validator = new InsightDocument();
+        $validator = new Insight();
         $insight = new Document([
             '$id' => 'insight-1',
             'ctas' => [],
@@ -49,7 +49,7 @@ class InsightDocumentTest extends TestCase
 
     public function testRejectsNonArrayCtas(): void
     {
-        $validator = new InsightDocument();
+        $validator = new Insight();
         $insight = new Document([
             '$id' => 'insight-1',
             'type' => 'databaseIndex',
@@ -61,7 +61,7 @@ class InsightDocumentTest extends TestCase
 
     public function testReportsObjectType(): void
     {
-        $validator = new InsightDocument();
+        $validator = new Insight();
 
         $this->assertSame('object', $validator->getType());
         $this->assertFalse($validator->isArray());
