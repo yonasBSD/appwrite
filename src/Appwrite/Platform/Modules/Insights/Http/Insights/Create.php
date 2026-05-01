@@ -4,6 +4,7 @@ namespace Appwrite\Platform\Modules\Insights\Http\Insights;
 
 use Appwrite\Event\Event;
 use Appwrite\Extend\Exception;
+use Appwrite\Insights\Validator\Ctas as CtasValidator;
 use Appwrite\SDK\AuthType;
 use Appwrite\SDK\Method;
 use Appwrite\SDK\Response as SDKResponse;
@@ -16,7 +17,6 @@ use Utopia\Database\Helpers\ID;
 use Utopia\Database\Validator\Datetime as DatetimeValidator;
 use Utopia\Platform\Action;
 use Utopia\Platform\Scope\HTTP;
-use Utopia\Validator\ArrayList;
 use Utopia\Validator\JSON;
 use Utopia\Validator\Nullable;
 use Utopia\Validator\Text;
@@ -70,7 +70,7 @@ class Create extends Action
             ->param('title', '', new Text(256), 'Short, human-readable title.')
             ->param('summary', '', new Text(4096, 0), 'Markdown summary describing the insight.', true)
             ->param('payload', null, new Nullable(new JSON()), 'Type-specific structured payload.', true)
-            ->param('ctas', [], new ArrayList(new JSON(), 16), 'Array of call-to-action descriptors. Each must contain `id`, `label`, `action`, and optional `params`.', true)
+            ->param('ctas', [], new CtasValidator(), 'Array of call-to-action descriptors. Each must contain `id`, `label`, `action`, and optional `params`.', true)
             ->param('analyzedAt', null, new Nullable(new DatetimeValidator()), 'Time the insight was analyzed in ISO 8601 format. Defaults to now.', true)
             ->inject('response')
             ->inject('dbForProject')
@@ -98,9 +98,6 @@ class Create extends Action
 
         $normalizedCtas = [];
         foreach ($ctas as $cta) {
-            if (!isset($cta['id'], $cta['label'], $cta['action'])) {
-                throw new Exception(Exception::GENERAL_ARGUMENT_INVALID, 'Each CTA must define `id`, `label`, and `action`.');
-            }
             $normalizedCtas[] = [
                 'id' => (string) $cta['id'],
                 'label' => (string) $cta['label'],
