@@ -2761,6 +2761,7 @@ return [
         'name' => 'Insights',
         'attributes' => [
             [
+                // Possible values: databaseIndex, databasePerformance, sitePerformance, siteAccessibility, siteSeo, functionPerformance
                 '$id' => ID::custom('type'),
                 'type' => Database::VAR_STRING,
                 'size' => 64,
@@ -2771,6 +2772,7 @@ return [
                 'filters' => [],
             ],
             [
+                // Possible values: info, warning, critical
                 '$id' => ID::custom('severity'),
                 'type' => Database::VAR_STRING,
                 'size' => 16,
@@ -2781,6 +2783,7 @@ return [
                 'filters' => [],
             ],
             [
+                // Possible values: databases, collections, sites, functions
                 '$id' => ID::custom('resourceType'),
                 'type' => Database::VAR_STRING,
                 'size' => 64,
@@ -2802,8 +2805,8 @@ return [
             ],
             [
                 '$id' => ID::custom('resourceInternalId'),
-                'type' => Database::VAR_STRING,
-                'size' => Database::LENGTH_KEY,
+                'type' => Database::VAR_ID,
+                'size' => 0,
                 'signed' => true,
                 'required' => false,
                 'default' => '',
@@ -2885,23 +2888,23 @@ return [
             [
                 '$id' => ID::custom('_key_resource'),
                 'type' => Database::INDEX_KEY,
-                'attributes' => ['resourceType', 'resourceId', '$createdAt'],
-                'lengths' => [Database::LENGTH_KEY, Database::LENGTH_KEY, 0],
-                'orders' => [Database::ORDER_ASC, Database::ORDER_ASC, Database::ORDER_DESC],
+                'attributes' => ['resourceType', 'resourceId', '$sequence'],
+                'lengths' => [Database::LENGTH_KEY, Database::LENGTH_KEY],
+                'orders' => [],
             ],
             [
                 '$id' => ID::custom('_key_type'),
                 'type' => Database::INDEX_KEY,
                 'attributes' => ['type'],
                 'lengths' => [],
-                'orders' => [Database::ORDER_ASC],
+                'orders' => [],
             ],
             [
                 '$id' => ID::custom('_key_severity'),
                 'type' => Database::INDEX_KEY,
                 'attributes' => ['severity'],
                 'lengths' => [],
-                'orders' => [Database::ORDER_ASC],
+                'orders' => [],
             ],
             [
                 '$id' => ID::custom('_key_dismissedAt'),
