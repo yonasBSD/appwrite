@@ -774,6 +774,11 @@ class Realtime extends MessagingAdapter
                     $roles = [Role::team($project->getAttribute('teamId'))->toString()];
                 }
                 break;
+            case 'insights':
+                $channels[] = 'insights';
+                $channels[] = 'insights.' . $parts[1];
+                $roles = [Role::team($project->getAttribute('teamId'))->toString()];
+                break;
         }
 
         // Action is the last segment for plain CRUD events (e.g. `documents.X.create`),
