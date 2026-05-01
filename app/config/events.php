@@ -426,5 +426,30 @@ return [
         'update' => [
             '$description' => 'This event triggers when a proxy rule is updated.',
         ]
-    ]
+    ],
+    'insights' => [
+        '$model' => Response::MODEL_INSIGHT,
+        '$resource' => true,
+        '$description' => 'This event triggers on any insight event.',
+        'create' => [
+            '$description' => 'This event triggers when an insight is created.',
+        ],
+        'update' => [
+            '$description' => 'This event triggers when an insight is updated.',
+        ],
+        'delete' => [
+            '$description' => 'This event triggers when an insight is deleted.',
+        ],
+        'dismiss' => [
+            '$description' => 'This event triggers when an insight is dismissed.',
+        ],
+        'ctas' => [
+            '$model' => Response::MODEL_INSIGHT_CTA,
+            '$resource' => true,
+            '$description' => 'This event triggers on any insight CTA event.',
+            'trigger' => [
+                '$description' => 'This event triggers when an insight CTA is executed.',
+            ],
+        ],
+    ],
 ];

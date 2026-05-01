@@ -400,6 +400,13 @@ class Exception extends \Exception
     public const string TOKEN_EXPIRED = 'token_expired';
     public const string TOKEN_RESOURCE_TYPE_INVALID = 'token_resource_type_invalid';
 
+    /** Insights */
+    public const string INSIGHT_NOT_FOUND = 'insight_not_found';
+    public const string INSIGHT_ALREADY_EXISTS = 'insight_already_exists';
+    public const string INSIGHT_CTA_NOT_FOUND = 'insight_cta_not_found';
+    public const string INSIGHT_CTA_ACTION_NOT_REGISTERED = 'insight_cta_action_not_registered';
+    public const string INSIGHT_CTA_VALIDATION_FAILED = 'insight_cta_validation_failed';
+
     protected string $type = '';
     protected array $errors = [];
     protected bool $publish;

@@ -8,6 +8,8 @@ use Appwrite\Event\Publisher\Migration as MigrationPublisher;
 use Appwrite\Event\Publisher\Screenshot as ScreenshotPublisher;
 use Appwrite\Event\Publisher\StatsResources as StatsResourcesPublisher;
 use Appwrite\Event\Publisher\Usage as UsagePublisher;
+use Appwrite\Insights\Cta\Action\DatabasesCreateIndex;
+use Appwrite\Insights\Cta\Registry as InsightCtaRegistry;
 use Appwrite\Utopia\Database\Documents\User;
 use Executor\Executor;
 use Utopia\Abuse\Adapters\TimeLimit\Redis as TimeLimitRedis;
@@ -126,6 +128,12 @@ $container->set('console', function () {
 
 $container->set('authorization', function () {
     return new Authorization();
+}, []);
+
+$container->set('insightCtaRegistry', function () {
+    $registry = new InsightCtaRegistry();
+    $registry->register(new DatabasesCreateIndex());
+    return $registry;
 }, []);
 
 $container->set('dbForPlatform', function (Group $pools, Cache $cache, Authorization $authorization) {

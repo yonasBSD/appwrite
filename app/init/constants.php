@@ -423,6 +423,38 @@ const RESOURCE_TYPE_MESSAGES = 'messages';
 const RESOURCE_TYPE_EXECUTIONS = 'executions';
 const RESOURCE_TYPE_VCS = 'vcs';
 const RESOURCE_TYPE_EMBEDDINGS_TEXT = 'embeddingsText';
+const RESOURCE_TYPE_INSIGHTS = 'insights';
+
+// Insight types
+const INSIGHT_TYPE_DATABASE_INDEX = 'databaseIndex';
+const INSIGHT_TYPE_DATABASE_PERFORMANCE = 'databasePerformance';
+const INSIGHT_TYPE_SITE_PERFORMANCE = 'sitePerformance';
+const INSIGHT_TYPE_SITE_ACCESSIBILITY = 'siteAccessibility';
+const INSIGHT_TYPE_SITE_SEO = 'siteSeo';
+const INSIGHT_TYPE_FUNCTION_PERFORMANCE = 'functionPerformance';
+
+const INSIGHT_TYPES = [
+    INSIGHT_TYPE_DATABASE_INDEX,
+    INSIGHT_TYPE_DATABASE_PERFORMANCE,
+    INSIGHT_TYPE_SITE_PERFORMANCE,
+    INSIGHT_TYPE_SITE_ACCESSIBILITY,
+    INSIGHT_TYPE_SITE_SEO,
+    INSIGHT_TYPE_FUNCTION_PERFORMANCE,
+];
+
+// Insight severities
+const INSIGHT_SEVERITY_INFO = 'info';
+const INSIGHT_SEVERITY_WARNING = 'warning';
+const INSIGHT_SEVERITY_CRITICAL = 'critical';
+
+const INSIGHT_SEVERITIES = [
+    INSIGHT_SEVERITY_INFO,
+    INSIGHT_SEVERITY_WARNING,
+    INSIGHT_SEVERITY_CRITICAL,
+];
+
+// Insight CTA actions
+const INSIGHT_CTA_ACTION_DATABASES_CREATE_INDEX = 'databases.createIndex';
 
 // Resource types for Tokens
 const TOKENS_RESOURCE_TYPE_FILES = 'files';

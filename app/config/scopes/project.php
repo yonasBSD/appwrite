@@ -337,4 +337,14 @@ return [
         'description' => 'Access to create, update, and delete proxy rules.',
         'category' => 'Other',
     ],
+
+    // Insights
+    'insights.read' => [
+        'description' => 'Access to read insights and their CTAs.',
+        'category' => 'Other',
+    ],
+    'insights.write' => [
+        'description' => 'Access to create, update, dismiss, delete insights, and trigger their CTAs.',
+        'category' => 'Other',
+    ],
 ];

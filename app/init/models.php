@@ -90,6 +90,9 @@ use Appwrite\Utopia\Response\Model\HealthTime;
 use Appwrite\Utopia\Response\Model\HealthVersion;
 use Appwrite\Utopia\Response\Model\Identity;
 use Appwrite\Utopia\Response\Model\Index;
+use Appwrite\Utopia\Response\Model\Insight;
+use Appwrite\Utopia\Response\Model\InsightCta;
+use Appwrite\Utopia\Response\Model\InsightCtaResult;
 use Appwrite\Utopia\Response\Model\Installation;
 use Appwrite\Utopia\Response\Model\JWT;
 use Appwrite\Utopia\Response\Model\Key;
@@ -286,6 +289,7 @@ Response::setModel(new BaseList('Specifications List', Response::MODEL_SPECIFICA
 Response::setModel(new BaseList('VCS Content List', Response::MODEL_VCS_CONTENT_LIST, 'contents', Response::MODEL_VCS_CONTENT));
 Response::setModel(new BaseList('VectorsDB Collections List', Response::MODEL_VECTORSDB_COLLECTION_LIST, 'collections', Response::MODEL_VECTORSDB_COLLECTION));
 Response::setModel(new BaseList('Embedding list', Response::MODEL_EMBEDDING_LIST, 'embeddings', Response::MODEL_EMBEDDING));
+Response::setModel(new BaseList('Insights List', Response::MODEL_INSIGHT_LIST, 'insights', Response::MODEL_INSIGHT));
 
 // Entities
 Response::setModel(new Database());
@@ -505,6 +509,9 @@ Response::setModel(new Target());
 Response::setModel(new Migration());
 Response::setModel(new MigrationReport());
 Response::setModel(new MigrationFirebaseProject());
+Response::setModel(new Insight());
+Response::setModel(new InsightCta());
+Response::setModel(new InsightCtaResult());
 
 // Tests (keep last)
 Response::setModel(new Mock());

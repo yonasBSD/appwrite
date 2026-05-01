@@ -308,5 +308,19 @@ return [
         'optional' => true,
         'icon' => '/images/services/messaging.png',
         'platforms' => ['client', 'server', 'console'],
-    ]
+    ],
+    'insights' => [
+        'key' => 'insights',
+        'name' => 'Insights',
+        'subtitle' => 'The Insights service surfaces actionable reports about your project resources, with CTAs for one-click remediation.',
+        'description' => '/docs/services/insights.md',
+        'controller' => '', // Uses modules
+        'sdk' => true,
+        'docs' => true,
+        'docsUrl' => 'https://appwrite.io/docs/server/insights',
+        'tests' => true,
+        'optional' => true,
+        'icon' => '/images/services/insights.png',
+        'platforms' => ['server', 'console'],
+    ],
 ];
