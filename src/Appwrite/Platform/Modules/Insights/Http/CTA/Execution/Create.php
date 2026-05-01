@@ -122,23 +122,11 @@ class Create extends Action
             throw new Exception(Exception::INSIGHT_CTA_NOT_FOUND);
         }
 
-        $paramsValidator = $action->getParams()['params']['validator'] ?? null;
-
-        if ($paramsValidator !== null && !$paramsValidator->isValid($params)) {
-            throw new Exception(Exception::GENERAL_ARGUMENT_INVALID, $paramsValidator->getDescription());
-        }
-
         $status = 'succeeded';
         $resultPayload = new \stdClass();
 
-        $callback = $action->getCallback();
-
-        if (!\is_callable($callback)) {
-            throw new Exception(Exception::INSIGHT_CTA_NOT_FOUND);
-        }
-
         try {
-            $result = $callback(
+            $result = $action->execute(
                 $params,
                 $insight,
                 $project,
@@ -146,9 +134,9 @@ class Create extends Action
                 $getDatabasesDB,
                 $queueForDatabase,
                 $queueForEvents,
-                $authorization
+                $authorization,
             );
-            $resultPayload = $result instanceof Document ? $result->getArrayCopy() : (array) $result;
+            $resultPayload = $result->getArrayCopy();
         } catch (Exception $e) {
             if ($e->getType() === Exception::GENERAL_NOT_IMPLEMENTED) {
                 throw $e;
