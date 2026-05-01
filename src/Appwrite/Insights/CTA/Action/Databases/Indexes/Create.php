@@ -7,6 +7,8 @@ use Appwrite\Event\Event;
 use Appwrite\Extend\Exception;
 use Appwrite\Insights\CTA\Action;
 use Appwrite\Insights\Validator\CTAParams\DatabasesCreateIndex as DatabasesCreateIndexParams;
+use Appwrite\Insights\Validator\InsightDocument as InsightDocumentValidator;
+use Appwrite\Insights\Validator\ProjectDocument as ProjectDocumentValidator;
 use Utopia\Database\Database;
 use Utopia\Database\Document;
 use Utopia\Database\Exception\Duplicate as DuplicateException;
@@ -28,8 +30,8 @@ class Create extends Action
             ->desc('Create a database index from an insight CTA.')
             ->label('scope', 'collections.write')
             ->param('params', [], new DatabasesCreateIndexParams(), 'CTA params describing the index to create.')
-            ->param('insight', null, fn () => true, 'Parent insight document.', skipValidation: true)
-            ->param('project', null, fn () => true, 'Project document.', skipValidation: true)
+            ->param('insight', null, new InsightDocumentValidator(), 'Parent insight document.')
+            ->param('project', null, new ProjectDocumentValidator(), 'Project document.')
             ->inject('dbForProject')
             ->inject('getDatabasesDB')
             ->inject('queueForDatabase')
