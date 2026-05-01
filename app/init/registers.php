@@ -3,6 +3,7 @@
 use Appwrite\Extend\Exception;
 use Appwrite\GraphQL\Promises\Adapter\Swoole;
 use Appwrite\Hooks\Hooks;
+use Appwrite\Insights\CTA\Action\Databases\Indexes\Create as DatabasesIndexesCreate;
 use Appwrite\PubSub\Adapter\Redis as PubSub;
 use Appwrite\URL\URL as AppwriteURL;
 use MaxMind\Db\Reader;
@@ -453,7 +454,7 @@ $register->set('hooks', function () {
 });
 $register->set('insightCTARegistry', function () {
     $registry = new Registry();
-    $registry->set(\Appwrite\Insights\CTA\Action\Databases\Indexes\Create::getName(), fn () => new \Appwrite\Insights\CTA\Action\Databases\Indexes\Create());
+    $registry->set(DatabasesIndexesCreate::getName(), fn () => new DatabasesIndexesCreate());
     return $registry;
 });
 $listeners = require __DIR__ . '/../listeners.php';
