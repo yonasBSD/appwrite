@@ -214,15 +214,16 @@ return [
     'executions.write' => [
         'description' => 'Access to create function executions',
         'category' => 'Functions',
-        'deprecated' => true,
     ],
     'execution.read' => [
         'description' => 'Access to read function executions. This scope is deprecated for consistency purposes, and replaced by `executions.read`.',
         'category' => 'Functions',
+        'deprecated' => true,
     ],
     'execution.write' => [
         'description' => 'Access to create function executions. This scope is deprecated for consistency purposes, and replaced by `executions.write`.',
         'category' => 'Functions',
+        'deprecated' => true,
     ],
 
     // Sites
