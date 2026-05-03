@@ -210,7 +210,6 @@ return [
     'executions.read' => [
         'description' => 'Access to read function executions',
         'category' => 'Functions',
-        'deprecated' => true,
     ],
     'executions.write' => [
         'description' => 'Access to create function executions',
