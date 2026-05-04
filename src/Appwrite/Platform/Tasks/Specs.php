@@ -290,7 +290,7 @@ class Specs extends Action
                 'Cookie' => [
                     'type' => 'apiKey',
                     'name' => 'Cookie',
-                    'description' => 'The user cookie to authenticate with',
+                    'description' => 'The user cookie to authenticate with. Used by SDKs that forward an incoming Cookie header in server-side runtimes.',
                     'in' => 'header',
                 ],
                 'Session' => [
