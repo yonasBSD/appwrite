@@ -188,6 +188,28 @@ trait OAuth2Base
         $this->assertSame('', $response['body']['clientSecret']);
     }
 
+    public function testGetOAuth2ProviderWithAlias(): void
+    {
+        // The action declares the canonical param name as `providerId` and
+        // registers `provider` as an alias so that older SDK versions that
+        // send the provider in the query string continue to work.
+        $headers = [
+            'content-type' => 'application/json',
+            'x-appwrite-project' => $this->getProject()['$id'],
+        ];
+        $headers = \array_merge($headers, $this->getHeaders());
+
+        // Call with `provider` in query string (legacy behaviour)
+        $response = $this->client->call(
+            Client::METHOD_GET,
+            '/project/oauth2/github?provider=github',
+            $headers,
+        );
+
+        $this->assertSame(200, $response['headers']['status-code']);
+        $this->assertSame('github', $response['body']['$id']);
+    }
+
     public function testGetOAuth2ProviderClientSecretWriteOnly(): void
     {
         $this->updateOAuth2('amazon', [
@@ -2573,7 +2595,7 @@ trait OAuth2Base
         );
     }
 
-    protected function getOAuth2Provider(string $provider, bool $authenticated = true): mixed
+    protected function getOAuth2Provider(string $providerId, bool $authenticated = true): mixed
     {
         $headers = [
             'content-type' => 'application/json',
@@ -2586,7 +2608,7 @@ trait OAuth2Base
 
         return $this->client->call(
             Client::METHOD_GET,
-            '/project/oauth2/' . $provider,
+            '/project/oauth2/' . $providerId,
             $headers,
         );
     }
