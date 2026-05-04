@@ -80,13 +80,15 @@ class Request extends UtopiaRequest
                 $parameters = $filter->parse($parameters, $id);
             }
         } catch (\Throwable $e) {
-            // 4xx filter throws are user-input errors that the action layer
-            // revalidates and reports. Cache the raw, pre-filter parameters
-            // so a subsequent getParams() — e.g. when the framework builds
-            // arguments for an error hook — returns without re-running
-            // filters. Otherwise the second throw gets wrapped as
-            // "Error handler had an error: ..." (HTTP 500), masking the
-            // intended 400.
+            /*
+            * 4xx filter throws are user-input errors that the action layer
+            * revalidates and reports. Cache the raw, pre-filter parameters
+            * so a subsequent getParams() — e.g. when the framework builds
+            * arguments for an error hook — returns without re-running
+            * filters. Otherwise the second throw gets wrapped as
+            * "Error handler had an error: ..." (HTTP 500), masking the
+            * intended 400.
+            */
             $code = $e->getCode();
             if (\is_int($code) && $code >= 400 && $code < 500) {
                 $this->filteredParams = $parameters;

@@ -196,15 +196,17 @@ class RequestTest extends TestCase
 
     public function testGetParamsCachesRawParamsWhenFilterThrows4xx(): void
     {
-        // Regression: when a request filter throws a 4xx exception during
-        // Request::getParams() (e.g. RequestV20 rejecting an unparseable
-        // queries[]), the framework's error path calls getParams() again to
-        // build error-hook arguments. Without caching, that second call
-        // re-runs the filter and re-throws, which the framework wraps as
-        // "Error handler had an error: ..." (HTTP 500), masking the intended
-        // 400. This test pins that behavior: the first call throws (so the
-        // action's argument resolution aborts), but the second call returns
-        // the raw, pre-filter params without re-invoking filters.
+        /*
+        * Regression: when a request filter throws a 4xx exception during
+        * Request::getParams() (e.g. RequestV20 rejecting an unparseable
+        * queries[]), the framework's error path calls getParams() again to
+        * build error-hook arguments. Without caching, that second call
+        * re-runs the filter and re-throws, which the framework wraps as
+        * "Error handler had an error: ..." (HTTP 500), masking the intended
+        * 400. This test pins that behavior: the first call throws (so the
+        * action's argument resolution aborts), but the second call returns
+        * the raw, pre-filter params without re-invoking filters.
+        */
         $filter = new ThrowingFilter(400, 'invalid input');
 
         $this->setupSingleMethodRoute($filter);
