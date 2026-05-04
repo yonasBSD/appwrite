@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "bd45829c252971301370d62300be106d",
+    "content-hash": "fab1d5b01931f0e2545c36c50b3963b7",
     "packages": [
         {
             "name": "adhocore/jwt",
@@ -4424,6 +4424,79 @@
             "time": "2025-08-12T12:58:26+00:00"
         },
         {
+            "name": "utopia-php/lock",
+            "version": "dev-main",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/utopia-php/lock.git",
+                "reference": "22eda789528da4cc71e767c9ad9e9fd4fa2c9467"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/utopia-php/lock/zipball/22eda789528da4cc71e767c9ad9e9fd4fa2c9467",
+                "reference": "22eda789528da4cc71e767c9ad9e9fd4fa2c9467",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=8.3"
+            },
+            "require-dev": {
+                "laravel/pint": "1.*",
+                "phpstan/phpstan": "2.*",
+                "phpunit/phpunit": "11.*",
+                "swoole/ide-helper": "*"
+            },
+            "suggest": {
+                "ext-pcntl": "Required to run the File lock tests",
+                "ext-redis": "Required for the Distributed lock",
+                "ext-swoole": "Required for the Mutex and Semaphore locks (>=6.0)"
+            },
+            "default-branch": true,
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Utopia\\Lock\\": "src/"
+                }
+            },
+            "autoload-dev": {
+                "psr-4": {
+                    "Utopia\\Lock\\Tests\\": "tests/"
+                }
+            },
+            "scripts": {
+                "test": [
+                    "vendor/bin/phpunit"
+                ],
+                "lint": [
+                    "vendor/bin/pint --test"
+                ],
+                "format": [
+                    "vendor/bin/pint"
+                ],
+                "format:check": [
+                    "vendor/bin/pint --test"
+                ],
+                "analyze": [
+                    "vendor/bin/phpstan analyse --memory-limit=512M"
+                ]
+            },
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Appwrite Team",
+                    "email": "team@appwrite.io"
+                }
+            ],
+            "description": "A simple lock library to coordinate access to shared resources across coroutines, processes and hosts",
+            "support": {
+                "source": "https://github.com/utopia-php/lock/tree/main",
+                "issues": "https://github.com/utopia-php/lock/issues"
+            },
+            "time": "2026-04-28T10:07:10+00:00"
+        },
+        {
             "name": "utopia-php/logger",
             "version": "0.6.2",
             "source": {
@@ -8444,7 +8517,9 @@
     ],
     "aliases": [],
     "minimum-stability": "dev",
-    "stability-flags": {},
+    "stability-flags": {
+        "utopia-php/lock": 20
+    },
     "prefer-stable": true,
     "prefer-lowest": false,
     "platform": {

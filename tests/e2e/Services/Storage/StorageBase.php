@@ -1374,6 +1374,157 @@ trait StorageBase
         ]);
     }
 
+    public function testCreateBucketFileParallelChunksLargeFile(): void
+    {
+        $totalSize = (int) ($_ENV['APPWRITE_TEST_PARALLEL_UPLOAD_SIZE'] ?? 20 * 1024 * 1024);
+        $chunkSize = 5 * 1024 * 1024;
+        $chunksTotal = (int) ceil($totalSize / $chunkSize);
+
+        $this->assertGreaterThanOrEqual(4, $chunksTotal, 'Test file must span at least 4 chunks');
+
+        $bucket = $this->client->call(Client::METHOD_POST, '/storage/buckets', [
+            'content-type' => 'application/json',
+            'x-appwrite-project' => $this->getProject()['$id'],
+            'x-appwrite-key' => $this->getProject()['apiKey'],
+        ], [
+            'bucketId' => ID::unique(),
+            'name' => 'Test Bucket Parallel Chunk Upload',
+            'fileSecurity' => true,
+            'maximumFileSize' => $totalSize,
+            'permissions' => [
+                Permission::read(Role::any()),
+                Permission::create(Role::any()),
+                Permission::delete(Role::any()),
+            ],
+        ]);
+
+        $this->assertEquals(201, $bucket['headers']['status-code']);
+
+        $bucketId = $bucket['body']['$id'];
+        $fileId = ID::unique();
+        $tmpDirectory = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'appwrite-parallel-upload-' . $fileId;
+        $source = $tmpDirectory . DIRECTORY_SEPARATOR . 'large-parallel-upload.bin';
+
+        mkdir($tmpDirectory);
+
+        try {
+            $handle = fopen($source, 'wb');
+            $this->assertNotFalse($handle, 'Could not create test file');
+
+            $remaining = $totalSize;
+            $block = str_repeat(hash('sha256', $fileId, binary: true), 1024);
+            while ($remaining > 0) {
+                $bytes = substr($block, 0, min(strlen($block), $remaining));
+                fwrite($handle, $bytes);
+                $remaining -= strlen($bytes);
+            }
+            fclose($handle);
+
+            $multi = curl_multi_init();
+            $handles = [];
+
+            $sourceHandle = fopen($source, 'rb');
+            $this->assertNotFalse($sourceHandle, 'Could not open test file');
+
+            for ($i = 0; $i < $chunksTotal; $i++) {
+                $start = $i * $chunkSize;
+                $end = min($start + $chunkSize, $totalSize) - 1;
+                $length = $end - $start + 1;
+                $chunkPath = $tmpDirectory . DIRECTORY_SEPARATOR . 'chunk-' . $i . '.part';
+
+                fseek($sourceHandle, $start);
+                file_put_contents($chunkPath, fread($sourceHandle, $length));
+
+                $headers = array_merge([
+                    'content-type' => 'multipart/form-data',
+                    'x-appwrite-project' => $this->getProject()['$id'],
+                    'x-appwrite-key' => $this->getProject()['apiKey'],
+                    'content-range' => 'bytes ' . $start . '-' . $end . '/' . $totalSize,
+                ]);
+
+                $formattedHeaders = [];
+                foreach ($headers as $key => $value) {
+                    $formattedHeaders[] = $key . ': ' . $value;
+                }
+
+                $ch = curl_init($this->client->getEndpoint() . '/storage/buckets/' . $bucketId . '/files');
+                curl_setopt($ch, CURLOPT_CUSTOMREQUEST, Client::METHOD_POST);
+                curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+                curl_setopt($ch, CURLOPT_HTTPHEADER, $formattedHeaders);
+                curl_setopt($ch, CURLOPT_POSTFIELDS, [
+                    'fileId' => $fileId,
+                    'file' => new CURLFile($chunkPath, 'application/octet-stream', 'large-parallel-upload.bin'),
+                    'permissions[0]' => Permission::read(Role::any()),
+                    'permissions[1]' => Permission::delete(Role::any()),
+                ]);
+                curl_setopt($ch, CURLOPT_TIMEOUT, 300);
+                $handles[] = $ch;
+                curl_multi_add_handle($multi, $ch);
+            }
+            fclose($sourceHandle);
+
+            do {
+                $status = curl_multi_exec($multi, $running);
+                if ($running > 0) {
+                    curl_multi_select($multi, 1.0);
+                }
+            } while ($running > 0 && $status === CURLM_OK);
+
+            foreach ($handles as $ch) {
+                $body = curl_multi_getcontent($ch);
+                $statusCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                $error = curl_error($ch);
+                curl_multi_remove_handle($multi, $ch);
+
+                $this->assertSame('', $error);
+                $this->assertContains($statusCode, [200, 201], $body);
+            }
+            curl_multi_close($multi);
+
+            $uploadedFile = $this->client->call(Client::METHOD_GET, '/storage/buckets/' . $bucketId . '/files/' . $fileId, array_merge([
+                'content-type' => 'application/json',
+                'x-appwrite-project' => $this->getProject()['$id'],
+                'x-appwrite-key' => $this->getProject()['apiKey'],
+            ]));
+
+            $this->assertEquals(200, $uploadedFile['headers']['status-code']);
+            $this->assertEquals($chunksTotal, $uploadedFile['body']['chunksTotal']);
+            $this->assertEquals($chunksTotal, $uploadedFile['body']['chunksUploaded']);
+
+            $download = $this->client->call(Client::METHOD_GET, '/storage/buckets/' . $bucketId . '/files/' . $fileId . '/download', array_merge([
+                'content-type' => 'application/json',
+                'x-appwrite-project' => $this->getProject()['$id'],
+                'x-appwrite-key' => $this->getProject()['apiKey'],
+            ]));
+
+            $this->assertEquals(200, $download['headers']['status-code']);
+            $this->assertEquals($totalSize, strlen($download['body']));
+            $this->assertEquals(hash_file('sha256', $source), hash('sha256', $download['body']));
+        } finally {
+            if (isset($bucketId)) {
+                $this->client->call(Client::METHOD_DELETE, '/storage/buckets/' . $bucketId . '/files/' . $fileId, array_merge([
+                    'content-type' => 'application/json',
+                    'x-appwrite-project' => $this->getProject()['$id'],
+                    'x-appwrite-key' => $this->getProject()['apiKey'],
+                ]));
+
+                $this->client->call(Client::METHOD_DELETE, '/storage/buckets/' . $bucketId, [
+                    'content-type' => 'application/json',
+                    'x-appwrite-project' => $this->getProject()['$id'],
+                    'x-appwrite-key' => $this->getProject()['apiKey'],
+                ]);
+            }
+
+            foreach (glob($tmpDirectory . DIRECTORY_SEPARATOR . '*') ?: [] as $file) {
+                unlink($file);
+            }
+
+            if (is_dir($tmpDirectory)) {
+                rmdir($tmpDirectory);
+            }
+        }
+    }
+
     public function testDeleteBucketFile(): void
     {
         // Create a fresh file just for deletion testing (not using cache since we delete it)
