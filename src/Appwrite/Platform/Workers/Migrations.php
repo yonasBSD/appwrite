@@ -196,13 +196,13 @@ class Migrations extends Action
         $projectDB = null;
         $useAppwriteApiSource = false;
         if ($source === SourceAppwrite::getName() && empty($credentials['projectId'])) {
-            throw new \Exception('Source projectId is required for Appwrite migrations');
+            throw new MigrationException('', '', message: 'Source projectId is required for Appwrite migrations', code: MigrationException::CODE_VALIDATION);
         }
 
         if (! empty($credentials['projectId'])) {
             $this->sourceProject = $this->dbForPlatform->getDocument('projects', $credentials['projectId']);
             if ($this->sourceProject->isEmpty()) {
-                throw new \Exception('Source project not found for provided projectId');
+                throw new MigrationException('', '', message: 'Source project not found for provided projectId', code: MigrationException::CODE_NOT_FOUND);
             }
 
             $sourceRegion = $this->sourceProject->getAttribute('region', 'default');
@@ -265,7 +265,7 @@ class Migrations extends Action
                 $this->deviceForMigrations,
                 $this->dbForProject,
             ),
-            default => throw new \Exception('Invalid source type'),
+            default => throw new MigrationException('', '', message: 'Invalid source type', code: MigrationException::CODE_VALIDATION),
         };
 
         $resources = $migration->getAttribute('resources', []);
@@ -310,7 +310,7 @@ class Migrations extends Action
                 $options['filename'],
                 $options['columns'] ?? [],
             ),
-            default => throw new \Exception('Invalid destination type'),
+            default => throw new MigrationException('', '', message: 'Invalid destination type', code: MigrationException::CODE_VALIDATION),
         };
     }
 
@@ -521,7 +521,6 @@ class Migrations extends Action
             if (!empty($sourceErrors) || ! empty($destinationErrors)) {
                 $migration->setAttribute('status', 'failed');
                 $migration->setAttribute('stage', 'finished');
-                $migration->setAttribute('errors', $this->sanitizeErrors($sourceErrors, $destinationErrors));
                 return;
             }
 
@@ -536,34 +535,28 @@ class Migrations extends Action
             $migration->setAttribute('status', 'failed');
             $migration->setAttribute('stage', 'finished');
 
-            call_user_func($this->logError, $th, 'appwrite-worker', 'appwrite-queue-' . self::getName(), [
-                'migrationId' => $migration->getId(),
-                'source' => $migration->getAttribute('source') ?? '',
-                'destination' => $migration->getAttribute('destination') ?? '',
-            ]);
-
+            // User-facing failures (validation, not found, conflict) are routed through
+            // MigrationException and stay in the migration report only. Anything else is
+            // a bug or infra failure and goes to Sentry with the full trace.
+            if (!$th instanceof MigrationException) {
+                call_user_func($this->logError, $th, 'appwrite-worker', 'appwrite-queue-' . self::getName(), [
+                    'migrationId' => $migration->getId(),
+                    'source' => $migration->getAttribute('source') ?? '',
+                    'destination' => $migration->getAttribute('destination') ?? '',
+                ]);
+            }
         } finally {
             try {
+                // Persist the consolidated error list regardless of which code path fired.
+                $migration->setAttribute('errors', $this->sanitizeErrors(
+                    $source?->getErrors() ?? [],
+                    $destination?->getErrors() ?? [],
+                ));
+
                 $this->updateMigrationDocument($migration, $project, $queueForRealtime);
 
                 if ($migration->getAttribute('status', '') === 'failed') {
                     Console::error('Migration(' . $migration->getSequence() . ':' . $migration->getId() . ') failed, Project(' . $this->project->getSequence() . ':' . $this->project->getId() . ')');
-
-                    $sourceErrors = $source?->getErrors() ?? [];
-                    $destinationErrors = $destination?->getErrors() ?? [];
-
-                    foreach ([...$sourceErrors, ...$destinationErrors] as $error) {
-                        /** @var MigrationException $error */
-                        if ($error->getCode() === 0 || $error->getCode() >= 500) {
-                            ($this->logError)($error, 'appwrite-worker', 'appwrite-queue-' . self::getName(), [
-                                'migrationId' => $migration->getId(),
-                                'source' => $migration->getAttribute('source') ?? '',
-                                'destination' => $migration->getAttribute('destination') ?? '',
-                                'resourceName' => $error->getResourceName(),
-                                'resourceGroup' => $error->getResourceGroup(),
-                            ]);
-                        }
-                    }
 
                     $source?->error();
                     $destination?->error();
