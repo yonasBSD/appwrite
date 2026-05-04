@@ -35,7 +35,7 @@ class Get extends Action
             ->label('scope', 'rules.read')
             ->label('sdk', new Method(
                 namespace: 'proxy',
-                group: null,
+                group: 'rules',
                 name: 'getRule',
                 description: <<<EOT
                 Get a proxy rule by its unique ID.
@@ -63,13 +63,13 @@ class Get extends Action
         Database $dbForPlatform,
         Authorization $authorization,
     ) {
-        $rule = $authorization->skip(fn() => $dbForPlatform->getDocument('rules', $ruleId));
+        $rule = $authorization->skip(fn () => $dbForPlatform->getDocument('rules', $ruleId));
 
         if ($rule->isEmpty() || $rule->getAttribute('projectInternalId') !== $project->getSequence()) {
             throw new Exception(Exception::RULE_NOT_FOUND);
         }
 
-        $certificate = $authorization->skip(fn() => $dbForPlatform->getDocument('certificates', $rule->getAttribute('certificateId', '')));
+        $certificate = $authorization->skip(fn () => $dbForPlatform->getDocument('certificates', $rule->getAttribute('certificateId', '')));
 
         // Give priority to certificate generation logs if present
         if (!empty($certificate->getAttribute('logs', ''))) {
@@ -77,6 +77,13 @@ class Get extends Action
         }
 
         $rule->setAttribute('renewAt', $certificate->getAttribute('renewDate', ''));
+
+        // Rename 'created' status to 'unverified' for consistency.
+        // 'verifying' and 'verified' statuses stay as is.
+        // 'unverified' in the meaning of failed certificate generation stays as is.
+        if ($rule->getAttribute('status') === 'created') {
+            $rule->setAttribute('status', 'unverified');
+        }
 
         $response->dynamic($rule, Response::MODEL_PROXY_RULE);
     }

@@ -1,6 +1,6 @@
 <?php
 
-namespace Appwrite\Platform\Modules\Proxy\Http\Rules\Verification;
+namespace Appwrite\Platform\Modules\Proxy\Http\Rules\Status;
 
 use Appwrite\Event\Event;
 use Appwrite\Event\Publisher\Certificate;
@@ -33,8 +33,9 @@ class Update extends Action
 
         $this
             ->setHttpMethod(Action::HTTP_REQUEST_METHOD_PATCH)
-            ->setHttpPath('/v1/proxy/rules/:ruleId/verification')
-            ->desc('Update rule verification status')
+            ->setHttpPath('/v1/proxy/rules/:ruleId/status')
+            ->httpAlias('/v1/proxy/rules/:ruleId/verification')
+            ->desc('Update rule status')
             ->groups(['api', 'proxy'])
             ->label('scope', 'rules.write')
             ->label('event', 'rules.[ruleId].update')
@@ -42,8 +43,8 @@ class Update extends Action
             ->label('audits.resource', 'rule/{response.$id}')
             ->label('sdk', new Method(
                 namespace: 'proxy',
-                group: null,
-                name: 'updateRuleVerification',
+                group: 'rules',
+                name: 'updateRuleStatus',
                 description: <<<EOT
                 If not succeeded yet, retry verification process of a proxy rule domain. This endpoint triggers domain verification by checking DNS records. If verification is successful, a TLS certificate will be automatically provisioned for the domain asynchronously in the background.
                 EOT,
@@ -76,7 +77,7 @@ class Update extends Action
         Log $log,
         Authorization $authorization,
     ) {
-        $rule = $authorization->skip(fn() => $dbForPlatform->getDocument('rules', $ruleId));
+        $rule = $authorization->skip(fn () => $dbForPlatform->getDocument('rules', $ruleId));
 
         if ($rule->isEmpty() || $rule->getAttribute('projectInternalId') !== $project->getSequence()) {
             throw new Exception(Exception::RULE_NOT_FOUND);
@@ -93,7 +94,7 @@ class Update extends Action
         try {
             $this->verifyRule($rule, $log);
             // Reset logs and status for the rule
-            $rule = $authorization->skip(fn() => $dbForPlatform->updateDocument('rules', $rule->getId(), new Document([
+            $rule = $authorization->skip(fn () => $dbForPlatform->updateDocument('rules', $rule->getId(), new Document([
                 'logs' => '',
                 'status' => RULE_STATUS_CERTIFICATE_GENERATING,
             ])));
@@ -101,12 +102,12 @@ class Update extends Action
             $certificateId = $rule->getAttribute('certificateId', '');
             // Reset logs for the associated certificate.
             if (!empty($certificateId)) {
-                $certificate = $authorization->skip(fn() => $dbForPlatform->updateDocument('certificates', $certificateId, new Document([
+                $certificate = $authorization->skip(fn () => $dbForPlatform->updateDocument('certificates', $certificateId, new Document([
                     'logs' => '',
                 ])));
             }
         } catch (Exception $err) {
-            $authorization->skip(fn() => $dbForPlatform->updateDocument('rules', $rule->getId(), new Document([
+            $authorization->skip(fn () => $dbForPlatform->updateDocument('rules', $rule->getId(), new Document([
                 '$updatedAt' => DateTime::now(),
             ])));
             throw $err;

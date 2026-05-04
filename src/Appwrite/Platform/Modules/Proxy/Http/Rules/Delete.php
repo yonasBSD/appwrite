@@ -39,7 +39,7 @@ class Delete extends Action
             ->label('audits.resource', 'rule/{request.ruleId}')
             ->label('sdk', new Method(
                 namespace: 'proxy',
-                group: null,
+                group: 'rules',
                 name: 'deleteRule',
                 description: <<<EOT
                 Delete a proxy rule by its unique ID.
@@ -59,7 +59,7 @@ class Delete extends Action
             ->inject('dbForPlatform')
             ->inject('queueForDeletes')
             ->inject('queueForEvents')
-            ->inject('authorization')            
+            ->inject('authorization')
             ->callback($this->action(...));
     }
 
@@ -72,13 +72,13 @@ class Delete extends Action
         Event $queueForEvents,
         Authorization $authorization,
     ) {
-        $rule = $authorization->skip(fn() => $dbForPlatform->getDocument('rules', $ruleId));
+        $rule = $authorization->skip(fn () => $dbForPlatform->getDocument('rules', $ruleId));
 
         if ($rule->isEmpty() || $rule->getAttribute('projectInternalId') !== $project->getSequence()) {
             throw new Exception(Exception::RULE_NOT_FOUND);
         }
 
-        $authorization->skip(fn() => $dbForPlatform->deleteDocument('rules', $rule->getId()));
+        $authorization->skip(fn () => $dbForPlatform->deleteDocument('rules', $rule->getId()));
 
         $queueForDeletes
             ->setType(DELETE_TYPE_DOCUMENT)

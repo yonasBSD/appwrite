@@ -40,7 +40,7 @@ class XList extends Action
             ->label('scope', 'rules.read')
             ->label('sdk', new Method(
                 namespace: 'proxy',
-                group: null,
+                group: 'rules',
                 name: 'listRules',
                 description: <<<EOT
                 Get a list of all the proxy rules. You can use the query params to filter your results.
@@ -59,7 +59,7 @@ class XList extends Action
             ->inject('response')
             ->inject('project')
             ->inject('dbForPlatform')
-            ->inject('authorization')            
+            ->inject('authorization')
             ->callback($this->action(...));
     }
 
@@ -94,7 +94,7 @@ class XList extends Action
             }
 
             $ruleId = $cursor->getValue();
-            $cursorDocument = $authorization->skip(fn() => $dbForPlatform->getDocument('rules', $ruleId));
+            $cursorDocument = $authorization->skip(fn () => $dbForPlatform->getDocument('rules', $ruleId));
 
             if ($cursorDocument->isEmpty()) {
                 throw new Exception(Exception::GENERAL_CURSOR_NOT_FOUND, "Rule '{$ruleId}' for the 'cursor' value not found.");
@@ -105,9 +105,9 @@ class XList extends Action
 
         $filterQueries = Query::groupByType($queries)['filters'];
 
-        $rules = $authorization->skip(fn() => $dbForPlatform->find('rules', $queries));
+        $rules = $authorization->skip(fn () => $dbForPlatform->find('rules', $queries));
         foreach ($rules as $rule) {
-            $certificate = $authorization->skip(fn() => $dbForPlatform->getDocument('certificates', $rule->getAttribute('certificateId', '')));
+            $certificate = $authorization->skip(fn () => $dbForPlatform->getDocument('certificates', $rule->getAttribute('certificateId', '')));
 
             // Give priority to certificate generation logs if present
             if (!empty($certificate->getAttribute('logs', ''))) {
@@ -115,11 +115,18 @@ class XList extends Action
             }
 
             $rule->setAttribute('renewAt', $certificate->getAttribute('renewDate', ''));
+
+            // Rename 'created' status to 'unverified' for consistency.
+            // 'verifying' and 'verified' statuses stay as is.
+            // 'unverified' in the meaning of failed certificate generation stays as is.
+            if ($rule->getAttribute('status') === 'created') {
+                $rule->setAttribute('status', 'unverified');
+            }
         }
 
         $response->dynamic(new Document([
             'rules' => $rules,
-            'total' => $total ? $authorization->skip(fn() => $dbForPlatform->count('rules', $filterQueries, APP_LIMIT_COUNT)) : 0,
+            'total' => $total ? $authorization->skip(fn () => $dbForPlatform->count('rules', $filterQueries, APP_LIMIT_COUNT)) : 0,
         ]), Response::MODEL_PROXY_RULE_LIST);
     }
 }

@@ -9,7 +9,6 @@ use Appwrite\Platform\Modules\Proxy\Action;
 use Appwrite\SDK\AuthType;
 use Appwrite\SDK\Method;
 use Appwrite\SDK\Response as SDKResponse;
-use Appwrite\Utopia\Database\Validator\CustomId;
 use Appwrite\Utopia\Response;
 use Utopia\Database\Database;
 use Utopia\Database\Document;
@@ -45,7 +44,7 @@ class Create extends Action
             ->label('audits.resource', 'rule/{response.$id}')
             ->label('sdk', new Method(
                 namespace: 'proxy',
-                group: null,
+                group: 'rules',
                 name: 'createAPIRule',
                 description: <<<EOT
                 Create a new proxy rule for serving Appwrite's API on custom domain.
@@ -122,7 +121,7 @@ class Create extends Action
         }
 
         try {
-            $rule = $authorization->skip(fn() => $dbForPlatform->createDocument('rules', $rule));
+            $rule = $authorization->skip(fn () => $dbForPlatform->createDocument('rules', $rule));
         } catch (Duplicate $e) {
             throw new Exception(Exception::RULE_ALREADY_EXISTS);
         }
@@ -139,6 +138,13 @@ class Create extends Action
         }
 
         $queueForEvents->setParam('ruleId', $rule->getId());
+
+        // Rename 'created' status to 'unverified' for consistency.
+        // 'verifying' and 'verified' statuses stay as is.
+        // 'unverified' in the meaning of failed certificate generation stays as is.
+        if ($rule->getAttribute('status') === 'created') {
+            $rule->setAttribute('status', 'unverified');
+        }
 
         $response
             ->setStatusCode(Response::STATUS_CODE_CREATED)

@@ -425,7 +425,7 @@ trait ProxyBase
 
         $ruleId = $rule['body']['$id'];
 
-        $rule = $this->updateRuleVerification($ruleId);
+        $rule = $this->updateRuleStatus($ruleId);
         $this->assertEquals(400, $rule['headers']['status-code']);
 
         $this->cleanupRule($ruleId);
@@ -599,7 +599,7 @@ trait ProxyBase
         $this->assertNotEmpty($rule['body']['$id']);
         $ruleId = $rule['body']['$id'];
 
-        $rule = $this->updateRuleVerification($ruleId);
+        $rule = $this->updateRuleStatus($ruleId);
         $this->assertEquals(200, $rule['headers']['status-code']);
         $this->assertEquals($ruleId, $rule['body']['$id']);
         $this->assertEquals('verifying', $rule['body']['status']);
@@ -633,7 +633,7 @@ trait ProxyBase
         $this->assertStringContainsString('is missing CNAME record', $rule['body']['logs']);
 
         $ruleId = $rule['body']['$id'];
-        $rule = $this->updateRuleVerification($ruleId);
+        $rule = $this->updateRuleStatus($ruleId);
         $this->assertEquals(400, $rule['headers']['status-code']);
         $this->assertStringContainsString('is missing CNAME record', $rule['body']['message']);
 
@@ -666,7 +666,7 @@ trait ProxyBase
         $this->assertStringContainsString('is missing CNAME record', $rule['body']['logs']);
 
         $ruleId = $rule['body']['$id'];
-        $rule = $this->updateRuleVerification($ruleId);
+        $rule = $this->updateRuleStatus($ruleId);
         $this->assertEquals(400, $rule['headers']['status-code']);
         $this->assertStringContainsString('is missing CNAME record', $rule['body']['message']);
 
@@ -683,7 +683,7 @@ trait ProxyBase
         $this->assertStringContainsString('has incorrect CNAME value', $rule['body']['logs']);
 
         $ruleId = $rule['body']['$id'];
-        $rule = $this->updateRuleVerification($ruleId);
+        $rule = $this->updateRuleStatus($ruleId);
         $this->assertEquals(400, $rule['headers']['status-code']);
         $this->assertStringContainsString('has incorrect CNAME value', $rule['body']['message']);
 
@@ -700,7 +700,7 @@ trait ProxyBase
         $this->assertStringContainsString('has incorrect CAA value', $rule['body']['logs']);
 
         $ruleId = $rule['body']['$id'];
-        $rule = $this->updateRuleVerification($ruleId);
+        $rule = $this->updateRuleStatus($ruleId);
         $this->assertEquals(400, $rule['headers']['status-code']);
         $this->assertStringContainsString('has incorrect CAA value', $rule['body']['message']);
 
@@ -734,7 +734,7 @@ trait ProxyBase
 
         sleep(1);
 
-        $updatedRule = $this->updateRuleVerification($ruleId);
+        $updatedRule = $this->updateRuleStatus($ruleId);
 
         $this->assertEquals(400, $updatedRule['headers']['status-code']);
         $this->assertStringContainsString($initiallogs, $updatedRule['body']['message']);

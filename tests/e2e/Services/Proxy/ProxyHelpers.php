@@ -34,9 +34,9 @@ trait ProxyHelpers
         return $rule;
     }
 
-    protected function updateRuleVerification(string $ruleId): mixed
+    protected function updateRuleStatus(string $ruleId): mixed
     {
-        $rule = $this->client->call(Client::METHOD_PATCH, '/proxy/rules/' . $ruleId . '/verification', array_merge([
+        $rule = $this->client->call(Client::METHOD_PATCH, '/proxy/rules/' . $ruleId . '/status', array_merge([
             'content-type' => 'application/json',
             'x-appwrite-project' => $this->getProject()['$id'],
         ], $this->getHeaders()), []);
