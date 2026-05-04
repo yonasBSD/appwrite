@@ -10,6 +10,7 @@ use Appwrite\SDK\Response as SDKResponse;
 use Appwrite\Utopia\Response;
 use Utopia\Database\Database;
 use Utopia\Database\Document;
+use Utopia\Database\Validator\Authorization;
 use Utopia\Database\Validator\UID;
 use Utopia\Platform\Scope\HTTP;
 
@@ -39,7 +40,7 @@ class Get extends Action
                 description: <<<EOT
                 Get a proxy rule by its unique ID.
                 EOT,
-                auth: [AuthType::ADMIN],
+                auth: [AuthType::ADMIN, AuthType::KEY],
                 responses: [
                     new SDKResponse(
                         code: Response::STATUS_CODE_OK,
@@ -51,6 +52,7 @@ class Get extends Action
             ->inject('response')
             ->inject('project')
             ->inject('dbForPlatform')
+            ->inject('authorization')
             ->callback($this->action(...));
     }
 
@@ -58,15 +60,16 @@ class Get extends Action
         string $ruleId,
         Response $response,
         Document $project,
-        Database $dbForPlatform
+        Database $dbForPlatform,
+        Authorization $authorization,
     ) {
-        $rule = $dbForPlatform->getDocument('rules', $ruleId);
+        $rule = $authorization->skip(fn() => $dbForPlatform->getDocument('rules', $ruleId));
 
         if ($rule->isEmpty() || $rule->getAttribute('projectInternalId') !== $project->getSequence()) {
             throw new Exception(Exception::RULE_NOT_FOUND);
         }
 
-        $certificate = $dbForPlatform->getDocument('certificates', $rule->getAttribute('certificateId', ''));
+        $certificate = $authorization->skip(fn() => $dbForPlatform->getDocument('certificates', $rule->getAttribute('certificateId', '')));
 
         // Give priority to certificate generation logs if present
         if (!empty($certificate->getAttribute('logs', ''))) {
