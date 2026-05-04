@@ -86,7 +86,7 @@ class Get extends Action
                     )
                 ]
             ))
-            ->param('providerId', '', new WhiteList(Config::getParam('oAuthProviders', [])), 'OAuth2 provider key. For example: github, google, apple.', aliases: ['provider'])
+            ->param('providerId', '', new WhiteList(\array_keys(Config::getParam('oAuthProviders', [])), true), 'OAuth2 provider key. For example: github, google, apple.', aliases: ['provider'])
             ->inject('response')
             ->inject('project')
             ->callback($this->action(...));

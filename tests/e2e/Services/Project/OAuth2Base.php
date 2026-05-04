@@ -243,19 +243,23 @@ trait OAuth2Base
 
     public function testGetOAuth2ProviderUnsupported(): void
     {
+        // The `providerId` param is validated by a WhiteList of registered
+        // OAuth2 provider keys, so an unknown value is rejected at validation
+        // time — before the action runs — and surfaces as a generic argument
+        // error rather than `project_provider_unsupported`.
         $response = $this->getOAuth2Provider('not-a-real-provider');
 
         $this->assertSame(400, $response['headers']['status-code']);
-        $this->assertSame('project_provider_unsupported', $response['body']['type']);
+        $this->assertSame('general_argument_invalid', $response['body']['type']);
     }
 
     public function testGetOAuth2ProviderRegisteredInConfigButNoUpdateClass(): void
     {
-        // `mock` is present in oAuthProviders config (enabled: true) but is NOT
-        // registered in Base::getProviderActions(). Get::action has two
-        // separate `unsupported` throw branches — testGetOAuth2ProviderUnsupported
-        // covers the first (provider missing from config); this covers the
-        // second (provider in config but missing from the action registry).
+        // `mock` is present in oAuthProviders config (enabled: true) but is
+        // NOT registered in Base::getProviderActions(). It passes the
+        // WhiteList validator (which only checks config membership) and
+        // reaches the action body, where the action-registry check throws
+        // `project_provider_unsupported`.
         $response = $this->getOAuth2Provider('mock');
 
         $this->assertSame(400, $response['headers']['status-code']);
