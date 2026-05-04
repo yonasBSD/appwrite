@@ -1458,30 +1458,41 @@ trait StorageBase
                 foreach ($requests as $index => $request) {
                     $wg->add();
                     \Swoole\Coroutine::create(function () use ($basePath, $bucketId, $fileId, $host, $index, $port, $request, &$responses, $scheme, $wg): void {
-                        $client = new \Swoole\Coroutine\Http\Client($host, (int) $port, $scheme === 'https');
-                        $client->set([
-                            'timeout' => 300,
-                            'ssl_verify_peer' => false,
-                            'ssl_verify_host' => false,
-                        ]);
-                        $client->setHeaders($request['headers']);
-                        $client->setMethod(Client::METHOD_POST);
-                        $client->setData([
-                            'fileId' => $fileId,
-                            'permissions[0]' => Permission::read(Role::any()),
-                            'permissions[1]' => Permission::delete(Role::any()),
-                        ]);
-                        $client->addFile($request['chunkPath'], 'file', 'application/octet-stream', 'large-parallel-upload.bin');
-                        $client->execute($basePath . '/storage/buckets/' . $bucketId . '/files');
-
                         try {
-                            $responses[$index] = [
-                                'body' => $client->body,
-                                'error' => $client->errMsg,
-                                'statusCode' => $client->statusCode,
-                            ];
+                            for ($attempt = 0; $attempt < 3; $attempt++) {
+                                $client = new \Swoole\Coroutine\Http\Client($host, (int) $port, $scheme === 'https');
+                                $client->set([
+                                    'timeout' => 300,
+                                    'ssl_verify_peer' => false,
+                                    'ssl_verify_host' => false,
+                                ]);
+                                $client->setHeaders($request['headers']);
+                                $client->setMethod(Client::METHOD_POST);
+                                $client->setData([
+                                    'fileId' => $fileId,
+                                    'permissions[0]' => Permission::read(Role::any()),
+                                    'permissions[1]' => Permission::delete(Role::any()),
+                                ]);
+                                $client->addFile($request['chunkPath'], 'file', 'application/octet-stream', 'large-parallel-upload.bin');
+                                $client->execute($basePath . '/storage/buckets/' . $bucketId . '/files');
+
+                                $responses[$index] = [
+                                    'body' => $client->body,
+                                    'error' => $client->errMsg,
+                                    'headers' => $client->headers ?? [],
+                                    'statusCode' => $client->statusCode,
+                                ];
+
+                                $client->close();
+
+                                if ($responses[$index]['statusCode'] !== 429) {
+                                    break;
+                                }
+
+                                $retryAfter = (float) ($responses[$index]['headers']['retry-after'] ?? 0.1);
+                                \Swoole\Coroutine::sleep(max($retryAfter, 0.1));
+                            }
                         } finally {
-                            $client->close();
                             $wg->done();
                         }
                     });

@@ -478,10 +478,12 @@ class Create extends Action
                     }
                 }
 
-                $queueForEvents
-                    ->setParam('bucketId', $bucket->getId())
-                    ->setParam('fileId', $file->getId())
-                    ->setContext('bucket', $bucket);
+                if ($chunksUploaded === $chunks) {
+                    $queueForEvents
+                        ->setParam('bucketId', $bucket->getId())
+                        ->setParam('fileId', $file->getId())
+                        ->setContext('bucket', $bucket);
+                }
 
                 $metadata = null; // was causing leaks as it was passed by reference
 
