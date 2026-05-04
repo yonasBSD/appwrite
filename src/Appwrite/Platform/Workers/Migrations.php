@@ -428,6 +428,7 @@ class Migrations extends Action
 
         $transfer = $source = $destination = null;
         $aggregatedResources = [];
+        $caughtError = null;
 
         $host = System::getEnv('_APP_MIGRATION_HOST');
         if (empty($host)) {
@@ -535,6 +536,11 @@ class Migrations extends Action
             $migration->setAttribute('status', 'failed');
             $migration->setAttribute('stage', 'finished');
 
+            // Remember the bubbled exception so the finally block can include it in the
+            // migration's errors attribute — otherwise setup-time failures (e.g. invalid
+            // credentials) would leave the user looking at status='failed' with no message.
+            $caughtError = $th;
+
             // User-facing failures (validation, not found, conflict) are routed through
             // MigrationException and stay in the migration report only. Anything else is
             // a bug or infra failure and goes to Sentry with the full trace.
@@ -547,10 +553,26 @@ class Migrations extends Action
             }
         } finally {
             try {
+                $sourceErrors = $source?->getErrors() ?? [];
+                $destinationErrors = $destination?->getErrors() ?? [];
+
+                if ($caughtError !== null) {
+                    $bubbled = $caughtError instanceof MigrationException
+                        ? $caughtError
+                        : new MigrationException(
+                            resourceName: '',
+                            resourceGroup: '',
+                            message: $caughtError->getMessage(),
+                            code: $caughtError->getCode(),
+                            previous: $caughtError,
+                        );
+                    $destinationErrors[] = $bubbled;
+                }
+
                 // Persist the consolidated error list regardless of which code path fired.
                 $migration->setAttribute('errors', $this->sanitizeErrors(
-                    $source?->getErrors() ?? [],
-                    $destination?->getErrors() ?? [],
+                    $sourceErrors,
+                    $destinationErrors,
                 ));
 
                 $this->updateMigrationDocument($migration, $project, $queueForRealtime);
