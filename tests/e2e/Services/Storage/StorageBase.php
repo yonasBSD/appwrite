@@ -1420,8 +1420,7 @@ trait StorageBase
             }
             fclose($handle);
 
-            $multi = curl_multi_init();
-            $handles = [];
+            $requests = [];
 
             $sourceHandle = fopen($source, 'rb');
             $this->assertNotFalse($sourceHandle, 'Could not open test file');
@@ -1435,51 +1434,68 @@ trait StorageBase
                 fseek($sourceHandle, $start);
                 file_put_contents($chunkPath, fread($sourceHandle, $length));
 
-                $headers = array_merge([
-                    'content-type' => 'multipart/form-data',
-                    'x-appwrite-project' => $this->getProject()['$id'],
-                    'x-appwrite-key' => $this->getProject()['apiKey'],
-                    'content-range' => 'bytes ' . $start . '-' . $end . '/' . $totalSize,
-                ]);
-
-                $formattedHeaders = [];
-                foreach ($headers as $key => $value) {
-                    $formattedHeaders[] = $key . ': ' . $value;
-                }
-
-                $ch = curl_init($this->client->getEndpoint() . '/storage/buckets/' . $bucketId . '/files');
-                curl_setopt($ch, CURLOPT_CUSTOMREQUEST, Client::METHOD_POST);
-                curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-                curl_setopt($ch, CURLOPT_HTTPHEADER, $formattedHeaders);
-                curl_setopt($ch, CURLOPT_POSTFIELDS, [
-                    'fileId' => $fileId,
-                    'file' => new CURLFile($chunkPath, 'application/octet-stream', 'large-parallel-upload.bin'),
-                    'permissions[0]' => Permission::read(Role::any()),
-                    'permissions[1]' => Permission::delete(Role::any()),
-                ]);
-                curl_setopt($ch, CURLOPT_TIMEOUT, 300);
-                $handles[] = $ch;
-                curl_multi_add_handle($multi, $ch);
+                $requests[] = [
+                    'headers' => [
+                        'x-appwrite-project' => $this->getProject()['$id'],
+                        'x-appwrite-key' => $this->getProject()['apiKey'],
+                        'content-range' => 'bytes ' . $start . '-' . $end . '/' . $totalSize,
+                    ],
+                    'chunkPath' => $chunkPath,
+                ];
             }
             fclose($sourceHandle);
 
-            do {
-                $status = curl_multi_exec($multi, $running);
-                if ($running > 0) {
-                    curl_multi_select($multi, 1.0);
+            $responses = [];
+            $endpoint = parse_url($this->client->getEndpoint());
+            $scheme = $endpoint['scheme'] ?? 'http';
+            $host = $endpoint['host'] ?? 'appwrite';
+            $port = $endpoint['port'] ?? ($scheme === 'https' ? 443 : 80);
+            $basePath = rtrim($endpoint['path'] ?? '', '/');
+
+            \Swoole\Coroutine\run(function () use ($basePath, $bucketId, $fileId, $host, $port, $requests, $scheme, &$responses): void {
+                $wg = new \Swoole\Coroutine\WaitGroup();
+
+                foreach ($requests as $index => $request) {
+                    $wg->add();
+                    \Swoole\Coroutine::create(function () use ($basePath, $bucketId, $fileId, $host, $index, $port, $request, &$responses, $scheme, $wg): void {
+                        $client = new \Swoole\Coroutine\Http\Client($host, (int) $port, $scheme === 'https');
+                        $client->set([
+                            'timeout' => 300,
+                            'ssl_verify_peer' => false,
+                            'ssl_verify_host' => false,
+                        ]);
+                        $client->setHeaders($request['headers']);
+                        $client->setMethod(Client::METHOD_POST);
+                        $client->setData([
+                            'fileId' => $fileId,
+                            'permissions[0]' => Permission::read(Role::any()),
+                            'permissions[1]' => Permission::delete(Role::any()),
+                        ]);
+                        $client->addFile($request['chunkPath'], 'file', 'application/octet-stream', 'large-parallel-upload.bin');
+                        $client->execute($basePath . '/storage/buckets/' . $bucketId . '/files');
+
+                        try {
+                            $responses[$index] = [
+                                'body' => $client->body,
+                                'error' => $client->errMsg,
+                                'statusCode' => $client->statusCode,
+                            ];
+                        } finally {
+                            $client->close();
+                            $wg->done();
+                        }
+                    });
                 }
-            } while ($running > 0 && $status === CURLM_OK);
 
-            foreach ($handles as $ch) {
-                $body = curl_multi_getcontent($ch);
-                $statusCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-                $error = curl_error($ch);
-                curl_multi_remove_handle($multi, $ch);
+                $wg->wait();
+            });
 
-                $this->assertSame('', $error);
-                $this->assertContains($statusCode, [200, 201], $body);
+            ksort($responses);
+
+            foreach ($responses as $response) {
+                $this->assertSame('', $response['error']);
+                $this->assertContains($response['statusCode'], [200, 201], (string) $response['body']);
             }
-            curl_multi_close($multi);
 
             $uploadedFile = $this->client->call(Client::METHOD_GET, '/storage/buckets/' . $bucketId . '/files/' . $fileId, array_merge([
                 'content-type' => 'application/json',
