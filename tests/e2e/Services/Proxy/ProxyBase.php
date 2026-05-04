@@ -290,7 +290,7 @@ trait ProxyBase
         $this->assertNotEmpty($ruleId);
         $rule = $this->getRule($ruleId);
         $this->assertSame(200, $rule['headers']['status-code']);
-        $this->assertSame('created', $rule['body']['status']);
+        $this->assertSame('unverified', $rule['body']['status']);
 
         $response = $proxyClient->call(Client::METHOD_GET, '/contact');
         $this->assertEquals(200, $response['headers']['status-code']);
@@ -741,7 +741,7 @@ trait ProxyBase
 
         $ruleAfterUpdate = $this->getRule($ruleId);
         $this->assertEquals(200, $ruleAfterUpdate['headers']['status-code']);
-        $this->assertEquals('created', $ruleAfterUpdate['body']['status']);
+        $this->assertEquals('unverified', $ruleAfterUpdate['body']['status']);
         $this->assertEquals($initiallogs, $ruleAfterUpdate['body']['logs']);
         $this->assertNotEquals($initialUpdatedAt, $ruleAfterUpdate['body']['$updatedAt']);
 
