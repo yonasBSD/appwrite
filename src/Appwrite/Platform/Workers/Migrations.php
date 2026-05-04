@@ -873,7 +873,7 @@ class Migrations extends Action
     }
 
     /**
-     * Encode migration errors as JSON strings for storage on the migration document.
+     * Sanitize migration errors, removing sensitive information like stack traces
      *
      * @param array $sourceErrors
      * @param array $destinationErrors
@@ -883,10 +883,20 @@ class Migrations extends Action
         array $sourceErrors,
         array $destinationErrors,
     ): array {
-        return \array_map(
-            fn ($error) => \json_encode($error),
-            [...$sourceErrors, ...$destinationErrors],
-        );
+        $errors = [];
+        foreach ([...$sourceErrors, ...$destinationErrors] as $error) {
+            $encoded = \json_decode(\json_encode($error), true);
+            if (\is_array($encoded)) {
+                if (isset($encoded['trace'])) {
+                    unset($encoded['trace']);
+                }
+                $errors[] = \json_encode($encoded);
+            } else {
+                $errors[] = \json_encode($error);
+            }
+        }
+
+        return $errors;
     }
 
     private function processMigrationResourceStats(array $resources, Context $usage, Document $projectDocument, UsagePublisher $publisherForUsage, string $source, Authorization $authorization, ?string $resourceId)
