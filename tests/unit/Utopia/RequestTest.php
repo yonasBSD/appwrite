@@ -232,10 +232,12 @@ class RequestTest extends TestCase
 
     public function testGetParamsDoesNotCacheRawParamsForServerError(): void
     {
-        // 5xx filter throws indicate genuine server-side problems, not
-        // user-input mistakes. They must keep rethrowing on every call so
-        // the framework's normal error handling sees the failure each time
-        // — caching raw params would silently swallow real bugs.
+        /*
+        * 5xx filter throws indicate genuine server-side problems, not
+        * user-input mistakes. They must keep rethrowing on every call so
+        * the framework's normal error handling sees the failure each time
+        * — caching raw params would silently swallow real bugs.
+        */
         $filter = new ThrowingFilter(500, 'boom');
 
         $this->setupSingleMethodRoute($filter);
