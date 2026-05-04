@@ -1376,7 +1376,7 @@ trait StorageBase
 
     public function testCreateBucketFileParallelChunksLargeFile(): void
     {
-        $totalSize = (int) ($_ENV['APPWRITE_TEST_PARALLEL_UPLOAD_SIZE'] ?? 20 * 1024 * 1024);
+        $totalSize = 20 * 1024 * 1024;
         $chunkSize = 5 * 1024 * 1024;
         $chunksTotal = (int) ceil($totalSize / $chunkSize);
 
