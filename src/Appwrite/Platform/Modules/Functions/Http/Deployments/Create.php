@@ -203,7 +203,7 @@ class Create extends Action
         $completed = false;
 
         try {
-            $checkLock->withLock(function () use (&$chunks, $contentRange, $dbForProject, $deploymentId, &$metadata, &$completed, $response): void {
+            $checkLock->withLock(function () use (&$chunks, $dbForProject, $deploymentId, &$metadata, &$completed, $response): void {
                 $deployment = $dbForProject->getDocument('deployments', $deploymentId);
 
                 if (!$deployment->isEmpty()) {
