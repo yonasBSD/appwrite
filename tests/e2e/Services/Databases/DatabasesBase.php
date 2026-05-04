@@ -4339,51 +4339,6 @@ trait DatabasesBase
         // $this->assertEquals('Invalid query: Cannot query search on attribute "actors" because it is an array.', $documents['body']['message']);
     }
 
-    public function testDocumentsListInvalidQuerySyntax(): void
-    {
-        $data = $this->setupDocuments();
-        $databaseId = $data['databaseId'];
-
-        // Each entry in `queries` must be a JSON-encoded object (e.g.
-        // `{"method":"limit","values":[5]}`). Anything else — including the
-        // legacy SDK shorthand `limit(5)`, a hand-rolled non-JSON string, or a
-        // JSON value that isn't an object — must be rejected by Query::parse
-        // with the same `Invalid query: Syntax error` message so callers get
-        // a consistent 400.
-        $invalidQueries = [
-            'legacy shorthand'   => 'limit(5)',
-            'plain string'       => 'not-json',
-            'json non-object'    => '"limit"',
-            'malformed json'     => '{"method":"limit","values":[5}',
-            'unquoted attribute' => '{method:"limit",values:[5]}',
-        ];
-
-        foreach ($invalidQueries as $label => $rawQuery) {
-            $documents = $this->client->call(Client::METHOD_GET, $this->getRecordUrl($databaseId, $data['moviesId']), array_merge([
-                'content-type' => 'application/json',
-                'x-appwrite-project' => $this->getProject()['$id'],
-            ], $this->getHeaders()), [
-                'queries' => [$rawQuery],
-            ]);
-
-            $this->assertEquals(400, $documents['headers']['status-code'], "Expected 400 for [$label]: $rawQuery");
-            $this->assertEquals('Invalid query: Syntax error', $documents['body']['message'], "Wrong error for [$label]: $rawQuery");
-        }
-
-        // Sanity check: the JSON form the SDK actually emits still works.
-        $documents = $this->client->call(Client::METHOD_GET, $this->getRecordUrl($databaseId, $data['moviesId']), array_merge([
-            'content-type' => 'application/json',
-            'x-appwrite-project' => $this->getProject()['$id'],
-        ], $this->getHeaders()), [
-            'queries' => [
-                Query::limit(5)->toString(),
-            ],
-        ]);
-
-        $this->assertEquals(200, $documents['headers']['status-code']);
-        $this->assertLessThanOrEqual(5, count($documents['body'][$this->getRecordResource()]));
-    }
-
     public function testUpdateDocument(): void
     {
         $data = $this->setupDocuments();

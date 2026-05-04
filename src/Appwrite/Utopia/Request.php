@@ -89,7 +89,7 @@ class Request extends UtopiaRequest
             // intended 400.
             $code = $e->getCode();
             if (\is_int($code) && $code >= 400 && $code < 500) {
-                $this->filteredParams = parent::getParams();
+                $this->filteredParams = $parameters;
             }
             throw $e;
         }
