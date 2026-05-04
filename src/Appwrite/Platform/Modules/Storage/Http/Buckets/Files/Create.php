@@ -91,7 +91,6 @@ class Create extends Action
             ->inject('project')
             ->inject('user')
             ->inject('queueForEvents')
-            ->inject('mode')
             ->inject('deviceForFiles')
             ->inject('deviceForLocal')
             ->inject('authorization')
@@ -110,7 +109,6 @@ class Create extends Action
         Document $project,
         User $user,
         Event $queueForEvents,
-        string $mode,
         Device $deviceForFiles,
         Device $deviceForLocal,
         Authorization $authorization,
@@ -243,7 +241,7 @@ class Create extends Action
         $lock = new Distributed(
             $redis,
             'storage:file:' . $project->getId() . ':' . $bucket->getId() . ':' . $fileId,
-            ttl: 120,
+            ttl: 600,
         );
 
         $metadata = ['content_type' => $deviceForLocal->getFileMimeType($fileTmpName)];
