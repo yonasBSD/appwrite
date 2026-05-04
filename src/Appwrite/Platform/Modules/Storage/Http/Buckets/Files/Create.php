@@ -243,7 +243,7 @@ class Create extends Action
         $lock = new Distributed(
             $redis,
             'storage:file:' . $project->getId() . ':' . $bucket->getId() . ':' . $fileId,
-            ttl: 600,
+            ttl: 120,
         );
 
         $metadata = ['content_type' => $deviceForLocal->getFileMimeType($fileTmpName)];
@@ -272,7 +272,8 @@ class Create extends Action
                 }
             }, timeout: 120.0);
         } catch (LockContention) {
-            throw new Exception(Exception::GENERAL_SERVER_ERROR, 'File upload is busy. Try again.');
+            $response->addHeader('Retry-After', '5');
+            throw new Exception(Exception::GENERAL_RATE_LIMIT_EXCEEDED, 'File upload is busy. Try again.');
         }
 
         if ($completed) {
@@ -288,6 +289,7 @@ class Create extends Action
         try {
             $lock->withLock(function () use ($authorization, $bucket, &$chunks, $chunksUploaded, $contentRange, $dbForProject, $deviceForFiles, $fileId, $fileName, $fileSize, &$metadata, $path, $permissions, $queueForEvents, $response): void {
                 $file = $dbForProject->getDocument('bucket_' . $bucket->getSequence(), $fileId);
+                $uploaded = 0;
 
                 if (!$file->isEmpty()) {
                     $chunks = $file->getAttribute('chunksTotal', 1);
@@ -307,7 +309,9 @@ class Create extends Action
                     }
                 }
 
-                if ($chunksUploaded === $chunks) {
+                $chunksUploaded = max($uploaded, $chunksUploaded);
+
+                if ($chunksUploaded === $chunks && $uploaded < $chunks) {
                     if (System::getEnv('_APP_STORAGE_ANTIVIRUS') === 'enabled' && $bucket->getAttribute('antivirus', true) && $fileSize <= APP_LIMIT_ANTIVIRUS && $deviceForFiles->getType() === Storage::DEVICE_LOCAL) {
                         $antivirus = new Network(
                             System::getEnv('_APP_STORAGE_ANTIVIRUS_HOST', 'clamav'),
@@ -488,7 +492,8 @@ class Create extends Action
                     ->dynamic($file, Response::MODEL_FILE);
             }, timeout: 120.0);
         } catch (LockContention) {
-            throw new Exception(Exception::GENERAL_SERVER_ERROR, 'File upload is busy. Try again.');
+            $response->addHeader('Retry-After', '5');
+            throw new Exception(Exception::GENERAL_RATE_LIMIT_EXCEEDED, 'File upload is busy. Try again.');
         }
     }
 
