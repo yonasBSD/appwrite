@@ -536,14 +536,9 @@ class Migrations extends Action
             $migration->setAttribute('status', 'failed');
             $migration->setAttribute('stage', 'finished');
 
-            // Remember the bubbled exception so the finally block can include it in the
-            // migration's errors attribute — otherwise setup-time failures (e.g. invalid
-            // credentials) would leave the user looking at status='failed' with no message.
             $caughtError = $th;
 
-            // User-facing failures (validation, not found, conflict) are routed through
-            // MigrationException and stay in the migration report only. Anything else is
-            // a bug or infra failure and goes to Sentry with the full trace.
+            // MigrationException is reserved for user-facing failures and stays in the migration report only.
             if (!$th instanceof MigrationException) {
                 call_user_func($this->logError, $th, 'appwrite-worker', 'appwrite-queue-' . self::getName(), [
                     'migrationId' => $migration->getId(),
@@ -569,7 +564,6 @@ class Migrations extends Action
                     $destinationErrors[] = $bubbled;
                 }
 
-                // Persist the consolidated error list regardless of which code path fired.
                 $migration->setAttribute('errors', $this->sanitizeErrors(
                     $sourceErrors,
                     $destinationErrors,
