@@ -52,7 +52,7 @@ class Create extends Action
                 description: <<<EOT
                 Create a new proxy rule for to redirect from custom domain to another domain.
 
-                Rule ID is automatically generated as MD5 hash of a rule domain for performane purposes.
+                Rule ID is automatically generated as MD5 hash of a rule domain for performance purposes.
                 EOT,
                 auth: [AuthType::ADMIN, AuthType::KEY],
                 responses: [

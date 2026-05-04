@@ -51,7 +51,7 @@ class Create extends Action
                 description: <<<EOT
                 Create a new proxy rule for executing Appwrite Function on custom domain.
 
-                Rule ID is automatically generated as MD5 hash of a rule domain for performane purposes.
+                Rule ID is automatically generated as MD5 hash of a rule domain for performance purposes.
                 EOT,
                 auth: [AuthType::ADMIN, AuthType::KEY],
                 responses: [

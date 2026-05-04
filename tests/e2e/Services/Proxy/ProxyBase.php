@@ -81,7 +81,7 @@ trait ProxyBase
         $domain = \uniqid() . '.com';
         $rule = $this->createAPIRule($domain);
         $this->assertEquals(201, $rule['headers']['status-code']);
-        $this->assertEquals('created', $rule['body']['status']);
+        $this->assertEquals('unverified', $rule['body']['status']);
     }
 
     public function testCreateRuleVcs(): void
@@ -421,7 +421,7 @@ trait ProxyBase
 
         $rule = $this->createAPIRule($domain);
         $this->assertEquals(201, $rule['headers']['status-code']);
-        $this->assertEquals('created', $rule['body']['status']);
+        $this->assertEquals('unverified', $rule['body']['status']);
 
         $ruleId = $rule['body']['$id'];
 
@@ -620,7 +620,7 @@ trait ProxyBase
 
         $rule = $this->createAPIRule('stage-site.webapp.com');
         $this->assertEquals(201, $rule['headers']['status-code']);
-        $this->assertEquals('created', $rule['body']['status']);
+        $this->assertEquals('unverified', $rule['body']['status']);
         $this->assertStringContainsString('has incorrect CNAME value', $rule['body']['logs']);
         $this->cleanupRule($rule['body']['$id']);
 
@@ -629,7 +629,7 @@ trait ProxyBase
         // 3. Wrong A record fails to verify
         $rule = $this->createAPIRule('wrong-a-webapp.com');
         $this->assertEquals(201, $rule['headers']['status-code']);
-        $this->assertEquals('created', $rule['body']['status']);
+        $this->assertEquals('unverified', $rule['body']['status']);
         $this->assertStringContainsString('is missing CNAME record', $rule['body']['logs']);
 
         $ruleId = $rule['body']['$id'];
@@ -639,7 +639,7 @@ trait ProxyBase
 
         $rule = $this->getRule($ruleId);
         $this->assertEquals(200, $rule['headers']['status-code']);
-        $this->assertEquals('created', $rule['body']['status']);
+        $this->assertEquals('unverified', $rule['body']['status']);
 
         $this->cleanupRule($ruleId);
 
@@ -662,7 +662,7 @@ trait ProxyBase
         // 6. Missing CNAME record fails to verify
         $rule = $this->createAPIRule('stage-missing-cname.webapp.com');
         $this->assertEquals(201, $rule['headers']['status-code']);
-        $this->assertEquals('created', $rule['body']['status']);
+        $this->assertEquals('unverified', $rule['body']['status']);
         $this->assertStringContainsString('is missing CNAME record', $rule['body']['logs']);
 
         $ruleId = $rule['body']['$id'];
@@ -672,14 +672,14 @@ trait ProxyBase
 
         $rule = $this->getRule($ruleId);
         $this->assertEquals(200, $rule['headers']['status-code']);
-        $this->assertEquals('created', $rule['body']['status']);
+        $this->assertEquals('unverified', $rule['body']['status']);
 
         $this->cleanupRule($ruleId);
 
         // 7. Wrong CNAME record fails to verify
         $rule = $this->createAPIRule('stage-wrong-cname.webapp.com');
         $this->assertEquals(201, $rule['headers']['status-code']);
-        $this->assertEquals('created', $rule['body']['status']);
+        $this->assertEquals('unverified', $rule['body']['status']);
         $this->assertStringContainsString('has incorrect CNAME value', $rule['body']['logs']);
 
         $ruleId = $rule['body']['$id'];
@@ -689,14 +689,14 @@ trait ProxyBase
 
         $rule = $this->getRule($ruleId);
         $this->assertEquals(200, $rule['headers']['status-code']);
-        $this->assertEquals('created', $rule['body']['status']);
+        $this->assertEquals('unverified', $rule['body']['status']);
 
         $this->cleanupRule($ruleId);
 
         // 8. Wrong CAA record fails to verify
         $rule = $this->createAPIRule('stage-wrong-caa.webapp.com');
         $this->assertEquals(201, $rule['headers']['status-code']);
-        $this->assertEquals('created', $rule['body']['status']);
+        $this->assertEquals('unverified', $rule['body']['status']);
         $this->assertStringContainsString('has incorrect CAA value', $rule['body']['logs']);
 
         $ruleId = $rule['body']['$id'];
@@ -706,7 +706,7 @@ trait ProxyBase
 
         $rule = $this->getRule($ruleId);
         $this->assertEquals(200, $rule['headers']['status-code']);
-        $this->assertEquals('created', $rule['body']['status']);
+        $this->assertEquals('unverified', $rule['body']['status']);
 
         $this->cleanupRule($ruleId);
 
@@ -725,7 +725,7 @@ trait ProxyBase
         $rule = $this->createAPIRule($domain);
 
         $this->assertEquals(201, $rule['headers']['status-code']);
-        $this->assertEquals('created', $rule['body']['status']);
+        $this->assertEquals('unverified', $rule['body']['status']);
         $this->assertNotEmpty($rule['body']['logs']);
 
         $ruleId = $rule['body']['$id'];
