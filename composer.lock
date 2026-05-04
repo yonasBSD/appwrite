@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "4bee36b21a57e754d2b3417e72dc9599",
+    "content-hash": "0e8cd1a2446dfb54015d25fa130d081a",
     "packages": [
         {
             "name": "adhocore/jwt",
@@ -2708,16 +2708,16 @@
         },
         {
             "name": "symfony/http-client",
-            "version": "v7.4.8",
+            "version": "v7.4.9",
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/http-client.git",
-                "reference": "01933e626c3de76bea1e22641e205e78f6a34342"
+                "reference": "7e941c6abf4e3bf7dca160bf0e11ef36a9f832f6"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/symfony/http-client/zipball/01933e626c3de76bea1e22641e205e78f6a34342",
-                "reference": "01933e626c3de76bea1e22641e205e78f6a34342",
+                "url": "https://api.github.com/repos/symfony/http-client/zipball/7e941c6abf4e3bf7dca160bf0e11ef36a9f832f6",
+                "reference": "7e941c6abf4e3bf7dca160bf0e11ef36a9f832f6",
                 "shasum": ""
             },
             "require": {
@@ -2785,7 +2785,7 @@
                 "http"
             ],
             "support": {
-                "source": "https://github.com/symfony/http-client/tree/v7.4.8"
+                "source": "https://github.com/symfony/http-client/tree/v7.4.9"
             },
             "funding": [
                 {
@@ -2805,7 +2805,7 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2026-03-30T12:55:43+00:00"
+            "time": "2026-04-29T13:25:15+00:00"
         },
         {
             "name": "symfony/http-client-contracts",
@@ -3850,22 +3850,23 @@
         },
         {
             "name": "utopia-php/database",
-            "version": "5.4.1",
+            "version": "5.6.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/utopia-php/database.git",
-                "reference": "688d9422b5ff42ac2ecc29397d94891cfd772e93"
+                "reference": "609ebcd64be1ec6fab00c5f46fce54acb0031b3c"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/utopia-php/database/zipball/688d9422b5ff42ac2ecc29397d94891cfd772e93",
-                "reference": "688d9422b5ff42ac2ecc29397d94891cfd772e93",
+                "url": "https://api.github.com/repos/utopia-php/database/zipball/609ebcd64be1ec6fab00c5f46fce54acb0031b3c",
+                "reference": "609ebcd64be1ec6fab00c5f46fce54acb0031b3c",
                 "shasum": ""
             },
             "require": {
                 "ext-mbstring": "*",
                 "ext-mongodb": "*",
                 "ext-pdo": "*",
+                "ext-redis": "*",
                 "php": ">=8.4",
                 "utopia-php/cache": "1.*",
                 "utopia-php/console": "0.1.*",
@@ -3903,9 +3904,9 @@
             ],
             "support": {
                 "issues": "https://github.com/utopia-php/database/issues",
-                "source": "https://github.com/utopia-php/database/tree/5.4.1"
+                "source": "https://github.com/utopia-php/database/tree/5.6.0"
             },
-            "time": "2026-04-29T07:32:59+00:00"
+            "time": "2026-05-01T01:28:07+00:00"
         },
         {
             "name": "utopia-php/detector",
@@ -4530,16 +4531,16 @@
         },
         {
             "name": "utopia-php/migration",
-            "version": "1.9.5",
+            "version": "dev-fix-migration-sentry-leak",
             "source": {
                 "type": "git",
                 "url": "https://github.com/utopia-php/migration.git",
-                "reference": "952a4dfe232702f80e45c35129466a8d8cb4c599"
+                "reference": "276e7c25077a4dee670a806f715869f11367d932"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/utopia-php/migration/zipball/952a4dfe232702f80e45c35129466a8d8cb4c599",
-                "reference": "952a4dfe232702f80e45c35129466a8d8cb4c599",
+                "url": "https://api.github.com/repos/utopia-php/migration/zipball/276e7c25077a4dee670a806f715869f11367d932",
+                "reference": "276e7c25077a4dee670a806f715869f11367d932",
                 "shasum": ""
             },
             "require": {
@@ -4565,7 +4566,25 @@
                     "Utopia\\Migration\\": "src/Migration"
                 }
             },
-            "notification-url": "https://packagist.org/downloads/",
+            "autoload-dev": {
+                "psr-4": {
+                    "Utopia\\Tests\\": "tests/Migration"
+                }
+            },
+            "scripts": {
+                "test": [
+                    "./vendor/bin/phpunit"
+                ],
+                "lint": [
+                    "./vendor/bin/pint --test"
+                ],
+                "format": [
+                    "./vendor/bin/pint"
+                ],
+                "check": [
+                    "./vendor/bin/phpstan analyse --level 3 src tests --memory-limit 2G"
+                ]
+            },
             "license": [
                 "MIT"
             ],
@@ -4578,10 +4597,10 @@
                 "utopia"
             ],
             "support": {
-                "issues": "https://github.com/utopia-php/migration/issues",
-                "source": "https://github.com/utopia-php/migration/tree/1.9.5"
+                "source": "https://github.com/utopia-php/migration/tree/fix-migration-sentry-leak",
+                "issues": "https://github.com/utopia-php/migration/issues"
             },
-            "time": "2026-04-29T11:19:13+00:00"
+            "time": "2026-05-04T07:20:31+00:00"
         },
         {
             "name": "utopia-php/mongo",
@@ -8442,9 +8461,18 @@
             "time": "2024-11-07T12:36:22+00:00"
         }
     ],
-    "aliases": [],
+    "aliases": [
+        {
+            "package": "utopia-php/migration",
+            "version": "dev-fix-migration-sentry-leak",
+            "alias": "1.9.999",
+            "alias_normalized": "1.9.999.0"
+        }
+    ],
     "minimum-stability": "dev",
-    "stability-flags": [],
+    "stability-flags": {
+        "utopia-php/migration": 20
+    },
     "prefer-stable": true,
     "prefer-lowest": false,
     "platform": {
@@ -8465,5 +8493,5 @@
     "platform-dev": {
         "ext-fileinfo": "*"
     },
-    "plugin-api-version": "2.6.0"
+    "plugin-api-version": "2.9.0"
 }
