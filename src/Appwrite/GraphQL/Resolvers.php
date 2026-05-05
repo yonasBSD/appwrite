@@ -6,7 +6,6 @@ use Appwrite\GraphQL\Exception as GQLException;
 use Appwrite\Promises\Swoole;
 use Appwrite\Utopia\Request;
 use Appwrite\Utopia\Response;
-use Utopia\DI\Container;
 use Utopia\Http\Exception;
 use Utopia\Http\Http;
 use Utopia\Http\Route;
@@ -51,22 +50,6 @@ class Resolvers
         foreach ((array) $fallbackCookies as $value) {
             $to->addHeader('X-Fallback-Cookies', $value);
         }
-    }
-
-    /**
-     * Get the current request container.
-     */
-    private static function getResolverContainer(Http $utopia): Container
-    {
-        $container = $utopia->context()->get('container');
-
-        if ($container instanceof Container || (\is_object($container) && \method_exists($container, 'get') && \method_exists($container, 'set'))) {
-            /** @var Container $container */
-            return $container;
-        }
-
-        /** @var callable(): Container $container */
-        return $container();
     }
 
     /**
@@ -374,9 +357,8 @@ class Resolvers
 
             /** @var Response $resolverResponse */
             $resolverResponse = clone $utopia->context()->get('response');
-            $container = self::getResolverContainer($utopia);
-            $container->set('request', static fn () => $request);
-            $container->set('response', static fn () => $resolverResponse);
+            $utopia->context()->set('request', static fn () => $request);
+            $utopia->context()->set('response', static fn () => $resolverResponse);
             $resolverResponse->setContentType(Response::CONTENT_TYPE_NULL);
             $resolverResponse->setSent(false);
 
