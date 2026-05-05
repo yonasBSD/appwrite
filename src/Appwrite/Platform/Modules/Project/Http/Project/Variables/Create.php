@@ -35,7 +35,6 @@ class Create extends Action
             ->desc('Create project variable')
             ->groups(['api', 'project'])
             ->label('scope', 'project.write')
-            ->label('resourceType', RESOURCE_TYPE_PROJECTS)
             ->label('event', 'variables.[variableId].create')
             ->label('audits.event', 'project.variable.create')
             ->label('audits.resource', 'project.variable/{response.$id}')

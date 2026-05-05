@@ -34,7 +34,6 @@ class Update extends Action
             ->desc('Update project variable')
             ->groups(['api', 'project'])
             ->label('scope', 'project.write')
-            ->label('resourceType', RESOURCE_TYPE_PROJECTS)
             ->label('event', 'variables.[variableId].update')
             ->label('audits.event', 'project.variable.update')
             ->label('audits.resource', 'project.variable/{response.$id}')

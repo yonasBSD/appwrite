@@ -35,7 +35,6 @@ class XList extends Action
             ->desc('List project variables')
             ->groups(['api', 'project'])
             ->label('scope', 'project.read')
-            ->label('resourceType', RESOURCE_TYPE_PROJECTS)
             ->label('sdk', new Method(
                 namespace: 'project',
                 group: 'variables',

@@ -32,7 +32,6 @@ class Delete extends Action
             ->desc('Delete project variable')
             ->groups(['api', 'project'])
             ->label('scope', 'project.write')
-            ->label('resourceType', RESOURCE_TYPE_PROJECTS)
             ->label('event', 'variables.[variableId].delete')
             ->label('audits.event', 'project.variable.delete')
             ->label('audits.resource', 'project.variable/{request.variableId}')
