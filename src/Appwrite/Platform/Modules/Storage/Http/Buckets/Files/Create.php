@@ -204,15 +204,8 @@ class Create extends Action
                 throw new Exception(Exception::STORAGE_INVALID_APPWRITE_ID);
             }
 
-            // TODO remove the condition that checks `$end === $fileSize` in next breaking version
-            if ($end === $fileSize - 1 || $end === $fileSize) {
-                //if it's a last chunks the chunk size might differ, so we set the $chunks and $chunk to -1 notify it's last chunk
-                $chunks = $chunk = -1;
-            } else {
-                // Calculate total number of chunks based on the chunk size i.e ($rangeEnd - $rangeStart)
-                $chunks = (int) ceil($fileSize / ($end + 1 - $start));
-                $chunk = (int) ($start / ($end + 1 - $start)) + 1;
-            }
+            $chunks = (int) ceil($fileSize / APP_LIMIT_UPLOAD_CHUNK_SIZE);
+            $chunk = (int) ($start / APP_LIMIT_UPLOAD_CHUNK_SIZE) + 1;
         }
 
         /**
@@ -249,18 +242,15 @@ class Create extends Action
             $uploaded = $file->getAttribute('chunksUploaded', 0);
             $metadata = $file->getAttribute('metadata', []);
 
-            if ($chunk === -1) {
-                $chunk = $chunks;
-            }
-
             if ($uploaded === $chunks) {
-                throw new Exception(Exception::STORAGE_FILE_ALREADY_EXISTS);
-            }
-        } else {
-            // Guard against manually setting range header for single chunk upload
-            if ($chunks === -1) {
-                $chunks = 1;
-                $chunk = 1;
+                if (empty($contentRange)) {
+                    throw new Exception(Exception::STORAGE_FILE_ALREADY_EXISTS);
+                }
+
+                $response
+                    ->setStatusCode(Response::STATUS_CODE_OK)
+                    ->dynamic($file, Response::MODEL_FILE);
+                return;
             }
         }
 
@@ -384,14 +374,11 @@ class Create extends Action
                     ->setAttribute('chunksUploaded', $chunksUploaded);
 
                 /**
-                 * Validate create permission and skip authorization in updateDocument
-                 * Without this, the file creation will fail when user doesn't have update permission
+                 * Skip authorization in updateDocument.
+                 * Without this, the file creation will fail when user doesn't have update permission.
                  * However as with chunk upload even if we are updating, we are essentially creating a file
-                 * adding it's new chunk so we validate create permission instead of update
+                 * adding it's new chunk so we rely on the create-permission check performed earlier.
                  */
-                if (!$authorization->isValid(new Input(Database::PERMISSION_CREATE, $bucket->getCreate()))) {
-                    throw new Exception(Exception::USER_UNAUTHORIZED);
-                }
                 $file = $authorization->skip(fn () => $dbForProject->updateDocument('bucket_' . $bucket->getSequence(), $fileId, $file));
             }
 
@@ -431,15 +418,11 @@ class Create extends Action
                     ->setAttribute('metadata', $metadata);
 
                 /**
-                 * Validate create permission and skip authorization in updateDocument
-                 * Without this, the file creation will fail when user doesn't have update permission
+                 * Skip authorization in updateDocument.
+                 * Without this, the file creation will fail when user doesn't have update permission.
                  * However as with chunk upload even if we are updating, we are essentially creating a file
-                 * adding it's new chunk so we validate create permission instead of update
+                 * adding it's new chunk so we rely on the create-permission check performed earlier.
                  */
-                if (!$authorization->isValid(new Input(Database::PERMISSION_CREATE, $bucket->getCreate()))) {
-                    throw new Exception(Exception::USER_UNAUTHORIZED);
-                }
-
                 try {
                     $file = $authorization->skip(fn () => $dbForProject->updateDocument('bucket_' . $bucket->getSequence(), $fileId, $file));
                 } catch (NotFoundException) {
@@ -468,8 +451,5 @@ class Create extends Action
      */
     protected function afterCreateSuccess(Document $file)
     {
-        if (!($file instanceof Document)) {
-            throw new Exception('file must be an instance of document');
-        }
     }
 }

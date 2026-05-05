@@ -159,10 +159,16 @@ $container->set('getLogsDB', function (Group $pools, Cache $cache, Authorization
         $adapter = new DatabasePool($pools->get('logs'));
         $database = new Database($adapter, $cache);
 
+        /** @var array $collections */
+        $collections = Config::getParam('collections', []);
+        $logsCollections = $collections['logs'] ?? [];
+        $logsCollections = array_keys($logsCollections);
+
         $database
             ->setDatabase(APP_DATABASE)
             ->setAuthorization($authorization)
             ->setSharedTables(true)
+            ->setGlobalCollections($logsCollections)
             ->setNamespace('logsV1')
             ->setTimeout(APP_DATABASE_TIMEOUT_MILLISECONDS_API)
             ->setMaxQueryValues(APP_DATABASE_QUERY_MAX_VALUES);
@@ -266,7 +272,7 @@ function getDevice(string $root, string $connection = ''): Device
                 return new Local($root);
         }
     } else {
-        switch (strtolower(System::getEnv('_APP_STORAGE_DEVICE', Storage::DEVICE_LOCAL) ?? '')) {
+        switch (strtolower(System::getEnv('_APP_STORAGE_DEVICE', Storage::DEVICE_LOCAL))) {
             case Storage::DEVICE_LOCAL:
             default:
                 return new Local($root);

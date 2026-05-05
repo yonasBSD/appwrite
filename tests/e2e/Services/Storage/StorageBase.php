@@ -1050,6 +1050,28 @@ trait StorageBase
         $this->assertEquals(404, $file['headers']['status-code']);
     }
 
+    public function testFilePreviewAvifPublic(): void
+    {
+        $data = $this->setupBucketFile();
+        $bucketId = $data['bucketId'];
+        $fileId = $data['fileId'];
+        $projectId = $this->getProject()['$id'];
+
+        // Matches the customer's URL pattern: no headers, project + output in query string only
+        $preview = $this->client->call(Client::METHOD_GET, '/storage/buckets/' . $bucketId . '/files/' . $fileId . '/preview', [
+            'content-type' => 'application/json',
+        ], [
+            'project' => $projectId,
+            'width' => 1080,
+            'quality' => 40,
+            'output' => 'avif',
+        ]);
+
+        $this->assertEquals(200, $preview['headers']['status-code']);
+        $this->assertEquals('image/avif', $preview['headers']['content-type']);
+        $this->assertNotEmpty($preview['body']);
+    }
+
     public function testFilePreview(): void
     {
         $data = $this->setupBucketFile();
@@ -1069,6 +1091,49 @@ trait StorageBase
         $this->assertEquals(200, $preview['headers']['status-code']);
         $this->assertEquals('image/webp', $preview['headers']['content-type']);
         $this->assertNotEmpty($preview['body']);
+
+        // Preview PNG as avif
+        $avifPreview = $this->client->call(Client::METHOD_GET, '/storage/buckets/' . $bucketId . '/files/' . $fileId . '/preview', array_merge([
+            'content-type' => 'application/json',
+            'x-appwrite-project' => $this->getProject()['$id'],
+        ], $this->getHeaders()), [
+            'width' => 1080,
+            'quality' => 40,
+            'output' => 'avif',
+        ]);
+
+        $this->assertEquals(200, $avifPreview['headers']['status-code']);
+        $this->assertEquals('image/avif', $avifPreview['headers']['content-type']);
+        $this->assertNotEmpty($avifPreview['body']);
+
+        // Preview JPEG as avif
+        $jpegFile = $this->client->call(Client::METHOD_POST, '/storage/buckets/' . $bucketId . '/files', array_merge([
+            'content-type' => 'multipart/form-data',
+            'x-appwrite-project' => $this->getProject()['$id'],
+        ], $this->getHeaders()), [
+            'fileId' => ID::unique(),
+            'file' => new CURLFile(realpath(__DIR__ . '/../../../resources/disk-a/kitten-1.jpg'), 'image/jpeg', 'kitten-1.jpg'),
+            'permissions' => [
+                Permission::read(Role::any()),
+                Permission::update(Role::any()),
+                Permission::delete(Role::any()),
+            ],
+        ]);
+
+        $this->assertEquals(201, $jpegFile['headers']['status-code']);
+
+        $avifFromJpeg = $this->client->call(Client::METHOD_GET, '/storage/buckets/' . $bucketId . '/files/' . $jpegFile['body']['$id'] . '/preview', array_merge([
+            'content-type' => 'application/json',
+            'x-appwrite-project' => $this->getProject()['$id'],
+        ], $this->getHeaders()), [
+            'width' => 1080,
+            'quality' => 40,
+            'output' => 'avif',
+        ]);
+
+        $this->assertEquals(200, $avifFromJpeg['headers']['status-code']);
+        $this->assertEquals('image/avif', $avifFromJpeg['headers']['content-type']);
+        $this->assertNotEmpty($avifFromJpeg['body']);
     }
 
     public function testDeletePartiallyUploadedFile(): void
@@ -1160,6 +1225,153 @@ trait StorageBase
         ]);
 
         $this->assertEquals(204, $deleteBucketResponse['headers']['status-code']);
+    }
+
+    public function testCreateBucketFileOutOfOrder(): void
+    {
+        // Create a bucket for this test
+        $bucket = $this->client->call(Client::METHOD_POST, '/storage/buckets', [
+            'content-type' => 'application/json',
+            'x-appwrite-project' => $this->getProject()['$id'],
+            'x-appwrite-key' => $this->getProject()['apiKey'],
+        ], [
+            'bucketId' => ID::unique(),
+            'name' => 'Test Bucket Out of Order Upload',
+            'fileSecurity' => true,
+            'permissions' => [
+                Permission::read(Role::any()),
+                Permission::create(Role::any()),
+                Permission::update(Role::any()),
+                Permission::delete(Role::any()),
+            ],
+        ]);
+
+        $this->assertEquals(201, $bucket['headers']['status-code']);
+        $bucketId = $bucket['body']['$id'];
+
+        // Prepare a file that spans at least 3 chunks
+        $source = __DIR__ . "/../../../resources/disk-a/large-file.mp4";
+        $totalSize = \filesize($source);
+        $chunkSize = 5 * 1024 * 1024; // 5MB chunks
+        $mimeType = mime_content_type($source);
+        $chunksTotal = (int) ceil($totalSize / $chunkSize);
+
+        // Read all chunks into memory
+        $handle = fopen($source, "rb");
+        $this->assertNotFalse($handle, "Could not open test resource: $source");
+        $chunks = [];
+        for ($i = 0; $i < $chunksTotal; $i++) {
+            $start = $i * $chunkSize;
+            $end = min($start + $chunkSize, $totalSize);
+            $length = $end - $start;
+            $data = fread($handle, $length);
+            $chunks[] = [
+                'data' => $data,
+                'start' => $start,
+                'end' => $end - 1,
+                'index' => $i,
+            ];
+        }
+        fclose($handle);
+
+        // We need at least 3 chunks for a meaningful out-of-order test
+        $this->assertGreaterThanOrEqual(3, count($chunks), 'Test file must span at least 3 chunks');
+
+        // Upload chunks in out-of-order sequence: last chunk first, then first, then middle
+        $uploadOrder = [count($chunks) - 1, 0, 1]; // last, first, second (for 3+ chunks)
+        $fileId = ID::unique();
+        $id = '';
+        $uploadedFile = null;
+
+        foreach ($uploadOrder as $chunkIndex) {
+            $chunk = $chunks[$chunkIndex];
+            $curlFile = new \CURLFile(
+                'data://' . $mimeType . ';base64,' . base64_encode($chunk['data']),
+                $mimeType,
+                'large-file.mp4'
+            );
+
+            $headers = [
+                'content-type' => 'multipart/form-data',
+                'x-appwrite-project' => $this->getProject()['$id'],
+                'content-range' => 'bytes ' . $chunk['start'] . '-' . $chunk['end'] . '/' . $totalSize,
+            ];
+
+            if (!empty($id)) {
+                $headers['x-appwrite-id'] = $id;
+            }
+
+            $uploadedFile = $this->client->call(Client::METHOD_POST, '/storage/buckets/' . $bucketId . '/files', array_merge($headers, $this->getHeaders()), [
+                'fileId' => $fileId,
+                'file' => $curlFile,
+                'permissions' => [
+                    Permission::read(Role::any()),
+                ],
+            ]);
+
+            $this->assertEquals(201, $uploadedFile['headers']['status-code']);
+            $id = $uploadedFile['body']['$id'];
+        }
+
+        // Upload remaining chunks in any order to complete the file
+        $remainingChunks = [];
+        for ($i = 2; $i < count($chunks) - 1; $i++) {
+            $remainingChunks[] = $i;
+        }
+        // Shuffle remaining chunks for extra randomness
+        shuffle($remainingChunks);
+
+        foreach ($remainingChunks as $chunkIndex) {
+            $chunk = $chunks[$chunkIndex];
+            $curlFile = new \CURLFile(
+                'data://' . $mimeType . ';base64,' . base64_encode($chunk['data']),
+                $mimeType,
+                'large-file.mp4'
+            );
+
+            $headers = [
+                'content-type' => 'multipart/form-data',
+                'x-appwrite-project' => $this->getProject()['$id'],
+                'content-range' => 'bytes ' . $chunk['start'] . '-' . $chunk['end'] . '/' . $totalSize,
+                'x-appwrite-id' => $id,
+            ];
+
+            $uploadedFile = $this->client->call(Client::METHOD_POST, '/storage/buckets/' . $bucketId . '/files', array_merge($headers, $this->getHeaders()), [
+                'fileId' => $fileId,
+                'file' => $curlFile,
+                'permissions' => [
+                    Permission::read(Role::any()),
+                ],
+            ]);
+
+            $this->assertEquals(201, $uploadedFile['headers']['status-code']);
+        }
+
+        // Verify the final upload response indicates completion
+        $this->assertEquals($chunksTotal, $uploadedFile['body']['chunksTotal']);
+        $this->assertEquals($chunksTotal, $uploadedFile['body']['chunksUploaded']);
+
+        // Verify the file can be downloaded and matches the original
+        $download = $this->client->call(Client::METHOD_GET, '/storage/buckets/' . $bucketId . '/files/' . $id . '/download', array_merge([
+            'content-type' => 'application/json',
+            'x-appwrite-project' => $this->getProject()['$id'],
+        ], $this->getHeaders()));
+
+        $this->assertEquals(200, $download['headers']['status-code']);
+        $this->assertEquals($totalSize, strlen($download['body']));
+        $this->assertEquals(md5_file($source), md5($download['body']));
+
+        // Clean up
+        $this->client->call(Client::METHOD_DELETE, '/storage/buckets/' . $bucketId . '/files/' . $id, array_merge([
+            'content-type' => 'application/json',
+            'x-appwrite-project' => $this->getProject()['$id'],
+        ], $this->getHeaders()));
+
+        $this->client->call(Client::METHOD_DELETE, '/storage/buckets/' . $bucketId, [
+            'content-type' => 'application/json',
+            'x-appwrite-project' => $this->getProject()['$id'],
+            'x-appwrite-key' => $this->getProject()['apiKey'],
+        ]);
     }
 
     public function testDeleteBucketFile(): void

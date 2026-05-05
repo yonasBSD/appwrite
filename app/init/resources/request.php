@@ -204,9 +204,16 @@ return function (Container $container): void {
             $sharedTables = \explode(',', System::getEnv('_APP_DATABASE_SHARED_TABLES', ''));
 
             if (\in_array($dsn->getHost(), $sharedTables)) {
+                /** @var array $collections */
+                $collections = Config::getParam('collections', []);
+                $projectCollections = $collections['projects'] ?? [];
+                $projectsGlobalCollections = array_keys($projectCollections);
+                $projectsGlobalCollections[] = 'audit';
+
                 $database
                     ->setSharedTables(true)
                     ->setTenant($project->getSequence())
+                    ->setGlobalCollections($projectsGlobalCollections)
                     ->setNamespace($dsn->getParam('namespace'));
             } else {
                 $database
@@ -223,6 +230,11 @@ return function (Container $container): void {
         $adapter = null;
 
         return function (?Document $project = null) use ($pools, $cache, $authorization, &$adapter) {
+            /** @var array $collections */
+            $collections = Config::getParam('collections', []);
+            $logsCollections = $collections['logs'] ?? [];
+            $logsCollections = array_keys($logsCollections);
+
             $adapter ??= new DatabasePool($pools->get('logs'));
             $database = new Database($adapter, $cache);
 
@@ -230,6 +242,7 @@ return function (Container $container): void {
                 ->setDatabase(APP_DATABASE)
                 ->setAuthorization($authorization)
                 ->setSharedTables(true)
+                ->setGlobalCollections($logsCollections)
                 ->setNamespace('logsV1')
                 ->setTimeout(APP_DATABASE_TIMEOUT_MILLISECONDS_API)
                 ->setMaxQueryValues(APP_DATABASE_QUERY_MAX_VALUES);
@@ -375,7 +388,7 @@ return function (Container $container): void {
 
             return $dbForPlatform->findOne('rules', [
                 Query::equal('domain', [$domain]),
-            ]) ?? new Document();
+            ]);
         });
 
         $permitsCurrentProject = $rule->getAttribute('projectInternalId', '') === $project->getSequence();
@@ -478,14 +491,10 @@ return function (Container $container): void {
         }
 
         // Get fallback session from old clients (no SameSite support) or clients who block 3rd-party cookies
-        if ($response) { // if in http context - add debug header
-            $response->addHeader('X-Debug-Fallback', 'false');
-        }
+        $response->addHeader('X-Debug-Fallback', 'false');
 
         if (empty($store->getProperty('id', '')) && empty($store->getProperty('secret', ''))) {
-            if ($response) {
-                $response->addHeader('X-Debug-Fallback', 'true');
-            }
+            $response->addHeader('X-Debug-Fallback', 'true');
             $fallback = $request->getHeader('x-fallback-cookies', '');
             $fallback = \json_decode($fallback, true);
             $store->decode(((is_array($fallback) && isset($fallback[$store->getKey()])) ? $fallback[$store->getKey()] : ''));
@@ -575,10 +584,12 @@ return function (Container $container): void {
             }
         }
 
-        // Impersonation: if current user has impersonator capability and headers are set, act as another user
-        $impersonateUserId = $request->getHeader('x-appwrite-impersonate-user-id', '');
-        $impersonateEmail = $request->getHeader('x-appwrite-impersonate-user-email', '');
-        $impersonatePhone = $request->getHeader('x-appwrite-impersonate-user-phone', '');
+        // Impersonation: if current user has impersonator capability and headers/params are set, act as another user
+        // Query params mirror the header fallback pattern used by ?project= and ?devKey=,
+        // allowing Console to embed impersonation in direct file/image URLs where headers cannot be set.
+        $impersonateUserId = $request->getHeader('x-appwrite-impersonate-user-id', (string)$request->getParam('impersonateUserId', ''));
+        $impersonateEmail = $request->getHeader('x-appwrite-impersonate-user-email', (string)$request->getParam('impersonateEmail', ''));
+        $impersonatePhone = $request->getHeader('x-appwrite-impersonate-user-phone', (string)$request->getParam('impersonatePhone', ''));
         if (!$user->isEmpty() && $user->getAttribute('impersonator', false)) {
             $userDb = (APP_MODE_ADMIN === $mode || $project->getId() === 'console') ? $dbForPlatform : $dbForProject;
             $targetUser = null;
@@ -692,8 +703,15 @@ return function (Container $container): void {
         $sharedTables = \explode(',', System::getEnv('_APP_DATABASE_SHARED_TABLES', ''));
 
         if (\in_array($dsn->getHost(), $sharedTables)) {
+            /** @var array $collections */
+            $collections = Config::getParam('collections', []);
+            $projectCollections = $collections['projects'] ?? [];
+            $projectsGlobalCollections = array_keys($projectCollections);
+            $projectsGlobalCollections[] = 'audit';
+
             $database
                 ->setSharedTables(true)
+                ->setGlobalCollections($projectsGlobalCollections)
                 ->setTenant($project->getSequence())
                 ->setNamespace($dsn->getParam('namespace'));
         } else {
@@ -1084,7 +1102,7 @@ return function (Container $container): void {
         $sdkValidator = new WhiteList($servers, true);
         $sdk = \strtolower($request->getHeader('x-sdk-name', 'UNKNOWN'));
 
-        if ($sdk !== 'UNKNOWN' && $sdkValidator->isValid($sdk)) {
+        if ($sdk !== 'unknown' && $sdkValidator->isValid($sdk)) {
             $sdks = $key->getAttribute('sdks', []);
 
             if (! in_array($sdk, $sdks)) {
@@ -1294,6 +1312,12 @@ return function (Container $container): void {
             $database = new Database($adapter, $cache);
             $sharedTables = \array_filter(\explode(',', System::getEnv('_APP_DATABASE_SHARED_TABLES', '')));
 
+            /** @var array $collections */
+            $collections = Config::getParam('collections', []);
+            $projectCollections = $collections['projects'] ?? [];
+            $projectsGlobalCollections = array_keys($projectCollections);
+            $projectsGlobalCollections[] = 'audit';
+
             $database
                 ->setDatabase(APP_DATABASE)
                 ->setAuthorization($authorization)
@@ -1316,6 +1340,7 @@ return function (Container $container): void {
                 if (\in_array($databaseHost, $dbTypeSharedTables)) {
                     $database
                         ->setSharedTables(true)
+                        ->setGlobalCollections($projectsGlobalCollections)
                         ->setTenant($project->getSequence())
                         ->setNamespace($databaseDSN->getParam('namespace'));
                 } else {
@@ -1327,6 +1352,7 @@ return function (Container $container): void {
             } elseif (\in_array($dsn->getHost(), $sharedTables)) {
                 $database
                     ->setSharedTables(true)
+                    ->setGlobalCollections($projectsGlobalCollections)
                     ->setTenant($project->getSequence())
                     ->setNamespace($dsn->getParam('namespace'));
             } else {
