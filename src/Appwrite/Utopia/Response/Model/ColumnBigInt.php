@@ -41,6 +41,7 @@ class ColumnBigInt extends Column
             ])
             ->addRule('default', [
                 'type' => self::TYPE_INTEGER,
+                'format' => 'int64',
                 'description' => 'Default value for column when not provided. Cannot be set when column is required.',
                 'default' => null,
                 'required' => false,

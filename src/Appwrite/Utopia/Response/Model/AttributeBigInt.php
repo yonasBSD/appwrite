@@ -41,6 +41,7 @@ class AttributeBigInt extends Attribute
             ])
             ->addRule('default', [
                 'type' => self::TYPE_INTEGER,
+                'format' => 'int64',
                 'description' => 'Default value for attribute when not provided. Cannot be set when attribute is required.',
                 'default' => null,
                 'required' => false,
