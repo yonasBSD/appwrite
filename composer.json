@@ -117,9 +117,6 @@
         "allow-plugins": {
             "php-http/discovery": true,
             "tbachert/spi": true
-        },
-        "audit": {
-            "ignore": ["PKSA-sf9j-1gs7-xzvx"]
         }
     }
 }
