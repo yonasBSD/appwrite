@@ -4535,12 +4535,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/utopia-php/migration.git",
-                "reference": "276e7c25077a4dee670a806f715869f11367d932"
+                "reference": "da8205e8f3e927b2b860dddc2efca0e408171116"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/utopia-php/migration/zipball/276e7c25077a4dee670a806f715869f11367d932",
-                "reference": "276e7c25077a4dee670a806f715869f11367d932",
+                "url": "https://api.github.com/repos/utopia-php/migration/zipball/da8205e8f3e927b2b860dddc2efca0e408171116",
+                "reference": "da8205e8f3e927b2b860dddc2efca0e408171116",
                 "shasum": ""
             },
             "require": {
@@ -4600,7 +4600,7 @@
                 "source": "https://github.com/utopia-php/migration/tree/fix-migration-sentry-leak",
                 "issues": "https://github.com/utopia-php/migration/issues"
             },
-            "time": "2026-05-04T07:20:31+00:00"
+            "time": "2026-05-05T15:50:58+00:00"
         },
         {
             "name": "utopia-php/mongo",
@@ -5039,16 +5039,16 @@
         },
         {
             "name": "utopia-php/storage",
-            "version": "2.0.1",
+            "version": "2.0.2",
             "source": {
                 "type": "git",
                 "url": "https://github.com/utopia-php/storage.git",
-                "reference": "8a2e3a86fd01aaed675884146665308c2122264e"
+                "reference": "64e132a3768e22243eda36fe4262da22fd204f3c"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/utopia-php/storage/zipball/8a2e3a86fd01aaed675884146665308c2122264e",
-                "reference": "8a2e3a86fd01aaed675884146665308c2122264e",
+                "url": "https://api.github.com/repos/utopia-php/storage/zipball/64e132a3768e22243eda36fe4262da22fd204f3c",
+                "reference": "64e132a3768e22243eda36fe4262da22fd204f3c",
                 "shasum": ""
             },
             "require": {
@@ -5085,22 +5085,22 @@
             ],
             "support": {
                 "issues": "https://github.com/utopia-php/storage/issues",
-                "source": "https://github.com/utopia-php/storage/tree/2.0.1"
+                "source": "https://github.com/utopia-php/storage/tree/2.0.2"
             },
-            "time": "2026-04-29T09:05:48+00:00"
+            "time": "2026-05-01T15:06:16+00:00"
         },
         {
             "name": "utopia-php/system",
-            "version": "0.10.1",
+            "version": "0.10.2",
             "source": {
                 "type": "git",
                 "url": "https://github.com/utopia-php/system.git",
-                "reference": "7c1669533bb9c285de19191270c8c1439161a78a"
+                "reference": "04229a822b147c1abaf1a92fb42c2d7aad4625df"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/utopia-php/system/zipball/7c1669533bb9c285de19191270c8c1439161a78a",
-                "reference": "7c1669533bb9c285de19191270c8c1439161a78a",
+                "url": "https://api.github.com/repos/utopia-php/system/zipball/04229a822b147c1abaf1a92fb42c2d7aad4625df",
+                "reference": "04229a822b147c1abaf1a92fb42c2d7aad4625df",
                 "shasum": ""
             },
             "require": {
@@ -5141,9 +5141,9 @@
             ],
             "support": {
                 "issues": "https://github.com/utopia-php/system/issues",
-                "source": "https://github.com/utopia-php/system/tree/0.10.1"
+                "source": "https://github.com/utopia-php/system/tree/0.10.2"
             },
-            "time": "2026-03-15T21:07:41+00:00"
+            "time": "2026-05-05T14:33:41+00:00"
         },
         {
             "name": "utopia-php/telemetry",
