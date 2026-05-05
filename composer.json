@@ -57,7 +57,7 @@
         "utopia-php/audit": "2.2.*",
         "utopia-php/auth": "0.5.*",
         "utopia-php/cache": "1.0.*",
-        "utopia-php/cli": "dev-feat-param-alias as 0.23.99",
+        "utopia-php/cli": "0.23.*",
         "utopia-php/compression": "0.1.*",
         "utopia-php/config": "1.*",
         "utopia-php/console": "0.1.*",
@@ -67,7 +67,7 @@
         "utopia-php/emails": "0.6.*",
         "utopia-php/dns": "1.6.*",
         "utopia-php/dsn": "0.2.1",
-        "utopia-php/http": "dev-feat-param-aliases as 0.34.99",
+        "utopia-php/http": "0.34.*",
         "utopia-php/fetch": "0.5.*",
         "utopia-php/validators": "0.2.*",
         "utopia-php/image": "0.8.*",
@@ -75,12 +75,12 @@
         "utopia-php/logger": "0.6.*",
         "utopia-php/messaging": "0.22.*",
         "utopia-php/migration": "1.9.*",
-        "utopia-php/platform": "dev-feat-param-aliases as 0.13.99",
+        "utopia-php/platform": "0.13.*",
         "utopia-php/pools": "1.*",
         "utopia-php/span": "1.1.*",
         "utopia-php/preloader": "0.2.*",
-        "utopia-php/queue": "dev-feat-param-aliases as 0.17.99",
-        "utopia-php/servers": "dev-feat-param-aliases as 0.3.99",
+        "utopia-php/queue": "0.18.*",
+        "utopia-php/servers": "0.4.*",
         "utopia-php/registry": "0.5.*",
         "utopia-php/storage": "2.*",
         "utopia-php/system": "0.10.*",
@@ -117,6 +117,9 @@
         "allow-plugins": {
             "php-http/discovery": true,
             "tbachert/spi": true
+        },
+        "audit": {
+            "ignore": ["PKSA-sf9j-1gs7-xzvx"]
         }
     }
 }
