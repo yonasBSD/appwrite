@@ -29,6 +29,7 @@ class Get extends Action
             ->desc('Get project variable')
             ->groups(['api', 'project'])
             ->label('scope', 'project.read')
+            ->label('resourceType', RESOURCE_TYPE_PROJECTS)
             ->label('sdk', new Method(
                 namespace: 'project',
                 group: 'variables',
@@ -44,7 +45,7 @@ class Get extends Action
                     )
                 ]
             ))
-            ->param('variableId', '', fn (Database $dbForProject) => new UID($dbForProject->getAdapter()->getMaxUIDLength()), 'Variable ID.', false, ['dbForProject'])
+            ->param('variableId', '', fn (Database $dbForProject) => new UID($dbForProject->getAdapter()->getMaxUIDLength()), 'Variable unique ID.', false, ['dbForProject'])
             ->inject('response')
             ->inject('dbForProject')
             ->callback($this->action(...));

@@ -32,6 +32,7 @@ class Delete extends Action
             ->desc('Delete project variable')
             ->groups(['api', 'project'])
             ->label('scope', 'project.write')
+            ->label('resourceType', RESOURCE_TYPE_PROJECTS)
             ->label('event', 'variables.[variableId].delete')
             ->label('audits.event', 'project.variable.delete')
             ->label('audits.resource', 'project.variable/{request.variableId}')
@@ -51,7 +52,7 @@ class Delete extends Action
                 ],
                 contentType: ContentType::NONE
             ))
-            ->param('variableId', '', fn (Database $dbForProject) => new UID($dbForProject->getAdapter()->getMaxUIDLength()), 'Variable ID.', false, ['dbForProject'])
+            ->param('variableId', '', fn (Database $dbForProject) => new UID($dbForProject->getAdapter()->getMaxUIDLength()), 'Variable unique ID.', false, ['dbForProject'])
             ->inject('response')
             ->inject('dbForProject')
             ->inject('queueForEvents')
