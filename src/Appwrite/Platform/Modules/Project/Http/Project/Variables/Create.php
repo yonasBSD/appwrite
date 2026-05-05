@@ -72,7 +72,7 @@ class Create extends Action
         QueueEvent $queueForEvents,
         Database $dbForProject,
     ) {
-        $variableId = ($variableId == 'unique()') ? ID::unique() : $variableId;
+        $variableId = ($variableId === 'unique()') ? ID::unique() : $variableId;
 
         $variable = new Document([
             '$id' => $variableId,

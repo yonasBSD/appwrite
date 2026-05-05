@@ -933,11 +933,11 @@ Http::init()
          */
         $responseFormat = $request->getHeader('x-appwrite-response-format', System::getEnv('_APP_SYSTEM_RESPONSE_FORMAT', ''));
         if ($responseFormat) {
-            if (version_compare($responseFormat, '1.9.3', '<')) {
-                $response->addFilter(new ResponseV24());
-            }
             if (version_compare($responseFormat, '1.9.4', '<')) {
                 $response->addFilter(new ResponseV25());
+            }
+            if (version_compare($responseFormat, '1.9.3', '<')) {
+                $response->addFilter(new ResponseV24());
             }
             if (version_compare($responseFormat, '1.9.2', '<')) {
                 $response->addFilter(new ResponseV23());

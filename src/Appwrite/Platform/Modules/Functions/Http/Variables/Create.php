@@ -91,7 +91,7 @@ class Create extends Base
             throw new Exception(Exception::FUNCTION_NOT_FOUND);
         }
 
-        $variableId = ($variableId == 'unique()') ? ID::unique() : $variableId;
+        $variableId = ($variableId === 'unique()') ? ID::unique() : $variableId;
 
         $teamId = $project->getAttribute('teamId', '');
         $variable = new Document([
