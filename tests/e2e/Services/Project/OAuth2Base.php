@@ -1987,6 +1987,96 @@ trait OAuth2Base
         ]);
     }
 
+    public function testUpdateOAuth2OidcBackwardCompatibleResponseFormat(): void
+    {
+        // Reset to clean state
+        $this->updateOAuth2('oidc', [
+            'clientId' => '',
+            'clientSecret' => '',
+            'wellKnownURL' => '',
+            'authorizationURL' => '',
+            'tokenURL' => '',
+            'userInfoURL' => '',
+            'enabled' => false,
+        ]);
+
+        $headers = [
+            'content-type' => 'application/json',
+            'x-appwrite-project' => $this->getProject()['$id'],
+            'x-appwrite-response-format' => '1.9.3',
+        ];
+        $headers = \array_merge($headers, $this->getHeaders());
+
+        // Update using OLD param names (aliases must still work)
+        $response = $this->client->call(
+            Client::METHOD_PATCH,
+            '/project/oauth2/oidc',
+            $headers,
+            [
+                'clientId' => 'oidc-compat-client',
+                'clientSecret' => 'oidc-compat-secret',
+                'tokenUrl' => 'https://idp.example.com/oauth2/token',
+                'userInfoUrl' => 'https://idp.example.com/oauth2/userinfo',
+                'enabled' => false,
+            ],
+        );
+
+        $this->assertSame(200, $response['headers']['status-code']);
+        $this->assertArrayHasKey('tokenUrl', $response['body']);
+        $this->assertArrayHasKey('userInfoUrl', $response['body']);
+        $this->assertArrayNotHasKey('tokenURL', $response['body']);
+        $this->assertArrayNotHasKey('userInfoURL', $response['body']);
+        $this->assertSame('https://idp.example.com/oauth2/token', $response['body']['tokenUrl']);
+        $this->assertSame('https://idp.example.com/oauth2/userinfo', $response['body']['userInfoUrl']);
+
+        // GET with 1.9.3 format must also return old param names
+        $get = $this->client->call(
+            Client::METHOD_GET,
+            '/project/oauth2/oidc',
+            $headers,
+        );
+
+        $this->assertSame(200, $get['headers']['status-code']);
+        $this->assertArrayHasKey('tokenUrl', $get['body']);
+        $this->assertArrayHasKey('userInfoUrl', $get['body']);
+        $this->assertArrayNotHasKey('tokenURL', $get['body']);
+        $this->assertArrayNotHasKey('userInfoURL', $get['body']);
+        $this->assertSame('https://idp.example.com/oauth2/token', $get['body']['tokenUrl']);
+        $this->assertSame('https://idp.example.com/oauth2/userinfo', $get['body']['userInfoUrl']);
+
+        // LIST with 1.9.3 format must also return old param names for OIDC
+        $list = $this->client->call(
+            Client::METHOD_GET,
+            '/project/oauth2',
+            $headers,
+        );
+
+        $this->assertSame(200, $list['headers']['status-code']);
+        $oidcEntry = null;
+        foreach ($list['body']['providers'] as $provider) {
+            if ($provider['$id'] === 'oidc') {
+                $oidcEntry = $provider;
+                break;
+            }
+        }
+        $this->assertNotNull($oidcEntry, 'OIDC provider missing from listOAuth2Providers response');
+        $this->assertArrayHasKey('tokenUrl', $oidcEntry);
+        $this->assertArrayHasKey('userInfoUrl', $oidcEntry);
+        $this->assertArrayNotHasKey('tokenURL', $oidcEntry);
+        $this->assertArrayNotHasKey('userInfoURL', $oidcEntry);
+        $this->assertSame('https://idp.example.com/oauth2/token', $oidcEntry['tokenUrl']);
+        $this->assertSame('https://idp.example.com/oauth2/userinfo', $oidcEntry['userInfoUrl']);
+
+        // Cleanup
+        $this->updateOAuth2('oidc', [
+            'clientId' => '',
+            'clientSecret' => '',
+            'tokenURL' => '',
+            'userInfoURL' => '',
+            'enabled' => false,
+        ]);
+    }
+
     // =========================================================================
     // Update Okta (clientId + clientSecret + optional domain/authServer)
     // =========================================================================
