@@ -77,6 +77,24 @@ class Insight extends Model
                 'default' => '',
                 'example' => '5e5ea5c16897e',
             ])
+            ->addRule('parentResourceType', [
+                'type' => self::TYPE_STRING,
+                'description' => 'Plural noun for the parent resource that contains the insight\'s resource, e.g. an insight about a column index on a table → resourceType=indexes, parentResourceType=tables. Empty when the resource has no parent.',
+                'default' => '',
+                'example' => 'tables',
+            ])
+            ->addRule('parentResourceId', [
+                'type' => self::TYPE_STRING,
+                'description' => 'ID of the parent resource. Empty when the resource has no parent.',
+                'default' => '',
+                'example' => 'orders',
+            ])
+            ->addRule('parentResourceInternalId', [
+                'type' => self::TYPE_STRING,
+                'description' => 'Internal ID of the parent resource. Empty when the resource has no parent.',
+                'default' => '',
+                'example' => '5e5ea5c16897e',
+            ])
             ->addRule('title', [
                 'type' => self::TYPE_STRING,
                 'description' => 'Insight title.',

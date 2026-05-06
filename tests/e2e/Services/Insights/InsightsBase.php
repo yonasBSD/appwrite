@@ -147,20 +147,25 @@ trait InsightsBase
             default => throw new \InvalidArgumentException("Unknown engine: {$engine}"),
         };
 
-        $resourceType = match ($engine) {
-            'databases' => 'databases',
+        // The insight is *about* a missing index, contained within a table/collection.
+        // resourceType=indexes points at the index that should exist; the parent
+        // points at the table/collection that owns it.
+        $parentResourceType = match ($engine) {
+            'databases' => 'collections',
             'tablesDB' => 'tables',
             'documentsDB' => 'collections',
             'vectorsDB' => 'collections',
-            default => 'databases',
+            default => 'collections',
         };
 
         $body = [
             'insightId' => $insightId ?? ID::unique(),
             'type' => $type,
             'severity' => 'warning',
-            'resourceType' => $resourceType,
-            'resourceId' => 'main',
+            'resourceType' => 'indexes',
+            'resourceId' => '_idx_status',
+            'parentResourceType' => $parentResourceType,
+            'parentResourceId' => 'orders',
             'title' => 'Missing index on collection orders',
             'summary' => 'Queries against `orders.status` are scanning the full collection.',
             'payload' => ['databaseId' => 'main', 'engine' => $engine],
@@ -338,8 +343,10 @@ trait InsightsBase
         $this->assertSame('tablesDBIndex', $insight['body']['type']);
         $this->assertSame('warning', $insight['body']['severity']);
         $this->assertSame('active', $insight['body']['status']);
-        $this->assertSame('tables', $insight['body']['resourceType']);
-        $this->assertSame('main', $insight['body']['resourceId']);
+        $this->assertSame('indexes', $insight['body']['resourceType']);
+        $this->assertSame('_idx_status', $insight['body']['resourceId']);
+        $this->assertSame('tables', $insight['body']['parentResourceType']);
+        $this->assertSame('orders', $insight['body']['parentResourceId']);
         $this->assertSame('Missing index on collection orders', $insight['body']['title']);
         $this->assertCount(1, $insight['body']['ctas']);
         $this->assertSame('createIndex', $insight['body']['ctas'][0]['id']);
@@ -393,6 +400,26 @@ trait InsightsBase
         $this->assertSame(201, $insight['headers']['status-code']);
         $this->assertSame($insightId, $insight['body']['$id']);
         $this->assertEmpty($insight['body']['reportId']);
+
+        $this->deleteInsight($insightId);
+    }
+
+    public function testCreateWithoutParentResource(): void
+    {
+        // Top-level resource (no parent) — e.g. a project-wide audit finding.
+        $insightId = ID::unique();
+        $body = $this->sampleInsight($insightId);
+        unset($body['parentResourceType'], $body['parentResourceId']);
+        $body['resourceType'] = 'projects';
+        $body['resourceId'] = $this->getProject()['$id'];
+
+        $insight = $this->createInsight($body);
+
+        $this->assertSame(201, $insight['headers']['status-code']);
+        $this->assertSame('projects', $insight['body']['resourceType']);
+        $this->assertEmpty($insight['body']['parentResourceType']);
+        $this->assertEmpty($insight['body']['parentResourceId']);
+        $this->assertEmpty($insight['body']['parentResourceInternalId']);
 
         $this->deleteInsight($insightId);
     }
@@ -563,11 +590,23 @@ trait InsightsBase
         $this->assertNotEmpty($list['body']['insights']);
 
         $byResourceType = $this->listInsights([
-            'queries' => ['equal("resourceType", "tables")'],
+            'queries' => ['equal("resourceType", "indexes")'],
         ]);
         $this->assertSame(200, $byResourceType['headers']['status-code']);
         foreach ($byResourceType['body']['insights'] as $insight) {
-            $this->assertSame('tables', $insight['resourceType']);
+            $this->assertSame('indexes', $insight['resourceType']);
+        }
+
+        $byParentResource = $this->listInsights([
+            'queries' => [
+                'equal("parentResourceType", "tables")',
+                'equal("parentResourceId", "orders")',
+            ],
+        ]);
+        $this->assertSame(200, $byParentResource['headers']['status-code']);
+        foreach ($byParentResource['body']['insights'] as $insight) {
+            $this->assertSame('tables', $insight['parentResourceType']);
+            $this->assertSame('orders', $insight['parentResourceId']);
         }
 
         $byStatus = $this->listInsights([
@@ -676,6 +715,8 @@ trait InsightsBase
         $this->assertSame($original['type'], $updated['body']['type']);
         $this->assertSame($original['resourceType'], $updated['body']['resourceType']);
         $this->assertSame($original['resourceId'], $updated['body']['resourceId']);
+        $this->assertSame($original['parentResourceType'], $updated['body']['parentResourceType']);
+        $this->assertSame($original['parentResourceId'], $updated['body']['parentResourceId']);
         $this->assertSame($original['reportId'], $updated['body']['reportId']);
         $this->assertSame($original['ctas'], $updated['body']['ctas']);
         $this->assertSame($original['payload'], $updated['body']['payload']);

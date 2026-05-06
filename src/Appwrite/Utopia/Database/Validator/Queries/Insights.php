@@ -11,6 +11,8 @@ class Insights extends Base
         'reportId',
         'resourceType',
         'resourceId',
+        'parentResourceType',
+        'parentResourceId',
         'analyzedAt',
         'dismissedAt',
         'dismissedBy',

@@ -79,6 +79,9 @@ class Create extends Action
             ->param('resourceType', '', new Text(64), 'Plural resource type the insight is about, e.g. `databases`, `sites`, `functions`.')
             ->param('resourceId', '', new Text(36), 'ID of the resource the insight is about.')
             ->param('resourceInternalId', '', new Text(36), 'Internal ID of the resource the insight is about.', true)
+            ->param('parentResourceType', '', new Text(64), 'Plural noun for the parent (containing) resource, e.g. `tables` for an insight about a column index. Optional.', true)
+            ->param('parentResourceId', '', new Text(36), 'ID of the parent resource.', true)
+            ->param('parentResourceInternalId', '', new Text(36), 'Internal ID of the parent resource.', true)
             ->param('title', '', new Text(256), 'Short, human-readable title.')
             ->param('summary', '', new Text(4096, 0), 'Markdown summary describing the insight.', true)
             ->param('payload', null, new Nullable(new JSON()), 'Type-specific structured payload.', true)
@@ -99,6 +102,9 @@ class Create extends Action
         string $resourceType,
         string $resourceId,
         string $resourceInternalId,
+        string $parentResourceType,
+        string $parentResourceId,
+        string $parentResourceInternalId,
         string $title,
         string $summary,
         ?array $payload,
@@ -155,6 +161,9 @@ class Create extends Action
                 'resourceType' => $resourceType,
                 'resourceId' => $resourceId,
                 'resourceInternalId' => $resourceInternalId,
+                'parentResourceType' => $parentResourceType,
+                'parentResourceId' => $parentResourceId,
+                'parentResourceInternalId' => $parentResourceInternalId,
                 'title' => $title,
                 'summary' => $summary,
                 'payload' => $payload,
