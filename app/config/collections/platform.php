@@ -2022,16 +2022,18 @@ $platformCollections = [
                 'filters' => [],
             ],
             [
-                // JSON array of category strings, e.g. ['performance', 'accessibility'].
+                // Category strings, e.g. 'performance', 'accessibility'. Native array
+                // column — we never query on individual entries (MySQL JSON-array
+                // indexes are weak), this is read+rewrite only.
                 '$id' => ID::custom('categories'),
                 'type' => Database::VAR_STRING,
                 'format' => '',
-                'size' => 2048,
+                'size' => 64,
                 'signed' => true,
                 'required' => false,
                 'default' => null,
-                'array' => false,
-                'filters' => ['json'],
+                'array' => true,
+                'filters' => [],
             ],
             [
                 '$id' => ID::custom('analyzedAt'),

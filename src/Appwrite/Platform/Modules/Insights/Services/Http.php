@@ -2,11 +2,11 @@
 
 namespace Appwrite\Platform\Modules\Insights\Services;
 
-use Appwrite\Platform\Modules\Insights\Http\Insights\Create as CreateInsight;
 use Appwrite\Platform\Modules\Insights\Http\Insights\Delete as DeleteInsight;
 use Appwrite\Platform\Modules\Insights\Http\Insights\Get as GetInsight;
 use Appwrite\Platform\Modules\Insights\Http\Insights\Update as UpdateInsight;
 use Appwrite\Platform\Modules\Insights\Http\Insights\XList as ListInsights;
+use Appwrite\Platform\Modules\Insights\Http\Manager\Insights\Create as CreateInsight;
 use Appwrite\Platform\Modules\Insights\Http\Reports\Create as CreateReport;
 use Appwrite\Platform\Modules\Insights\Http\Reports\Delete as DeleteReport;
 use Appwrite\Platform\Modules\Insights\Http\Reports\Get as GetReport;
@@ -26,7 +26,9 @@ class Http extends Service
         $this->addAction(UpdateReport::getName(), new UpdateReport());
         $this->addAction(DeleteReport::getName(), new DeleteReport());
 
+        // Manager-only ingestion (hidden from SDKs, /v1/manager/insights).
         $this->addAction(CreateInsight::getName(), new CreateInsight());
+
         $this->addAction(GetInsight::getName(), new GetInsight());
         $this->addAction(ListInsights::getName(), new ListInsights());
         $this->addAction(UpdateInsight::getName(), new UpdateInsight());

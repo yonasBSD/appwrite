@@ -1,6 +1,6 @@
 <?php
 
-namespace Appwrite\Platform\Modules\Insights\Http\Insights;
+namespace Appwrite\Platform\Modules\Insights\Http\Manager\Insights;
 
 use Appwrite\Event\Event;
 use Appwrite\Extend\Exception;
@@ -23,6 +23,15 @@ use Utopia\Validator\Nullable;
 use Utopia\Validator\Text;
 use Utopia\Validator\WhiteList;
 
+/**
+ * Manager-only endpoint for analyzer ingestion.
+ *
+ * Insights are produced by internal Appwrite services (edge, executor,
+ * background analyzers) — never by user clients. The endpoint lives under
+ * /v1/manager/* and is hidden from generated SDKs to keep that contract
+ * explicit. Internal services call it directly over HTTP using a server
+ * API key with the `insights.manager` scope.
+ */
 class Create extends Action
 {
     use HTTP;
@@ -36,10 +45,10 @@ class Create extends Action
     {
         $this
             ->setHttpMethod(Action::HTTP_REQUEST_METHOD_POST)
-            ->setHttpPath('/v1/insights')
+            ->setHttpPath('/v1/manager/insights')
             ->desc('Create insight')
-            ->groups(['api', 'insights'])
-            ->label('scope', 'insights.write')
+            ->groups(['api', 'manager', 'insights'])
+            ->label('scope', 'insights.manager')
             ->label('event', 'insights.[insightId].create')
             ->label('resourceType', RESOURCE_TYPE_INSIGHTS)
             ->label('audits.event', 'insight.create')
@@ -48,19 +57,20 @@ class Create extends Action
             ->label('abuse-limit', APP_LIMIT_WRITE_RATE_DEFAULT)
             ->label('abuse-time', APP_LIMIT_WRITE_RATE_PERIOD_DEFAULT)
             ->label('sdk', new Method(
-                namespace: 'insights',
+                namespace: 'manager',
                 group: 'insights',
-                name: 'create',
+                name: 'createInsight',
                 description: <<<EOT
-                Create a new insight. Server-side only: insights are produced by analyzers and surfaced to project members.
+                Manager-only: ingest an insight produced by an internal analyzer (edge, executor, background worker, …). Not exposed to user-facing client or server SDKs.
                 EOT,
-                auth: [AuthType::ADMIN, AuthType::KEY],
+                auth: [AuthType::KEY],
                 responses: [
                     new SDKResponse(
                         code: Response::STATUS_CODE_CREATED,
                         model: Response::MODEL_INSIGHT,
                     ),
-                ]
+                ],
+                hide: true,
             ))
             ->param('insightId', '', fn (Database $dbForPlatform) => new CustomId(false, $dbForPlatform->getAdapter()->getMaxUIDLength()), 'Insight ID. Choose a custom ID or generate a random ID with `ID.unique()`. Valid chars are a-z, A-Z, 0-9, period, hyphen, and underscore. Can\'t start with a special char. Max length is 36 chars.', false, ['dbForPlatform'])
             ->param('reportId', '', fn (Database $dbForPlatform) => new UID($dbForPlatform->getAdapter()->getMaxUIDLength()), 'Parent report ID. Optional — leave empty for ad-hoc insights not attached to a report.', true, ['dbForPlatform'])
@@ -72,7 +82,7 @@ class Create extends Action
             ->param('title', '', new Text(256), 'Short, human-readable title.')
             ->param('summary', '', new Text(4096, 0), 'Markdown summary describing the insight.', true)
             ->param('payload', null, new Nullable(new JSON()), 'Type-specific structured payload.', true)
-            ->param('ctas', [], new CTAsValidator(), 'Array of call-to-action descriptors. Each must contain `id`, `label`, `action`, and optional `params`.', true)
+            ->param('ctas', [], new CTAsValidator(), 'Array of call-to-action descriptors. Each must contain `id`, `label`, `service`, `method`, and an optional `params` object.', true)
             ->param('analyzedAt', null, new Nullable(new DatetimeValidator()), 'Time the insight was analyzed in ISO 8601 format. Defaults to now.', true)
             ->inject('response')
             ->inject('project')

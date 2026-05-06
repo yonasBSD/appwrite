@@ -51,7 +51,8 @@ trait InsightsBase
 
     protected function createInsight(array $body, array $headers = null): array
     {
-        return $this->client->call(Client::METHOD_POST, '/insights', $headers ?? $this->serverHeaders(), $body);
+        // Manager-only endpoint — internal Appwrite services ingest here, not user SDKs.
+        return $this->client->call(Client::METHOD_POST, '/manager/insights', $headers ?? $this->serverHeaders(), $body);
     }
 
     protected function getInsight(string $insightId, array $headers = null): array
@@ -797,6 +798,25 @@ trait InsightsBase
         ]);
 
         $this->assertSame(401, $unauthorized['headers']['status-code']);
+    }
+
+    public function testCreateRequiresManagerScope(): void
+    {
+        // A server key with insights.read + insights.write but NOT insights.manager
+        // must be rejected — Create lives behind /v1/manager/insights and only
+        // internal Appwrite services hold the manager scope.
+        $userKey = $this->getNewKey([
+            'insights.read',
+            'insights.write',
+        ]);
+
+        $rejected = $this->createInsight($this->sampleInsight(), [
+            'content-type' => 'application/json',
+            'x-appwrite-project' => $this->getProject()['$id'],
+            'x-appwrite-key' => $userKey,
+        ]);
+
+        $this->assertSame(401, $rejected['headers']['status-code']);
     }
 
     public function testListSurvivesEmptyDatabase(): void

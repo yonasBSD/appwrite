@@ -344,7 +344,11 @@ return [
         'category' => 'Other',
     ],
     'insights.write' => [
-        'description' => 'Access to create, update, dismiss, and delete insights.',
+        'description' => 'Access to update, dismiss, and delete insights.',
+        'category' => 'Other',
+    ],
+    'insights.manager' => [
+        'description' => 'Internal-only: ingest insights produced by Appwrite analyzers (edge, executor, …). Not granted to user roles.',
         'category' => 'Other',
     ],
 
