@@ -4,7 +4,6 @@ namespace Appwrite\Platform\Modules\Insights\Http\Insights;
 
 use Appwrite\Event\Event;
 use Appwrite\Extend\Exception;
-use Appwrite\Insights\Validator\CTAs as CTAsValidator;
 use Appwrite\SDK\AuthType;
 use Appwrite\SDK\Method;
 use Appwrite\SDK\Response as SDKResponse;
@@ -12,15 +11,20 @@ use Appwrite\Utopia\Response;
 use Utopia\Database\Database;
 use Utopia\Database\DateTime;
 use Utopia\Database\Document;
-use Utopia\Database\Validator\Datetime as DatetimeValidator;
 use Utopia\Database\Validator\UID;
 use Utopia\Platform\Action;
 use Utopia\Platform\Scope\HTTP;
-use Utopia\Validator\JSON;
 use Utopia\Validator\Nullable;
-use Utopia\Validator\Text;
 use Utopia\Validator\WhiteList;
 
+/**
+ * User-facing Update endpoint.
+ *
+ * Limited to user-controlled state: dismissal (status), and severity overrides.
+ * Analyzer-controlled fields (title, summary, payload, ctas, analyzedAt) flow
+ * through the manager-only Create endpoint — analyzers re-ingest by deleting
+ * the stale insight and submitting a fresh one.
+ */
 class Update extends Action
 {
     use HTTP;
@@ -50,7 +54,7 @@ class Update extends Action
                 group: 'insights',
                 name: 'update',
                 description: <<<EOT
-                Update an insight. Pass only the attributes you want to change. Set `status` to `dismissed` to dismiss the insight (the dismissal timestamp and user are recorded automatically) or back to `active` to undo a dismissal.
+                Update user-controlled state on an insight. Set `status` to `dismissed` to dismiss it (the dismissal timestamp and user are recorded automatically) or back to `active` to undo a dismissal. `severity` lets users escalate or downgrade the analyzer's classification.
                 EOT,
                 auth: [AuthType::ADMIN, AuthType::KEY],
                 responses: [
@@ -63,11 +67,6 @@ class Update extends Action
             ->param('insightId', '', fn (Database $dbForPlatform) => new UID($dbForPlatform->getAdapter()->getMaxUIDLength()), 'Insight ID.', false, ['dbForPlatform'])
             ->param('severity', null, new Nullable(new WhiteList(INSIGHT_SEVERITIES, true)), 'Insight severity. One of `info`, `warning`, `critical`.', true)
             ->param('status', null, new Nullable(new WhiteList(INSIGHT_STATUSES, true)), 'Insight status. Set to `dismissed` to dismiss the insight, `active` to undo a dismissal.', true)
-            ->param('title', null, new Nullable(new Text(256)), 'Short, human-readable title.', true)
-            ->param('summary', null, new Nullable(new Text(4096, 0)), 'Markdown summary describing the insight.', true)
-            ->param('payload', null, new Nullable(new JSON()), 'Type-specific structured payload.', true)
-            ->param('ctas', null, new Nullable(new CTAsValidator()), 'Array of call-to-action descriptors.', true)
-            ->param('analyzedAt', null, new Nullable(new DatetimeValidator()), 'Time the insight was analyzed in ISO 8601 format.', true)
             ->inject('response')
             ->inject('user')
             ->inject('project')
@@ -80,11 +79,6 @@ class Update extends Action
         string $insightId,
         ?string $severity,
         ?string $status,
-        ?string $title,
-        ?string $summary,
-        ?array $payload,
-        ?array $ctas,
-        ?string $analyzedAt,
         Response $response,
         Document $user,
         Document $project,
@@ -111,38 +105,6 @@ class Update extends Action
                 $changes['dismissedAt'] = null;
                 $changes['dismissedBy'] = '';
             }
-        }
-        if ($title !== null) {
-            $changes['title'] = $title;
-        }
-        if ($summary !== null) {
-            $changes['summary'] = $summary;
-        }
-        if ($payload !== null) {
-            $changes['payload'] = $payload;
-        }
-        if ($ctas !== null) {
-            $seen = [];
-            $normalized = [];
-            foreach ($ctas as $cta) {
-                $ctaId = (string) $cta['id'];
-                if (isset($seen[$ctaId])) {
-                    throw new Exception(Exception::GENERAL_ARGUMENT_INVALID, 'CTA `id` values must be unique within an insight.');
-                }
-                $seen[$ctaId] = true;
-
-                $normalized[] = [
-                    'id' => $ctaId,
-                    'label' => (string) $cta['label'],
-                    'service' => (string) $cta['service'],
-                    'method' => (string) $cta['method'],
-                    'params' => $cta['params'] ?? new \stdClass(),
-                ];
-            }
-            $changes['ctas'] = $normalized;
-        }
-        if ($analyzedAt !== null) {
-            $changes['analyzedAt'] = $analyzedAt;
         }
 
         if ($changes !== []) {

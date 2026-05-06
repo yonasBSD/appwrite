@@ -84,6 +84,15 @@ class Delete extends Action
         ]);
 
         foreach ($childInsights as $insight) {
+            // Cascade through CTAs first.
+            $childCTAs = $dbForPlatform->find('ctas', [
+                Query::equal('insightInternalId', [$insight->getSequence()]),
+                Query::limit(APP_LIMIT_COUNT),
+            ]);
+            foreach ($childCTAs as $cta) {
+                $dbForPlatform->deleteDocument('ctas', $cta->getId());
+            }
+
             $dbForPlatform->deleteDocument('insights', $insight->getId());
         }
 

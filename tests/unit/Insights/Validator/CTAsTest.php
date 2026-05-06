@@ -28,7 +28,7 @@ class CTAsTest extends TestCase
         $validator = new CTAs();
 
         $this->assertTrue($validator->isValid([[
-            'id' => 'createIndex',
+            'key' => 'createIndex',
             'label' => 'Create missing index',
             'service' => 'tablesDB',
             'method' => 'createIndex',
@@ -44,7 +44,7 @@ class CTAsTest extends TestCase
         $validator = new CTAs();
 
         $this->assertTrue($validator->isValid([[
-            'id' => 'createIndex',
+            'key' => 'createIndex',
             'label' => 'Create missing index',
             'service' => 'tablesDB',
             'method' => 'createIndex',
@@ -55,10 +55,10 @@ class CTAsTest extends TestCase
     {
         $validator = new CTAs();
 
-        $this->assertFalse($validator->isValid([['id' => 'x']]));
-        $this->assertFalse($validator->isValid([['id' => 'x', 'label' => 'y']]));
-        $this->assertFalse($validator->isValid([['id' => 'x', 'label' => 'y', 'service' => 'tablesDB']]));
-        $this->assertFalse($validator->isValid([['id' => 'x', 'label' => 'y', 'method' => 'createIndex']]));
+        $this->assertFalse($validator->isValid([['key' => 'x']]));
+        $this->assertFalse($validator->isValid([['key' => 'x', 'label' => 'y']]));
+        $this->assertFalse($validator->isValid([['key' => 'x', 'label' => 'y', 'service' => 'tablesDB']]));
+        $this->assertFalse($validator->isValid([['key' => 'x', 'label' => 'y', 'method' => 'createIndex']]));
     }
 
     public function testRejectsEntryWithEmptyStrings(): void
@@ -66,7 +66,7 @@ class CTAsTest extends TestCase
         $validator = new CTAs();
 
         $this->assertFalse($validator->isValid([[
-            'id' => '',
+            'key' => '',
             'label' => 'Create missing index',
             'service' => 'tablesDB',
             'method' => 'createIndex',
@@ -78,7 +78,7 @@ class CTAsTest extends TestCase
         $validator = new CTAs();
 
         $this->assertFalse($validator->isValid([[
-            'id' => 123,
+            'key' => 123,
             'label' => 'Create missing index',
             'service' => 'tablesDB',
             'method' => 'createIndex',
@@ -90,7 +90,7 @@ class CTAsTest extends TestCase
         $validator = new CTAs();
 
         $this->assertFalse($validator->isValid([[
-            'id' => 'createIndex',
+            'key' => 'createIndex',
             'label' => 'Create missing index',
             'service' => 'tablesDB',
             'method' => 'createIndex',
@@ -113,7 +113,7 @@ class CTAsTest extends TestCase
         $entries = [];
         for ($i = 0; $i < 4; $i++) {
             $entries[] = [
-                'id' => 'cta-' . $i,
+                'key' => 'cta-' . $i,
                 'label' => 'Label ' . $i,
                 'service' => 'tablesDB',
                 'method' => 'createIndex',
@@ -131,7 +131,7 @@ class CTAsTest extends TestCase
         $entries = [];
         for ($i = 0; $i < 3; $i++) {
             $entries[] = [
-                'id' => 'cta-' . $i,
+                'key' => 'cta-' . $i,
                 'label' => 'Label ' . $i,
                 'service' => 'tablesDB',
                 'method' => 'createIndex',
@@ -146,7 +146,7 @@ class CTAsTest extends TestCase
         $validator = new CTAs();
 
         $entry = [
-            'id' => 'createIndex',
+            'key' => 'createIndex',
             'label' => 'Create missing index',
             'service' => 'tablesDB',
             'method' => 'createIndex',
@@ -161,7 +161,7 @@ class CTAsTest extends TestCase
         $validator = new CTAs();
 
         $this->assertFalse($validator->isValid([[
-            'id' => 'createIndex',
+            'key' => 'createIndex',
             'label' => 'Create missing index',
             'service' => '',
             'method' => 'createIndex',
@@ -173,7 +173,7 @@ class CTAsTest extends TestCase
         $validator = new CTAs();
 
         $this->assertFalse($validator->isValid([[
-            'id' => 'createIndex',
+            'key' => 'createIndex',
             'label' => 'Create missing index',
             'service' => 'tablesDB',
             'method' => '',
@@ -185,7 +185,7 @@ class CTAsTest extends TestCase
         $validator = new CTAs();
 
         $this->assertFalse($validator->isValid([[
-            'id' => 'createIndex',
+            'key' => 'createIndex',
             'label' => '',
             'service' => 'tablesDB',
             'method' => 'createIndex',
@@ -201,7 +201,7 @@ class CTAsTest extends TestCase
         $entries = [];
         for ($i = 0; $i < 16; $i++) {
             $entries[] = [
-                'id' => 'cta-' . $i,
+                'key' => 'cta-' . $i,
                 'label' => 'Label ' . $i,
                 'service' => 'tablesDB',
                 'method' => 'createIndex',
@@ -211,7 +211,7 @@ class CTAsTest extends TestCase
         $this->assertTrue($validator->isValid($entries));
 
         $entries[] = [
-            'id' => 'cta-16',
+            'key' => 'cta-16',
             'label' => 'Label 16',
             'service' => 'tablesDB',
             'method' => 'createIndex',

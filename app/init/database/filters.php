@@ -475,3 +475,17 @@ Database::addFilter(
             ]));
     }
 );
+
+Database::addFilter(
+    'subQueryInsightCTAs',
+    function (mixed $value) {
+        return;
+    },
+    function (mixed $value, Document $document, Database $database) {
+        return $database->getAuthorization()->skip(fn () => $database
+            ->find('ctas', [
+                Query::equal('insightInternalId', [$document->getSequence()]),
+                Query::limit(APP_LIMIT_SUBQUERY),
+            ]));
+    }
+);

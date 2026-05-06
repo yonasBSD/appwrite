@@ -11,6 +11,7 @@ use Appwrite\SDK\Response as SDKResponse;
 use Appwrite\Utopia\Response;
 use Utopia\Database\Database;
 use Utopia\Database\Document;
+use Utopia\Database\Query;
 use Utopia\Database\Validator\UID;
 use Utopia\Platform\Action;
 use Utopia\Platform\Scope\HTTP;
@@ -74,6 +75,16 @@ class Delete extends Action
 
         if ($insight->isEmpty() || $insight->getAttribute('projectInternalId') !== $project->getSequence()) {
             throw new Exception(Exception::INSIGHT_NOT_FOUND);
+        }
+
+        // Cascade delete child CTAs first.
+        $childCTAs = $dbForPlatform->find('ctas', [
+            Query::equal('insightInternalId', [$insight->getSequence()]),
+            Query::limit(APP_LIMIT_COUNT),
+        ]);
+
+        foreach ($childCTAs as $cta) {
+            $dbForPlatform->deleteDocument('ctas', $cta->getId());
         }
 
         if (!$dbForPlatform->deleteDocument('insights', $insight->getId())) {

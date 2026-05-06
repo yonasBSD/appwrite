@@ -85,7 +85,7 @@ class Create extends Action
             ->param('title', '', new Text(256), 'Short, human-readable title.')
             ->param('summary', '', new Text(4096, 0), 'Markdown summary describing the insight.', true)
             ->param('payload', null, new Nullable(new JSON()), 'Type-specific structured payload.', true)
-            ->param('ctas', [], new CTAsValidator(), 'Array of call-to-action descriptors. Each must contain `id`, `label`, `service`, `method`, and an optional `params` object.', true)
+            ->param('ctas', [], new CTAsValidator(), 'Array of call-to-action descriptors. Each must contain `key` (unique within the insight), `label`, `service`, `method`, and an optional `params` object.', true)
             ->param('analyzedAt', null, new Nullable(new DatetimeValidator()), 'Time the insight was analyzed in ISO 8601 format. Defaults to now.', true)
             ->inject('response')
             ->inject('project')
@@ -133,14 +133,14 @@ class Create extends Action
         $normalizedCTAs = [];
 
         foreach ($ctas as $cta) {
-            $ctaId = (string) $cta['id'];
-            if (isset($seen[$ctaId])) {
-                throw new Exception(Exception::GENERAL_ARGUMENT_INVALID, 'CTA `id` values must be unique within an insight.');
+            $key = (string) $cta['key'];
+            if (isset($seen[$key])) {
+                throw new Exception(Exception::GENERAL_ARGUMENT_INVALID, 'CTA `key` values must be unique within an insight.');
             }
-            $seen[$ctaId] = true;
+            $seen[$key] = true;
 
             $normalizedCTAs[] = [
-                'id' => $ctaId,
+                'key' => $key,
                 'label' => (string) $cta['label'],
                 'service' => (string) $cta['service'],
                 'method' => (string) $cta['method'],
@@ -167,7 +167,6 @@ class Create extends Action
                 'title' => $title,
                 'summary' => $summary,
                 'payload' => $payload,
-                'ctas' => $normalizedCTAs,
                 'analyzedAt' => $analyzedAt,
                 'dismissedAt' => null,
                 'dismissedBy' => '',
@@ -175,6 +174,25 @@ class Create extends Action
         } catch (DuplicateException) {
             throw new Exception(Exception::INSIGHT_ALREADY_EXISTS);
         }
+
+        foreach ($normalizedCTAs as $cta) {
+            $dbForPlatform->createDocument('ctas', new Document([
+                '$id' => ID::unique(),
+                'projectInternalId' => $project->getSequence(),
+                'projectId' => $project->getId(),
+                'insightInternalId' => $insight->getSequence(),
+                'insightId' => $insight->getId(),
+                'key' => $cta['key'],
+                'label' => $cta['label'],
+                'service' => $cta['service'],
+                'method' => $cta['method'],
+                'params' => $cta['params'],
+            ]));
+        }
+
+        // Re-fetch so the subQueryInsightCTAs filter embeds the freshly-created
+        // CTA documents on the response — keeps a single round-trip for callers.
+        $insight = $dbForPlatform->getDocument('insights', $insight->getId());
 
         $queueForEvents->setParam('insightId', $insight->getId());
 
