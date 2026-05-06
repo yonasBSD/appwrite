@@ -30,10 +30,11 @@ class CTAsTest extends TestCase
         $this->assertTrue($validator->isValid([[
             'id' => 'createIndex',
             'label' => 'Create missing index',
-            'action' => 'databases.createIndex',
+            'service' => 'tablesDB',
+            'method' => 'createIndex',
             'params' => [
                 'databaseId' => 'main',
-                'collectionId' => 'orders',
+                'tableId' => 'orders',
             ],
         ]]));
     }
@@ -45,7 +46,8 @@ class CTAsTest extends TestCase
         $this->assertTrue($validator->isValid([[
             'id' => 'createIndex',
             'label' => 'Create missing index',
-            'action' => 'databases.createIndex',
+            'service' => 'tablesDB',
+            'method' => 'createIndex',
         ]]));
     }
 
@@ -55,6 +57,8 @@ class CTAsTest extends TestCase
 
         $this->assertFalse($validator->isValid([['id' => 'x']]));
         $this->assertFalse($validator->isValid([['id' => 'x', 'label' => 'y']]));
+        $this->assertFalse($validator->isValid([['id' => 'x', 'label' => 'y', 'service' => 'tablesDB']]));
+        $this->assertFalse($validator->isValid([['id' => 'x', 'label' => 'y', 'method' => 'createIndex']]));
     }
 
     public function testRejectsEntryWithEmptyStrings(): void
@@ -64,7 +68,8 @@ class CTAsTest extends TestCase
         $this->assertFalse($validator->isValid([[
             'id' => '',
             'label' => 'Create missing index',
-            'action' => 'databases.createIndex',
+            'service' => 'tablesDB',
+            'method' => 'createIndex',
         ]]));
     }
 
@@ -75,7 +80,8 @@ class CTAsTest extends TestCase
         $this->assertFalse($validator->isValid([[
             'id' => 123,
             'label' => 'Create missing index',
-            'action' => 'databases.createIndex',
+            'service' => 'tablesDB',
+            'method' => 'createIndex',
         ]]));
     }
 
@@ -86,7 +92,8 @@ class CTAsTest extends TestCase
         $this->assertFalse($validator->isValid([[
             'id' => 'createIndex',
             'label' => 'Create missing index',
-            'action' => 'databases.createIndex',
+            'service' => 'tablesDB',
+            'method' => 'createIndex',
             'params' => 'not-a-map',
         ]]));
     }
@@ -108,7 +115,8 @@ class CTAsTest extends TestCase
             $entries[] = [
                 'id' => 'cta-' . $i,
                 'label' => 'Label ' . $i,
-                'action' => 'databases.createIndex',
+                'service' => 'tablesDB',
+                'method' => 'createIndex',
             ];
         }
 
@@ -125,7 +133,8 @@ class CTAsTest extends TestCase
             $entries[] = [
                 'id' => 'cta-' . $i,
                 'label' => 'Label ' . $i,
-                'action' => 'databases.createIndex',
+                'service' => 'tablesDB',
+                'method' => 'createIndex',
             ];
         }
 
@@ -139,21 +148,35 @@ class CTAsTest extends TestCase
         $entry = [
             'id' => 'createIndex',
             'label' => 'Create missing index',
-            'action' => 'databases.createIndex',
+            'service' => 'tablesDB',
+            'method' => 'createIndex',
             'params' => new \stdClass(),
         ];
 
         $this->assertTrue($validator->isValid([$entry]));
     }
 
-    public function testRejectsEntryWithEmptyAction(): void
+    public function testRejectsEntryWithEmptyService(): void
     {
         $validator = new CTAs();
 
         $this->assertFalse($validator->isValid([[
             'id' => 'createIndex',
             'label' => 'Create missing index',
-            'action' => '',
+            'service' => '',
+            'method' => 'createIndex',
+        ]]));
+    }
+
+    public function testRejectsEntryWithEmptyMethod(): void
+    {
+        $validator = new CTAs();
+
+        $this->assertFalse($validator->isValid([[
+            'id' => 'createIndex',
+            'label' => 'Create missing index',
+            'service' => 'tablesDB',
+            'method' => '',
         ]]));
     }
 
@@ -164,7 +187,8 @@ class CTAsTest extends TestCase
         $this->assertFalse($validator->isValid([[
             'id' => 'createIndex',
             'label' => '',
-            'action' => 'databases.createIndex',
+            'service' => 'tablesDB',
+            'method' => 'createIndex',
         ]]));
     }
 
@@ -179,7 +203,8 @@ class CTAsTest extends TestCase
             $entries[] = [
                 'id' => 'cta-' . $i,
                 'label' => 'Label ' . $i,
-                'action' => 'databases.createIndex',
+                'service' => 'tablesDB',
+                'method' => 'createIndex',
             ];
         }
 
@@ -188,7 +213,8 @@ class CTAsTest extends TestCase
         $entries[] = [
             'id' => 'cta-16',
             'label' => 'Label 16',
-            'action' => 'databases.createIndex',
+            'service' => 'tablesDB',
+            'method' => 'createIndex',
         ];
 
         $this->assertFalse($validator->isValid($entries));

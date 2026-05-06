@@ -449,12 +449,15 @@ const INSIGHT_TYPES = [
     INSIGHT_TYPE_FUNCTION_PERFORMANCE,
 ];
 
-// Public API method names that an insight CTA's `action` can reference for index suggestions.
+// Public API services (SDK namespaces) that an insight CTA's `service` can reference.
 // Analyzers must pick the one matching the engine the resource lives in.
-const INSIGHT_CTA_ACTION_DATABASES_CREATE_INDEX = 'databases.createIndex';
-const INSIGHT_CTA_ACTION_TABLES_DB_CREATE_INDEX = 'tablesDB.createIndex';
-const INSIGHT_CTA_ACTION_DOCUMENTS_DB_CREATE_INDEX = 'documentsDB.createIndex';
-const INSIGHT_CTA_ACTION_VECTORS_DB_CREATE_INDEX = 'vectorsDB.createIndex';
+const INSIGHT_CTA_SERVICE_DATABASES = 'databases';      // legacy
+const INSIGHT_CTA_SERVICE_TABLES_DB = 'tablesDB';
+const INSIGHT_CTA_SERVICE_DOCUMENTS_DB = 'documentsDB';
+const INSIGHT_CTA_SERVICE_VECTORS_DB = 'vectorsDB';
+
+// Public API method names that an insight CTA's `method` can reference for index suggestions.
+const INSIGHT_CTA_METHOD_CREATE_INDEX = 'createIndex';
 
 // Insight severities
 const INSIGHT_SEVERITY_INFO = 'info';

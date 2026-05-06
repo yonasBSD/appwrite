@@ -126,7 +126,8 @@ class Create extends Action
             $normalizedCTAs[] = [
                 'id' => $ctaId,
                 'label' => (string) $cta['label'],
-                'action' => (string) $cta['action'],
+                'service' => (string) $cta['service'],
+                'method' => (string) $cta['method'],
                 'params' => $cta['params'] ?? new \stdClass(),
             ];
         }

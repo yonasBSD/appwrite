@@ -22,15 +22,21 @@ class InsightCTA extends Model
                 'default' => '',
                 'example' => 'Create missing index',
             ])
-            ->addRule('action', [
+            ->addRule('service', [
                 'type' => self::TYPE_STRING,
-                'description' => 'Public API method the client should invoke when this CTA is triggered. Must match the engine that owns the resource: databases.createIndex (legacy), tablesDB.createIndex, documentsDB.createIndex, or vectorsDB.createIndex for index suggestions.',
+                'description' => 'Public API service (SDK namespace) the client should invoke. Must match the engine that owns the resource — for index suggestions: databases (legacy), tablesDB, documentsDB, or vectorsDB.',
                 'default' => '',
-                'example' => 'tablesDB.createIndex',
+                'example' => 'tablesDB',
+            ])
+            ->addRule('method', [
+                'type' => self::TYPE_STRING,
+                'description' => 'Public API method on the chosen service the client should invoke when this CTA is triggered.',
+                'default' => '',
+                'example' => 'createIndex',
             ])
             ->addRule('params', [
                 'type' => self::TYPE_JSON,
-                'description' => 'Parameter map the client should pass to the action when this CTA is triggered. Keys match the target API\'s parameter names (e.g. databaseId/tableId/columns for tablesDB, databaseId/collectionId/attributes for the legacy Databases API).',
+                'description' => 'Parameter map the client should pass to the service method when this CTA is triggered. Keys match the target API\'s parameter names (e.g. databaseId/tableId/columns for tablesDB, databaseId/collectionId/attributes for the legacy Databases API).',
                 'default' => new \stdClass(),
                 'example' => ['databaseId' => 'main', 'tableId' => 'orders', 'key' => '_idx_status', 'type' => 'key', 'columns' => ['status']],
             ]);

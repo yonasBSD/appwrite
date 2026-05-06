@@ -8,7 +8,7 @@ class CTAs extends Validator
 {
     public const MAX_COUNT_DEFAULT = 16;
 
-    protected string $message = 'Value must be an array of CTA descriptors. Each entry must define `id`, `label`, `action`, and an optional `params` object.';
+    protected string $message = 'Value must be an array of CTA descriptors. Each entry must define `id`, `label`, `service`, `method`, and an optional `params` object.';
 
     public function __construct(protected int $maxCount = self::MAX_COUNT_DEFAULT)
     {
@@ -45,7 +45,7 @@ class CTAs extends Validator
                 return false;
             }
 
-            foreach (['id', 'label', 'action'] as $required) {
+            foreach (['id', 'label', 'service', 'method'] as $required) {
                 if (!isset($entry[$required]) || !\is_string($entry[$required]) || $entry[$required] === '') {
                     return false;
                 }

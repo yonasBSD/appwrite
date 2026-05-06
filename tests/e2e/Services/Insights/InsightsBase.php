@@ -78,18 +78,22 @@ trait InsightsBase
      * Sample CTA pointing at the engine-specific public API.
      *
      * The `engine` parameter selects which API the CTA targets:
-     *  - `databases`    → databases.createIndex (legacy, params use collectionId/attributes)
-     *  - `tablesDB`     → tablesDB.createIndex (params use tableId/columns)
-     *  - `documentsDB`  → documentsDB.createIndex (params use collectionId/attributes)
-     *  - `vectorsDB`    → vectorsDB.createIndex (params use collectionId/attributes)
+     *  - `databases`    → service `databases`,    method `createIndex` (legacy, params use collectionId/attributes)
+     *  - `tablesDB`     → service `tablesDB`,     method `createIndex` (params use tableId/columns)
+     *  - `documentsDB`  → service `documentsDB`,  method `createIndex` (params use collectionId/attributes)
+     *  - `vectorsDB`    → service `vectorsDB`,    method `createIndex` (params use collectionId/attributes)
      */
     protected function sampleCTA(string $id = 'createIndex', string $engine = 'tablesDB'): array
     {
+        $base = [
+            'id' => $id,
+            'label' => 'Create missing index',
+            'method' => 'createIndex',
+        ];
+
         return match ($engine) {
-            'databases' => [
-                'id' => $id,
-                'label' => 'Create missing index',
-                'action' => 'databases.createIndex',
+            'databases' => $base + [
+                'service' => 'databases',
                 'params' => [
                     'databaseId' => 'main',
                     'collectionId' => 'orders',
@@ -98,10 +102,8 @@ trait InsightsBase
                     'attributes' => ['status'],
                 ],
             ],
-            'tablesDB' => [
-                'id' => $id,
-                'label' => 'Create missing index',
-                'action' => 'tablesDB.createIndex',
+            'tablesDB' => $base + [
+                'service' => 'tablesDB',
                 'params' => [
                     'databaseId' => 'main',
                     'tableId' => 'orders',
@@ -110,10 +112,8 @@ trait InsightsBase
                     'columns' => ['status'],
                 ],
             ],
-            'documentsDB' => [
-                'id' => $id,
-                'label' => 'Create missing index',
-                'action' => 'documentsDB.createIndex',
+            'documentsDB' => $base + [
+                'service' => 'documentsDB',
                 'params' => [
                     'databaseId' => 'main',
                     'collectionId' => 'orders',
@@ -122,10 +122,8 @@ trait InsightsBase
                     'attributes' => ['status'],
                 ],
             ],
-            'vectorsDB' => [
-                'id' => $id,
-                'label' => 'Create missing index',
-                'action' => 'vectorsDB.createIndex',
+            'vectorsDB' => $base + [
+                'service' => 'vectorsDB',
                 'params' => [
                     'databaseId' => 'main',
                     'collectionId' => 'orders',
@@ -344,7 +342,8 @@ trait InsightsBase
         $this->assertSame('Missing index on collection orders', $insight['body']['title']);
         $this->assertCount(1, $insight['body']['ctas']);
         $this->assertSame('createIndex', $insight['body']['ctas'][0]['id']);
-        $this->assertSame('tablesDB.createIndex', $insight['body']['ctas'][0]['action']);
+        $this->assertSame('tablesDB', $insight['body']['ctas'][0]['service']);
+        $this->assertSame('createIndex', $insight['body']['ctas'][0]['method']);
         $this->assertSame('orders', $insight['body']['ctas'][0]['params']['tableId']);
         $this->assertSame(['status'], $insight['body']['ctas'][0]['params']['columns']);
         $this->assertEmpty($insight['body']['dismissedAt']);
@@ -355,12 +354,12 @@ trait InsightsBase
 
     /**
      * Each engine — legacy databases, tablesDB, documentsDB, vectorsDB — should be
-     * createable with its own insight type and a CTA that points at the matching
-     * public API method.
+     * createable with its own insight type and a CTA whose service+method points
+     * at the matching public API.
      *
      * @dataProvider engineMatrixProvider
      */
-    public function testCreateForEachEngine(string $engine, string $expectedType, string $expectedAction): void
+    public function testCreateForEachEngine(string $engine, string $expectedType, string $expectedService, string $expectedMethod): void
     {
         $insightId = ID::unique();
 
@@ -368,7 +367,8 @@ trait InsightsBase
 
         $this->assertSame(201, $insight['headers']['status-code']);
         $this->assertSame($expectedType, $insight['body']['type']);
-        $this->assertSame($expectedAction, $insight['body']['ctas'][0]['action']);
+        $this->assertSame($expectedService, $insight['body']['ctas'][0]['service']);
+        $this->assertSame($expectedMethod, $insight['body']['ctas'][0]['method']);
 
         $this->deleteInsight($insightId);
     }
@@ -376,10 +376,10 @@ trait InsightsBase
     public static function engineMatrixProvider(): array
     {
         return [
-            'legacy databases' => ['databases', 'databaseIndex', 'databases.createIndex'],
-            'tablesDB' => ['tablesDB', 'tablesDBIndex', 'tablesDB.createIndex'],
-            'documentsDB' => ['documentsDB', 'documentsDBIndex', 'documentsDB.createIndex'],
-            'vectorsDB' => ['vectorsDB', 'vectorsDBIndex', 'vectorsDB.createIndex'],
+            'legacy databases' => ['databases', 'databaseIndex', 'databases', 'createIndex'],
+            'tablesDB' => ['tablesDB', 'tablesDBIndex', 'tablesDB', 'createIndex'],
+            'documentsDB' => ['documentsDB', 'documentsDBIndex', 'documentsDB', 'createIndex'],
+            'vectorsDB' => ['vectorsDB', 'vectorsDBIndex', 'vectorsDB', 'createIndex'],
         ];
     }
 
@@ -452,8 +452,8 @@ trait InsightsBase
             'resourceId' => 'main',
             'title' => 'Should not be created',
             'ctas' => [
-                ['id' => 'dup', 'label' => 'A', 'action' => 'databases.createIndex'],
-                ['id' => 'dup', 'label' => 'B', 'action' => 'databases.createIndex'],
+                ['id' => 'dup', 'label' => 'A', 'service' => 'databases', 'method' => 'createIndex'],
+                ['id' => 'dup', 'label' => 'B', 'service' => 'databases', 'method' => 'createIndex'],
             ],
         ]);
 
@@ -470,7 +470,39 @@ trait InsightsBase
             'resourceId' => 'main',
             'title' => 'Should not be created',
             'ctas' => [
-                ['id' => '', 'label' => 'Has empty id', 'action' => 'databases.createIndex'],
+                ['id' => '', 'label' => 'Has empty id', 'service' => 'databases', 'method' => 'createIndex'],
+            ],
+        ]);
+
+        $this->assertSame(400, $insight['headers']['status-code']);
+    }
+
+    public function testCreateRejectsCTAWithMissingMethod(): void
+    {
+        $insight = $this->createInsight([
+            'insightId' => ID::unique(),
+            'type' => 'databaseIndex',
+            'resourceType' => 'databases',
+            'resourceId' => 'main',
+            'title' => 'Should not be created',
+            'ctas' => [
+                ['id' => 'createIndex', 'label' => 'Missing method', 'service' => 'tablesDB'],
+            ],
+        ]);
+
+        $this->assertSame(400, $insight['headers']['status-code']);
+    }
+
+    public function testCreateRejectsCTAWithMissingService(): void
+    {
+        $insight = $this->createInsight([
+            'insightId' => ID::unique(),
+            'type' => 'databaseIndex',
+            'resourceType' => 'databases',
+            'resourceId' => 'main',
+            'title' => 'Should not be created',
+            'ctas' => [
+                ['id' => 'createIndex', 'label' => 'Missing service', 'method' => 'createIndex'],
             ],
         ]);
 
@@ -484,7 +516,8 @@ trait InsightsBase
             $ctas[] = [
                 'id' => 'cta-' . $i,
                 'label' => 'CTA ' . $i,
-                'action' => 'databases.createIndex',
+                'service' => 'databases',
+                'method' => 'createIndex',
             ];
         }
 
@@ -656,8 +689,8 @@ trait InsightsBase
     {
         $response = $this->updateInsight($data['insightId'], [
             'ctas' => [
-                ['id' => 'dup', 'label' => 'A', 'action' => 'databases.createIndex'],
-                ['id' => 'dup', 'label' => 'B', 'action' => 'databases.createIndex'],
+                ['id' => 'dup', 'label' => 'A', 'service' => 'databases', 'method' => 'createIndex'],
+                ['id' => 'dup', 'label' => 'B', 'service' => 'databases', 'method' => 'createIndex'],
             ],
         ]);
 
@@ -674,7 +707,7 @@ trait InsightsBase
     {
         $response = $this->updateInsight($data['insightId'], [
             'ctas' => [
-                ['id' => '', 'label' => 'Has empty id', 'action' => 'databases.createIndex'],
+                ['id' => '', 'label' => 'Has empty id', 'service' => 'databases', 'method' => 'createIndex'],
             ],
         ]);
 
