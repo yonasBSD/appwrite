@@ -14,7 +14,9 @@ use Appwrite\Filter\BranchDomain as BranchDomainFilter;
 use Appwrite\Usage\Context;
 use Appwrite\Utopia\Response\Model\Deployment;
 use Appwrite\Vcs\Comment;
+use Appwrite\Extend\Exception as AppwriteException;
 use Exception;
+use Executor\Exception\Timeout as ExecutorTimeout;
 use Executor\Executor;
 use Swoole\Coroutine as Co;
 use Utopia\Cache\Cache;
@@ -34,6 +36,7 @@ use Utopia\Detector\Detector\Rendering;
 use Utopia\Logger\Log;
 use Utopia\Platform\Action;
 use Utopia\Queue\Message;
+use Utopia\Span\Span;
 use Utopia\Storage\Device;
 use Utopia\Storage\Device\Local;
 use Utopia\System\System;
@@ -183,6 +186,8 @@ class Builds extends Action
         array $platform,
         int $timeout
     ): void {
+        Span::add('timeout', $timeout);
+
         Console::info('Deployment action started');
 
         $startTime = DateTime::now();
@@ -720,6 +725,9 @@ class Builds extends Action
                         );
 
                         Console::log('createRuntime finished');
+                    } catch (ExecutorTimeout $error) {
+                        Console::warning('createRuntime timed out');
+                        $err = new AppwriteException(AppwriteException::BUILD_TIMEOUT, previous: $error);
                     } catch (\Throwable $error) {
                         Console::warning('createRuntime failed');
                         $err = $error;
@@ -1147,13 +1155,11 @@ class Builds extends Action
             $message = \str_replace('{APPWRITE_DETECTION_SEPARATOR_START}', '', $message);
             $message = \str_replace('{APPWRITE_DETECTION_SEPARATOR_END}', '', $message);
 
-            // Combine with previous logs if deployment got past build process
-            $previousLogs = '';
-            if (! is_null($deployment->getAttribute('buildSize', null))) {
-                $previousLogs = $deployment->getAttribute('buildLogs', '');
-                if (! empty($previousLogs)) {
-                    $message = $previousLogs . "\n" . $message;
-                }
+            // Append error to whatever build logs were already streamed
+            $deployment = $dbForProject->getDocument('deployments', $deploymentId);
+            $previousLogs = $deployment->getAttribute('buildLogs', '');
+            if (! empty($previousLogs)) {
+                $message = $previousLogs . "\n" . $message;
             }
 
             $endTime = DateTime::now();
