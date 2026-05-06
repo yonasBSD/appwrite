@@ -4229,6 +4229,6 @@ class AccountCustomClientTest extends Scope
         ]));
 
         $this->assertEquals(200, $session['headers']['status-code']);
-        $this->assertEquals($expiryAfter, $session['body']['expire']);
+        $this->assertEquals(\strtotime($expiryAfter), \strtotime($session['body']['expire']));
     }
 }
