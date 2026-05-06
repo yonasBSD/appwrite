@@ -84,10 +84,9 @@ trait InsightsBase
      *  - `documentsDB`  → service `documentsDB`,  method `createIndex` (params use collectionId/attributes)
      *  - `vectorsDB`    → service `vectorsDB`,    method `createIndex` (params use collectionId/attributes)
      */
-    protected function sampleCTA(string $key = 'createIndex', string $engine = 'tablesDB'): array
+    protected function sampleCTA(string $engine = 'tablesDB'): array
     {
         $base = [
-            'key' => $key,
             'label' => 'Create missing index',
             'method' => 'createIndex',
         ];
@@ -169,7 +168,7 @@ trait InsightsBase
             'title' => 'Missing index on collection orders',
             'summary' => 'Queries against `orders.status` are scanning the full collection.',
             'payload' => ['databaseId' => 'main', 'engine' => $engine],
-            'ctas' => [$this->sampleCTA('createIndex', $engine)],
+            'ctas' => [$this->sampleCTA($engine)],
         ];
 
         if ($reportId !== null) {
@@ -349,7 +348,6 @@ trait InsightsBase
         $this->assertSame('orders', $insight['body']['parentResourceId']);
         $this->assertSame('Missing index on collection orders', $insight['body']['title']);
         $this->assertCount(1, $insight['body']['ctas']);
-        $this->assertSame('createIndex', $insight['body']['ctas'][0]['key']);
         $this->assertSame($insightId, $insight['body']['ctas'][0]['insightId']);
         $this->assertSame('Create missing index', $insight['body']['ctas'][0]['label']);
         $this->assertSame('tablesDB', $insight['body']['ctas'][0]['service']);
@@ -475,7 +473,7 @@ trait InsightsBase
         $this->assertSame('report_not_found', $insight['body']['type']);
     }
 
-    public function testCreateRejectsDuplicateCTAIds(): void
+    public function testCreateRejectsCTAWithEmptyLabel(): void
     {
         $insight = $this->createInsight([
             'insightId' => ID::unique(),
@@ -484,25 +482,7 @@ trait InsightsBase
             'resourceId' => 'main',
             'title' => 'Should not be created',
             'ctas' => [
-                ['key' => 'dup', 'label' => 'A', 'service' => 'databases', 'method' => 'createIndex'],
-                ['key' => 'dup', 'label' => 'B', 'service' => 'databases', 'method' => 'createIndex'],
-            ],
-        ]);
-
-        $this->assertSame(400, $insight['headers']['status-code']);
-        $this->assertSame('general_argument_invalid', $insight['body']['type']);
-    }
-
-    public function testCreateRejectsCTAWithEmptyFields(): void
-    {
-        $insight = $this->createInsight([
-            'insightId' => ID::unique(),
-            'type' => 'databaseIndex',
-            'resourceType' => 'databases',
-            'resourceId' => 'main',
-            'title' => 'Should not be created',
-            'ctas' => [
-                ['key' => '', 'label' => 'Has empty id', 'service' => 'databases', 'method' => 'createIndex'],
+                ['label' => '', 'service' => 'databases', 'method' => 'createIndex'],
             ],
         ]);
 
@@ -518,7 +498,7 @@ trait InsightsBase
             'resourceId' => 'main',
             'title' => 'Should not be created',
             'ctas' => [
-                ['key' => 'createIndex', 'label' => 'Missing method', 'service' => 'tablesDB'],
+                ['label' => 'Missing method', 'service' => 'tablesDB'],
             ],
         ]);
 
@@ -534,7 +514,7 @@ trait InsightsBase
             'resourceId' => 'main',
             'title' => 'Should not be created',
             'ctas' => [
-                ['key' => 'createIndex', 'label' => 'Missing service', 'method' => 'createIndex'],
+                ['label' => 'Missing service', 'method' => 'createIndex'],
             ],
         ]);
 
@@ -546,7 +526,6 @@ trait InsightsBase
         $ctas = [];
         for ($i = 0; $i < 17; $i++) {
             $ctas[] = [
-                'key' => 'cta-' . $i,
                 'label' => 'CTA ' . $i,
                 'service' => 'databases',
                 'method' => 'createIndex',

@@ -2261,7 +2261,7 @@ $platformCollections = [
                 'filters' => ['json'],
             ],
             [
-                // Virtual attribute — CTAs live in their own `ctas` collection
+                // Virtual attribute — CTAs live in the `insightCTAs` collection
                 // back-referenced by `insightInternalId`. The subQuery filter
                 // joins them in at read time, so consumers still see them
                 // embedded on the insight response.
@@ -2419,18 +2419,6 @@ $platformCollections = [
                 'filters' => [],
             ],
             [
-                // Caller-supplied identifier, unique within the parent insight.
-                '$id' => ID::custom('key'),
-                'type' => Database::VAR_STRING,
-                'format' => '',
-                'size' => Database::LENGTH_KEY,
-                'signed' => true,
-                'required' => true,
-                'default' => null,
-                'array' => false,
-                'filters' => [],
-            ],
-            [
                 '$id' => ID::custom('label'),
                 'type' => Database::VAR_STRING,
                 'format' => '',
@@ -2490,14 +2478,6 @@ $platformCollections = [
                 'type' => Database::INDEX_KEY,
                 'attributes' => ['projectInternalId', 'insightInternalId'],
                 'lengths' => [Database::LENGTH_KEY, 0],
-                'orders' => [],
-            ],
-            [
-                // Enforce per-insight key uniqueness at the DB layer.
-                '$id' => ID::custom('_key_insight_key'),
-                'type' => Database::INDEX_UNIQUE,
-                'attributes' => ['insightInternalId', 'key'],
-                'lengths' => [0, Database::LENGTH_KEY],
                 'orders' => [],
             ],
         ],

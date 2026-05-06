@@ -34,12 +34,6 @@ class InsightCTA extends Model
                 'default' => '',
                 'example' => '5e5ea5c16897e',
             ])
-            ->addRule('key', [
-                'type' => self::TYPE_STRING,
-                'description' => 'Caller-supplied identifier, unique within the parent insight.',
-                'default' => '',
-                'example' => 'createIndex',
-            ])
             ->addRule('label', [
                 'type' => self::TYPE_STRING,
                 'description' => 'Human-readable label for the CTA, used in UI.',

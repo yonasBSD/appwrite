@@ -85,7 +85,7 @@ class Create extends Action
             ->param('title', '', new Text(256), 'Short, human-readable title.')
             ->param('summary', '', new Text(4096, 0), 'Markdown summary describing the insight.', true)
             ->param('payload', null, new Nullable(new JSON()), 'Type-specific structured payload.', true)
-            ->param('ctas', [], new CTAsValidator(), 'Array of call-to-action descriptors. Each must contain `key` (unique within the insight), `label`, `service`, `method`, and an optional `params` object.', true)
+            ->param('ctas', [], new CTAsValidator(), 'Array of call-to-action descriptors. Each must contain `label`, `service`, `method`, and an optional `params` object.', true)
             ->param('analyzedAt', null, new Nullable(new DatetimeValidator()), 'Time the insight was analyzed in ISO 8601 format. Defaults to now.', true)
             ->inject('response')
             ->inject('project')
@@ -129,18 +129,10 @@ class Create extends Action
             $reportInternalId = $report->getSequence();
         }
 
-        $seen = [];
         $normalizedCTAs = [];
 
         foreach ($ctas as $cta) {
-            $key = (string) $cta['key'];
-            if (isset($seen[$key])) {
-                throw new Exception(Exception::GENERAL_ARGUMENT_INVALID, 'CTA `key` values must be unique within an insight.');
-            }
-            $seen[$key] = true;
-
             $normalizedCTAs[] = [
-                'key' => $key,
                 'label' => (string) $cta['label'],
                 'service' => (string) $cta['service'],
                 'method' => (string) $cta['method'],
@@ -182,7 +174,6 @@ class Create extends Action
                 'projectId' => $project->getId(),
                 'insightInternalId' => $insight->getSequence(),
                 'insightId' => $insight->getId(),
-                'key' => $cta['key'],
                 'label' => $cta['label'],
                 'service' => $cta['service'],
                 'method' => $cta['method'],
