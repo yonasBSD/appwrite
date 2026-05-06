@@ -12,7 +12,7 @@ class V25 extends Filter
     {
         return match ($model) {
             Response::MODEL_OAUTH2_OIDC => $this->parseOAuth2Oidc($content),
-            Response::MODEL_OAUTH2_PROVIDER_LIST => $this->handleList($content, 'providers', fn ($item) => $this->parseOAuth2Oidc($item)),
+            Response::MODEL_OAUTH2_PROVIDER_LIST => $this->handleList($content, 'providers', fn ($item) => ($item['$id'] ?? null) === 'oidc' ? $this->parseOAuth2Oidc($item) : $item),
             default => $content,
         };
     }
