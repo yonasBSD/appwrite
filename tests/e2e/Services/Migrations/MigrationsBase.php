@@ -1593,6 +1593,22 @@ trait MigrationsBase
             $this->assertEquals(201, $createTable['headers']['status-code']);
         }
 
+        // Add a non-relationship column on parents so we can POST a row with
+        // non-empty data. tablesdb POST /rows rejects empty data arrays in
+        // 1.9.x (Create.php:161 — getSupportForEmptyDocument() defaults false).
+        $createLabel = $this->client->call(Client::METHOD_POST, '/tablesdb/' . $databaseId . '/tables/parents/columns/string', $sourceHeaders, [
+            'key' => 'label',
+            'size' => 32,
+            'required' => false,
+        ]);
+        $this->assertEquals(202, $createLabel['headers']['status-code']);
+
+        $this->assertEventually(function () use ($databaseId, $sourceHeaders) {
+            $r = $this->client->call(Client::METHOD_GET, '/tablesdb/' . $databaseId . '/tables/parents/columns/label', $sourceHeaders);
+            $this->assertEquals(200, $r['headers']['status-code']);
+            $this->assertEquals('available', $r['body']['status']);
+        }, 10000, 500);
+
         $createRel = $this->client->call(Client::METHOD_POST, '/tablesdb/' . $databaseId . '/tables/parents/columns/relationship', $sourceHeaders, [
             'relatedTableId' => 'children',
             'type' => Database::RELATION_ONE_TO_MANY,
@@ -1611,7 +1627,7 @@ trait MigrationsBase
 
         $parentRow = $this->client->call(Client::METHOD_POST, '/tablesdb/' . $databaseId . '/tables/parents/rows', $sourceHeaders, [
             'rowId' => 'parent-1',
-            'data' => [],
+            'data' => ['label' => 'p1'],
         ]);
         $this->assertEquals(201, $parentRow['headers']['status-code']);
         $childRow = $this->client->call(Client::METHOD_POST, '/tablesdb/' . $databaseId . '/tables/children/rows', $sourceHeaders, [
