@@ -5,6 +5,7 @@ namespace Tests\E2E\Services\Project;
 use PHPUnit\Framework\Attributes\Before;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\E2E\Client;
+use Utopia\Database\Query;
 
 trait OAuth2Base
 {
@@ -172,6 +173,40 @@ trait OAuth2Base
         $this->assertNotContains('mock-unverified', $ids);
     }
 
+    public function testListOAuth2ProvidersTotalFalse(): void
+    {
+        $response = $this->listOAuth2Providers(total: false);
+
+        $this->assertSame(200, $response['headers']['status-code']);
+        $this->assertSame(0, $response['body']['total']);
+        $this->assertGreaterThan(0, \count($response['body']['providers']));
+    }
+
+    public function testListOAuth2ProvidersWithLimit(): void
+    {
+        $response = $this->listOAuth2Providers([
+            Query::limit(1)->toString(),
+        ]);
+
+        $this->assertSame(200, $response['headers']['status-code']);
+        $this->assertCount(1, $response['body']['providers']);
+        $this->assertGreaterThan(1, $response['body']['total']);
+    }
+
+    public function testListOAuth2ProvidersWithOffset(): void
+    {
+        $listAll = $this->listOAuth2Providers();
+        $this->assertSame(200, $listAll['headers']['status-code']);
+
+        $listOffset = $this->listOAuth2Providers([
+            Query::offset(1)->toString(),
+        ]);
+
+        $this->assertSame(200, $listOffset['headers']['status-code']);
+        $this->assertCount(\count($listAll['body']['providers']) - 1, $listOffset['body']['providers']);
+        $this->assertSame($listAll['body']['total'], $listOffset['body']['total']);
+    }
+
     // =========================================================================
     // Get OAuth2 provider
     // =========================================================================
@@ -186,6 +221,28 @@ trait OAuth2Base
         $this->assertArrayHasKey('clientId', $response['body']);
         $this->assertArrayHasKey('clientSecret', $response['body']);
         $this->assertSame('', $response['body']['clientSecret']);
+    }
+
+    public function testGetOAuth2ProviderWithAlias(): void
+    {
+        // The action declares the canonical param name as `providerId` and
+        // registers `provider` as an alias so that older SDK versions that
+        // send the provider in the query string continue to work.
+        $headers = [
+            'content-type' => 'application/json',
+            'x-appwrite-project' => $this->getProject()['$id'],
+        ];
+        $headers = \array_merge($headers, $this->getHeaders());
+
+        // Call with `provider` in query string (legacy behaviour)
+        $response = $this->client->call(
+            Client::METHOD_GET,
+            '/project/oauth2/github?provider=github',
+            $headers,
+        );
+
+        $this->assertSame(200, $response['headers']['status-code']);
+        $this->assertSame('github', $response['body']['$id']);
     }
 
     public function testGetOAuth2ProviderClientSecretWriteOnly(): void
@@ -221,19 +278,23 @@ trait OAuth2Base
 
     public function testGetOAuth2ProviderUnsupported(): void
     {
+        // The `providerId` param is validated by a WhiteList of registered
+        // OAuth2 provider keys, so an unknown value is rejected at validation
+        // time — before the action runs — and surfaces as a generic argument
+        // error rather than `project_provider_unsupported`.
         $response = $this->getOAuth2Provider('not-a-real-provider');
 
         $this->assertSame(400, $response['headers']['status-code']);
-        $this->assertSame('project_provider_unsupported', $response['body']['type']);
+        $this->assertSame('general_argument_invalid', $response['body']['type']);
     }
 
     public function testGetOAuth2ProviderRegisteredInConfigButNoUpdateClass(): void
     {
-        // `mock` is present in oAuthProviders config (enabled: true) but is NOT
-        // registered in Base::getProviderActions(). Get::action has two
-        // separate `unsupported` throw branches — testGetOAuth2ProviderUnsupported
-        // covers the first (provider missing from config); this covers the
-        // second (provider in config but missing from the action registry).
+        // `mock` is present in oAuthProviders config (enabled: true) but is
+        // NOT registered in Base::getProviderActions(). It passes the
+        // WhiteList validator (which only checks config membership) and
+        // reaches the action body, where the action-registry check throws
+        // `project_provider_unsupported`.
         $response = $this->getOAuth2Provider('mock');
 
         $this->assertSame(400, $response['headers']['status-code']);
@@ -2573,7 +2634,7 @@ trait OAuth2Base
         );
     }
 
-    protected function getOAuth2Provider(string $provider, bool $authenticated = true): mixed
+    protected function getOAuth2Provider(string $providerId, bool $authenticated = true): mixed
     {
         $headers = [
             'content-type' => 'application/json',
@@ -2586,13 +2647,23 @@ trait OAuth2Base
 
         return $this->client->call(
             Client::METHOD_GET,
-            '/project/oauth2/' . $provider,
+            '/project/oauth2/' . $providerId,
             $headers,
         );
     }
 
-    protected function listOAuth2Providers(bool $authenticated = true): mixed
+    protected function listOAuth2Providers(?array $queries = null, ?bool $total = null, bool $authenticated = true): mixed
     {
+        $params = [];
+
+        if ($queries !== null) {
+            $params['queries'] = $queries;
+        }
+
+        if ($total !== null) {
+            $params['total'] = $total;
+        }
+
         $headers = [
             'content-type' => 'application/json',
             'x-appwrite-project' => $this->getProject()['$id'],
@@ -2606,6 +2677,7 @@ trait OAuth2Base
             Client::METHOD_GET,
             '/project/oauth2',
             $headers,
+            $params,
         );
     }
 }
