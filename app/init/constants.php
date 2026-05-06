@@ -426,8 +426,11 @@ const RESOURCE_TYPE_EMBEDDINGS_TEXT = 'embeddingsText';
 const RESOURCE_TYPE_INSIGHTS = 'insights';
 const RESOURCE_TYPE_REPORTS = 'reports';
 
-// Insight types
-const INSIGHT_TYPE_DATABASE_INDEX = 'databaseIndex';
+// Insight types — engine-specific so the CTA action can reference the right public API.
+const INSIGHT_TYPE_DATABASE_INDEX = 'databaseIndex';         // legacy databases.createIndex
+const INSIGHT_TYPE_TABLES_DB_INDEX = 'tablesDBIndex';        // tablesDB.createIndex
+const INSIGHT_TYPE_DOCUMENTS_DB_INDEX = 'documentsDBIndex';  // documentsDB.createIndex
+const INSIGHT_TYPE_VECTORS_DB_INDEX = 'vectorsDBIndex';      // vectorsDB.createIndex
 const INSIGHT_TYPE_DATABASE_PERFORMANCE = 'databasePerformance';
 const INSIGHT_TYPE_SITE_PERFORMANCE = 'sitePerformance';
 const INSIGHT_TYPE_SITE_ACCESSIBILITY = 'siteAccessibility';
@@ -436,12 +439,22 @@ const INSIGHT_TYPE_FUNCTION_PERFORMANCE = 'functionPerformance';
 
 const INSIGHT_TYPES = [
     INSIGHT_TYPE_DATABASE_INDEX,
+    INSIGHT_TYPE_TABLES_DB_INDEX,
+    INSIGHT_TYPE_DOCUMENTS_DB_INDEX,
+    INSIGHT_TYPE_VECTORS_DB_INDEX,
     INSIGHT_TYPE_DATABASE_PERFORMANCE,
     INSIGHT_TYPE_SITE_PERFORMANCE,
     INSIGHT_TYPE_SITE_ACCESSIBILITY,
     INSIGHT_TYPE_SITE_SEO,
     INSIGHT_TYPE_FUNCTION_PERFORMANCE,
 ];
+
+// Public API method names that an insight CTA's `action` can reference for index suggestions.
+// Analyzers must pick the one matching the engine the resource lives in.
+const INSIGHT_CTA_ACTION_DATABASES_CREATE_INDEX = 'databases.createIndex';
+const INSIGHT_CTA_ACTION_TABLES_DB_CREATE_INDEX = 'tablesDB.createIndex';
+const INSIGHT_CTA_ACTION_DOCUMENTS_DB_CREATE_INDEX = 'documentsDB.createIndex';
+const INSIGHT_CTA_ACTION_VECTORS_DB_CREATE_INDEX = 'vectorsDB.createIndex';
 
 // Insight severities
 const INSIGHT_SEVERITY_INFO = 'info';

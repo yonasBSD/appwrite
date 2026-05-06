@@ -30,7 +30,7 @@ class CTAsTest extends TestCase
         $this->assertTrue($validator->isValid([[
             'id' => 'createIndex',
             'label' => 'Create missing index',
-            'action' => 'databases.indexes.create',
+            'action' => 'databases.createIndex',
             'params' => [
                 'databaseId' => 'main',
                 'collectionId' => 'orders',
@@ -45,7 +45,7 @@ class CTAsTest extends TestCase
         $this->assertTrue($validator->isValid([[
             'id' => 'createIndex',
             'label' => 'Create missing index',
-            'action' => 'databases.indexes.create',
+            'action' => 'databases.createIndex',
         ]]));
     }
 
@@ -64,7 +64,7 @@ class CTAsTest extends TestCase
         $this->assertFalse($validator->isValid([[
             'id' => '',
             'label' => 'Create missing index',
-            'action' => 'databases.indexes.create',
+            'action' => 'databases.createIndex',
         ]]));
     }
 
@@ -75,7 +75,7 @@ class CTAsTest extends TestCase
         $this->assertFalse($validator->isValid([[
             'id' => 123,
             'label' => 'Create missing index',
-            'action' => 'databases.indexes.create',
+            'action' => 'databases.createIndex',
         ]]));
     }
 
@@ -86,7 +86,7 @@ class CTAsTest extends TestCase
         $this->assertFalse($validator->isValid([[
             'id' => 'createIndex',
             'label' => 'Create missing index',
-            'action' => 'databases.indexes.create',
+            'action' => 'databases.createIndex',
             'params' => 'not-a-map',
         ]]));
     }
@@ -130,5 +130,67 @@ class CTAsTest extends TestCase
         }
 
         $this->assertTrue($validator->isValid($entries));
+    }
+
+    public function testAcceptsObjectParams(): void
+    {
+        $validator = new CTAs();
+
+        $entry = [
+            'id' => 'createIndex',
+            'label' => 'Create missing index',
+            'action' => 'databases.createIndex',
+            'params' => new \stdClass(),
+        ];
+
+        $this->assertTrue($validator->isValid([$entry]));
+    }
+
+    public function testRejectsEntryWithEmptyAction(): void
+    {
+        $validator = new CTAs();
+
+        $this->assertFalse($validator->isValid([[
+            'id' => 'createIndex',
+            'label' => 'Create missing index',
+            'action' => '',
+        ]]));
+    }
+
+    public function testRejectsEntryWithEmptyLabel(): void
+    {
+        $validator = new CTAs();
+
+        $this->assertFalse($validator->isValid([[
+            'id' => 'createIndex',
+            'label' => '',
+            'action' => 'databases.createIndex',
+        ]]));
+    }
+
+    public function testDefaultMaxCountIsSixteen(): void
+    {
+        $validator = new CTAs();
+
+        $this->assertSame(CTAs::MAX_COUNT_DEFAULT, 16);
+
+        $entries = [];
+        for ($i = 0; $i < 16; $i++) {
+            $entries[] = [
+                'id' => 'cta-' . $i,
+                'label' => 'Label ' . $i,
+                'action' => 'databases.createIndex',
+            ];
+        }
+
+        $this->assertTrue($validator->isValid($entries));
+
+        $entries[] = [
+            'id' => 'cta-16',
+            'label' => 'Label 16',
+            'action' => 'databases.createIndex',
+        ];
+
+        $this->assertFalse($validator->isValid($entries));
     }
 }

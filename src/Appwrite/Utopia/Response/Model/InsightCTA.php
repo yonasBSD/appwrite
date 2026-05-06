@@ -24,15 +24,15 @@ class InsightCTA extends Model
             ])
             ->addRule('action', [
                 'type' => self::TYPE_STRING,
-                'description' => 'Public API method the client should invoke when this CTA is triggered.',
+                'description' => 'Public API method the client should invoke when this CTA is triggered. Must match the engine that owns the resource: databases.createIndex (legacy), tablesDB.createIndex, documentsDB.createIndex, or vectorsDB.createIndex for index suggestions.',
                 'default' => '',
-                'example' => 'databases.createIndex',
+                'example' => 'tablesDB.createIndex',
             ])
             ->addRule('params', [
                 'type' => self::TYPE_JSON,
-                'description' => 'Parameter map the client should pass to the action when this CTA is triggered.',
+                'description' => 'Parameter map the client should pass to the action when this CTA is triggered. Keys match the target API\'s parameter names (e.g. databaseId/tableId/columns for tablesDB, databaseId/collectionId/attributes for the legacy Databases API).',
                 'default' => new \stdClass(),
-                'example' => ['databaseId' => 'main', 'collectionId' => 'orders', 'key' => '_idx_status'],
+                'example' => ['databaseId' => 'main', 'tableId' => 'orders', 'key' => '_idx_status', 'type' => 'key', 'columns' => ['status']],
             ]);
     }
 
