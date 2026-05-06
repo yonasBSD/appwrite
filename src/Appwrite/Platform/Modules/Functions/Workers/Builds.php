@@ -10,11 +10,11 @@ use Appwrite\Event\Publisher\Screenshot;
 use Appwrite\Event\Publisher\Usage as UsagePublisher;
 use Appwrite\Event\Realtime;
 use Appwrite\Event\Webhook;
+use Appwrite\Extend\Exception as AppwriteException;
 use Appwrite\Filter\BranchDomain as BranchDomainFilter;
 use Appwrite\Usage\Context;
 use Appwrite\Utopia\Response\Model\Deployment;
 use Appwrite\Vcs\Comment;
-use Appwrite\Extend\Exception as AppwriteException;
 use Exception;
 use Executor\Exception\Timeout as ExecutorTimeout;
 use Executor\Executor;
@@ -186,6 +186,10 @@ class Builds extends Action
         array $platform,
         int $timeout
     ): void {
+        Span::add('projectId', $project->getId());
+        Span::add('resourceId', $resource->getId());
+        Span::add('resourceType', $resource->getCollection());
+        Span::add('deploymentId', $deployment->getId());
         Span::add('timeout', $timeout);
 
         Console::info('Deployment action started');
@@ -228,8 +232,12 @@ class Builds extends Action
 
         $version = $this->getVersion($resource);
         $runtime = $this->getRuntime($resource, $version);
+        Span::add('runtime', $resource->getAttribute($resource->getCollection() === 'sites' ? 'buildRuntime' : 'runtime', ''));
+        Span::add('version', $version);
 
         $spec = Config::getParam('specifications')[$resource->getAttribute('buildSpecification', APP_COMPUTE_SPECIFICATION_DEFAULT)];
+        Span::add('cpus', (float) ($spec['cpus'] ?? APP_COMPUTE_CPUS_DEFAULT));
+        Span::add('memory', (int) ($spec['memory'] ?? APP_COMPUTE_MEMORY_DEFAULT));
 
         // Realtime preparation
         $event = "{$resource->getCollection()}.[{$resourceKey}].deployments.[deploymentId].update";
