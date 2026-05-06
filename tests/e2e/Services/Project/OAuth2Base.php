@@ -223,6 +223,28 @@ trait OAuth2Base
         $this->assertSame('', $response['body']['clientSecret']);
     }
 
+    public function testGetOAuth2ProviderWithAlias(): void
+    {
+        // The action declares the canonical param name as `providerId` and
+        // registers `provider` as an alias so that older SDK versions that
+        // send the provider in the query string continue to work.
+        $headers = [
+            'content-type' => 'application/json',
+            'x-appwrite-project' => $this->getProject()['$id'],
+        ];
+        $headers = \array_merge($headers, $this->getHeaders());
+
+        // Call with `provider` in query string (legacy behaviour)
+        $response = $this->client->call(
+            Client::METHOD_GET,
+            '/project/oauth2/github?provider=github',
+            $headers,
+        );
+
+        $this->assertSame(200, $response['headers']['status-code']);
+        $this->assertSame('github', $response['body']['$id']);
+    }
+
     public function testGetOAuth2ProviderClientSecretWriteOnly(): void
     {
         $this->updateOAuth2('amazon', [
@@ -256,19 +278,23 @@ trait OAuth2Base
 
     public function testGetOAuth2ProviderUnsupported(): void
     {
+        // The `providerId` param is validated by a WhiteList of registered
+        // OAuth2 provider keys, so an unknown value is rejected at validation
+        // time — before the action runs — and surfaces as a generic argument
+        // error rather than `project_provider_unsupported`.
         $response = $this->getOAuth2Provider('not-a-real-provider');
 
         $this->assertSame(400, $response['headers']['status-code']);
-        $this->assertSame('project_provider_unsupported', $response['body']['type']);
+        $this->assertSame('general_argument_invalid', $response['body']['type']);
     }
 
     public function testGetOAuth2ProviderRegisteredInConfigButNoUpdateClass(): void
     {
-        // `mock` is present in oAuthProviders config (enabled: true) but is NOT
-        // registered in Base::getProviderActions(). Get::action has two
-        // separate `unsupported` throw branches — testGetOAuth2ProviderUnsupported
-        // covers the first (provider missing from config); this covers the
-        // second (provider in config but missing from the action registry).
+        // `mock` is present in oAuthProviders config (enabled: true) but is
+        // NOT registered in Base::getProviderActions(). It passes the
+        // WhiteList validator (which only checks config membership) and
+        // reaches the action body, where the action-registry check throws
+        // `project_provider_unsupported`.
         $response = $this->getOAuth2Provider('mock');
 
         $this->assertSame(400, $response['headers']['status-code']);
@@ -2608,7 +2634,7 @@ trait OAuth2Base
         );
     }
 
-    protected function getOAuth2Provider(string $provider, bool $authenticated = true): mixed
+    protected function getOAuth2Provider(string $providerId, bool $authenticated = true): mixed
     {
         $headers = [
             'content-type' => 'application/json',
@@ -2621,7 +2647,7 @@ trait OAuth2Base
 
         return $this->client->call(
             Client::METHOD_GET,
-            '/project/oauth2/' . $provider,
+            '/project/oauth2/' . $providerId,
             $headers,
         );
     }
