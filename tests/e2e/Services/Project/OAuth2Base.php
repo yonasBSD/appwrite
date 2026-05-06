@@ -1651,8 +1651,8 @@ trait OAuth2Base
         $this->assertSame(200, $response['headers']['status-code']);
         $this->assertSame('https://idp.example.com/.well-known/openid-configuration', $response['body']['wellKnownURL']);
         $this->assertArrayHasKey('authorizationURL', $response['body']);
-        $this->assertArrayHasKey('tokenUrl', $response['body']);
-        $this->assertArrayHasKey('userInfoUrl', $response['body']);
+        $this->assertArrayHasKey('tokenURL', $response['body']);
+        $this->assertArrayHasKey('userInfoURL', $response['body']);
 
         // Cleanup
         $this->updateOAuth2('oidc', [
@@ -1660,8 +1660,8 @@ trait OAuth2Base
             'clientSecret' => '',
             'wellKnownURL' => '',
             'authorizationURL' => '',
-            'tokenUrl' => '',
-            'userInfoUrl' => '',
+            'tokenURL' => '',
+            'userInfoURL' => '',
             'enabled' => false,
         ]);
     }
@@ -1672,15 +1672,15 @@ trait OAuth2Base
             'clientId' => 'oidc-discovery',
             'clientSecret' => 'oidc-discovery-secret',
             'authorizationURL' => 'https://idp.example.com/oauth2/authorize',
-            'tokenUrl' => 'https://idp.example.com/oauth2/token',
-            'userInfoUrl' => 'https://idp.example.com/oauth2/userinfo',
+            'tokenURL' => 'https://idp.example.com/oauth2/token',
+            'userInfoURL' => 'https://idp.example.com/oauth2/userinfo',
             'enabled' => false,
         ]);
 
         $this->assertSame(200, $response['headers']['status-code']);
         $this->assertSame('https://idp.example.com/oauth2/authorize', $response['body']['authorizationURL']);
-        $this->assertSame('https://idp.example.com/oauth2/token', $response['body']['tokenUrl']);
-        $this->assertSame('https://idp.example.com/oauth2/userinfo', $response['body']['userInfoUrl']);
+        $this->assertSame('https://idp.example.com/oauth2/token', $response['body']['tokenURL']);
+        $this->assertSame('https://idp.example.com/oauth2/userinfo', $response['body']['userInfoURL']);
 
         // Cleanup
         $this->updateOAuth2('oidc', [
@@ -1688,8 +1688,8 @@ trait OAuth2Base
             'clientSecret' => '',
             'wellKnownURL' => '',
             'authorizationURL' => '',
-            'tokenUrl' => '',
-            'userInfoUrl' => '',
+            'tokenURL' => '',
+            'userInfoURL' => '',
             'enabled' => false,
         ]);
     }
@@ -1701,8 +1701,8 @@ trait OAuth2Base
             'clientSecret' => '',
             'wellKnownURL' => '',
             'authorizationURL' => '',
-            'tokenUrl' => '',
-            'userInfoUrl' => '',
+            'tokenURL' => '',
+            'userInfoURL' => '',
             'enabled' => false,
         ]);
 
@@ -1731,8 +1731,8 @@ trait OAuth2Base
             'clientSecret' => '',
             'wellKnownURL' => '',
             'authorizationURL' => '',
-            'tokenUrl' => '',
-            'userInfoUrl' => '',
+            'tokenURL' => '',
+            'userInfoURL' => '',
             'enabled' => false,
         ]);
 
@@ -1740,7 +1740,7 @@ trait OAuth2Base
             'clientId' => 'oidc-partial',
             'clientSecret' => 'oidc-partial-secret',
             'authorizationURL' => 'https://idp.example.com/oauth2/authorize',
-            'tokenUrl' => 'https://idp.example.com/oauth2/token',
+            'tokenURL' => 'https://idp.example.com/oauth2/token',
             'enabled' => true,
         ]);
 
@@ -1753,8 +1753,8 @@ trait OAuth2Base
             'clientSecret' => '',
             'wellKnownURL' => '',
             'authorizationURL' => '',
-            'tokenUrl' => '',
-            'userInfoUrl' => '',
+            'tokenURL' => '',
+            'userInfoURL' => '',
             'enabled' => false,
         ]);
     }
@@ -1785,8 +1785,8 @@ trait OAuth2Base
             'clientSecret' => '',
             'wellKnownURL' => '',
             'authorizationURL' => '',
-            'tokenUrl' => '',
-            'userInfoUrl' => '',
+            'tokenURL' => '',
+            'userInfoURL' => '',
             'enabled' => false,
         ]);
     }
@@ -1816,8 +1816,8 @@ trait OAuth2Base
             'clientSecret' => '',
             'wellKnownURL' => '',
             'authorizationURL' => '',
-            'tokenUrl' => '',
-            'userInfoUrl' => '',
+            'tokenURL' => '',
+            'userInfoURL' => '',
             'enabled' => false,
         ]);
     }
@@ -1831,8 +1831,8 @@ trait OAuth2Base
             'clientSecret' => '',
             'wellKnownURL' => '',
             'authorizationURL' => '',
-            'tokenUrl' => '',
-            'userInfoUrl' => '',
+            'tokenURL' => '',
+            'userInfoURL' => '',
             'enabled' => false,
         ]);
 
@@ -1841,7 +1841,7 @@ trait OAuth2Base
             'clientId' => 'oidc-split-discovery',
             'clientSecret' => 'oidc-split-discovery-secret',
             'authorizationURL' => 'https://idp.example.com/oauth2/authorize',
-            'tokenUrl' => 'https://idp.example.com/oauth2/token',
+            'tokenURL' => 'https://idp.example.com/oauth2/token',
             'enabled' => false,
         ]);
 
@@ -1849,19 +1849,19 @@ trait OAuth2Base
         // state must include the two stored URLs + the new one to satisfy
         // the all-three-discovery-URLs branch of the enable check.
         $enable = $this->updateOAuth2('oidc', [
-            'userInfoUrl' => 'https://idp.example.com/oauth2/userinfo',
+            'userInfoURL' => 'https://idp.example.com/oauth2/userinfo',
             'enabled' => true,
         ]);
         $this->assertSame(200, $enable['headers']['status-code']);
         $this->assertTrue($enable['body']['enabled']);
 
         // Confirm all three URLs ended up persisted (merge wrote the new
-        // userInfoUrl while preserving the previously stored two).
+        // userInfoURL while preserving the previously stored two).
         $get = $this->getOAuth2Provider('oidc');
         $this->assertSame(200, $get['headers']['status-code']);
         $this->assertSame('https://idp.example.com/oauth2/authorize', $get['body']['authorizationURL']);
-        $this->assertSame('https://idp.example.com/oauth2/token', $get['body']['tokenUrl']);
-        $this->assertSame('https://idp.example.com/oauth2/userinfo', $get['body']['userInfoUrl']);
+        $this->assertSame('https://idp.example.com/oauth2/token', $get['body']['tokenURL']);
+        $this->assertSame('https://idp.example.com/oauth2/userinfo', $get['body']['userInfoURL']);
 
         // Cleanup
         $this->updateOAuth2('oidc', [
@@ -1869,8 +1869,8 @@ trait OAuth2Base
             'clientSecret' => '',
             'wellKnownURL' => '',
             'authorizationURL' => '',
-            'tokenUrl' => '',
-            'userInfoUrl' => '',
+            'tokenURL' => '',
+            'userInfoURL' => '',
             'enabled' => false,
         ]);
     }
@@ -1883,8 +1883,8 @@ trait OAuth2Base
             'clientSecret' => 'oidc-clear-then-enable-secret',
             'wellKnownURL' => 'https://idp.example.com/.well-known/openid-configuration',
             'authorizationURL' => '',
-            'tokenUrl' => '',
-            'userInfoUrl' => '',
+            'tokenURL' => '',
+            'userInfoURL' => '',
             'enabled' => false,
         ]);
 
@@ -1907,8 +1907,8 @@ trait OAuth2Base
             'clientSecret' => '',
             'wellKnownURL' => '',
             'authorizationURL' => '',
-            'tokenUrl' => '',
-            'userInfoUrl' => '',
+            'tokenURL' => '',
+            'userInfoURL' => '',
             'enabled' => false,
         ]);
     }
@@ -1929,16 +1929,16 @@ trait OAuth2Base
         $switch = $this->updateOAuth2('oidc', [
             'wellKnownURL' => '',
             'authorizationURL' => 'https://idp.example.com/oauth2/authorize',
-            'tokenUrl' => 'https://idp.example.com/oauth2/token',
-            'userInfoUrl' => 'https://idp.example.com/oauth2/userinfo',
+            'tokenURL' => 'https://idp.example.com/oauth2/token',
+            'userInfoURL' => 'https://idp.example.com/oauth2/userinfo',
             'enabled' => true,
         ]);
         $this->assertSame(200, $switch['headers']['status-code']);
         $this->assertTrue($switch['body']['enabled']);
         $this->assertSame('', $switch['body']['wellKnownURL']);
         $this->assertSame('https://idp.example.com/oauth2/authorize', $switch['body']['authorizationURL']);
-        $this->assertSame('https://idp.example.com/oauth2/token', $switch['body']['tokenUrl']);
-        $this->assertSame('https://idp.example.com/oauth2/userinfo', $switch['body']['userInfoUrl']);
+        $this->assertSame('https://idp.example.com/oauth2/token', $switch['body']['tokenURL']);
+        $this->assertSame('https://idp.example.com/oauth2/userinfo', $switch['body']['userInfoURL']);
 
         // Cleanup
         $this->updateOAuth2('oidc', [
@@ -1946,8 +1946,8 @@ trait OAuth2Base
             'clientSecret' => '',
             'wellKnownURL' => '',
             'authorizationURL' => '',
-            'tokenUrl' => '',
-            'userInfoUrl' => '',
+            'tokenURL' => '',
+            'userInfoURL' => '',
             'enabled' => false,
         ]);
     }
@@ -1961,23 +1961,23 @@ trait OAuth2Base
             'clientSecret' => 'oidc-clear-secret',
             'wellKnownURL' => 'https://idp.example.com/.well-known/openid-configuration',
             'authorizationURL' => 'https://idp.example.com/oauth2/authorize',
-            'tokenUrl' => 'https://idp.example.com/oauth2/token',
-            'userInfoUrl' => 'https://idp.example.com/oauth2/userinfo',
+            'tokenURL' => 'https://idp.example.com/oauth2/token',
+            'userInfoURL' => 'https://idp.example.com/oauth2/userinfo',
             'enabled' => false,
         ]);
 
         $response = $this->updateOAuth2('oidc', [
             'wellKnownURL' => '',
             'authorizationURL' => '',
-            'tokenUrl' => '',
-            'userInfoUrl' => '',
+            'tokenURL' => '',
+            'userInfoURL' => '',
         ]);
 
         $this->assertSame(200, $response['headers']['status-code']);
         $this->assertSame('', $response['body']['wellKnownURL']);
         $this->assertSame('', $response['body']['authorizationURL']);
-        $this->assertSame('', $response['body']['tokenUrl']);
-        $this->assertSame('', $response['body']['userInfoUrl']);
+        $this->assertSame('', $response['body']['tokenURL']);
+        $this->assertSame('', $response['body']['userInfoURL']);
 
         // Cleanup
         $this->updateOAuth2('oidc', [
