@@ -686,15 +686,16 @@ trait InsightsBase
 
         $updated = $this->updateInsight($data['insightId'], [
             'severity' => 'critical',
-            'summary' => 'Updated summary.',
         ]);
 
         $this->assertSame(200, $updated['headers']['status-code']);
         $this->assertSame('critical', $updated['body']['severity']);
-        $this->assertSame('Updated summary.', $updated['body']['summary']);
 
-        // Untouched fields preserved (regression for partial-document overwrite)
+        // Analyzer-controlled fields preserved (regression for partial-document
+        // overwrite). User Update only takes `severity` and `status`; everything
+        // else flows through the manager Create endpoint.
         $this->assertSame($original['title'], $updated['body']['title']);
+        $this->assertSame($original['summary'], $updated['body']['summary']);
         $this->assertSame($original['type'], $updated['body']['type']);
         $this->assertSame($original['resourceType'], $updated['body']['resourceType']);
         $this->assertSame($original['resourceId'], $updated['body']['resourceId']);
