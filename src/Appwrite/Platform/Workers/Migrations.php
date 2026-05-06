@@ -196,13 +196,13 @@ class Migrations extends Action
         $projectDB = null;
         $useAppwriteApiSource = false;
         if ($source === SourceAppwrite::getName() && empty($credentials['projectId'])) {
-            throw new MigrationException('', '', message: 'Source projectId is required for Appwrite migrations', code: MigrationException::CODE_VALIDATION);
+            throw new Exception(Exception::MIGRATION_SOURCE_PROJECT_ID_REQUIRED);
         }
 
         if (! empty($credentials['projectId'])) {
             $this->sourceProject = $this->dbForPlatform->getDocument('projects', $credentials['projectId']);
             if ($this->sourceProject->isEmpty()) {
-                throw new MigrationException('', '', message: 'Source project not found for provided projectId', code: MigrationException::CODE_NOT_FOUND);
+                throw new Exception(Exception::MIGRATION_SOURCE_PROJECT_NOT_FOUND);
             }
 
             $sourceRegion = $this->sourceProject->getAttribute('region', 'default');
@@ -265,7 +265,7 @@ class Migrations extends Action
                 $this->deviceForMigrations,
                 $this->dbForProject,
             ),
-            default => throw new MigrationException('', '', message: 'Invalid source type', code: MigrationException::CODE_VALIDATION),
+            default => throw new Exception(Exception::MIGRATION_SOURCE_TYPE_INVALID),
         };
 
         $resources = $migration->getAttribute('resources', []);
@@ -310,7 +310,7 @@ class Migrations extends Action
                 $options['filename'],
                 $options['columns'] ?? [],
             ),
-            default => throw new MigrationException('', '', message: 'Invalid destination type', code: MigrationException::CODE_VALIDATION),
+            default => throw new Exception(Exception::MIGRATION_DESTINATION_TYPE_INVALID),
         };
     }
 
@@ -538,8 +538,18 @@ class Migrations extends Action
 
             $caughtError = $th;
 
-            // MigrationException is reserved for user-facing failures and stays in the migration report only.
-            if (!$th instanceof MigrationException) {
+            // Mirror general.php's HTTP-error pattern: typed AppwriteException uses its
+            // registry-driven isPublishable() flag; library-thrown Migration\Exception is
+            // always user-facing; anything else falls back to the code heuristic.
+            if ($th instanceof Exception) {
+                $publish = $th->isPublishable();
+            } elseif ($th instanceof MigrationException) {
+                $publish = false;
+            } else {
+                $publish = $th->getCode() === 0 || $th->getCode() >= 500;
+            }
+
+            if ($publish) {
                 call_user_func($this->logError, $th, 'appwrite-worker', 'appwrite-queue-' . self::getName(), [
                     'migrationId' => $migration->getId(),
                     'source' => $migration->getAttribute('source') ?? '',
