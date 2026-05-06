@@ -26,7 +26,7 @@ class Http extends Service
         $this->addAction(UpdateReport::getName(), new UpdateReport());
         $this->addAction(DeleteReport::getName(), new DeleteReport());
 
-        // Manager-only ingestion (hidden from SDKs, /v1/manager/insights).
+        // Manager-only ingestion (hidden from SDKs, /v1/manager/reports/:reportId/insights).
         $this->addAction(CreateInsight::getName(), new CreateInsight());
 
         $this->addAction(GetInsight::getName(), new GetInsight());

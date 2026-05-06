@@ -26,7 +26,7 @@ class Get extends Action
     {
         $this
             ->setHttpMethod(Action::HTTP_REQUEST_METHOD_GET)
-            ->setHttpPath('/v1/insights/:insightId')
+            ->setHttpPath('/v1/reports/:reportId/insights/:insightId')
             ->desc('Get insight')
             ->groups(['api', 'insights'])
             ->label('scope', 'insights.read')
@@ -36,7 +36,7 @@ class Get extends Action
                 group: 'insights',
                 name: 'get',
                 description: <<<EOT
-                Get an insight by its unique ID.
+                Get an insight by its unique ID, scoped to its parent report.
                 EOT,
                 auth: [AuthType::ADMIN, AuthType::SESSION, AuthType::KEY, AuthType::JWT],
                 responses: [
@@ -46,6 +46,7 @@ class Get extends Action
                     ),
                 ]
             ))
+            ->param('reportId', '', fn (Database $dbForPlatform) => new UID($dbForPlatform->getAdapter()->getMaxUIDLength()), 'Parent report ID.', false, ['dbForPlatform'])
             ->param('insightId', '', fn (Database $dbForPlatform) => new UID($dbForPlatform->getAdapter()->getMaxUIDLength()), 'Insight ID.', false, ['dbForPlatform'])
             ->inject('response')
             ->inject('project')
@@ -54,14 +55,25 @@ class Get extends Action
     }
 
     public function action(
+        string $reportId,
         string $insightId,
         Response $response,
         Document $project,
         Database $dbForPlatform
     ) {
+        $report = $dbForPlatform->getDocument('reports', $reportId);
+
+        if ($report->isEmpty() || $report->getAttribute('projectInternalId') !== $project->getSequence()) {
+            throw new Exception(Exception::REPORT_NOT_FOUND);
+        }
+
         $insight = $dbForPlatform->getDocument('insights', $insightId);
 
-        if ($insight->isEmpty() || $insight->getAttribute('projectInternalId') !== $project->getSequence()) {
+        if (
+            $insight->isEmpty()
+            || $insight->getAttribute('projectInternalId') !== $project->getSequence()
+            || $insight->getAttribute('reportInternalId') !== $report->getSequence()
+        ) {
             throw new Exception(Exception::INSIGHT_NOT_FOUND);
         }
 

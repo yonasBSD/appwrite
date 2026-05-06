@@ -29,14 +29,14 @@ class Delete extends Action
     {
         $this
             ->setHttpMethod(Action::HTTP_REQUEST_METHOD_DELETE)
-            ->setHttpPath('/v1/insights/:insightId')
+            ->setHttpPath('/v1/reports/:reportId/insights/:insightId')
             ->desc('Delete insight')
             ->groups(['api', 'insights'])
             ->label('scope', 'insights.write')
-            ->label('event', 'insights.[insightId].delete')
+            ->label('event', 'reports.[reportId].insights.[insightId].delete')
             ->label('resourceType', RESOURCE_TYPE_INSIGHTS)
             ->label('audits.event', 'insight.delete')
-            ->label('audits.resource', 'insight/{request.insightId}')
+            ->label('audits.resource', 'report/{request.reportId}/insight/{request.insightId}')
             ->label('abuse-key', 'projectId:{projectId},userId:{userId}')
             ->label('abuse-limit', APP_LIMIT_WRITE_RATE_DEFAULT)
             ->label('abuse-time', APP_LIMIT_WRITE_RATE_PERIOD_DEFAULT)
@@ -56,6 +56,7 @@ class Delete extends Action
                 ],
                 contentType: ContentType::NONE
             ))
+            ->param('reportId', '', fn (Database $dbForPlatform) => new UID($dbForPlatform->getAdapter()->getMaxUIDLength()), 'Parent report ID.', false, ['dbForPlatform'])
             ->param('insightId', '', fn (Database $dbForPlatform) => new UID($dbForPlatform->getAdapter()->getMaxUIDLength()), 'Insight ID.', false, ['dbForPlatform'])
             ->inject('response')
             ->inject('project')
@@ -65,15 +66,26 @@ class Delete extends Action
     }
 
     public function action(
+        string $reportId,
         string $insightId,
         Response $response,
         Document $project,
         Database $dbForPlatform,
         Event $queueForEvents
     ) {
+        $report = $dbForPlatform->getDocument('reports', $reportId);
+
+        if ($report->isEmpty() || $report->getAttribute('projectInternalId') !== $project->getSequence()) {
+            throw new Exception(Exception::REPORT_NOT_FOUND);
+        }
+
         $insight = $dbForPlatform->getDocument('insights', $insightId);
 
-        if ($insight->isEmpty() || $insight->getAttribute('projectInternalId') !== $project->getSequence()) {
+        if (
+            $insight->isEmpty()
+            || $insight->getAttribute('projectInternalId') !== $project->getSequence()
+            || $insight->getAttribute('reportInternalId') !== $report->getSequence()
+        ) {
             throw new Exception(Exception::INSIGHT_NOT_FOUND);
         }
 
@@ -92,6 +104,7 @@ class Delete extends Action
         }
 
         $queueForEvents
+            ->setParam('reportId', $report->getId())
             ->setParam('insightId', $insight->getId())
             ->setPayload($response->output($insight, Response::MODEL_INSIGHT));
 

@@ -45,14 +45,14 @@ class Create extends Action
     {
         $this
             ->setHttpMethod(Action::HTTP_REQUEST_METHOD_POST)
-            ->setHttpPath('/v1/manager/insights')
+            ->setHttpPath('/v1/manager/reports/:reportId/insights')
             ->desc('Create insight')
             ->groups(['api', 'manager', 'insights'])
             ->label('scope', 'insights.manager')
-            ->label('event', 'insights.[insightId].create')
+            ->label('event', 'reports.[reportId].insights.[insightId].create')
             ->label('resourceType', RESOURCE_TYPE_INSIGHTS)
             ->label('audits.event', 'insight.create')
-            ->label('audits.resource', 'insight/{response.$id}')
+            ->label('audits.resource', 'report/{request.reportId}/insight/{response.$id}')
             ->label('abuse-key', 'projectId:{projectId},userId:{userId}')
             ->label('abuse-limit', APP_LIMIT_WRITE_RATE_DEFAULT)
             ->label('abuse-time', APP_LIMIT_WRITE_RATE_PERIOD_DEFAULT)
@@ -72,8 +72,8 @@ class Create extends Action
                 ],
                 hide: true,
             ))
+            ->param('reportId', '', fn (Database $dbForPlatform) => new UID($dbForPlatform->getAdapter()->getMaxUIDLength()), 'Parent report ID.', false, ['dbForPlatform'])
             ->param('insightId', '', fn (Database $dbForPlatform) => new CustomId(false, $dbForPlatform->getAdapter()->getMaxUIDLength()), 'Insight ID. Choose a custom ID or generate a random ID with `ID.unique()`. Valid chars are a-z, A-Z, 0-9, period, hyphen, and underscore. Can\'t start with a special char. Max length is 36 chars.', false, ['dbForPlatform'])
-            ->param('reportId', '', fn (Database $dbForPlatform) => new UID($dbForPlatform->getAdapter()->getMaxUIDLength()), 'Parent report ID. Optional — leave empty for ad-hoc insights not attached to a report.', true, ['dbForPlatform'])
             ->param('type', '', new WhiteList(INSIGHT_TYPES, true), 'Insight type. Determines the analyzer that owns this insight and the shape of `payload`.')
             ->param('severity', INSIGHT_SEVERITY_INFO, new WhiteList(INSIGHT_SEVERITIES, true), 'Insight severity. One of `info`, `warning`, `critical`.', true)
             ->param('resourceType', '', new Text(64), 'Plural resource type the insight is about, e.g. `databases`, `sites`, `functions`.')
@@ -95,8 +95,8 @@ class Create extends Action
     }
 
     public function action(
-        string $insightId,
         string $reportId,
+        string $insightId,
         string $type,
         string $severity,
         string $resourceType,
@@ -117,17 +117,13 @@ class Create extends Action
     ) {
         $insightId = ($insightId === 'unique()') ? ID::unique() : $insightId;
 
-        $reportInternalId = '';
+        $report = $dbForPlatform->getDocument('reports', $reportId);
 
-        if ($reportId !== '') {
-            $report = $dbForPlatform->getDocument('reports', $reportId);
-
-            if ($report->isEmpty() || $report->getAttribute('projectInternalId') !== $project->getSequence()) {
-                throw new Exception(Exception::REPORT_NOT_FOUND);
-            }
-
-            $reportInternalId = $report->getSequence();
+        if ($report->isEmpty() || $report->getAttribute('projectInternalId') !== $project->getSequence()) {
+            throw new Exception(Exception::REPORT_NOT_FOUND);
         }
+
+        $reportInternalId = $report->getSequence();
 
         $normalizedCTAs = [];
 
@@ -185,7 +181,9 @@ class Create extends Action
         // CTA documents on the response — keeps a single round-trip for callers.
         $insight = $dbForPlatform->getDocument('insights', $insight->getId());
 
-        $queueForEvents->setParam('insightId', $insight->getId());
+        $queueForEvents
+            ->setParam('reportId', $report->getId())
+            ->setParam('insightId', $insight->getId());
 
         $response
             ->setStatusCode(Response::STATUS_CODE_CREATED)

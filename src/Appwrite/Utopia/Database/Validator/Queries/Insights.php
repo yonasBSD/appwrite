@@ -8,7 +8,6 @@ class Insights extends Base
         'type',
         'severity',
         'status',
-        'reportId',
         'resourceType',
         'resourceId',
         'parentResourceType',

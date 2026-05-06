@@ -774,11 +774,18 @@ class Realtime extends MessagingAdapter
                     $roles = [Role::team($project->getAttribute('teamId'))->toString()];
                 }
                 break;
-            case 'insights':
             case 'reports':
-                $channels[] = $parts[0];
+                // Plain report event: `reports.{reportId}.{action}`
+                $channels[] = 'reports';
                 if (isset($parts[1])) {
-                    $channels[] = $parts[0] . '.' . $parts[1];
+                    $channels[] = 'reports.' . $parts[1];
+                }
+                // Nested insight event: `reports.{reportId}.insights.{insightId}.{action}`
+                if (isset($parts[2]) && $parts[2] === 'insights') {
+                    $channels[] = 'reports.' . $parts[1] . '.insights';
+                    if (isset($parts[3])) {
+                        $channels[] = 'reports.' . $parts[1] . '.insights.' . $parts[3];
+                    }
                 }
                 $roles = [Role::team($project->getAttribute('teamId'))->toString()];
                 break;

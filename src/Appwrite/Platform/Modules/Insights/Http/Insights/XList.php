@@ -14,6 +14,7 @@ use Utopia\Database\Exception\Order as OrderException;
 use Utopia\Database\Exception\Query as QueryException;
 use Utopia\Database\Query;
 use Utopia\Database\Validator\Query\Cursor;
+use Utopia\Database\Validator\UID;
 use Utopia\Platform\Action;
 use Utopia\Platform\Scope\HTTP;
 use Utopia\Validator\Boolean;
@@ -31,7 +32,7 @@ class XList extends Action
     {
         $this
             ->setHttpMethod(Action::HTTP_REQUEST_METHOD_GET)
-            ->setHttpPath('/v1/insights')
+            ->setHttpPath('/v1/reports/:reportId/insights')
             ->desc('List insights')
             ->groups(['api', 'insights'])
             ->label('scope', 'insights.read')
@@ -41,7 +42,7 @@ class XList extends Action
                 group: 'insights',
                 name: 'list',
                 description: <<<EOT
-                Get a list of all the project's insights. You can use the query params to filter your results.
+                List the insights produced under a single analyzer report. You can use the query params to filter your results further.
                 EOT,
                 auth: [AuthType::ADMIN, AuthType::SESSION, AuthType::KEY, AuthType::JWT],
                 responses: [
@@ -51,6 +52,7 @@ class XList extends Action
                     ),
                 ]
             ))
+            ->param('reportId', '', fn (Database $dbForPlatform) => new UID($dbForPlatform->getAdapter()->getMaxUIDLength()), 'Parent report ID.', false, ['dbForPlatform'])
             ->param('queries', [], new Insights(), 'Array of query strings generated using the Query class provided by the SDK. [Learn more about queries](https://appwrite.io/docs/queries). Maximum of ' . APP_LIMIT_ARRAY_PARAMS_SIZE . ' queries are allowed, each ' . APP_LIMIT_ARRAY_ELEMENT_SIZE . ' characters long. You may filter on the following attributes: ' . implode(', ', Insights::ALLOWED_ATTRIBUTES), true)
             ->param('total', true, new Boolean(true), 'When set to false, the total count returned will be 0 and will not be calculated.', true)
             ->inject('response')
@@ -60,12 +62,19 @@ class XList extends Action
     }
 
     public function action(
+        string $reportId,
         array $queries,
         bool $includeTotal,
         Response $response,
         Document $project,
         Database $dbForPlatform
     ) {
+        $report = $dbForPlatform->getDocument('reports', $reportId);
+
+        if ($report->isEmpty() || $report->getAttribute('projectInternalId') !== $project->getSequence()) {
+            throw new Exception(Exception::REPORT_NOT_FOUND);
+        }
+
         try {
             $queries = Query::parseQueries($queries);
         } catch (QueryException $e) {
@@ -73,6 +82,7 @@ class XList extends Action
         }
 
         $queries[] = Query::equal('projectInternalId', [$project->getSequence()]);
+        $queries[] = Query::equal('reportInternalId', [$report->getSequence()]);
 
         $cursor = Query::getCursorQueries($queries, false);
         $cursor = \reset($cursor);
@@ -86,7 +96,11 @@ class XList extends Action
             $insightId = $cursor->getValue();
             $cursorDocument = $dbForPlatform->getDocument('insights', $insightId);
 
-            if ($cursorDocument->isEmpty() || $cursorDocument->getAttribute('projectInternalId') !== $project->getSequence()) {
+            if (
+                $cursorDocument->isEmpty()
+                || $cursorDocument->getAttribute('projectInternalId') !== $project->getSequence()
+                || $cursorDocument->getAttribute('reportInternalId') !== $report->getSequence()
+            ) {
                 throw new Exception(Exception::GENERAL_CURSOR_NOT_FOUND, "Insight '{$insightId}' for the 'cursor' value not found.");
             }
 

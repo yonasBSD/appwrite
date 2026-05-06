@@ -38,14 +38,14 @@ class Update extends Action
     {
         $this
             ->setHttpMethod(Action::HTTP_REQUEST_METHOD_PATCH)
-            ->setHttpPath('/v1/insights/:insightId')
+            ->setHttpPath('/v1/reports/:reportId/insights/:insightId')
             ->desc('Update insight')
             ->groups(['api', 'insights'])
             ->label('scope', 'insights.write')
-            ->label('event', 'insights.[insightId].update')
+            ->label('event', 'reports.[reportId].insights.[insightId].update')
             ->label('resourceType', RESOURCE_TYPE_INSIGHTS)
             ->label('audits.event', 'insight.update')
-            ->label('audits.resource', 'insight/{response.$id}')
+            ->label('audits.resource', 'report/{request.reportId}/insight/{response.$id}')
             ->label('abuse-key', 'projectId:{projectId},userId:{userId}')
             ->label('abuse-limit', APP_LIMIT_WRITE_RATE_DEFAULT)
             ->label('abuse-time', APP_LIMIT_WRITE_RATE_PERIOD_DEFAULT)
@@ -64,6 +64,7 @@ class Update extends Action
                     ),
                 ]
             ))
+            ->param('reportId', '', fn (Database $dbForPlatform) => new UID($dbForPlatform->getAdapter()->getMaxUIDLength()), 'Parent report ID.', false, ['dbForPlatform'])
             ->param('insightId', '', fn (Database $dbForPlatform) => new UID($dbForPlatform->getAdapter()->getMaxUIDLength()), 'Insight ID.', false, ['dbForPlatform'])
             ->param('severity', null, new Nullable(new WhiteList(INSIGHT_SEVERITIES, true)), 'Insight severity. One of `info`, `warning`, `critical`.', true)
             ->param('status', null, new Nullable(new WhiteList(INSIGHT_STATUSES, true)), 'Insight status. Set to `dismissed` to dismiss the insight, `active` to undo a dismissal.', true)
@@ -76,6 +77,7 @@ class Update extends Action
     }
 
     public function action(
+        string $reportId,
         string $insightId,
         ?string $severity,
         ?string $status,
@@ -85,9 +87,19 @@ class Update extends Action
         Database $dbForPlatform,
         Event $queueForEvents
     ) {
+        $report = $dbForPlatform->getDocument('reports', $reportId);
+
+        if ($report->isEmpty() || $report->getAttribute('projectInternalId') !== $project->getSequence()) {
+            throw new Exception(Exception::REPORT_NOT_FOUND);
+        }
+
         $insight = $dbForPlatform->getDocument('insights', $insightId);
 
-        if ($insight->isEmpty() || $insight->getAttribute('projectInternalId') !== $project->getSequence()) {
+        if (
+            $insight->isEmpty()
+            || $insight->getAttribute('projectInternalId') !== $project->getSequence()
+            || $insight->getAttribute('reportInternalId') !== $report->getSequence()
+        ) {
             throw new Exception(Exception::INSIGHT_NOT_FOUND);
         }
 
@@ -114,7 +126,9 @@ class Update extends Action
             $insight = $dbForPlatform->updateDocument('insights', $insight->getId(), $insight);
         }
 
-        $queueForEvents->setParam('insightId', $insight->getId());
+        $queueForEvents
+            ->setParam('reportId', $report->getId())
+            ->setParam('insightId', $insight->getId());
 
         $response->dynamic($insight, Response::MODEL_INSIGHT);
     }
