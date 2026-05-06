@@ -80,6 +80,26 @@ class DatabasesNumericTypesTest extends Scope
             'default' => 9007199254740000,
         ]);
 
+        // Create unsigned integer column
+        $this->client->call(Client::METHOD_POST, '/tablesdb/' . $databaseId . '/tables/' . $tableId . '/columns/integer', $headers, [
+            'key' => 'unsigned_int_field',
+            'required' => false,
+            'min' => 0,
+            'max' => 100,
+            'default' => 0,
+            'signed' => false,
+        ]);
+
+        // Create unsigned bigint column
+        $this->client->call(Client::METHOD_POST, '/tablesdb/' . $databaseId . '/tables/' . $tableId . '/columns/bigint', $headers, [
+            'key' => 'unsigned_bigint_field',
+            'required' => false,
+            'min' => 0,
+            'max' => 9223372036854775807,
+            'default' => 0,
+            'signed' => false,
+        ]);
+
         // Cache before waiting so that if waitForAllAttributes times out,
         // subsequent calls don't try to re-create the same columns (causing 409)
         self::$setupCache[$cacheKey] = [
@@ -142,6 +162,22 @@ class DatabasesNumericTypesTest extends Scope
             'min' => -9007199254740991,
             'max' => 9007199254740991,
             'default' => 9007199254740000,
+        ]);
+
+        $this->client->call(Client::METHOD_POST, '/tablesdb/' . $databaseId . '/tables/' . $tableId . '/columns/integer', $headers, [
+            'key' => 'unsigned_int_field',
+            'required' => false,
+            'max' => 100,
+            'default' => 0,
+            'signed' => false,
+        ]);
+
+        $this->client->call(Client::METHOD_POST, '/tablesdb/' . $databaseId . '/tables/' . $tableId . '/columns/bigint', $headers, [
+            'key' => 'unsigned_bigint_field',
+            'required' => false,
+            'max' => 9223372036854775807,
+            'default' => 0,
+            'signed' => false,
         ]);
 
         $this->waitForAllAttributes($databaseId, $tableId);
@@ -218,6 +254,45 @@ class DatabasesNumericTypesTest extends Scope
         $this->assertEquals(9007199254740000, $bigintColumn['body']['default']);
     }
 
+    public function testGetUnsignedIntegerAndBigIntColumns(): void
+    {
+        $data = $this->setupDatabaseAndTable();
+        $databaseId = $data['databaseId'];
+        $tableId = $data['tableId'];
+
+        $unsignedIntColumn = $this->client->call(Client::METHOD_GET, '/tablesdb/' . $databaseId . '/tables/' . $tableId . '/columns/unsigned_int_field', [
+            'content-type' => 'application/json',
+            'x-appwrite-project' => $this->getProject()['$id'],
+            'x-appwrite-key' => $this->getProject()['apiKey'],
+        ]);
+
+        $this->assertEquals(200, $unsignedIntColumn['headers']['status-code']);
+        $this->assertEquals('unsigned_int_field', $unsignedIntColumn['body']['key']);
+        $this->assertEquals('integer', $unsignedIntColumn['body']['type']);
+        $this->assertEquals(false, $unsignedIntColumn['body']['required']);
+        $this->assertEquals(false, $unsignedIntColumn['body']['array']);
+        $this->assertEquals(false, $unsignedIntColumn['body']['signed']);
+        $this->assertEquals(0, $unsignedIntColumn['body']['min']);
+        $this->assertEquals(100, $unsignedIntColumn['body']['max']);
+        $this->assertEquals(0, $unsignedIntColumn['body']['default']);
+
+        $unsignedBigintColumn = $this->client->call(Client::METHOD_GET, '/tablesdb/' . $databaseId . '/tables/' . $tableId . '/columns/unsigned_bigint_field', [
+            'content-type' => 'application/json',
+            'x-appwrite-project' => $this->getProject()['$id'],
+            'x-appwrite-key' => $this->getProject()['apiKey'],
+        ]);
+
+        $this->assertEquals(200, $unsignedBigintColumn['headers']['status-code']);
+        $this->assertEquals('unsigned_bigint_field', $unsignedBigintColumn['body']['key']);
+        $this->assertEquals('bigint', $unsignedBigintColumn['body']['type']);
+        $this->assertEquals(false, $unsignedBigintColumn['body']['required']);
+        $this->assertEquals(false, $unsignedBigintColumn['body']['array']);
+        $this->assertEquals(false, $unsignedBigintColumn['body']['signed']);
+        $this->assertEquals(0, $unsignedBigintColumn['body']['min']);
+        $this->assertEquals(9223372036854775807, $unsignedBigintColumn['body']['max']);
+        $this->assertEquals(0, $unsignedBigintColumn['body']['default']);
+    }
+
     public function testListColumnsWithNumericTypes(): void
     {
         $data = $this->setupDatabaseAndTable();
@@ -237,6 +312,8 @@ class DatabasesNumericTypesTest extends Scope
         $columnKeys = array_map(fn ($col) => $col['key'], $columns['body']['columns']);
         $this->assertContains('integer_field', $columnKeys);
         $this->assertContains('bigint_field', $columnKeys);
+        $this->assertContains('unsigned_int_field', $columnKeys);
+        $this->assertContains('unsigned_bigint_field', $columnKeys);
 
         $columnTypeByKey = [];
         foreach ($columns['body']['columns'] as $col) {
@@ -245,6 +322,8 @@ class DatabasesNumericTypesTest extends Scope
 
         $this->assertEquals('integer', $columnTypeByKey['integer_field']);
         $this->assertEquals('bigint', $columnTypeByKey['bigint_field']);
+        $this->assertEquals('integer', $columnTypeByKey['unsigned_int_field']);
+        $this->assertEquals('bigint', $columnTypeByKey['unsigned_bigint_field']);
     }
 
     public function testCreateRowWithIntegerAndBigIntTypes(): void
@@ -262,6 +341,8 @@ class DatabasesNumericTypesTest extends Scope
             'data' => [
                 'integer_field' => 5,
                 'bigint_field' => 456,
+                'unsigned_int_field' => 50,
+                'unsigned_bigint_field' => 9007199254740000,
             ],
             'permissions' => [
                 Permission::read(Role::any()),
@@ -271,6 +352,8 @@ class DatabasesNumericTypesTest extends Scope
         $this->assertEquals(201, $row['headers']['status-code']);
         $this->assertEquals(5, $row['body']['integer_field']);
         $this->assertEquals(456, $row['body']['bigint_field']);
+        $this->assertEquals(50, $row['body']['unsigned_int_field']);
+        $this->assertEquals(9007199254740000, $row['body']['unsigned_bigint_field']);
     }
 
     public function testUpdateIntegerAndBigIntColumns(): void
