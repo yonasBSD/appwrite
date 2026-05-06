@@ -2365,6 +2365,7 @@ trait MigrationsBase
             'content-type' => 'application/json',
             'x-appwrite-project' => $this->getProject()['$id'],
             'x-appwrite-key' => $this->getProject()['apiKey'],
+            'x-appwrite-response-format' => '1.9.3'
         ], [
             'key' => 'TEST_VAR',
             'value' => 'test_value',
