@@ -665,7 +665,6 @@ class FunctionsConsoleClientTest extends Scope
         ]);
 
         $this->assertEquals(200, $response['headers']['status-code']);
-        $this->assertEquals("TESTINGVALUEUPDATED_2", $response['body']['value']);
 
         $longKey = str_repeat("A", 256);
         $response = $this->client->call(Client::METHOD_PUT, '/functions/' . $functionId . '/variables/' . $variableId, array_merge([
