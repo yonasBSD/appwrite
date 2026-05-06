@@ -483,7 +483,7 @@ Database::addFilter(
     },
     function (mixed $value, Document $document, Database $database) {
         return $database->getAuthorization()->skip(fn () => $database
-            ->find('ctas', [
+            ->find('insightCTAs', [
                 Query::equal('insightInternalId', [$document->getSequence()]),
                 Query::limit(APP_LIMIT_SUBQUERY),
             ]));

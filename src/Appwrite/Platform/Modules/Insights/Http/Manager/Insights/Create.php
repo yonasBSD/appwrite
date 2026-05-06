@@ -176,7 +176,7 @@ class Create extends Action
         }
 
         foreach ($normalizedCTAs as $cta) {
-            $dbForPlatform->createDocument('ctas', new Document([
+            $dbForPlatform->createDocument('insightCTAs', new Document([
                 '$id' => ID::unique(),
                 'projectInternalId' => $project->getSequence(),
                 'projectId' => $project->getId(),

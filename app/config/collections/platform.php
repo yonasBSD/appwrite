@@ -2369,9 +2369,9 @@ $platformCollections = [
         ],
     ],
 
-    'ctas' => [
+    'insightCTAs' => [
         '$collection' => ID::custom(Database::METADATA),
-        '$id' => ID::custom('ctas'),
+        '$id' => ID::custom('insightCTAs'),
         'name' => 'Insight CTAs',
         'attributes' => [
             [
