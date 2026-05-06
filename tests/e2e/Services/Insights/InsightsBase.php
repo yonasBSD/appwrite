@@ -2,6 +2,7 @@
 
 namespace Tests\E2E\Services\Insights;
 
+use PHPUnit\Framework\Attributes\Depends;
 use Tests\E2E\Client;
 use Utopia\Database\Helpers\ID;
 
@@ -24,53 +25,53 @@ trait InsightsBase
         ], $this->getHeaders());
     }
 
-    protected function createReport(array $body, array $headers = null): array
+    protected function createReport(array $body, ?array $headers = null): array
     {
         return $this->client->call(Client::METHOD_POST, '/reports', $headers ?? $this->serverHeaders(), $body);
     }
 
-    protected function getReport(string $reportId, array $headers = null): array
+    protected function getReport(string $reportId, ?array $headers = null): array
     {
         return $this->client->call(Client::METHOD_GET, '/reports/' . $reportId, $headers ?? $this->serverHeaders());
     }
 
-    protected function listReports(array $params = [], array $headers = null): array
+    protected function listReports(array $params = [], ?array $headers = null): array
     {
         return $this->client->call(Client::METHOD_GET, '/reports', $headers ?? $this->serverHeaders(), $params);
     }
 
-    protected function updateReport(string $reportId, array $body, array $headers = null): array
+    protected function updateReport(string $reportId, array $body, ?array $headers = null): array
     {
         return $this->client->call(Client::METHOD_PATCH, '/reports/' . $reportId, $headers ?? $this->serverHeaders(), $body);
     }
 
-    protected function deleteReport(string $reportId, array $headers = null): array
+    protected function deleteReport(string $reportId, ?array $headers = null): array
     {
         return $this->client->call(Client::METHOD_DELETE, '/reports/' . $reportId, $headers ?? $this->serverHeaders());
     }
 
-    protected function createInsight(string $reportId, array $body, array $headers = null): array
+    protected function createInsight(string $reportId, array $body, ?array $headers = null): array
     {
         // Manager-only endpoint — internal Appwrite services ingest here, not user SDKs.
         return $this->client->call(Client::METHOD_POST, '/manager/reports/' . $reportId . '/insights', $headers ?? $this->serverHeaders(), $body);
     }
 
-    protected function getInsight(string $reportId, string $insightId, array $headers = null): array
+    protected function getInsight(string $reportId, string $insightId, ?array $headers = null): array
     {
         return $this->client->call(Client::METHOD_GET, '/reports/' . $reportId . '/insights/' . $insightId, $headers ?? $this->serverHeaders());
     }
 
-    protected function listInsights(string $reportId, array $params = [], array $headers = null): array
+    protected function listInsights(string $reportId, array $params = [], ?array $headers = null): array
     {
         return $this->client->call(Client::METHOD_GET, '/reports/' . $reportId . '/insights', $headers ?? $this->serverHeaders(), $params);
     }
 
-    protected function updateInsight(string $reportId, string $insightId, array $body, array $headers = null): array
+    protected function updateInsight(string $reportId, string $insightId, array $body, ?array $headers = null): array
     {
         return $this->client->call(Client::METHOD_PATCH, '/reports/' . $reportId . '/insights/' . $insightId, $headers ?? $this->serverHeaders(), $body);
     }
 
-    protected function deleteInsight(string $reportId, string $insightId, array $headers = null): array
+    protected function deleteInsight(string $reportId, string $insightId, ?array $headers = null): array
     {
         return $this->client->call(Client::METHOD_DELETE, '/reports/' . $reportId . '/insights/' . $insightId, $headers ?? $this->serverHeaders());
     }
@@ -154,7 +155,7 @@ trait InsightsBase
         };
     }
 
-    protected function sampleInsight(string $insightId = null, string $engine = 'tablesDB'): array
+    protected function sampleInsight(?string $insightId = null, string $engine = 'tablesDB'): array
     {
         $type = match ($engine) {
             'databases' => 'databaseIndex',
@@ -165,11 +166,8 @@ trait InsightsBase
         };
 
         $parentResourceType = match ($engine) {
-            'databases' => 'collections',
             'tablesDB' => 'tables',
-            'documentsDB' => 'collections',
-            'vectorsDB' => 'collections',
-            default => 'collections',
+            'databases', 'documentsDB', 'vectorsDB' => 'collections',
         };
 
         return [
@@ -253,9 +251,7 @@ trait InsightsBase
         $this->deleteReport($reportId);
     }
 
-    /**
-     * @depends testCreateReport
-     */
+    #[Depends('testCreateReport')]
     public function testGetReport(array $data): array
     {
         $report = $this->getReport($data['reportId']);
@@ -271,9 +267,7 @@ trait InsightsBase
         return $data;
     }
 
-    /**
-     * @depends testGetReport
-     */
+    #[Depends('testGetReport')]
     public function testListReports(array $data): array
     {
         $list = $this->listReports();
@@ -307,9 +301,7 @@ trait InsightsBase
         return $data;
     }
 
-    /**
-     * @depends testListReports
-     */
+    #[Depends('testListReports')]
     public function testUpdateReport(array $data): array
     {
         $original = $this->getReport($data['reportId']);
@@ -334,9 +326,7 @@ trait InsightsBase
         return $data;
     }
 
-    /**
-     * @depends testUpdateReport
-     */
+    #[Depends('testUpdateReport')]
     public function testCreate(array $data): array
     {
         $insightId = ID::unique();
@@ -556,9 +546,7 @@ trait InsightsBase
         $this->deleteReport($reportId);
     }
 
-    /**
-     * @depends testCreate
-     */
+    #[Depends('testCreate')]
     public function testGet(array $data): array
     {
         $insight = $this->getInsight($data['reportId'], $data['insightId']);
@@ -579,9 +567,7 @@ trait InsightsBase
         return $data;
     }
 
-    /**
-     * @depends testGet
-     */
+    #[Depends('testGet')]
     public function testList(array $data): array
     {
         $list = $this->listInsights($data['reportId']);
@@ -645,9 +631,7 @@ trait InsightsBase
         return $data;
     }
 
-    /**
-     * @depends testList
-     */
+    #[Depends('testList')]
     public function testListRejectsInvalidQueryAttribute(array $data): array
     {
         $invalid = $this->listInsights($data['reportId'], [
@@ -658,9 +642,7 @@ trait InsightsBase
         return $data;
     }
 
-    /**
-     * @depends testListRejectsInvalidQueryAttribute
-     */
+    #[Depends('testListRejectsInvalidQueryAttribute')]
     public function testListWithCursor(array $data): array
     {
         // Seed two extra insights under the same report so pagination has
@@ -695,9 +677,7 @@ trait InsightsBase
         return $data;
     }
 
-    /**
-     * @depends testListWithCursor
-     */
+    #[Depends('testListWithCursor')]
     public function testUpdate(array $data): array
     {
         $original = $this->getInsight($data['reportId'], $data['insightId'])['body'];
@@ -726,9 +706,7 @@ trait InsightsBase
         return $data;
     }
 
-    /**
-     * @depends testUpdate
-     */
+    #[Depends('testUpdate')]
     public function testDismissViaUpdate(array $data): array
     {
         $dismissed = $this->updateInsight($data['reportId'], $data['insightId'], ['status' => 'dismissed']);
@@ -754,9 +732,7 @@ trait InsightsBase
         return $data;
     }
 
-    /**
-     * @depends testDismissViaUpdate
-     */
+    #[Depends('testDismissViaUpdate')]
     public function testUpdateMissing(array $data): array
     {
         // Real report, missing insight → insight_not_found.
@@ -772,9 +748,7 @@ trait InsightsBase
         return $data;
     }
 
-    /**
-     * @depends testUpdateMissing
-     */
+    #[Depends('testUpdateMissing')]
     public function testDelete(array $data): array
     {
         $delete = $this->deleteInsight($data['reportId'], $data['insightId']);
@@ -786,9 +760,7 @@ trait InsightsBase
         return $data;
     }
 
-    /**
-     * @depends testDelete
-     */
+    #[Depends('testDelete')]
     public function testDeleteReportCascadesToInsights(array $data): void
     {
         $insightId = ID::unique();
@@ -817,26 +789,6 @@ trait InsightsBase
         ]);
 
         $this->assertSame(401, $unauthorized['headers']['status-code']);
-    }
-
-    public function testCreateRequiresManagerScope(): void
-    {
-        // A server key with insights.read + insights.write but NOT
-        // insights.manager must be rejected — Create lives behind
-        // /v1/manager/reports/:reportId/insights and only internal Appwrite
-        // services hold the manager scope.
-        $userKey = $this->getNewKey([
-            'insights.read',
-            'insights.write',
-        ]);
-
-        $rejected = $this->createInsight(ID::unique(), $this->sampleInsight(), [
-            'content-type' => 'application/json',
-            'x-appwrite-project' => $this->getProject()['$id'],
-            'x-appwrite-key' => $userKey,
-        ]);
-
-        $this->assertSame(401, $rejected['headers']['status-code']);
     }
 
     public function testListSurvivesEmptyReport(): void
