@@ -4219,7 +4219,7 @@ class AccountCustomClientTest extends Scope
         $this->assertNotEmpty($session['body']['expire']);
         $expiryAfter = $session['body']['expire'];
 
-        $this->assertGreaterThan($expiryAfter, $expiryBefore);
+        $this->assertGreaterThan(\strtotime($expiryBefore), \strtotime($expiryAfter));
 
         $session = $this->client->call(Client::METHOD_GET, '/account/sessions/current', array_merge([
             'origin' => 'http://localhost',
