@@ -276,13 +276,7 @@ class Create extends Action
     ): array {
         $key = $attribute['key'];
         $type = $attribute['type'];
-        switch ($type) {
-            case Database::VAR_BIGINT:
-                $size = 8;
-                break;
-            default:
-                $size = $attribute['size'] ?? 0;
-        }
+        $size = $attribute['size'] ?? 0;
         $required = $attribute['required'] ?? false;
         $signed = $attribute['signed'] ?? true;
         $array = $attribute['array'] ?? false;
@@ -296,13 +290,11 @@ class Create extends Action
         }
 
         if (isset($attribute['min']) || isset($attribute['max'])) {
-            if ($type === Database::VAR_INTEGER) {
-                $format = APP_DATABASE_ATTRIBUTE_INT_RANGE;
-            } elseif ($type === Database::VAR_BIGINT) {
-                $format = APP_DATABASE_ATTRIBUTE_BIGINT_RANGE;
-            } else {
-                $format = APP_DATABASE_ATTRIBUTE_FLOAT_RANGE;
-            }
+            $format = match($type) {
+                Database::VAR_INTEGER => APP_DATABASE_ATTRIBUTE_INT_RANGE,
+                Database::VAR_BIGINT => APP_DATABASE_ATTRIBUTE_BIGINT_RANGE,
+                default => APP_DATABASE_ATTRIBUTE_FLOAT_RANGE,
+            };
 
             $formatOptions = [
                 'min' => $attribute['min'] ?? ($type === Database::VAR_INTEGER || $type === Database::VAR_BIGINT ? \PHP_INT_MIN : -\PHP_FLOAT_MAX),

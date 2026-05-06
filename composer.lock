@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "29610e3ef365af01d018077f2638ffb3",
+    "content-hash": "4440b62bc2eb25841157914c2b91b087",
     "packages": [
         {
             "name": "adhocore/jwt",
@@ -3850,16 +3850,16 @@
         },
         {
             "name": "utopia-php/database",
-            "version": "dev-big-init",
+            "version": "5.7.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/utopia-php/database.git",
-                "reference": "ee8895a3ae835978fa4eb143619e4950e7001648"
+                "reference": "eb35e68f7f90932d5a60bd72e70158ae7a4e0511"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/utopia-php/database/zipball/ee8895a3ae835978fa4eb143619e4950e7001648",
-                "reference": "ee8895a3ae835978fa4eb143619e4950e7001648",
+                "url": "https://api.github.com/repos/utopia-php/database/zipball/eb35e68f7f90932d5a60bd72e70158ae7a4e0511",
+                "reference": "eb35e68f7f90932d5a60bd72e70158ae7a4e0511",
                 "shasum": ""
             },
             "require": {
@@ -3904,9 +3904,9 @@
             ],
             "support": {
                 "issues": "https://github.com/utopia-php/database/issues",
-                "source": "https://github.com/utopia-php/database/tree/big-init"
+                "source": "https://github.com/utopia-php/database/tree/5.7.0"
             },
-            "time": "2026-05-05T13:27:52+00:00"
+            "time": "2026-05-06T01:04:08+00:00"
         },
         {
             "name": "utopia-php/detector",
@@ -4531,16 +4531,16 @@
         },
         {
             "name": "utopia-php/migration",
-            "version": "1.9.6",
+            "version": "1.10.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/utopia-php/migration.git",
-                "reference": "b164631404ec759f8c368fe2321f44c22bc258ab"
+                "reference": "55f4863d690e775f44fec3cae4bd1f4491fed5ea"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/utopia-php/migration/zipball/b164631404ec759f8c368fe2321f44c22bc258ab",
-                "reference": "b164631404ec759f8c368fe2321f44c22bc258ab",
+                "url": "https://api.github.com/repos/utopia-php/migration/zipball/55f4863d690e775f44fec3cae4bd1f4491fed5ea",
+                "reference": "55f4863d690e775f44fec3cae4bd1f4491fed5ea",
                 "shasum": ""
             },
             "require": {
@@ -4549,7 +4549,7 @@
                 "ext-openssl": "*",
                 "halaxa/json-machine": "^1.2",
                 "php": ">=8.1",
-                "utopia-php/database": "dev-big-init as 5.4",
+                "utopia-php/database": "5.*",
                 "utopia-php/dsn": "0.2.*",
                 "utopia-php/storage": "2.*"
             },
@@ -4580,9 +4580,9 @@
             ],
             "support": {
                 "issues": "https://github.com/utopia-php/migration/issues",
-                "source": "https://github.com/utopia-php/migration/tree/1.9.6"
+                "source": "https://github.com/utopia-php/migration/tree/1.10.0"
             },
-            "time": "2026-04-30T08:11:07+00:00"
+            "time": "2026-05-06T04:35:32+00:00"
         },
         {
             "name": "utopia-php/mongo",
@@ -8444,18 +8444,9 @@
             "time": "2024-11-07T12:36:22+00:00"
         }
     ],
-    "aliases": [
-        {
-            "package": "utopia-php/database",
-            "version": "dev-big-init",
-            "alias": "5.7",
-            "alias_normalized": "5.7.0.0"
-        }
-    ],
+    "aliases": [],
     "minimum-stability": "dev",
-    "stability-flags": {
-        "utopia-php/database": 20
-    },
+    "stability-flags": {},
     "prefer-stable": true,
     "prefer-lowest": false,
     "platform": {
