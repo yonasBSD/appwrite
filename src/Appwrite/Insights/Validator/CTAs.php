@@ -6,7 +6,13 @@ use Utopia\Validator;
 
 class CTAs extends Validator
 {
+    public const MAX_COUNT_DEFAULT = 16;
+
     protected string $message = 'Value must be an array of CTA descriptors. Each entry must define `id`, `label`, `action`, and an optional `params` object.';
+
+    public function __construct(protected int $maxCount = self::MAX_COUNT_DEFAULT)
+    {
+    }
 
     public function getDescription(): string
     {
@@ -26,6 +32,11 @@ class CTAs extends Validator
     public function isValid($value): bool
     {
         if (!\is_array($value)) {
+            return false;
+        }
+
+        if (\count($value) > $this->maxCount) {
+            $this->message = "A maximum of {$this->maxCount} CTAs are allowed per insight.";
             return false;
         }
 

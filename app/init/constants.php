@@ -424,6 +424,7 @@ const RESOURCE_TYPE_EXECUTIONS = 'executions';
 const RESOURCE_TYPE_VCS = 'vcs';
 const RESOURCE_TYPE_EMBEDDINGS_TEXT = 'embeddingsText';
 const RESOURCE_TYPE_INSIGHTS = 'insights';
+const RESOURCE_TYPE_REPORTS = 'reports';
 
 // Insight types
 const INSIGHT_TYPE_DATABASE_INDEX = 'databaseIndex';
@@ -462,8 +463,16 @@ const INSIGHT_STATUSES = [
     INSIGHT_STATUS_DISMISSED,
 ];
 
-// Insight CTA actions
-const INSIGHT_CTA_ACTION_DATABASES_INDEXES_CREATE = 'databases.indexes.create';
+// Report types
+const REPORT_TYPE_LIGHTHOUSE = 'lighthouse';
+const REPORT_TYPE_AUDIT = 'audit';
+const REPORT_TYPE_DATABASE_ANALYZER = 'databaseAnalyzer';
+
+const REPORT_TYPES = [
+    REPORT_TYPE_LIGHTHOUSE,
+    REPORT_TYPE_AUDIT,
+    REPORT_TYPE_DATABASE_ANALYZER,
+];
 
 // Resource types for Tokens
 const TOKENS_RESOURCE_TYPE_FILES = 'files';

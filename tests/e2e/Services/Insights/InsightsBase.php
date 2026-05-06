@@ -24,12 +24,66 @@ trait InsightsBase
         ], $this->getHeaders());
     }
 
-    public function testCreate(): array
+    public function testCreateReport(): array
+    {
+        $reportId = ID::unique();
+
+        $response = $this->client->call(Client::METHOD_POST, '/reports', $this->serverHeaders(), [
+            'reportId' => $reportId,
+            'type' => 'databaseAnalyzer',
+            'title' => 'Database analyzer report',
+            'targetType' => 'databases',
+            'target' => 'main',
+            'categories' => ['performance'],
+        ]);
+
+        $this->assertSame(201, $response['headers']['status-code']);
+        $this->assertSame($reportId, $response['body']['$id']);
+        $this->assertSame('databaseAnalyzer', $response['body']['type']);
+        $this->assertSame('main', $response['body']['target']);
+
+        return ['reportId' => $reportId];
+    }
+
+    /**
+     * @depends testCreateReport
+     */
+    public function testGetReport(array $data): array
+    {
+        $reportId = $data['reportId'];
+
+        $response = $this->client->call(Client::METHOD_GET, '/reports/' . $reportId, $this->serverHeaders());
+        $this->assertSame(200, $response['headers']['status-code']);
+        $this->assertSame($reportId, $response['body']['$id']);
+
+        $missing = $this->client->call(Client::METHOD_GET, '/reports/missing', $this->serverHeaders());
+        $this->assertSame(404, $missing['headers']['status-code']);
+
+        return $data;
+    }
+
+    /**
+     * @depends testGetReport
+     */
+    public function testListReports(array $data): array
+    {
+        $response = $this->client->call(Client::METHOD_GET, '/reports', $this->serverHeaders());
+        $this->assertSame(200, $response['headers']['status-code']);
+        $this->assertGreaterThanOrEqual(1, $response['body']['total']);
+
+        return $data;
+    }
+
+    /**
+     * @depends testListReports
+     */
+    public function testCreate(array $data): array
     {
         $insightId = ID::unique();
 
         $response = $this->client->call(Client::METHOD_POST, '/insights', $this->serverHeaders(), [
             'insightId' => $insightId,
+            'reportId' => $data['reportId'],
             'type' => 'databaseIndex',
             'severity' => 'warning',
             'resourceType' => 'databases',
@@ -40,7 +94,7 @@ trait InsightsBase
             'ctas' => [[
                 'id' => 'createIndex',
                 'label' => 'Create missing index',
-                'action' => 'databases.indexes.create',
+                'action' => 'databases.createIndex',
                 'params' => [
                     'databaseId' => 'main',
                     'collectionId' => 'orders',
@@ -53,6 +107,7 @@ trait InsightsBase
 
         $this->assertSame(201, $response['headers']['status-code']);
         $this->assertSame($insightId, $response['body']['$id']);
+        $this->assertSame($data['reportId'], $response['body']['reportId']);
         $this->assertSame('databaseIndex', $response['body']['type']);
         $this->assertSame('warning', $response['body']['severity']);
         $this->assertSame('databases', $response['body']['resourceType']);
@@ -60,8 +115,42 @@ trait InsightsBase
         $this->assertSame('Missing index on collection orders', $response['body']['title']);
         $this->assertCount(1, $response['body']['ctas']);
         $this->assertSame('createIndex', $response['body']['ctas'][0]['id']);
+        $this->assertSame('databases.createIndex', $response['body']['ctas'][0]['action']);
 
-        return ['insightId' => $insightId];
+        return $data + ['insightId' => $insightId];
+    }
+
+    public function testCreateRejectsDuplicateCTAIds(): void
+    {
+        $response = $this->client->call(Client::METHOD_POST, '/insights', $this->serverHeaders(), [
+            'insightId' => ID::unique(),
+            'type' => 'databaseIndex',
+            'resourceType' => 'databases',
+            'resourceId' => 'main',
+            'title' => 'Should not be created',
+            'ctas' => [
+                ['id' => 'dup', 'label' => 'A', 'action' => 'databases.createIndex'],
+                ['id' => 'dup', 'label' => 'B', 'action' => 'databases.createIndex'],
+            ],
+        ]);
+
+        $this->assertSame(400, $response['headers']['status-code']);
+        $this->assertSame('general_argument_invalid', $response['body']['type']);
+    }
+
+    public function testCreateRejectsUnknownReport(): void
+    {
+        $response = $this->client->call(Client::METHOD_POST, '/insights', $this->serverHeaders(), [
+            'insightId' => ID::unique(),
+            'reportId' => 'definitely-missing',
+            'type' => 'databaseIndex',
+            'resourceType' => 'databases',
+            'resourceId' => 'main',
+            'title' => 'Should not be created',
+        ]);
+
+        $this->assertSame(404, $response['headers']['status-code']);
+        $this->assertSame('report_not_found', $response['body']['type']);
     }
 
     /**
@@ -103,6 +192,16 @@ trait InsightsBase
             $this->assertSame('databases', $insight['resourceType']);
         }
 
+        $byStatus = $this->client->call(Client::METHOD_GET, '/insights', $this->serverHeaders(), [
+            'queries' => [
+                'equal("status", "active")',
+            ],
+        ]);
+        $this->assertSame(200, $byStatus['headers']['status-code']);
+        foreach ($byStatus['body']['insights'] as $insight) {
+            $this->assertSame('active', $insight['status']);
+        }
+
         return $data;
     }
 
@@ -129,6 +228,26 @@ trait InsightsBase
     /**
      * @depends testUpdate
      */
+    public function testUpdateRejectsDuplicateCTAIds(array $data): array
+    {
+        $insightId = $data['insightId'];
+
+        $response = $this->client->call(Client::METHOD_PATCH, '/insights/' . $insightId, $this->serverHeaders(), [
+            'ctas' => [
+                ['id' => 'dup', 'label' => 'A', 'action' => 'databases.createIndex'],
+                ['id' => 'dup', 'label' => 'B', 'action' => 'databases.createIndex'],
+            ],
+        ]);
+
+        $this->assertSame(400, $response['headers']['status-code']);
+        $this->assertSame('general_argument_invalid', $response['body']['type']);
+
+        return $data;
+    }
+
+    /**
+     * @depends testUpdateRejectsDuplicateCTAIds
+     */
     public function testDismissViaUpdate(array $data): array
     {
         $insightId = $data['insightId'];
@@ -150,26 +269,6 @@ trait InsightsBase
         $this->assertEmpty($undismiss['body']['dismissedAt']);
 
         return $data;
-    }
-
-    /**
-     * @depends testDismissViaUpdate
-     */
-    public function testCreateCTAExecution(array $data): void
-    {
-        $insightId = $data['insightId'];
-
-        $missingCTA = $this->client->call(Client::METHOD_POST, '/insights/' . $insightId . '/ctas/missing/executions', $this->serverHeaders());
-        $this->assertSame(404, $missingCTA['headers']['status-code']);
-        $this->assertSame('insight_cta_not_found', $missingCTA['body']['type']);
-
-        $response = $this->client->call(Client::METHOD_POST, '/insights/' . $insightId . '/ctas/createIndex/executions', $this->serverHeaders());
-
-        $this->assertSame(200, $response['headers']['status-code']);
-        $this->assertSame($insightId, $response['body']['insightId']);
-        $this->assertSame('createIndex', $response['body']['ctaId']);
-        $this->assertSame('databases.indexes.create', $response['body']['action']);
-        $this->assertContains($response['body']['status'], ['succeeded', 'failed']);
     }
 
     public function testCreateRequiresServerKey(): void
@@ -206,5 +305,35 @@ trait InsightsBase
 
         $missing = $this->client->call(Client::METHOD_GET, '/insights/' . $insightId, $this->serverHeaders());
         $this->assertSame(404, $missing['headers']['status-code']);
+    }
+
+    public function testDeleteReportCascadesToInsights(): void
+    {
+        $reportId = ID::unique();
+        $createReport = $this->client->call(Client::METHOD_POST, '/reports', $this->serverHeaders(), [
+            'reportId' => $reportId,
+            'type' => 'audit',
+            'title' => 'Cascade-target report',
+            'targetType' => 'sites',
+            'target' => 'home',
+        ]);
+        $this->assertSame(201, $createReport['headers']['status-code']);
+
+        $insightId = ID::unique();
+        $createInsight = $this->client->call(Client::METHOD_POST, '/insights', $this->serverHeaders(), [
+            'insightId' => $insightId,
+            'reportId' => $reportId,
+            'type' => 'sitePerformance',
+            'resourceType' => 'sites',
+            'resourceId' => 'home',
+            'title' => 'Largest contentful paint regressed',
+        ]);
+        $this->assertSame(201, $createInsight['headers']['status-code']);
+
+        $deleteReport = $this->client->call(Client::METHOD_DELETE, '/reports/' . $reportId, $this->serverHeaders());
+        $this->assertSame(204, $deleteReport['headers']['status-code']);
+
+        $orphaned = $this->client->call(Client::METHOD_GET, '/insights/' . $insightId, $this->serverHeaders());
+        $this->assertSame(404, $orphaned['headers']['status-code']);
     }
 }

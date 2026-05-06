@@ -1,6 +1,6 @@
 <?php
 
-namespace Appwrite\Platform\Modules\Insights\Http\Insights;
+namespace Appwrite\Platform\Modules\Insights\Http\Reports;
 
 use Appwrite\Extend\Exception;
 use Appwrite\SDK\AuthType;
@@ -19,34 +19,34 @@ class Get extends Action
 
     public static function getName()
     {
-        return 'getInsight';
+        return 'getReport';
     }
 
     public function __construct()
     {
         $this
             ->setHttpMethod(Action::HTTP_REQUEST_METHOD_GET)
-            ->setHttpPath('/v1/insights/:insightId')
-            ->desc('Get insight')
+            ->setHttpPath('/v1/reports/:reportId')
+            ->desc('Get report')
             ->groups(['api', 'insights'])
-            ->label('scope', 'insights.read')
-            ->label('resourceType', RESOURCE_TYPE_INSIGHTS)
+            ->label('scope', 'reports.read')
+            ->label('resourceType', RESOURCE_TYPE_REPORTS)
             ->label('sdk', new Method(
                 namespace: 'insights',
-                group: 'insights',
-                name: 'get',
+                group: 'reports',
+                name: 'getReport',
                 description: <<<EOT
-                Get an insight by its unique ID.
+                Get a report by its unique ID.
                 EOT,
                 auth: [AuthType::ADMIN, AuthType::SESSION, AuthType::KEY, AuthType::JWT],
                 responses: [
                     new SDKResponse(
                         code: Response::STATUS_CODE_OK,
-                        model: Response::MODEL_INSIGHT,
+                        model: Response::MODEL_REPORT,
                     ),
                 ]
             ))
-            ->param('insightId', '', fn (Database $dbForPlatform) => new UID($dbForPlatform->getAdapter()->getMaxUIDLength()), 'Insight ID.', false, ['dbForPlatform'])
+            ->param('reportId', '', fn (Database $dbForPlatform) => new UID($dbForPlatform->getAdapter()->getMaxUIDLength()), 'Report ID.', false, ['dbForPlatform'])
             ->inject('response')
             ->inject('project')
             ->inject('dbForPlatform')
@@ -54,17 +54,17 @@ class Get extends Action
     }
 
     public function action(
-        string $insightId,
+        string $reportId,
         Response $response,
         Document $project,
         Database $dbForPlatform
     ) {
-        $insight = $dbForPlatform->getDocument('insights', $insightId);
+        $report = $dbForPlatform->getDocument('reports', $reportId);
 
-        if ($insight->isEmpty() || $insight->getAttribute('projectInternalId') !== $project->getSequence()) {
-            throw new Exception(Exception::INSIGHT_NOT_FOUND);
+        if ($report->isEmpty() || $report->getAttribute('projectInternalId') !== $project->getSequence()) {
+            throw new Exception(Exception::REPORT_NOT_FOUND);
         }
 
-        $response->dynamic($insight, Response::MODEL_INSIGHT);
+        $response->dynamic($report, Response::MODEL_REPORT);
     }
 }

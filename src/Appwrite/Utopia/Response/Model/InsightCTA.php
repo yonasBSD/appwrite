@@ -24,13 +24,13 @@ class InsightCTA extends Model
             ])
             ->addRule('action', [
                 'type' => self::TYPE_STRING,
-                'description' => 'Registered server-side action name to execute when this CTA is triggered.',
+                'description' => 'Public API method the client should invoke when this CTA is triggered.',
                 'default' => '',
-                'example' => 'databases.indexes.create',
+                'example' => 'databases.createIndex',
             ])
             ->addRule('params', [
                 'type' => self::TYPE_JSON,
-                'description' => 'Parameter map passed to the action when this CTA is triggered.',
+                'description' => 'Parameter map the client should pass to the action when this CTA is triggered.',
                 'default' => new \stdClass(),
                 'example' => ['databaseId' => 'main', 'collectionId' => 'orders', 'key' => '_idx_status'],
             ]);

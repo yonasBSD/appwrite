@@ -98,4 +98,37 @@ class CTAsTest extends TestCase
         $this->assertTrue($validator->isArray());
         $this->assertSame($validator::TYPE_ARRAY, $validator->getType());
     }
+
+    public function testRejectsMoreThanMaxCount(): void
+    {
+        $validator = new CTAs(maxCount: 3);
+
+        $entries = [];
+        for ($i = 0; $i < 4; $i++) {
+            $entries[] = [
+                'id' => 'cta-' . $i,
+                'label' => 'Label ' . $i,
+                'action' => 'databases.createIndex',
+            ];
+        }
+
+        $this->assertFalse($validator->isValid($entries));
+        $this->assertStringContainsString('maximum of 3', $validator->getDescription());
+    }
+
+    public function testAcceptsExactlyMaxCount(): void
+    {
+        $validator = new CTAs(maxCount: 3);
+
+        $entries = [];
+        for ($i = 0; $i < 3; $i++) {
+            $entries[] = [
+                'id' => 'cta-' . $i,
+                'label' => 'Label ' . $i,
+                'action' => 'databases.createIndex',
+            ];
+        }
+
+        $this->assertTrue($validator->isValid($entries));
+    }
 }

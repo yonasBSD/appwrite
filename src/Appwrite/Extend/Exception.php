@@ -403,9 +403,10 @@ class Exception extends \Exception
     /** Insights */
     public const string INSIGHT_NOT_FOUND = 'insight_not_found';
     public const string INSIGHT_ALREADY_EXISTS = 'insight_already_exists';
-    public const string INSIGHT_CTA_NOT_FOUND = 'insight_cta_not_found';
-    public const string INSIGHT_CTA_ACTION_NOT_REGISTERED = 'insight_cta_action_not_registered';
-    public const string INSIGHT_CTA_VALIDATION_FAILED = 'insight_cta_validation_failed';
+
+    /** Reports */
+    public const string REPORT_NOT_FOUND = 'report_not_found';
+    public const string REPORT_ALREADY_EXISTS = 'report_already_exists';
 
     protected string $type = '';
     protected array $errors = [];

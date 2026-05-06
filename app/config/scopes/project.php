@@ -344,7 +344,17 @@ return [
         'category' => 'Other',
     ],
     'insights.write' => [
-        'description' => 'Access to create, update, dismiss, delete insights, and trigger their CTAs.',
+        'description' => 'Access to create, update, dismiss, and delete insights.',
+        'category' => 'Other',
+    ],
+
+    // Reports
+    'reports.read' => [
+        'description' => 'Access to read analyzer reports and their insights.',
+        'category' => 'Other',
+    ],
+    'reports.write' => [
+        'description' => 'Access to create, update, and delete analyzer reports.',
         'category' => 'Other',
     ],
 ];

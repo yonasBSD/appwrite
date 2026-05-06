@@ -4,6 +4,7 @@ namespace Appwrite\Platform\Modules\Insights\Http\Insights;
 
 use Appwrite\Event\Event;
 use Appwrite\Extend\Exception;
+use Appwrite\Insights\Validator\CTAs as CTAsValidator;
 use Appwrite\SDK\AuthType;
 use Appwrite\SDK\Method;
 use Appwrite\SDK\Response as SDKResponse;
@@ -15,7 +16,6 @@ use Utopia\Database\Validator\Datetime as DatetimeValidator;
 use Utopia\Database\Validator\UID;
 use Utopia\Platform\Action;
 use Utopia\Platform\Scope\HTTP;
-use Utopia\Validator\ArrayList;
 use Utopia\Validator\JSON;
 use Utopia\Validator\Nullable;
 use Utopia\Validator\Text;
@@ -60,17 +60,18 @@ class Update extends Action
                     ),
                 ]
             ))
-            ->param('insightId', '', fn (Database $dbForProject) => new UID($dbForProject->getAdapter()->getMaxUIDLength()), 'Insight ID.', false, ['dbForProject'])
+            ->param('insightId', '', fn (Database $dbForPlatform) => new UID($dbForPlatform->getAdapter()->getMaxUIDLength()), 'Insight ID.', false, ['dbForPlatform'])
             ->param('severity', null, new Nullable(new WhiteList(INSIGHT_SEVERITIES, true)), 'Insight severity. One of `info`, `warning`, `critical`.', true)
             ->param('status', null, new Nullable(new WhiteList(INSIGHT_STATUSES, true)), 'Insight status. Set to `dismissed` to dismiss the insight, `active` to undo a dismissal.', true)
             ->param('title', null, new Nullable(new Text(256)), 'Short, human-readable title.', true)
             ->param('summary', null, new Nullable(new Text(4096, 0)), 'Markdown summary describing the insight.', true)
             ->param('payload', null, new Nullable(new JSON()), 'Type-specific structured payload.', true)
-            ->param('ctas', null, new Nullable(new ArrayList(new JSON(), 16)), 'Array of call-to-action descriptors.', true)
+            ->param('ctas', null, new Nullable(new CTAsValidator()), 'Array of call-to-action descriptors.', true)
             ->param('analyzedAt', null, new Nullable(new DatetimeValidator()), 'Time the insight was analyzed in ISO 8601 format.', true)
             ->inject('response')
             ->inject('user')
-            ->inject('dbForProject')
+            ->inject('project')
+            ->inject('dbForPlatform')
             ->inject('queueForEvents')
             ->callback($this->action(...));
     }
@@ -86,12 +87,13 @@ class Update extends Action
         ?string $analyzedAt,
         Response $response,
         Document $user,
-        Database $dbForProject,
+        Document $project,
+        Database $dbForPlatform,
         Event $queueForEvents
     ) {
-        $insight = $dbForProject->getDocument('insights', $insightId);
+        $insight = $dbForPlatform->getDocument('insights', $insightId);
 
-        if ($insight->isEmpty()) {
+        if ($insight->isEmpty() || $insight->getAttribute('projectInternalId') !== $project->getSequence()) {
             throw new Exception(Exception::INSIGHT_NOT_FOUND);
         }
 
@@ -120,13 +122,17 @@ class Update extends Action
             $changes['payload'] = $payload;
         }
         if ($ctas !== null) {
+            $seen = [];
             $normalized = [];
             foreach ($ctas as $cta) {
-                if (!isset($cta['id'], $cta['label'], $cta['action'])) {
-                    throw new Exception(Exception::GENERAL_ARGUMENT_INVALID, 'Each CTA must define `id`, `label`, and `action`.');
+                $ctaId = (string) $cta['id'];
+                if (isset($seen[$ctaId])) {
+                    throw new Exception(Exception::GENERAL_ARGUMENT_INVALID, 'CTA `id` values must be unique within an insight.');
                 }
+                $seen[$ctaId] = true;
+
                 $normalized[] = [
-                    'id' => (string) $cta['id'],
+                    'id' => $ctaId,
                     'label' => (string) $cta['label'],
                     'action' => (string) $cta['action'],
                     'params' => $cta['params'] ?? new \stdClass(),
@@ -139,7 +145,10 @@ class Update extends Action
         }
 
         if ($changes !== []) {
-            $insight = $dbForProject->updateDocument('insights', $insight->getId(), new Document($changes));
+            foreach ($changes as $key => $value) {
+                $insight->setAttribute($key, $value);
+            }
+            $insight = $dbForPlatform->updateDocument('insights', $insight->getId(), $insight);
         }
 
         $queueForEvents->setParam('insightId', $insight->getId());

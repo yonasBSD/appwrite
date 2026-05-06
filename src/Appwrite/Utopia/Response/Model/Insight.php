@@ -35,6 +35,12 @@ class Insight extends Model
                 'example' => ['read("any")'],
                 'array' => true,
             ])
+            ->addRule('reportId', [
+                'type' => self::TYPE_STRING,
+                'description' => 'Parent report ID, if this insight belongs to a report. Empty for ad-hoc insights.',
+                'default' => '',
+                'example' => '5e5ea5c16897e',
+            ])
             ->addRule('type', [
                 'type' => self::TYPE_STRING,
                 'description' => 'Insight type. One of databaseIndex, databasePerformance, sitePerformance, siteAccessibility, siteSeo, functionPerformance.',

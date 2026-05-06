@@ -312,7 +312,7 @@ return [
     'insights' => [
         'key' => 'insights',
         'name' => 'Insights',
-        'subtitle' => 'The Insights service surfaces actionable reports about your project resources, with CTAs for one-click remediation.',
+        'subtitle' => 'The Insights service surfaces actionable reports about your project resources, with CTA descriptors for one-click remediation in the console.',
         'description' => '/docs/services/insights.md',
         'controller' => '', // Uses modules
         'sdk' => true,

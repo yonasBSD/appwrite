@@ -7,6 +7,8 @@ class Insights extends Base
     public const ALLOWED_ATTRIBUTES = [
         'type',
         'severity',
+        'status',
+        'reportId',
         'resourceType',
         'resourceId',
         'analyzedAt',

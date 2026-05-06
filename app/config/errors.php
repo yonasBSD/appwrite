@@ -1435,19 +1435,16 @@ return [
         'description' => 'Insight with the requested ID already exists. Try again with a different ID or use ID.unique() to generate a unique ID.',
         'code' => 409,
     ],
-    Exception::INSIGHT_CTA_NOT_FOUND => [
-        'name' => Exception::INSIGHT_CTA_NOT_FOUND,
-        'description' => 'CTA with the requested ID could not be found on the insight.',
+
+    /** Reports */
+    Exception::REPORT_NOT_FOUND => [
+        'name' => Exception::REPORT_NOT_FOUND,
+        'description' => 'Report with the requested ID could not be found.',
         'code' => 404,
     ],
-    Exception::INSIGHT_CTA_ACTION_NOT_REGISTERED => [
-        'name' => Exception::INSIGHT_CTA_ACTION_NOT_REGISTERED,
-        'description' => 'The CTA action requested is not registered on the server.',
-        'code' => 501,
-    ],
-    Exception::INSIGHT_CTA_VALIDATION_FAILED => [
-        'name' => Exception::INSIGHT_CTA_VALIDATION_FAILED,
-        'description' => 'CTA parameter validation failed. Please ensure all required parameters are provided and well formed.',
-        'code' => 400,
+    Exception::REPORT_ALREADY_EXISTS => [
+        'name' => Exception::REPORT_ALREADY_EXISTS,
+        'description' => 'Report with the requested ID already exists. Try again with a different ID or use ID.unique() to generate a unique ID.',
+        'code' => 409,
     ],
 ];

@@ -105,6 +105,8 @@ $admins = [
     'schedules.write',
     'insights.read',
     'insights.write',
+    'reports.read',
+    'reports.write',
 ];
 
 return [

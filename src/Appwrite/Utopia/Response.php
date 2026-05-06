@@ -334,7 +334,8 @@ class Response extends SwooleResponse
     public const MODEL_INSIGHT = 'insight';
     public const MODEL_INSIGHT_LIST = 'insightList';
     public const MODEL_INSIGHT_CTA = 'insightCTA';
-    public const MODEL_INSIGHT_CTA_EXECUTION = 'insightCTAExecution';
+    public const MODEL_REPORT = 'report';
+    public const MODEL_REPORT_LIST = 'reportList';
 
     // Console
     public const MODEL_CONSOLE_VARIABLES = 'consoleVariables';
