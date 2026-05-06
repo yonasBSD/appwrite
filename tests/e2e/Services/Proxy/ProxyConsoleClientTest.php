@@ -4,11 +4,11 @@ namespace Tests\E2E\Services\Proxy;
 
 use Tests\E2E\Scopes\ProjectCustom;
 use Tests\E2E\Scopes\Scope;
-use Tests\E2E\Scopes\SideServer;
+use Tests\E2E\Scopes\SideConsole;
 
-class ProxyCustomServerTest extends Scope
+class ProxyConsoleClientTest extends Scope
 {
     use ProxyBase;
     use ProjectCustom;
-    use SideServer;
+    use SideConsole;
 }
