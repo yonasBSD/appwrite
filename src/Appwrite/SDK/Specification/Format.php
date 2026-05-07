@@ -755,6 +755,12 @@ abstract class Format
                                 return 'ProjectPolicyId';
                         }
                         break;
+                    case 'getOAuth2Provider':
+                        switch ($param) {
+                            case 'providerId':
+                                return 'OAuthProvider';
+                        }
+                        break;
                     case 'getEmailTemplate':
                     case 'updateEmailTemplate':
                         switch ($param) {
