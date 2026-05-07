@@ -743,6 +743,18 @@ abstract class Format
                 break;
             case 'project':
                 switch ($method) {
+                    case 'updateAuthMethod':
+                        switch ($param) {
+                            case 'methodId':
+                                return 'AuthMethodId';
+                        }
+                        break;
+                    case 'getPolicy':
+                        switch ($param) {
+                            case 'policyId':
+                                return 'ProjectPolicyId';
+                        }
+                        break;
                     case 'getEmailTemplate':
                     case 'updateEmailTemplate':
                         switch ($param) {
