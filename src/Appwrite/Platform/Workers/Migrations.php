@@ -572,15 +572,30 @@ class Migrations extends Action
                 $destinationErrors = $destination?->getErrors() ?? [];
 
                 if ($caughtError !== null) {
-                    $bubbled = $caughtError instanceof MigrationException
-                        ? $caughtError
-                        : new MigrationException(
+                    if ($caughtError instanceof MigrationException) {
+                        // library-thrown, message constructed by us
+                        $bubbled = $caughtError;
+                    } elseif ($caughtError instanceof Exception) {
+                        // typed AppwriteException — message comes from the curated registry
+                        $bubbled = new MigrationException(
                             resourceName: '',
                             resourceGroup: '',
                             message: $caughtError->getMessage(),
                             code: $caughtError->getCode(),
                             previous: $caughtError,
                         );
+                    } else {
+                        // unknown throwable — raw message may embed internal hostnames,
+                        // DSNs, tokens, etc. Replace with a generic user-facing string;
+                        // the original is preserved on `previous:` for Sentry.
+                        $bubbled = new MigrationException(
+                            resourceName: '',
+                            resourceGroup: '',
+                            message: 'Migration failed due to an unexpected error.',
+                            code: $caughtError->getCode() ?: 500,
+                            previous: $caughtError,
+                        );
+                    }
                     $destinationErrors[] = $bubbled;
                 }
 
