@@ -2,6 +2,7 @@
 
 namespace Appwrite\Event\Message;
 
+use Utopia\Config\Config;
 use Utopia\Database\Document;
 
 final class Build extends Base
@@ -18,13 +19,15 @@ final class Build extends Base
 
     public function toArray(): array
     {
+        $platform = !empty($this->platform) ? $this->platform : Config::getParam('platform', []);
+
         return [
             'project' => $this->project->getArrayCopy(),
             'resource' => $this->resource->getArrayCopy(),
             'deployment' => $this->deployment->getArrayCopy(),
             'type' => $this->type,
-            'template' => $this->template?->getArrayCopy() ?? [],
-            'platform' => $this->platform,
+            'template' => $this->template?->getArrayCopy(),
+            'platform' => $platform,
         ];
     }
 
@@ -35,7 +38,7 @@ final class Build extends Base
             resource: new Document($data['resource'] ?? []),
             deployment: new Document($data['deployment'] ?? []),
             type: $data['type'] ?? '',
-            template: isset($data['template']) ? new Document($data['template']) : null,
+            template: !empty($data['template']) ? new Document($data['template']) : null,
             platform: $data['platform'] ?? [],
         );
     }
