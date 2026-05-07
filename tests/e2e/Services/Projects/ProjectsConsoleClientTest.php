@@ -15,6 +15,7 @@ use Utopia\Database\Helpers\ID;
 use Utopia\Database\Helpers\Permission;
 use Utopia\Database\Helpers\Role;
 use Utopia\Database\Query;
+use Utopia\Database\Validator\Datetime as ValidatorDatetime;
 use Utopia\System\System;
 
 class ProjectsConsoleClientTest extends Scope
@@ -802,6 +803,19 @@ class ProjectsConsoleClientTest extends Scope
         $this->assertEquals(201, $response['headers']['status-code']);
         $id = $response['body']['$id'];
 
+        // Increase ping 3x
+        for ($i = 0; $i < 3; $i++) {
+            $response = $this->client->call(
+                Client::METHOD_GET,
+                '/ping',
+                array_merge([
+                    'content-type' => 'application/json',
+                    'x-appwrite-project' => $id,
+                ], $this->getHeaders()),
+            );
+            $this->assertEquals(200, $response['headers']['status-code']);
+        }
+
         // Configure SMTP
         $response = $this->client->call(
             Client::METHOD_PATCH,
@@ -831,6 +845,33 @@ class ProjectsConsoleClientTest extends Scope
         ], $this->getHeaders()), [
             'number' => '+421123456789',
             'otp' => '123456'
+        ]);
+        $this->assertEquals(201, $response['headers']['status-code']);
+
+        // Add labels
+        $response = $this->client->call(Client::METHOD_PUT, '/project/labels', array_merge([
+            'content-type' => 'application/json',
+            'x-appwrite-project' => $id,
+            'x-appwrite-mode' => 'admin',
+        ], $this->getHeaders()), [
+            'labels' => ['custom1', 'custom2']
+        ]);
+        $this->assertEquals(200, $response['headers']['status-code']);
+
+        // Create dev keys
+        $response = $this->client->call(Client::METHOD_POST, '/projects/' . $id . '/dev-keys', array_merge([
+            'content-type' => 'application/json',
+        ], $this->getHeaders()), [
+            'name' => 'Custom key 1',
+            'expire' => '2026-05-07 09:23:30.713',
+        ]);
+        $this->assertEquals(201, $response['headers']['status-code']);
+        
+        $response = $this->client->call(Client::METHOD_POST, '/projects/' . $id . '/dev-keys', array_merge([
+            'content-type' => 'application/json',
+        ], $this->getHeaders()), [
+            'name' => 'Custom key 2',
+            'expire' => '2026-05-07 11:23:30.713'
         ]);
         $this->assertEquals(201, $response['headers']['status-code']);
 
@@ -952,6 +993,7 @@ class ProjectsConsoleClientTest extends Scope
 
         $this->assertEquals('My description', $response['body']['description']);
         $this->assertEquals($team['body']['$id'], $response['body']['teamId']);
+        $this->assertEquals('active', $response['body']['status']);
         $this->assertEquals('https://google.com/logo.png', $response['body']['logo']);
         $this->assertEquals('https://myapp.com/', $response['body']['url']);
         $this->assertEquals('Legal company', $response['body']['legalName']);
@@ -986,7 +1028,44 @@ class ProjectsConsoleClientTest extends Scope
         $this->assertSame('', $response['body']['smtpUsername']);
         $this->assertSame('', $response['body']['smtpPassword']); // Write only
         $this->assertSame('', $response['body']['smtpSecure']);
+        $this->assertSame(3, $response['body']['pingCount']);
 
+        $this->assertIsString($response['body']['pingedAt']);
+        $this->assertNotEmpty($response['body']['pingedAt']);
+        $this->assertNotFalse(\strtotime($response['body']['pingedAt']));
+
+        $this->assertCount(2, $response['body']['labels']);
+        $this->assertEquals('custom1', $response['body']['labels'][0]);
+        $this->assertEquals('custom2', $response['body']['labels'][1]);
+
+        $this->assertCount(2, $response['body']['devKeys']);
+        $this->assertEquals('Custom key 1', $response['body']['devKeys'][0]['name']);
+        $this->assertEquals('Custom key 2', $response['body']['devKeys'][1]['name']);
+        $this->assertEquals('2026-05-07T09:23:30.713+00:00', $response['body']['devKeys'][0]['expire']);
+        $this->assertEquals('2026-05-07T11:23:30.713+00:00', $response['body']['devKeys'][1]['expire']);
+
+        foreach ($response['body']['devKeys'] as $devKey) {
+            $this->assertIsString($devKey['$id']);
+            $this->assertNotEmpty($devKey['$id']);
+
+            $this->assertIsString($devKey['secret']);
+            $this->assertNotEmpty($devKey['secret']);
+
+            $this->assertIsString($devKey['accessedAt']);
+            $this->assertEmpty($devKey['accessedAt']);
+            
+            $this->assertIsString($devKey['$createdAt']);
+            $this->assertNotEmpty($devKey['$createdAt']);
+            $this->assertNotFalse(\strtotime($devKey['$createdAt']));
+
+            $this->assertIsString($devKey['$updatedAt']);
+            $this->assertNotEmpty($devKey['$updatedAt']);
+            $this->assertNotFalse(\strtotime($devKey['$updatedAt']));
+            
+            $this->assertIsArray($devKey['sdks']);
+            $this->assertCount(0, $devKey['sdks']);
+        }
+        
         $this->assertCount(2, $response['body']['authMockNumbers']);
         $this->assertEquals('+421123456789', $response['body']['authMockNumbers'][0]['phone']);
         $this->assertEquals('+420987654321', $response['body']['authMockNumbers'][1]['phone']);
@@ -1010,6 +1089,7 @@ class ProjectsConsoleClientTest extends Scope
         }
 
         /*
+        TODO:
         $this->assertArrayHasKey('oAuthProviders', $project);
         $this->assertIsArray($project['oAuthProviders']);
 
@@ -1021,24 +1101,7 @@ class ProjectsConsoleClientTest extends Scope
 
         $this->assertArrayHasKey('keys', $project);
         $this->assertIsArray($project['keys']);
-
-        $this->assertArrayHasKey('devKeys', $project);
-        $this->assertIsArray($project['devKeys']);
          */
-
-        /*
-        $this->assertArrayHasKey('pingCount', $project);
-        $this->assertIsInt($project['pingCount']);
-
-        $this->assertArrayHasKey('pingedAt', $project);
-        $this->assertIsString($project['pingedAt']);
-
-        $this->assertArrayHasKey('labels', $project);
-        $this->assertIsArray($project['labels']);
-
-        $this->assertArrayHasKey('status', $project);
-        $this->assertIsString($project['status']);
-        */
 
         $authsKeys = [
             'authEmailPassword',
