@@ -68,6 +68,17 @@ abstract class Format
                 'mock-unverified'
             ],
         ],
+        [
+            'namespace' => 'project',
+            'methods' => [
+                'getOAuth2Provider'
+            ],
+            'parameter' => 'providerId',
+            'excludeKeys' => [
+                'mock',
+                'mock-unverified'
+            ],
+        ],
     ];
 
     /**
