@@ -3,7 +3,6 @@
 use Appwrite\Auth\Key;
 use Appwrite\Auth\MFA\Type\TOTP;
 use Appwrite\Bus\Events\RequestCompleted;
-use Appwrite\Event\Build;
 use Appwrite\Event\Context\Audit as AuditContext;
 use Appwrite\Event\Database as EventDatabase;
 use Appwrite\Event\Delete;
@@ -489,7 +488,6 @@ Http::init()
     ->inject('auditContext')
     ->inject('queueForDeletes')
     ->inject('queueForDatabase')
-    ->inject('queueForBuilds')
     ->inject('usage')
     ->inject('queueForFunctions')
     ->inject('queueForMails')
@@ -503,7 +501,7 @@ Http::init()
     ->inject('telemetry')
     ->inject('platform')
     ->inject('authorization')
-    ->action(function (Http $utopia, Request $request, Response $response, Document $project, User $user, Event $queueForEvents, Messaging $queueForMessaging, AuditContext $auditContext, Delete $queueForDeletes, EventDatabase $queueForDatabase, Build $queueForBuilds, Context $usage, Func $queueForFunctions, Mail $queueForMails, Database $dbForProject, callable $timelimit, Document $resourceToken, string $mode, ?Key $apiKey, array $plan, Document $devKey, Telemetry $telemetry, array $platform, Authorization $authorization) {
+    ->action(function (Http $utopia, Request $request, Response $response, Document $project, User $user, Event $queueForEvents, Messaging $queueForMessaging, AuditContext $auditContext, Delete $queueForDeletes, EventDatabase $queueForDatabase, Context $usage, Func $queueForFunctions, Mail $queueForMails, Database $dbForProject, callable $timelimit, Document $resourceToken, string $mode, ?Key $apiKey, array $plan, Document $devKey, Telemetry $telemetry, array $platform, Authorization $authorization) {
 
         $response->setUser($user);
         $request->setUser($user);
@@ -618,12 +616,10 @@ Http::init()
         $queueForDatabase->setProject($project);
         $queueForMessaging->setProject($project);
         $queueForFunctions->setProject($project);
-        $queueForBuilds->setProject($project);
         $queueForMails->setProject($project);
 
         /* Auto-set platforms */
         $queueForFunctions->setPlatform($platform);
-        $queueForBuilds->setPlatform($platform);
         $queueForMails->setPlatform($platform);
 
         $useCache = $route->getLabel('cache', false);
@@ -800,7 +796,6 @@ Http::shutdown()
     ->inject('publisherForUsage')
     ->inject('queueForDeletes')
     ->inject('queueForDatabase')
-    ->inject('queueForBuilds')
     ->inject('queueForMessaging')
     ->inject('queueForFunctions')
     ->inject('queueForWebhooks')
@@ -812,7 +807,7 @@ Http::shutdown()
     ->inject('bus')
     ->inject('apiKey')
     ->inject('mode')
-    ->action(function (Http $utopia, Request $request, Response $response, Document $project, User $user, Event $queueForEvents, AuditContext $auditContext, Audit $publisherForAudits, Context $usage, UsagePublisher $publisherForUsage, Delete $queueForDeletes, EventDatabase $queueForDatabase, Build $queueForBuilds, Messaging $queueForMessaging, Func $queueForFunctions, Event $queueForWebhooks, Realtime $queueForRealtime, Database $dbForProject, Authorization $authorization, callable $timelimit, EventProcessor $eventProcessor, Bus $bus, ?Key $apiKey, string $mode) use ($parseLabel) {
+    ->action(function (Http $utopia, Request $request, Response $response, Document $project, User $user, Event $queueForEvents, AuditContext $auditContext, Audit $publisherForAudits, Context $usage, UsagePublisher $publisherForUsage, Delete $queueForDeletes, EventDatabase $queueForDatabase, Messaging $queueForMessaging, Func $queueForFunctions, Event $queueForWebhooks, Realtime $queueForRealtime, Database $dbForProject, Authorization $authorization, callable $timelimit, EventProcessor $eventProcessor, Bus $bus, ?Key $apiKey, string $mode) use ($parseLabel) {
 
         $responsePayload = $response->getPayload();
 
@@ -959,10 +954,6 @@ Http::shutdown()
 
         if (! empty($queueForDatabase->getType())) {
             $queueForDatabase->trigger();
-        }
-
-        if (! empty($queueForBuilds->getType())) {
-            $queueForBuilds->trigger();
         }
 
         if (! empty($queueForMessaging->getType())) {
