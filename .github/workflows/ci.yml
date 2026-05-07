@@ -445,19 +445,19 @@ jobs:
         ]
         include:
           - service: Databases
-            runner: blacksmith-4vcpu-ubuntu-2404
+            runner: runs-on=${{ github.run_id }}/runner=4cpu-linux-x64/family=c7
             paratest_processes: 3
             timeout_minutes: 30
           - service: Sites
-            runner: blacksmith-4vcpu-ubuntu-2404
+            runner: runs-on=${{ github.run_id }}/runner=4cpu-linux-x64/family=c7
           - service: Functions
-            runner: blacksmith-4vcpu-ubuntu-2404
+            runner: runs-on=${{ github.run_id }}/runner=4cpu-linux-x64/family=c7
           - service: Avatars
-            runner: blacksmith-4vcpu-ubuntu-2404
+            runner: runs-on=${{ github.run_id }}/runner=4cpu-linux-x64/family=c7
           - service: Realtime
-            runner: blacksmith-4vcpu-ubuntu-2404
+            runner: runs-on=${{ github.run_id }}/runner=4cpu-linux-x64/family=c7
           - service: TablesDB
-            runner: blacksmith-4vcpu-ubuntu-2404
+            runner: runs-on=${{ github.run_id }}/runner=4cpu-linux-x64/family=c7
             paratest_processes: 3
             timeout_minutes: 30
           - service: Migrations
