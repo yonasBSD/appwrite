@@ -862,7 +862,7 @@ class ProjectsConsoleClientTest extends Scope
             'content-type' => 'application/json',
         ], $this->getHeaders()), [
             'name' => 'Custom key 1',
-            'expire' => '2026-05-07 09:23:30.713',
+            'expire' => '2099-05-07 09:23:30.713',
         ]);
         $this->assertEquals(201, $response['headers']['status-code']);
 
@@ -870,7 +870,7 @@ class ProjectsConsoleClientTest extends Scope
             'content-type' => 'application/json',
         ], $this->getHeaders()), [
             'name' => 'Custom key 2',
-            'expire' => '2026-05-07 11:23:30.713'
+            'expire' => '2099-05-07 11:23:30.713'
         ]);
         $this->assertEquals(201, $response['headers']['status-code']);
 
@@ -1091,8 +1091,8 @@ class ProjectsConsoleClientTest extends Scope
         $this->assertCount(2, $response['body']['devKeys']);
         $this->assertEquals('Custom key 1', $response['body']['devKeys'][0]['name']);
         $this->assertEquals('Custom key 2', $response['body']['devKeys'][1]['name']);
-        $this->assertEquals('2026-05-07T09:23:30.713+00:00', $response['body']['devKeys'][0]['expire']);
-        $this->assertEquals('2026-05-07T11:23:30.713+00:00', $response['body']['devKeys'][1]['expire']);
+        $this->assertEquals('2099-05-07T09:23:30.713+00:00', $response['body']['devKeys'][0]['expire']);
+        $this->assertEquals('2099-05-07T11:23:30.713+00:00', $response['body']['devKeys'][1]['expire']);
 
         foreach ($response['body']['devKeys'] as $devKey) {
             $this->assertIsString($devKey['$id']);
@@ -1441,7 +1441,7 @@ class ProjectsConsoleClientTest extends Scope
             'authPhone',
         ];
         foreach ($authsKeys as $authsKey) {
-            $this->assertFalse($response['body'][$authsKey], 'Auth method should be enabled: ' . $authsKey);
+            $this->assertFalse($response['body'][$authsKey], 'Auth method should be disabled: ' . $authsKey);
         }
 
         $serviceKeys = [
@@ -1464,7 +1464,7 @@ class ProjectsConsoleClientTest extends Scope
             'serviceStatusForMessaging',
         ];
         foreach ($serviceKeys as $serviceKey) {
-            $this->assertFalse($response['body'][$serviceKey], 'Service should be enabled: ' . $serviceKey);
+            $this->assertFalse($response['body'][$serviceKey], 'Service should be disabled: ' . $serviceKey);
         }
 
         $protocolKeys = [
@@ -1473,7 +1473,7 @@ class ProjectsConsoleClientTest extends Scope
             'protocolStatusForWebsocket',
         ];
         foreach ($protocolKeys as $protocolKey) {
-            $this->assertFalse($response['body'][$protocolKey], 'Protocol should be enabled: ' . $protocolKey);
+            $this->assertFalse($response['body'][$protocolKey], 'Protocol should be disabled: ' . $protocolKey);
         }
 
         /**
