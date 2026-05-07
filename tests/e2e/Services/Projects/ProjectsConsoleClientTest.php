@@ -1040,32 +1040,50 @@ class ProjectsConsoleClientTest extends Scope
         $this->assertIsString($project['status']);
         */
 
-        /*
-        $auth = require(__DIR__ . '/../../../../app/config/auth.php');
-        foreach ($auth as $method) {
-           $key = 'auth' . ucfirst($method['key'] ?? '');
-           $this->assertArrayHasKey($key, $project, 'Missing auth field: ' . $key);
-           $this->assertIsBool($project[$key], 'Auth field should be boolean: ' . $key);
+        $authsKeys = [
+            'authEmailPassword',
+            'authUsersAuthMagicURL',
+            'authEmailOtp',
+            'authAnonymous',
+            'authInvites',
+            'authJWT',
+            'authPhone',
+        ];
+        foreach ($authsKeys as $authsKey) {
+           $this->assertTrue($response['body'][$authsKey], 'Auth method should be enabled: ' . $authsKey);
         }
 
-        $services = require(__DIR__ . '/../../../../app/config/services.php');
-        foreach ($services as $service) {
-           if (!($service['optional'] ?? false)) {
-               continue;
-           }
-           $key = 'serviceStatusFor' . ucfirst($service['key'] ?? '');
-           $this->assertArrayHasKey($key, $project, 'Missing service field: ' . $key);
-           $this->assertIsBool($project[$key], 'Service field should be boolean: ' . $key);
+        $serviceKeys = [
+            'serviceStatusForAccount',
+            'serviceStatusForAvatars',
+            'serviceStatusForDatabases',
+            'serviceStatusForTablesdb',
+            'serviceStatusForLocale',
+            'serviceStatusForHealth',
+            'serviceStatusForProject',
+            'serviceStatusForStorage',
+            'serviceStatusForTeams',
+            'serviceStatusForUsers',
+            'serviceStatusForVcs',
+            'serviceStatusForSites',
+            'serviceStatusForFunctions',
+            'serviceStatusForProxy',
+            'serviceStatusForGraphql',
+            'serviceStatusForMigrations',
+            'serviceStatusForMessaging',
+        ];
+        foreach ($serviceKeys as $serviceKey) {
+           $this->assertTrue($response['body'][$serviceKey], 'Service should be enabled: ' . $serviceKey);
         }
 
-        // Dynamic protocol status fields
-        $protocols = require(__DIR__ . '/../../../../app/config/protocols.php');
-        foreach ($protocols as $protocol) {
-           $key = 'protocolStatusFor' . ucfirst($protocol['key'] ?? '');
-           $this->assertArrayHasKey($key, $project, 'Missing protocol field: ' . $key);
-           $this->assertIsBool($project[$key], 'Protocol field should be boolean: ' . $key);
+        $protocolKeys = [
+            'protocolStatusForRest',
+            'protocolStatusForGraphql',
+            'protocolStatusForWebsocket',
+        ];
+        foreach ($protocolKeys as $protocolKey) {
+           $this->assertTrue($response['body'][$protocolKey], 'Protocol should be enabled: ' . $protocolKey);
         }
-        */
 
         // Ensure policies can be falsy
 
