@@ -802,19 +802,41 @@ class ProjectsConsoleClientTest extends Scope
         $this->assertEquals(201, $response['headers']['status-code']);
         $id = $response['body']['$id'];
 
+        // Configure SMTP
+        $response = $this->client->call(
+            Client::METHOD_PATCH,
+            '/project/smtp',
+            array_merge([
+                'content-type' => 'application/json',
+                'x-appwrite-project' => $id,
+            ], $this->getHeaders()),
+            [
+                'enabled' => true,
+                'senderName' => 'Custom sender',
+                'senderEmail' => 'email@custom.com',
+                'host' => 'maildev',
+                'port' => 1025,
+                'replyTo' => 'replyto@custom.com',
+                'replyToName' => 'Reply sender',
+            ],
+        );
+
         // Add mock numbers
-        $response = $this->client->call(Client::METHOD_POST, '/project/' . $id . '/mock-phones', array_merge([
+        $response = $this->client->call(Client::METHOD_POST, '/project/mock-phones', array_merge([
             'content-type' => 'application/json',
-            'x-appwrite-project' => $this->getProject()['$id'],
+            'x-appwrite-project' => $id,
+            'x-appwrite-mode' => 'admin',
         ], $this->getHeaders()), [
             'number' => '+421123456789',
             'otp' => '123456'
         ]);
+        \var_dump($id);
+        \var_dump($this->getHeaders());
         $this->assertEquals(201, $response['headers']['status-code']);
 
-        $response = $this->client->call(Client::METHOD_POST, '/project/' . $id . '/mock-phones', array_merge([
+        $response = $this->client->call(Client::METHOD_POST, '/project/mock-phones', array_merge([
             'content-type' => 'application/json',
-            'x-appwrite-project' => $this->getProject()['$id'],
+            'x-appwrite-project' => $id
         ], $this->getHeaders()), [
             'number' => '+420987654321',
             'otp' => '654321'
@@ -822,65 +844,65 @@ class ProjectsConsoleClientTest extends Scope
         $this->assertEquals(201, $response['headers']['status-code']);
 
         // Setup custom values for project policies
-        $response = $this->client->call(Client::METHOD_PATCH, '/project/' . $id . '/policies/session-duration', array_merge([
+        $response = $this->client->call(Client::METHOD_PATCH, '/project/policies/session-duration', array_merge([
             'content-type' => 'application/json',
-            'x-appwrite-project' => $this->getProject()['$id'],
+            'x-appwrite-project' => $id
         ], $this->getHeaders()), [
             'duration' => 135
         ]);
         $this->assertEquals(200, $response['headers']['status-code']);
         
-        $response = $this->client->call(Client::METHOD_PATCH, '/project/' . $id . '/policies/user-limit', array_merge([
+        $response = $this->client->call(Client::METHOD_PATCH, '/project/policies/user-limit', array_merge([
             'content-type' => 'application/json',
-            'x-appwrite-project' => $this->getProject()['$id'],
+            'x-appwrite-project' => $id,
         ], $this->getHeaders()), [
             'total' => 54
         ]);
         $this->assertEquals(200, $response['headers']['status-code']);
 
-        $response = $this->client->call(Client::METHOD_PATCH, '/project/' . $id . '/policies/session-limit', array_merge([
+        $response = $this->client->call(Client::METHOD_PATCH, '/project/policies/session-limit', array_merge([
             'content-type' => 'application/json',
-            'x-appwrite-project' => $this->getProject()['$id'],
+            'x-appwrite-project' => $id,
         ], $this->getHeaders()), [
             'total' => 7
         ]);
         $this->assertEquals(200, $response['headers']['status-code']);
         
-        $response = $this->client->call(Client::METHOD_PATCH, '/project/' . $id . '/policies/password-history', array_merge([
+        $response = $this->client->call(Client::METHOD_PATCH, '/project/policies/password-history', array_merge([
             'content-type' => 'application/json',
-            'x-appwrite-project' => $this->getProject()['$id'],
+            'x-appwrite-project' => $id,
         ], $this->getHeaders()), [
             'total' => 9
         ]);
         $this->assertEquals(200, $response['headers']['status-code']);
         
-        $response = $this->client->call(Client::METHOD_PATCH, '/project/' . $id . '/policies/password-dictionary', array_merge([
+        $response = $this->client->call(Client::METHOD_PATCH, '/project/policies/password-dictionary', array_merge([
             'content-type' => 'application/json',
-            'x-appwrite-project' => $this->getProject()['$id'],
+            'x-appwrite-project' => $id,
         ], $this->getHeaders()), [
             'enabled' => true
         ]);
         $this->assertEquals(200, $response['headers']['status-code']);
 
-        $response = $this->client->call(Client::METHOD_PATCH, '/project/' . $id . '/policies/password-personal-data', array_merge([
+        $response = $this->client->call(Client::METHOD_PATCH, '/project/policies/password-personal-data', array_merge([
             'content-type' => 'application/json',
-            'x-appwrite-project' => $this->getProject()['$id'],
+            'x-appwrite-project' => $id,
         ], $this->getHeaders()), [
             'enabled' => true
         ]);
         $this->assertEquals(200, $response['headers']['status-code']);
 
-        $response = $this->client->call(Client::METHOD_PATCH, '/project/' . $id . '/policies/session-alert', array_merge([
+        $response = $this->client->call(Client::METHOD_PATCH, '/project/policies/session-alert', array_merge([
             'content-type' => 'application/json',
-            'x-appwrite-project' => $this->getProject()['$id'],
+            'x-appwrite-project' => $id,    
         ], $this->getHeaders()), [
             'enabled' => true
         ]);
         $this->assertEquals(200, $response['headers']['status-code']);
 
-        $response = $this->client->call(Client::METHOD_PATCH, '/project/' . $id . '/policies/membership-privacy', array_merge([
+        $response = $this->client->call(Client::METHOD_PATCH, '/project/policies/membership-privacy', array_merge([
             'content-type' => 'application/json',
-            'x-appwrite-project' => $this->getProject()['$id'],
+            'x-appwrite-project' => $id,
         ], $this->getHeaders()), [
             'userId' => true,
             'userEmail' => true,
@@ -890,9 +912,9 @@ class ProjectsConsoleClientTest extends Scope
         ]);
         $this->assertEquals(200, $response['headers']['status-code']);
 
-        $response = $this->client->call(Client::METHOD_PATCH, '/project/' . $id . '/policies/session-invalidation', array_merge([
+        $response = $this->client->call(Client::METHOD_PATCH, '/project/policies/session-invalidation', array_merge([
             'content-type' => 'application/json',
-            'x-appwrite-project' => $this->getProject()['$id'],
+            'x-appwrite-project' => $id,
         ], $this->getHeaders()), [
             'enabled' => false
         ]);
@@ -1051,6 +1073,46 @@ class ProjectsConsoleClientTest extends Scope
         $this->assertIsBool($response['authInvalidateSessions']);
         $this->assertTrue($response['authInvalidateSessions']);
 
+        $this->assertArrayHasKey('smtpEnabled', $response);
+        $this->assertIsBool($response['smtpEnabled']);
+        $this->assertTrue($response['smtpEnabled']);
+
+        $this->assertArrayHasKey('smtpSenderName', $response);
+        $this->assertIsString($response['smtpSenderName']);
+        $this->assertSame('Custom sender', $response['smtpSenderName']);
+
+        $this->assertArrayHasKey('smtpSenderEmail', $response);
+        $this->assertIsString($response['smtpSenderEmail']);
+        $this->assertSame('email@custom.com', $response['smtpSenderEmail']);
+
+        $this->assertArrayHasKey('smtpReplyToName', $response);
+        $this->assertIsString($response['smtpReplyToName']);
+        $this->assertSame('Reply sender', $response['smtpReplyToName']);
+
+        $this->assertArrayHasKey('smtpReplyToEmail', $response);
+        $this->assertIsString($response['smtpReplyToEmail']);
+        $this->assertSame('replyto@custom.com', $response['smtpReplyToEmail']);
+
+        $this->assertArrayHasKey('smtpHost', $response);
+        $this->assertIsString($response['smtpHost']);
+        $this->assertSame('maildev', $response['smtpHost']);
+
+        $this->assertArrayHasKey('smtpPort', $response);
+        $this->assertIsInt($response['smtpPort']);
+        $this->assertSame(1025, $response['smtpPort']);
+
+        $this->assertArrayHasKey('smtpUsername', $response);
+        $this->assertIsString($response['smtpUsername']);
+        $this->assertSame('', $response['smtpUsername']);
+
+        $this->assertArrayHasKey('smtpPassword', $response);
+        $this->assertIsString($response['smtpPassword']);
+        $this->assertSame('', $response['smtpPassword']);
+
+        $this->assertArrayHasKey('smtpSecure', $response);
+        $this->assertIsString($response['smtpSecure']);
+        $this->assertSame('', $response['smtpSecure']);
+
         /*
         $this->assertArrayHasKey('oAuthProviders', $project);
         $this->assertIsArray($project['oAuthProviders']);
@@ -1069,38 +1131,7 @@ class ProjectsConsoleClientTest extends Scope
          */
 
          /*
-        $this->assertArrayHasKey('smtpEnabled', $project);
-        $this->assertIsBool($project['smtpEnabled']);
-
-        $this->assertArrayHasKey('smtpSenderName', $project);
-        $this->assertIsString($project['smtpSenderName']);
-
-        $this->assertArrayHasKey('smtpSenderEmail', $project);
-        $this->assertIsString($project['smtpSenderEmail']);
-
-        $this->assertArrayHasKey('smtpReplyToName', $project);
-        $this->assertIsString($project['smtpReplyToName']);
-
-        $this->assertArrayHasKey('smtpReplyToEmail', $project);
-        $this->assertIsString($project['smtpReplyToEmail']);
-
-        $this->assertArrayHasKey('smtpHost', $project);
-        $this->assertIsString($project['smtpHost']);
-
-        $this->assertArrayHasKey('smtpPort', $project);
-        $this->assertTrue(
-            is_int($project['smtpPort']) || $project['smtpPort'] === '',
-            'smtpPort should be an integer or an empty string'
-        );
-
-        $this->assertArrayHasKey('smtpUsername', $project);
-        $this->assertIsString($project['smtpUsername']);
-
-        $this->assertArrayHasKey('smtpPassword', $project);
-        $this->assertIsString($project['smtpPassword']);
-
-        $this->assertArrayHasKey('smtpSecure', $project);
-        $this->assertIsString($project['smtpSecure']);
+        
          */
 
          
@@ -1190,6 +1221,24 @@ class ProjectsConsoleClientTest extends Scope
             'enabled' => false
         ]);
         $this->assertEquals(200, $response['headers']['status-code']);
+
+        // Configure SMTP
+        $response = $this->client->call(
+            Client::METHOD_PATCH,
+            '/project/smtp',
+            array_merge([
+                'content-type' => 'application/json',
+                'x-appwrite-project' => $this->getProject()['$id'],
+            ], $this->getHeaders()),
+            [
+                'enabled' => false,
+                'host' => 'customhost.com',
+                'port' => 4444,
+                'username' => 'myuser',
+                'password' => 'mypassword',
+                'secure' => 'ssl',
+            ],
+        );
         
         $response = $this->client->call(Client::METHOD_GET, '/projects/' . $id, array_merge([
             'content-type' => 'application/json',
@@ -1231,6 +1280,30 @@ class ProjectsConsoleClientTest extends Scope
         $this->assertArrayHasKey('authInvalidateSessions', $response);
         $this->assertIsBool($response['authInvalidateSessions']);
         $this->assertFalse($response['authInvalidateSessions']);
+
+        $this->assertArrayHasKey('smtpEnabled', $response);
+        $this->assertIsBool($response['smtpEnabled']);
+        $this->assertFalse($response['smtpEnabled']);
+
+        $this->assertArrayHasKey('smtpHost', $response);
+        $this->assertIsString($response['smtpHost']);
+        $this->assertSame('customhost.com', $response['smtpHost']);
+
+        $this->assertArrayHasKey('smtpPort', $response);
+        $this->assertIsInt($response['smtpPort']);
+        $this->assertSame(4444, $response['smtpPort']);
+
+        $this->assertArrayHasKey('smtpUsername', $response);
+        $this->assertIsString($response['smtpUsername']);
+        $this->assertSame('myuser', $response['smtpUsername']);
+
+        $this->assertArrayHasKey('smtpPassword', $response);
+        $this->assertIsString($response['smtpPassword']);
+        $this->assertSame('', $response['smtpPassword']);
+
+        $this->assertArrayHasKey('smtpSecure', $response);
+        $this->assertIsString($response['smtpSecure']);
+        $this->assertSame('ssl', $response['smtpSecure']);
 
         /**
          * Test for FAILURE
