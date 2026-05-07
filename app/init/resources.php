@@ -2,6 +2,7 @@
 
 use Appwrite\Event\Event;
 use Appwrite\Event\Publisher\Audit as AuditPublisher;
+use Appwrite\Event\Publisher\Build as BuildPublisher;
 use Appwrite\Event\Publisher\Certificate as CertificatePublisher;
 use Appwrite\Event\Publisher\Execution as ExecutionPublisher;
 use Appwrite\Event\Publisher\Migration as MigrationPublisher;
@@ -111,6 +112,10 @@ $container->set('publisherForMigrations', fn (Publisher $publisher) => new Migra
 $container->set('publisherForStatsResources', fn (Publisher $publisher) => new StatsResourcesPublisher(
     $publisher,
     new Queue(System::getEnv('_APP_STATS_RESOURCES_QUEUE_NAME', Event::STATS_RESOURCES_QUEUE_NAME))
+), ['publisher']);
+$container->set('publisherForBuilds', fn (Publisher $publisher) => new BuildPublisher(
+    $publisher,
+    new Queue(System::getEnv('_APP_BUILDS_QUEUE_NAME', Event::BUILDS_QUEUE_NAME))
 ), ['publisher']);
 
 /**
