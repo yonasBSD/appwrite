@@ -550,13 +550,13 @@ class Migrations extends Action
 
             // Mirror general.php's HTTP-error pattern: typed AppwriteException uses its
             // registry-driven isPublishable() flag; library-thrown Migration\Exception is
-            // always user-facing; anything else falls back to the code heuristic.
+            // always user-facing; anything else is unknown and surfaced to Sentry.
             if ($th instanceof Exception) {
                 $publish = $th->isPublishable();
             } elseif ($th instanceof MigrationException) {
                 $publish = false;
             } else {
-                $publish = $th->getCode() === 0 || $th->getCode() >= 500;
+                $publish = true;
             }
 
             if ($publish) {
