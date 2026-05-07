@@ -554,7 +554,7 @@ class Migrations extends Action
             } elseif ($th instanceof MigrationException) {
                 $publish = false;
             } else {
-                $publish = $th->getCode() === 0 || $th->getCode() >= 500;
+                $publish = $th->getCode() === null || $th->getCode() === 0 || $th->getCode() >= 500;
             }
 
             if ($publish) {
