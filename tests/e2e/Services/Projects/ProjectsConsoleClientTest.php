@@ -1050,7 +1050,7 @@ class ProjectsConsoleClientTest extends Scope
             'authPhone',
         ];
         foreach ($authsKeys as $authsKey) {
-           $this->assertTrue($response['body'][$authsKey], 'Auth method should be enabled: ' . $authsKey);
+            $this->assertTrue($response['body'][$authsKey], 'Auth method should be enabled: ' . $authsKey);
         }
 
         $serviceKeys = [
@@ -1073,7 +1073,7 @@ class ProjectsConsoleClientTest extends Scope
             'serviceStatusForMessaging',
         ];
         foreach ($serviceKeys as $serviceKey) {
-           $this->assertTrue($response['body'][$serviceKey], 'Service should be enabled: ' . $serviceKey);
+            $this->assertTrue($response['body'][$serviceKey], 'Service should be enabled: ' . $serviceKey);
         }
 
         $protocolKeys = [
@@ -1082,10 +1082,10 @@ class ProjectsConsoleClientTest extends Scope
             'protocolStatusForWebsocket',
         ];
         foreach ($protocolKeys as $protocolKey) {
-           $this->assertTrue($response['body'][$protocolKey], 'Protocol should be enabled: ' . $protocolKey);
+            $this->assertTrue($response['body'][$protocolKey], 'Protocol should be enabled: ' . $protocolKey);
         }
 
-        // Ensure policies can be falsy
+        // Ensure booleans can be falsy
 
         $response = $this->client->call(Client::METHOD_PATCH, '/project/policies/password-dictionary', array_merge([
             'content-type' => 'application/json',
@@ -1136,6 +1136,78 @@ class ProjectsConsoleClientTest extends Scope
         ]);
         $this->assertEquals(200, $response['headers']['status-code']);
 
+        // Toggle auth methods, services, protocols
+
+        $authMethods = ['email-password', 'magic-url', 'email-otp', 'anonymous', 'invites', 'jwt', 'phone'];
+        foreach ($authMethods as $authMethod) {
+            $response = $this->client->call(
+                Client::METHOD_PATCH,
+                '/project/auth-methods/' . $authMethod,
+                array_merge([
+                    'content-type' => 'application/json',
+                    'x-appwrite-project' => $id,
+                    'x-appwrite-mode' => 'admin',
+                ], $this->getHeaders()),
+                [
+                    'enabled' => false,
+                ],
+            );
+            $this->assertEquals(200, $response['headers']['status-code']);
+        }
+
+        $protocols = ['rest', 'graphql', 'websocket'];
+        foreach ($protocols as $protocol) {
+            $response = $this->client->call(
+                Client::METHOD_PATCH,
+                '/project/protocols/' . $protocol,
+                array_merge([
+                    'content-type' => 'application/json',
+                    'x-appwrite-project' => $id,
+                    'x-appwrite-mode' => 'admin',
+                ], $this->getHeaders()),
+                [
+                    'enabled' => false,
+                ],
+            );
+            $this->assertEquals(200, $response['headers']['status-code']);
+        }
+
+        $services = [
+            'account',
+            'avatars',
+            'databases',
+            'tablesdb',
+            'locale',
+            'health',
+            'project',
+            'storage',
+            'teams',
+            'users',
+            'vcs',
+            'sites',
+            'functions',
+            'proxy',
+            'graphql',
+            'migrations',
+            'messaging',
+        ];
+
+        foreach ($services as $service) {
+            $response = $this->client->call(
+                Client::METHOD_PATCH,
+                '/project/services/' . $service,
+                array_merge([
+                    'content-type' => 'application/json',
+                    'x-appwrite-project' => $id,
+                    'x-appwrite-mode' => 'admin',
+                ], $this->getHeaders()),
+                [
+                    'enabled' => false,
+                ],
+            );
+            $this->assertEquals(200, $response['headers']['status-code']);
+        }
+
         // Configure SMTP
         $response = $this->client->call(
             Client::METHOD_PATCH,
@@ -1154,11 +1226,14 @@ class ProjectsConsoleClientTest extends Scope
                 'secure' => 'ssl',
             ],
         );
+        $this->assertEquals(200, $response['headers']['status-code']);
 
         $response = $this->client->call(Client::METHOD_GET, '/projects/' . $id, array_merge([
             'content-type' => 'application/json',
             'x-appwrite-project' => $this->getProject()['$id'],
         ], $this->getHeaders()));
+
+        $this->assertEquals(200, $response['headers']['status-code']);
 
         $this->assertFalse($response['body']['authPasswordDictionary']);
         $this->assertFalse($response['body']['authPersonalDataCheck']);
@@ -1175,6 +1250,51 @@ class ProjectsConsoleClientTest extends Scope
         $this->assertSame('myuser', $response['body']['smtpUsername']);
         $this->assertSame('', $response['body']['smtpPassword']); // Write only
         $this->assertSame('ssl', $response['body']['smtpSecure']);
+
+        $authsKeys = [
+            'authEmailPassword',
+            'authUsersAuthMagicURL',
+            'authEmailOtp',
+            'authAnonymous',
+            'authInvites',
+            'authJWT',
+            'authPhone',
+        ];
+        foreach ($authsKeys as $authsKey) {
+            $this->assertFalse($response['body'][$authsKey], 'Auth method should be enabled: ' . $authsKey);
+        }
+
+        $serviceKeys = [
+            'serviceStatusForAccount',
+            'serviceStatusForAvatars',
+            'serviceStatusForDatabases',
+            'serviceStatusForTablesdb',
+            'serviceStatusForLocale',
+            'serviceStatusForHealth',
+            'serviceStatusForProject',
+            'serviceStatusForStorage',
+            'serviceStatusForTeams',
+            'serviceStatusForUsers',
+            'serviceStatusForVcs',
+            'serviceStatusForSites',
+            'serviceStatusForFunctions',
+            'serviceStatusForProxy',
+            'serviceStatusForGraphql',
+            'serviceStatusForMigrations',
+            'serviceStatusForMessaging',
+        ];
+        foreach ($serviceKeys as $serviceKey) {
+            $this->assertFalse($response['body'][$serviceKey], 'Service should be enabled: ' . $serviceKey);
+        }
+
+        $protocolKeys = [
+            'protocolStatusForRest',
+            'protocolStatusForGraphql',
+            'protocolStatusForWebsocket',
+        ];
+        foreach ($protocolKeys as $protocolKey) {
+            $this->assertFalse($response['body'][$protocolKey], 'Protocol should be enabled: ' . $protocolKey);
+        }
 
         /**
          * Test for FAILURE
