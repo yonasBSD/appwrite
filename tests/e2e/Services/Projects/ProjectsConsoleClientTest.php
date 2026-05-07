@@ -798,7 +798,7 @@ class ProjectsConsoleClientTest extends Scope
             'legalAddress' => 'Main street 32',
             'legalTaxId' => 'TAXID_123456'
         ]);
-        
+
         $this->assertEquals(201, $response['headers']['status-code']);
         $id = $response['body']['$id'];
 
@@ -809,6 +809,7 @@ class ProjectsConsoleClientTest extends Scope
             array_merge([
                 'content-type' => 'application/json',
                 'x-appwrite-project' => $id,
+                'x-appwrite-mode' => 'admin',
             ], $this->getHeaders()),
             [
                 'enabled' => true,
@@ -816,10 +817,11 @@ class ProjectsConsoleClientTest extends Scope
                 'senderEmail' => 'email@custom.com',
                 'host' => 'maildev',
                 'port' => 1025,
-                'replyTo' => 'replyto@custom.com',
+                'replyToEmail' => 'replyto@custom.com',
                 'replyToName' => 'Reply sender',
             ],
         );
+        $this->assertEquals(200, $response['headers']['status-code']);
 
         // Add mock numbers
         $response = $this->client->call(Client::METHOD_POST, '/project/mock-phones', array_merge([
@@ -830,13 +832,12 @@ class ProjectsConsoleClientTest extends Scope
             'number' => '+421123456789',
             'otp' => '123456'
         ]);
-        \var_dump($id);
-        \var_dump($this->getHeaders());
         $this->assertEquals(201, $response['headers']['status-code']);
 
         $response = $this->client->call(Client::METHOD_POST, '/project/mock-phones', array_merge([
             'content-type' => 'application/json',
-            'x-appwrite-project' => $id
+            'x-appwrite-project' => $id,
+            'x-appwrite-mode' => 'admin',
         ], $this->getHeaders()), [
             'number' => '+420987654321',
             'otp' => '654321'
@@ -846,15 +847,17 @@ class ProjectsConsoleClientTest extends Scope
         // Setup custom values for project policies
         $response = $this->client->call(Client::METHOD_PATCH, '/project/policies/session-duration', array_merge([
             'content-type' => 'application/json',
-            'x-appwrite-project' => $id
+            'x-appwrite-project' => $id,
+            'x-appwrite-mode' => 'admin',
         ], $this->getHeaders()), [
             'duration' => 135
         ]);
         $this->assertEquals(200, $response['headers']['status-code']);
-        
+
         $response = $this->client->call(Client::METHOD_PATCH, '/project/policies/user-limit', array_merge([
             'content-type' => 'application/json',
             'x-appwrite-project' => $id,
+            'x-appwrite-mode' => 'admin',
         ], $this->getHeaders()), [
             'total' => 54
         ]);
@@ -863,22 +866,25 @@ class ProjectsConsoleClientTest extends Scope
         $response = $this->client->call(Client::METHOD_PATCH, '/project/policies/session-limit', array_merge([
             'content-type' => 'application/json',
             'x-appwrite-project' => $id,
+            'x-appwrite-mode' => 'admin',
         ], $this->getHeaders()), [
             'total' => 7
         ]);
         $this->assertEquals(200, $response['headers']['status-code']);
-        
+
         $response = $this->client->call(Client::METHOD_PATCH, '/project/policies/password-history', array_merge([
             'content-type' => 'application/json',
             'x-appwrite-project' => $id,
+            'x-appwrite-mode' => 'admin',
         ], $this->getHeaders()), [
             'total' => 9
         ]);
         $this->assertEquals(200, $response['headers']['status-code']);
-        
+
         $response = $this->client->call(Client::METHOD_PATCH, '/project/policies/password-dictionary', array_merge([
             'content-type' => 'application/json',
             'x-appwrite-project' => $id,
+            'x-appwrite-mode' => 'admin',
         ], $this->getHeaders()), [
             'enabled' => true
         ]);
@@ -887,6 +893,7 @@ class ProjectsConsoleClientTest extends Scope
         $response = $this->client->call(Client::METHOD_PATCH, '/project/policies/password-personal-data', array_merge([
             'content-type' => 'application/json',
             'x-appwrite-project' => $id,
+            'x-appwrite-mode' => 'admin',
         ], $this->getHeaders()), [
             'enabled' => true
         ]);
@@ -894,7 +901,8 @@ class ProjectsConsoleClientTest extends Scope
 
         $response = $this->client->call(Client::METHOD_PATCH, '/project/policies/session-alert', array_merge([
             'content-type' => 'application/json',
-            'x-appwrite-project' => $id,    
+            'x-appwrite-project' => $id,
+            'x-appwrite-mode' => 'admin',
         ], $this->getHeaders()), [
             'enabled' => true
         ]);
@@ -903,6 +911,7 @@ class ProjectsConsoleClientTest extends Scope
         $response = $this->client->call(Client::METHOD_PATCH, '/project/policies/membership-privacy', array_merge([
             'content-type' => 'application/json',
             'x-appwrite-project' => $id,
+            'x-appwrite-mode' => 'admin',
         ], $this->getHeaders()), [
             'userId' => true,
             'userEmail' => true,
@@ -915,8 +924,9 @@ class ProjectsConsoleClientTest extends Scope
         $response = $this->client->call(Client::METHOD_PATCH, '/project/policies/session-invalidation', array_merge([
             'content-type' => 'application/json',
             'x-appwrite-project' => $id,
+            'x-appwrite-mode' => 'admin',
         ], $this->getHeaders()), [
-            'enabled' => false
+            'enabled' => true
         ]);
         $this->assertEquals(200, $response['headers']['status-code']);
 
@@ -929,189 +939,75 @@ class ProjectsConsoleClientTest extends Scope
         ], $this->getHeaders()));
 
         $this->assertEquals(200, $response['headers']['status-code']);
-        $this->assertNotEmpty($response['body']);
         $this->assertEquals($id, $response['body']['$id']);
         $this->assertEquals('Project Test', $response['body']['name']);
 
-        $this->assertArrayHasKey('$createdAt', $response);
-        $this->assertIsString($response['$createdAt']);
-        $this->assertNotFalse(\strtotime($response['$createdAt']));
+        $this->assertIsString($response['body']['$createdAt']);
+        $this->assertNotEmpty($response['body']['$createdAt']);
+        $this->assertNotFalse(\strtotime($response['body']['$createdAt']));
 
-        $this->assertArrayHasKey('$updatedAt', $response);
-        $this->assertIsString($response['$updatedAt']);
-        $this->assertNotFalse(\strtotime($response['$updatedAt']));
+        $this->assertIsString($response['body']['$updatedAt']);
+        $this->assertNotEmpty($response['body']['$updatedAt']);
+        $this->assertNotFalse(\strtotime($response['body']['$updatedAt']));
 
-        $this->assertArrayHasKey('description', $response);
-        $this->assertIsString($response['description']);
-        $this->assertEquals('My description', $response['description']);
+        $this->assertEquals('My description', $response['body']['description']);
+        $this->assertEquals($team['body']['$id'], $response['body']['teamId']);
+        $this->assertEquals('https://google.com/logo.png', $response['body']['logo']);
+        $this->assertEquals('https://myapp.com/', $response['body']['url']);
+        $this->assertEquals('Legal company', $response['body']['legalName']);
+        $this->assertEquals('Slovakia', $response['body']['legalCountry']);
+        $this->assertEquals('Custom state', $response['body']['legalState']);
+        $this->assertEquals('Košice', $response['body']['legalCity']);
+        $this->assertEquals('Main street 32', $response['body']['legalAddress']);
+        $this->assertEquals('TAXID_123456', $response['body']['legalTaxId']);
+        $this->assertEquals(135, $response['body']['authDuration']);
+        $this->assertEquals(54, $response['body']['authLimit']);
+        $this->assertEquals(7, $response['body']['authSessionsLimit']);
+        $this->assertEquals(9, $response['body']['authPasswordHistory']);
+        $this->assertTrue($response['body']['authPasswordDictionary']);
+        $this->assertTrue($response['body']['authPersonalDataCheck']);
+        $this->assertFalse($response['body']['authDisposableEmails']);
+        $this->assertFalse($response['body']['authCanonicalEmails']);
+        $this->assertFalse($response['body']['authFreeEmails']);
+        $this->assertTrue($response['body']['authSessionAlerts']);
+        $this->assertTrue($response['body']['authMembershipsUserName']);
+        $this->assertTrue($response['body']['authMembershipsUserEmail']);
+        $this->assertTrue($response['body']['authMembershipsMfa']);
+        $this->assertTrue($response['body']['authMembershipsUserId']);
+        $this->assertTrue($response['body']['authMembershipsUserPhone']);
+        $this->assertTrue($response['body']['authInvalidateSessions']);
+        $this->assertTrue($response['body']['smtpEnabled']);
+        $this->assertSame('Custom sender', $response['body']['smtpSenderName']);
+        $this->assertSame('email@custom.com', $response['body']['smtpSenderEmail']);
+        $this->assertSame('Reply sender', $response['body']['smtpReplyToName']);
+        $this->assertSame('replyto@custom.com', $response['body']['smtpReplyToEmail']);
+        $this->assertSame('maildev', $response['body']['smtpHost']);
+        $this->assertSame(1025, $response['body']['smtpPort']);
+        $this->assertSame('', $response['body']['smtpUsername']);
+        $this->assertSame('', $response['body']['smtpPassword']); // Write only
+        $this->assertSame('', $response['body']['smtpSecure']);
 
-        $this->assertArrayHasKey('teamId', $response);
-        $this->assertIsString($response['teamId']);
-        $this->assertEquals($team['body']['$id'], $response['teamId']);
+        $this->assertCount(2, $response['body']['authMockNumbers']);
+        $this->assertEquals('+421123456789', $response['body']['authMockNumbers'][0]['phone']);
+        $this->assertEquals('+420987654321', $response['body']['authMockNumbers'][1]['phone']);
+        $this->assertEquals('123456', $response['body']['authMockNumbers'][0]['otp']);
+        $this->assertEquals('654321', $response['body']['authMockNumbers'][1]['otp']);
 
-        $this->assertArrayHasKey('logo', $response);
-        $this->assertIsString($response['logo']);
-        $this->assertEquals('https://google.com/logo.png', $response['logo']);
-
-        $this->assertArrayHasKey('url', $response);
-        $this->assertIsString($response['url']);
-        $this->assertEquals('https://myapp.com/', $response['url']);
-
-        $this->assertArrayHasKey('legalName', $response);
-        $this->assertIsString($response['legalName']);
-        $this->assertEquals('Legal company', $response['legalName']);
-
-        $this->assertArrayHasKey('legalCountry', $response);
-        $this->assertIsString($response['legalCountry']);
-        $this->assertEquals('Slovakia', $response['legalCountry']);
-
-        $this->assertArrayHasKey('legalState', $response);
-        $this->assertIsString($response['legalState']);
-        $this->assertEquals('Custom state', $response['legalState']);
-
-        $this->assertArrayHasKey('legalCity', $response);
-        $this->assertIsString($response['legalCity']);
-        $this->assertEquals('Košice', $response['legalCity']);
-
-        $this->assertArrayHasKey('legalAddress', $response);
-        $this->assertIsString($response['legalAddress']);
-        $this->assertEquals('Main street 32', $response['legalAddress']);
-
-        $this->assertArrayHasKey('legalTaxId', $response);
-        $this->assertIsString($response['legalTaxId']);
-        $this->assertEquals('TAXID_123456', $response['legalTaxId']);
-
-        $this->assertArrayHasKey('authDuration', $response);
-        $this->assertIsInt($response['authDuration']);
-        $this->assertEquals(135, $response['authDuration']);
-        
-        $this->assertArrayHasKey('authLimit', $response);
-        $this->assertIsInt($response['authLimit']);
-        $this->assertEquals(54, $response['authLimit']);
-
-        $this->assertArrayHasKey('authSessionsLimit', $response);
-        $this->assertIsInt($response['authSessionsLimit']);
-        $this->assertEquals(7, $response['authLimit']);
-
-        $this->assertArrayHasKey('authPasswordHistory', $response);
-        $this->assertIsInt($response['authPasswordHistory']);
-        $this->assertEquals(9, $response['authPasswordHistory']);
-
-        $this->assertArrayHasKey('authPasswordDictionary', $response);
-        $this->assertIsBool($response['authPasswordDictionary']);
-        $this->assertTrue($response['authPasswordDictionary']);
-
-        $this->assertArrayHasKey('authPersonalDataCheck', $response);
-        $this->assertIsBool($response['authPersonalDataCheck']);
-        $this->assertTrue($response['authPersonalDataCheck']);
-
-        $this->assertArrayHasKey('authDisposableEmails', $response);
-        $this->assertIsBool($response['authDisposableEmails']);
-        $this->assertFalse($response['authDisposableEmails']);
-
-        $this->assertArrayHasKey('authCanonicalEmails', $response);
-        $this->assertIsBool($response['authCanonicalEmails']);
-        $this->assertFalse($response['authCanonicalEmails']);
-
-        $this->assertArrayHasKey('authFreeEmails', $response);
-        $this->assertIsBool($response['authFreeEmails']);
-        $this->assertFalse($response['authFreeEmails']);
-
-        $this->assertArrayHasKey('authMockNumbers', $response);
-        $this->assertIsArray($response['authMockNumbers']);
-        $this->assertCount(2, $response['authMockNumbers']);
-
-        $this->assertEquals('+421123456789', $response['authMockNumbers'][0]['number']);
-        $this->assertEquals('+420987654321', $response['authMockNumbers'][1]['number']);
-
-        $this->assertEquals('123456', $response['authMockNumbers'][0]['otp']);
-        $this->assertEquals('654321', $response['authMockNumbers'][1]['otp']);
-
-        foreach($response['authMockNumbers'] as $mockNumber) {
-            $this->assertArrayHasKey('$createdAt', $mockNumber);
+        foreach ($response['body']['authMockNumbers'] as $mockNumber) {
             $this->assertIsString($mockNumber['$createdAt']);
+            $this->assertNotEmpty($mockNumber['$createdAt']);
             $this->assertNotFalse(\strtotime($mockNumber['$createdAt']));
-    
-            $this->assertArrayHasKey('$updatedAt', $mockNumber);
+
             $this->assertIsString($mockNumber['$updatedAt']);
+            $this->assertNotEmpty($mockNumber['$updatedAt']);
             $this->assertNotFalse(\strtotime($mockNumber['$updatedAt']));
 
-            $this->assertArrayHasKey('number', $mockNumber);
-            $this->assertIsString($mockNumber['number']);
-            $this->assertNotEmpty($mockNumber['number']);
-            
-            $this->assertArrayHasKey('otp', $mockNumber);
+            $this->assertIsString($mockNumber['phone']);
+            $this->assertNotEmpty($mockNumber['phone']);
+
             $this->assertIsString($mockNumber['otp']);
             $this->assertNotEmpty($mockNumber['otp']);
         }
-
-        $this->assertArrayHasKey('authSessionAlerts', $response);
-        $this->assertIsBool($response['authSessionAlerts']);
-        $this->assertTrue($response['authSessionAlerts']);
-
-        $this->assertArrayHasKey('authMembershipsUserName', $response);
-        $this->assertIsBool($response['authMembershipsUserName']);
-        $this->assertTrue($response['authMembershipsUserName']);
-
-        $this->assertArrayHasKey('authMembershipsUserEmail', $response);
-        $this->assertIsBool($response['authMembershipsUserEmail']);
-        $this->assertTrue($response['authMembershipsUserEmail']);
-
-        $this->assertArrayHasKey('authMembershipsMfa', $response);
-        $this->assertIsBool($response['authMembershipsMfa']);
-        $this->assertTrue($response['authMembershipsMfa']);
-
-        $this->assertArrayHasKey('authMembershipsUserId', $response);
-        $this->assertIsBool($project['authMembershipsUserId']);
-        $this->assertTrue($response['authMembershipsUserId']);
-
-        $this->assertArrayHasKey('authMembershipsUserPhone', $response);
-        $this->assertIsBool($response['authMembershipsUserPhone']);
-        $this->assertTrue($response['authMembershipsUserPhone']);
-
-        $this->assertArrayHasKey('authInvalidateSessions', $response);
-        $this->assertIsBool($response['authInvalidateSessions']);
-        $this->assertTrue($response['authInvalidateSessions']);
-
-        $this->assertArrayHasKey('smtpEnabled', $response);
-        $this->assertIsBool($response['smtpEnabled']);
-        $this->assertTrue($response['smtpEnabled']);
-
-        $this->assertArrayHasKey('smtpSenderName', $response);
-        $this->assertIsString($response['smtpSenderName']);
-        $this->assertSame('Custom sender', $response['smtpSenderName']);
-
-        $this->assertArrayHasKey('smtpSenderEmail', $response);
-        $this->assertIsString($response['smtpSenderEmail']);
-        $this->assertSame('email@custom.com', $response['smtpSenderEmail']);
-
-        $this->assertArrayHasKey('smtpReplyToName', $response);
-        $this->assertIsString($response['smtpReplyToName']);
-        $this->assertSame('Reply sender', $response['smtpReplyToName']);
-
-        $this->assertArrayHasKey('smtpReplyToEmail', $response);
-        $this->assertIsString($response['smtpReplyToEmail']);
-        $this->assertSame('replyto@custom.com', $response['smtpReplyToEmail']);
-
-        $this->assertArrayHasKey('smtpHost', $response);
-        $this->assertIsString($response['smtpHost']);
-        $this->assertSame('maildev', $response['smtpHost']);
-
-        $this->assertArrayHasKey('smtpPort', $response);
-        $this->assertIsInt($response['smtpPort']);
-        $this->assertSame(1025, $response['smtpPort']);
-
-        $this->assertArrayHasKey('smtpUsername', $response);
-        $this->assertIsString($response['smtpUsername']);
-        $this->assertSame('', $response['smtpUsername']);
-
-        $this->assertArrayHasKey('smtpPassword', $response);
-        $this->assertIsString($response['smtpPassword']);
-        $this->assertSame('', $response['smtpPassword']);
-
-        $this->assertArrayHasKey('smtpSecure', $response);
-        $this->assertIsString($response['smtpSecure']);
-        $this->assertSame('', $response['smtpSecure']);
 
         /*
         $this->assertArrayHasKey('oAuthProviders', $project);
@@ -1130,12 +1026,7 @@ class ProjectsConsoleClientTest extends Scope
         $this->assertIsArray($project['devKeys']);
          */
 
-         /*
-        
-         */
-
-         
-         /*
+        /*
         $this->assertArrayHasKey('pingCount', $project);
         $this->assertIsInt($project['pingCount']);
 
@@ -1147,64 +1038,68 @@ class ProjectsConsoleClientTest extends Scope
 
         $this->assertArrayHasKey('status', $project);
         $this->assertIsString($project['status']);
-         */
+        */
 
-         /*
+        /*
         $auth = require(__DIR__ . '/../../../../app/config/auth.php');
         foreach ($auth as $method) {
-            $key = 'auth' . ucfirst($method['key'] ?? '');
-            $this->assertArrayHasKey($key, $project, 'Missing auth field: ' . $key);
-            $this->assertIsBool($project[$key], 'Auth field should be boolean: ' . $key);
+           $key = 'auth' . ucfirst($method['key'] ?? '');
+           $this->assertArrayHasKey($key, $project, 'Missing auth field: ' . $key);
+           $this->assertIsBool($project[$key], 'Auth field should be boolean: ' . $key);
         }
 
         $services = require(__DIR__ . '/../../../../app/config/services.php');
         foreach ($services as $service) {
-            if (!($service['optional'] ?? false)) {
-                continue;
-            }
-            $key = 'serviceStatusFor' . ucfirst($service['key'] ?? '');
-            $this->assertArrayHasKey($key, $project, 'Missing service field: ' . $key);
-            $this->assertIsBool($project[$key], 'Service field should be boolean: ' . $key);
+           if (!($service['optional'] ?? false)) {
+               continue;
+           }
+           $key = 'serviceStatusFor' . ucfirst($service['key'] ?? '');
+           $this->assertArrayHasKey($key, $project, 'Missing service field: ' . $key);
+           $this->assertIsBool($project[$key], 'Service field should be boolean: ' . $key);
         }
 
         // Dynamic protocol status fields
         $protocols = require(__DIR__ . '/../../../../app/config/protocols.php');
         foreach ($protocols as $protocol) {
-            $key = 'protocolStatusFor' . ucfirst($protocol['key'] ?? '');
-            $this->assertArrayHasKey($key, $project, 'Missing protocol field: ' . $key);
-            $this->assertIsBool($project[$key], 'Protocol field should be boolean: ' . $key);
+           $key = 'protocolStatusFor' . ucfirst($protocol['key'] ?? '');
+           $this->assertArrayHasKey($key, $project, 'Missing protocol field: ' . $key);
+           $this->assertIsBool($project[$key], 'Protocol field should be boolean: ' . $key);
         }
         */
 
         // Ensure policies can be falsy
 
-        $response = $this->client->call(Client::METHOD_PATCH, '/project/' . $id . '/policies/password-dictionary', array_merge([
+        $response = $this->client->call(Client::METHOD_PATCH, '/project/policies/password-dictionary', array_merge([
             'content-type' => 'application/json',
-            'x-appwrite-project' => $this->getProject()['$id'],
+            'x-appwrite-project' => $id,
+            'x-appwrite-mode' => 'admin',
         ], $this->getHeaders()), [
             'enabled' => false
         ]);
         $this->assertEquals(200, $response['headers']['status-code']);
 
-        $response = $this->client->call(Client::METHOD_PATCH, '/project/' . $id . '/policies/password-personal-data', array_merge([
+        $response = $this->client->call(Client::METHOD_PATCH, '/project/policies/password-personal-data', array_merge([
             'content-type' => 'application/json',
-            'x-appwrite-project' => $this->getProject()['$id'],
-        ], $this->getHeaders()), [
-            'enabled' => false
-        ]);
-        $this->assertEquals(200, $response['headers']['status-code']);
-        
-        $response = $this->client->call(Client::METHOD_PATCH, '/project/' . $id . '/policies/session-alert', array_merge([
-            'content-type' => 'application/json',
-            'x-appwrite-project' => $this->getProject()['$id'],
+            'x-appwrite-project' => $id,
+            'x-appwrite-mode' => 'admin',
         ], $this->getHeaders()), [
             'enabled' => false
         ]);
         $this->assertEquals(200, $response['headers']['status-code']);
 
-        $response = $this->client->call(Client::METHOD_PATCH, '/project/' . $id . '/policies/membership-privacy', array_merge([
+        $response = $this->client->call(Client::METHOD_PATCH, '/project/policies/session-alert', array_merge([
             'content-type' => 'application/json',
-            'x-appwrite-project' => $this->getProject()['$id'],
+            'x-appwrite-project' => $id,
+            'x-appwrite-mode' => 'admin',
+        ], $this->getHeaders()), [
+            'enabled' => false
+        ]);
+        $this->assertEquals(200, $response['headers']['status-code']);
+
+        $response = $this->client->call(Client::METHOD_PATCH, '/project/policies/membership-privacy', array_merge([
+            'content-type' => 'application/json',
+            'x-appwrite-project' => $id,
+            'x-appwrite-mode' => 'admin',
         ], $this->getHeaders()), [
             'userId' => false,
             'userEmail' => false,
@@ -1214,9 +1109,10 @@ class ProjectsConsoleClientTest extends Scope
         ]);
         $this->assertEquals(200, $response['headers']['status-code']);
 
-        $response = $this->client->call(Client::METHOD_PATCH, '/project/' . $id . '/policies/session-invalidation', array_merge([
+        $response = $this->client->call(Client::METHOD_PATCH, '/project/policies/session-invalidation', array_merge([
             'content-type' => 'application/json',
-            'x-appwrite-project' => $this->getProject()['$id'],
+            'x-appwrite-project' => $id,
+            'x-appwrite-mode' => 'admin',
         ], $this->getHeaders()), [
             'enabled' => false
         ]);
@@ -1228,7 +1124,8 @@ class ProjectsConsoleClientTest extends Scope
             '/project/smtp',
             array_merge([
                 'content-type' => 'application/json',
-                'x-appwrite-project' => $this->getProject()['$id'],
+                'x-appwrite-project' => $id,
+                'x-appwrite-mode' => 'admin',
             ], $this->getHeaders()),
             [
                 'enabled' => false,
@@ -1239,71 +1136,27 @@ class ProjectsConsoleClientTest extends Scope
                 'secure' => 'ssl',
             ],
         );
-        
+
         $response = $this->client->call(Client::METHOD_GET, '/projects/' . $id, array_merge([
             'content-type' => 'application/json',
             'x-appwrite-project' => $this->getProject()['$id'],
         ], $this->getHeaders()));
-                
-        $this->assertArrayHasKey('authPasswordDictionary', $response);
-        $this->assertIsBool($response['authPasswordDictionary']);
-        $this->assertFalse($response['authPasswordDictionary']);
 
-        $this->assertArrayHasKey('authPersonalDataCheck', $response);
-        $this->assertIsBool($response['authPersonalDataCheck']);
-        $this->assertFalse($response['authPersonalDataCheck']);
-        
-        $this->assertArrayHasKey('authSessionAlerts', $response);
-        $this->assertIsBool($response['authSessionAlerts']);
-        $this->assertFalse($response['authSessionAlerts']);
-        
-        $this->assertArrayHasKey('authMembershipsUserName', $response);
-        $this->assertIsBool($response['authMembershipsUserName']);
-        $this->assertFalse($response['authMembershipsUserName']);
-
-        $this->assertArrayHasKey('authMembershipsUserEmail', $response);
-        $this->assertIsBool($response['authMembershipsUserEmail']);
-        $this->assertFalse($response['authMembershipsUserEmail']);
-
-        $this->assertArrayHasKey('authMembershipsMfa', $response);
-        $this->assertIsBool($response['authMembershipsMfa']);
-        $this->assertFalse($response['authMembershipsMfa']);
-
-        $this->assertArrayHasKey('authMembershipsUserId', $response);
-        $this->assertIsBool($project['authMembershipsUserId']);
-        $this->assertFalse($response['authMembershipsUserId']);
-
-        $this->assertArrayHasKey('authMembershipsUserPhone', $response);
-        $this->assertIsBool($response['authMembershipsUserPhone']);
-        $this->assertFalse($response['authMembershipsUserPhone']);
-        
-        $this->assertArrayHasKey('authInvalidateSessions', $response);
-        $this->assertIsBool($response['authInvalidateSessions']);
-        $this->assertFalse($response['authInvalidateSessions']);
-
-        $this->assertArrayHasKey('smtpEnabled', $response);
-        $this->assertIsBool($response['smtpEnabled']);
-        $this->assertFalse($response['smtpEnabled']);
-
-        $this->assertArrayHasKey('smtpHost', $response);
-        $this->assertIsString($response['smtpHost']);
-        $this->assertSame('customhost.com', $response['smtpHost']);
-
-        $this->assertArrayHasKey('smtpPort', $response);
-        $this->assertIsInt($response['smtpPort']);
-        $this->assertSame(4444, $response['smtpPort']);
-
-        $this->assertArrayHasKey('smtpUsername', $response);
-        $this->assertIsString($response['smtpUsername']);
-        $this->assertSame('myuser', $response['smtpUsername']);
-
-        $this->assertArrayHasKey('smtpPassword', $response);
-        $this->assertIsString($response['smtpPassword']);
-        $this->assertSame('', $response['smtpPassword']);
-
-        $this->assertArrayHasKey('smtpSecure', $response);
-        $this->assertIsString($response['smtpSecure']);
-        $this->assertSame('ssl', $response['smtpSecure']);
+        $this->assertFalse($response['body']['authPasswordDictionary']);
+        $this->assertFalse($response['body']['authPersonalDataCheck']);
+        $this->assertFalse($response['body']['authSessionAlerts']);
+        $this->assertFalse($response['body']['authMembershipsUserName']);
+        $this->assertFalse($response['body']['authMembershipsUserEmail']);
+        $this->assertFalse($response['body']['authMembershipsMfa']);
+        $this->assertFalse($response['body']['authMembershipsUserId']);
+        $this->assertFalse($response['body']['authMembershipsUserPhone']);
+        $this->assertFalse($response['body']['authInvalidateSessions']);
+        $this->assertFalse($response['body']['smtpEnabled']);
+        $this->assertSame('customhost.com', $response['body']['smtpHost']);
+        $this->assertSame(4444, $response['body']['smtpPort']);
+        $this->assertSame('myuser', $response['body']['smtpUsername']);
+        $this->assertSame('', $response['body']['smtpPassword']); // Write only
+        $this->assertSame('ssl', $response['body']['smtpSecure']);
 
         /**
          * Test for FAILURE
