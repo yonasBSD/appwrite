@@ -15,7 +15,6 @@ use Utopia\Database\Helpers\ID;
 use Utopia\Database\Helpers\Permission;
 use Utopia\Database\Helpers\Role;
 use Utopia\Database\Query;
-use Utopia\Database\Validator\Datetime as ValidatorDatetime;
 use Utopia\System\System;
 
 class ProjectsConsoleClientTest extends Scope
@@ -866,7 +865,7 @@ class ProjectsConsoleClientTest extends Scope
             'expire' => '2026-05-07 09:23:30.713',
         ]);
         $this->assertEquals(201, $response['headers']['status-code']);
-        
+
         $response = $this->client->call(Client::METHOD_POST, '/projects/' . $id . '/dev-keys', array_merge([
             'content-type' => 'application/json',
         ], $this->getHeaders()), [
@@ -971,6 +970,57 @@ class ProjectsConsoleClientTest extends Scope
         ]);
         $this->assertEquals(200, $response['headers']['status-code']);
 
+        // Create webhook
+        $webhook = $this->client->call(Client::METHOD_POST, '/webhooks', array_merge([
+            'content-type' => 'application/json',
+            'x-appwrite-project' => $id,
+            'x-appwrite-mode' => 'admin',
+        ], $this->getHeaders()), [
+            'webhookId' => 'unique()',
+            'name' => 'Webhook Test',
+            'events' => ['users.*.create', 'users.*.update.email'],
+            'url' => 'https://appwrite.io',
+            'tls' => true,
+            'authUsername' => 'username',
+            'authPassword' => 'password',
+        ]);
+        $this->assertEquals(201, $webhook['headers']['status-code']);
+
+        // Create API key
+        $key = $this->client->call(Client::METHOD_POST, '/projects/' . $id . '/keys', array_merge([
+            'content-type' => 'application/json',
+            'x-appwrite-project' => $this->getProject()['$id'],
+        ], $this->getHeaders()), [
+            'keyId' => ID::unique(),
+            'name' => 'Key Test',
+            'scopes' => ['teams.read', 'teams.write'],
+        ]);
+        $this->assertEquals(201, $key['headers']['status-code']);
+
+        // Create platform
+        $platform = $this->client->call(Client::METHOD_POST, '/projects/' . $id . '/platforms', array_merge([
+            'content-type' => 'application/json',
+            'x-appwrite-project' => $this->getProject()['$id'],
+        ], $this->getHeaders()), [
+            'platformId' => ID::unique(),
+            'type' => 'web',
+            'name' => 'Web App',
+            'hostname' => 'localhost',
+        ]);
+        $this->assertEquals(201, $platform['headers']['status-code']);
+
+        // Configure OAuth provider
+        $oauth = $this->client->call(Client::METHOD_PATCH, '/project/oauth2/github', array_merge([
+            'content-type' => 'application/json',
+            'x-appwrite-project' => $id,
+            'x-appwrite-mode' => 'admin',
+        ], $this->getHeaders()), [
+            'clientId' => 'github-client-id',
+            'clientSecret' => 'github-client-secret',
+            'enabled' => false,
+        ]);
+        $this->assertEquals(200, $oauth['headers']['status-code']);
+
         /**
          * Test for SUCCESS
          */
@@ -1053,7 +1103,7 @@ class ProjectsConsoleClientTest extends Scope
 
             $this->assertIsString($devKey['accessedAt']);
             $this->assertEmpty($devKey['accessedAt']);
-            
+
             $this->assertIsString($devKey['$createdAt']);
             $this->assertNotEmpty($devKey['$createdAt']);
             $this->assertNotFalse(\strtotime($devKey['$createdAt']));
@@ -1061,11 +1111,11 @@ class ProjectsConsoleClientTest extends Scope
             $this->assertIsString($devKey['$updatedAt']);
             $this->assertNotEmpty($devKey['$updatedAt']);
             $this->assertNotFalse(\strtotime($devKey['$updatedAt']));
-            
+
             $this->assertIsArray($devKey['sdks']);
             $this->assertCount(0, $devKey['sdks']);
         }
-        
+
         $this->assertCount(2, $response['body']['authMockNumbers']);
         $this->assertEquals('+421123456789', $response['body']['authMockNumbers'][0]['phone']);
         $this->assertEquals('+420987654321', $response['body']['authMockNumbers'][1]['phone']);
@@ -1088,20 +1138,87 @@ class ProjectsConsoleClientTest extends Scope
             $this->assertNotEmpty($mockNumber['otp']);
         }
 
-        /*
-        TODO:
-        $this->assertArrayHasKey('oAuthProviders', $project);
-        $this->assertIsArray($project['oAuthProviders']);
+        $this->assertIsArray($response['body']['oAuthProviders']);
+        $this->assertGreaterThan(0, count($response['body']['oAuthProviders']));
 
-        $this->assertArrayHasKey('platforms', $project);
-        $this->assertIsArray($project['platforms']);
+        $githubProvider = null;
+        foreach ($response['body']['oAuthProviders'] as $provider) {
+            $this->assertIsString($provider['key']);
+            $this->assertNotEmpty($provider['key']);
 
-        $this->assertArrayHasKey('webhooks', $project);
-        $this->assertIsArray($project['webhooks']);
+            $this->assertIsString($provider['name']);
+            $this->assertIsString($provider['appId']);
+            $this->assertIsString($provider['secret']);
+            $this->assertIsBool($provider['enabled']);
 
-        $this->assertArrayHasKey('keys', $project);
-        $this->assertIsArray($project['keys']);
-         */
+            if ($provider['key'] === 'github') {
+                $githubProvider = $provider;
+            }
+        }
+
+        $this->assertNotNull($githubProvider, 'GitHub provider not found');
+        $this->assertEquals('github-client-id', $githubProvider['appId']);
+        $this->assertEquals('', $githubProvider['secret']); // Write only
+        $this->assertEquals(false, $githubProvider['enabled']);
+
+        $this->assertIsArray($response['body']['platforms']);
+        $this->assertCount(1, $response['body']['platforms']);
+        $this->assertIsString($response['body']['platforms'][0]['$id']);
+        $this->assertNotEmpty($response['body']['platforms'][0]['$id']);
+        $this->assertEquals('Web App', $response['body']['platforms'][0]['name']);
+        $this->assertEquals('web', $response['body']['platforms'][0]['type']);
+        $this->assertEquals('localhost', $response['body']['platforms'][0]['hostname']);
+
+        $this->assertIsString($response['body']['platforms'][0]['$createdAt']);
+        $this->assertNotEmpty($response['body']['platforms'][0]['$createdAt']);
+        $this->assertNotFalse(\strtotime($response['body']['platforms'][0]['$createdAt']));
+
+        $this->assertIsString($response['body']['platforms'][0]['$updatedAt']);
+        $this->assertNotEmpty($response['body']['platforms'][0]['$updatedAt']);
+        $this->assertNotFalse(\strtotime($response['body']['platforms'][0]['$updatedAt']));
+
+        $this->assertArrayHasKey('webhooks', $response['body']);
+        $this->assertIsArray($response['body']['webhooks']);
+        $this->assertCount(1, $response['body']['webhooks']);
+        $this->assertIsString($response['body']['webhooks'][0]['$id']);
+        $this->assertNotEmpty($response['body']['webhooks'][0]['$id']);
+        $this->assertEquals('Webhook Test', $response['body']['webhooks'][0]['name']);
+        $this->assertEquals('https://appwrite.io', $response['body']['webhooks'][0]['url']);
+        $this->assertContains('users.*.create', $response['body']['webhooks'][0]['events']);
+        $this->assertContains('users.*.update.email', $response['body']['webhooks'][0]['events']);
+        $this->assertCount(2, $response['body']['webhooks'][0]['events']);
+        $this->assertTrue($response['body']['webhooks'][0]['tls']);
+        $this->assertEquals('username', $response['body']['webhooks'][0]['authUsername']);
+        $this->assertEquals('password', $response['body']['webhooks'][0]['authPassword']);
+        $this->assertTrue($response['body']['webhooks'][0]['enabled']);
+        $this->assertIsString($response['body']['webhooks'][0]['secret']);
+        $this->assertNotEmpty($response['body']['webhooks'][0]['secret']);
+        $this->assertIsString($response['body']['webhooks'][0]['$createdAt']);
+        $this->assertNotEmpty($response['body']['webhooks'][0]['$createdAt']);
+        $this->assertNotFalse(\strtotime($response['body']['webhooks'][0]['$createdAt']));
+        $this->assertIsString($response['body']['webhooks'][0]['$updatedAt']);
+        $this->assertNotEmpty($response['body']['webhooks'][0]['$updatedAt']);
+        $this->assertNotFalse(\strtotime($response['body']['webhooks'][0]['$updatedAt']));
+
+        $this->assertArrayHasKey('keys', $response['body']);
+        $this->assertIsArray($response['body']['keys']);
+        $this->assertCount(1, $response['body']['keys']);
+        $this->assertIsString($response['body']['keys'][0]['$id']);
+        $this->assertNotEmpty($response['body']['keys'][0]['$id']);
+        $this->assertEquals('Key Test', $response['body']['keys'][0]['name']);
+        $this->assertContains('teams.read', $response['body']['keys'][0]['scopes']);
+        $this->assertContains('teams.write', $response['body']['keys'][0]['scopes']);
+        $this->assertCount(2, $response['body']['keys'][0]['scopes']);
+        $this->assertNotEmpty($response['body']['keys'][0]['secret']);
+        $this->assertEmpty($response['body']['keys'][0]['accessedAt']);
+        $this->assertIsArray($response['body']['keys'][0]['sdks']);
+        $this->assertCount(0, $response['body']['keys'][0]['sdks']);
+        $this->assertIsString($response['body']['keys'][0]['$createdAt']);
+        $this->assertNotEmpty($response['body']['keys'][0]['$createdAt']);
+        $this->assertNotFalse(\strtotime($response['body']['keys'][0]['$createdAt']));
+        $this->assertIsString($response['body']['keys'][0]['$updatedAt']);
+        $this->assertNotEmpty($response['body']['keys'][0]['$updatedAt']);
+        $this->assertNotFalse(\strtotime($response['body']['keys'][0]['$updatedAt']));
 
         $authsKeys = [
             'authEmailPassword',
