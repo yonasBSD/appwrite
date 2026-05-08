@@ -245,26 +245,41 @@ class Get extends Action
             throw new Exception(Exception::STORAGE_FILE_TYPE_UNSUPPORTED, $e->getMessage());
         }
 
-        $image->crop((int) $width, (int) $height, $gravity);
+        if ($width > 0 || $height > 0 || $gravity !== Image::GRAVITY_CENTER) {
+            Span::add('storage.transform.crop.width', $width);
+            Span::add('storage.transform.crop.height', $height);
+            Span::add('storage.transform.crop.gravity', $gravity);
+            $image->crop($width, $height, $gravity);
+        }
 
-        if (!empty($opacity)) {
+        if ($opacity !== 1.0) {
+            Span::add('storage.transform.opacity', $opacity);
             $image->setOpacity($opacity);
         }
 
         if (!empty($background)) {
+            Span::add('storage.transform.background', $background);
             $image->setBackground('#' . $background);
         }
 
-        if (!empty($borderWidth)) {
+        if ($borderWidth > 0) {
+            Span::add('storage.transform.border.width', $borderWidth);
+            Span::add('storage.transform.border.color', $borderColor);
             $image->setBorder($borderWidth, '#' . $borderColor);
         }
 
-        if (!empty($borderRadius)) {
+        if ($borderRadius > 0) {
+            Span::add('storage.transform.borderRadius', $borderRadius);
             $image->setBorderRadius($borderRadius);
         }
 
-        if (!empty($rotation)) {
+        if ($rotation !== 0) {
+            Span::add('storage.transform.rotation', $rotation);
             $image->setRotation(($rotation + 360) % 360);
+        }
+
+        if ($quality !== -1) {
+            Span::add('storage.transform.quality', $quality);
         }
 
         $data = $image->output($output, $quality);
