@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "ec2ad489c60f0102f0dfab223b6d1fe4",
+    "content-hash": "42cab472fe9b0df81ec7832c8f943577",
     "packages": [
         {
             "name": "adhocore/jwt",
@@ -69,25 +69,25 @@
         },
         {
             "name": "appwrite/appwrite",
-            "version": "19.1.0",
+            "version": "23.0.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/appwrite/sdk-for-php.git",
-                "reference": "8738e812062f899c85b2598eef43d6a247f08a56"
+                "reference": "d22b36167931294bec4259f0803aba14537030ec"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/appwrite/sdk-for-php/zipball/8738e812062f899c85b2598eef43d6a247f08a56",
-                "reference": "8738e812062f899c85b2598eef43d6a247f08a56",
+                "url": "https://api.github.com/repos/appwrite/sdk-for-php/zipball/d22b36167931294bec4259f0803aba14537030ec",
+                "reference": "d22b36167931294bec4259f0803aba14537030ec",
                 "shasum": ""
             },
             "require": {
                 "ext-curl": "*",
                 "ext-json": "*",
-                "php": ">=7.1.0"
+                "php": ">=8.2.0"
             },
             "require-dev": {
-                "mockery/mockery": "^1.6.12",
+                "mockery/mockery": "1.6.12",
                 "phpunit/phpunit": "^10"
             },
             "type": "library",
@@ -100,14 +100,14 @@
             "license": [
                 "BSD-3-Clause"
             ],
-            "description": "Appwrite is an open-source self-hosted backend server that abstract and simplify complex and repetitive development tasks behind a very simple REST API",
+            "description": "Appwrite is an open-source self-hosted backend server that abstracts and simplifies complex and repetitive development tasks behind a very simple REST API",
             "support": {
                 "email": "team@appwrite.io",
                 "issues": "https://github.com/appwrite/sdk-for-php/issues",
-                "source": "https://github.com/appwrite/sdk-for-php/tree/19.1.0",
+                "source": "https://github.com/appwrite/sdk-for-php/tree/23.0.0",
                 "url": "https://appwrite.io/support"
             },
-            "time": "2025-12-18T08:07:43+00:00"
+            "time": "2026-04-16T12:38:44+00:00"
         },
         {
             "name": "appwrite/php-clamav",
@@ -3359,20 +3359,20 @@
         },
         {
             "name": "utopia-php/abuse",
-            "version": "1.2.3",
+            "version": "dev-feat/sdk-23",
             "source": {
                 "type": "git",
                 "url": "https://github.com/utopia-php/abuse.git",
-                "reference": "53f4274939353522ba331f55bcff6e6011ffc56c"
+                "reference": "2a1fb7973d848cff0ec75fa69a93bc4d2fbc7ada"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/utopia-php/abuse/zipball/53f4274939353522ba331f55bcff6e6011ffc56c",
-                "reference": "53f4274939353522ba331f55bcff6e6011ffc56c",
+                "url": "https://api.github.com/repos/utopia-php/abuse/zipball/2a1fb7973d848cff0ec75fa69a93bc4d2fbc7ada",
+                "reference": "2a1fb7973d848cff0ec75fa69a93bc4d2fbc7ada",
                 "shasum": ""
             },
             "require": {
-                "appwrite/appwrite": "19.*",
+                "appwrite/appwrite": "23.*",
                 "ext-curl": "*",
                 "ext-pdo": "*",
                 "ext-redis": "*",
@@ -3405,9 +3405,9 @@
             ],
             "support": {
                 "issues": "https://github.com/utopia-php/abuse/issues",
-                "source": "https://github.com/utopia-php/abuse/tree/1.2.3"
+                "source": "https://github.com/utopia-php/abuse/tree/feat/sdk-23"
             },
-            "time": "2026-04-29T11:19:08+00:00"
+            "time": "2026-05-08T07:04:08+00:00"
         },
         {
             "name": "utopia-php/agents",
@@ -4539,20 +4539,20 @@
         },
         {
             "name": "utopia-php/migration",
-            "version": "1.10.1",
+            "version": "dev-feat/sdk-23",
             "source": {
                 "type": "git",
                 "url": "https://github.com/utopia-php/migration.git",
-                "reference": "759d6d61b327313cbeeeb4ea0c3e2459164b4827"
+                "reference": "0305666acabcd4b384033e4315517e7bf2254552"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/utopia-php/migration/zipball/759d6d61b327313cbeeeb4ea0c3e2459164b4827",
-                "reference": "759d6d61b327313cbeeeb4ea0c3e2459164b4827",
+                "url": "https://api.github.com/repos/utopia-php/migration/zipball/0305666acabcd4b384033e4315517e7bf2254552",
+                "reference": "0305666acabcd4b384033e4315517e7bf2254552",
                 "shasum": ""
             },
             "require": {
-                "appwrite/appwrite": "19.*",
+                "appwrite/appwrite": "23.*",
                 "ext-curl": "*",
                 "ext-openssl": "*",
                 "halaxa/json-machine": "^1.2",
@@ -4574,25 +4574,7 @@
                     "Utopia\\Migration\\": "src/Migration"
                 }
             },
-            "autoload-dev": {
-                "psr-4": {
-                    "Utopia\\Tests\\": "tests/Migration"
-                }
-            },
-            "scripts": {
-                "test": [
-                    "./vendor/bin/phpunit"
-                ],
-                "lint": [
-                    "./vendor/bin/pint --test"
-                ],
-                "format": [
-                    "./vendor/bin/pint"
-                ],
-                "check": [
-                    "./vendor/bin/phpstan analyse --level 3 src tests --memory-limit 2G"
-                ]
-            },
+            "notification-url": "https://packagist.org/downloads/",
             "license": [
                 "MIT"
             ],
@@ -4605,10 +4587,10 @@
                 "utopia"
             ],
             "support": {
-                "source": "https://github.com/utopia-php/migration/tree/1.10.1",
-                "issues": "https://github.com/utopia-php/migration/issues"
+                "issues": "https://github.com/utopia-php/migration/issues",
+                "source": "https://github.com/utopia-php/migration/tree/feat/sdk-23"
             },
-            "time": "2026-05-07T07:23:57+00:00"
+            "time": "2026-05-08T08:02:48+00:00"
         },
         {
             "name": "utopia-php/mongo",
@@ -8469,9 +8451,25 @@
             "time": "2024-11-07T12:36:22+00:00"
         }
     ],
-    "aliases": [],
+    "aliases": [
+        {
+            "package": "utopia-php/abuse",
+            "version": "dev-feat/sdk-23",
+            "alias": "1.2.x-dev",
+            "alias_normalized": "1.2.9999999.9999999-dev"
+        },
+        {
+            "package": "utopia-php/migration",
+            "version": "dev-feat/sdk-23",
+            "alias": "1.10.x-dev",
+            "alias_normalized": "1.10.9999999.9999999-dev"
+        }
+    ],
     "minimum-stability": "dev",
-    "stability-flags": {},
+    "stability-flags": {
+        "utopia-php/abuse": 20,
+        "utopia-php/migration": 20
+    },
     "prefer-stable": true,
     "prefer-lowest": false,
     "platform": {
