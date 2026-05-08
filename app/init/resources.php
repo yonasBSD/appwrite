@@ -9,7 +9,6 @@ use Appwrite\Event\Publisher\Migration as MigrationPublisher;
 use Appwrite\Event\Publisher\Screenshot as ScreenshotPublisher;
 use Appwrite\Event\Publisher\StatsResources as StatsResourcesPublisher;
 use Appwrite\Event\Publisher\Usage as UsagePublisher;
-use Appwrite\Platform\Modules\Storage\Config\CacheControl;
 use Appwrite\Platform\Modules\Storage\Config\StorageCacheControl;
 use Appwrite\Utopia\Database\Documents\User;
 use Executor\Executor;
@@ -206,10 +205,6 @@ $container->set('cache', function (Group $pools, Telemetry $telemetry) {
 }, ['pools', 'telemetry']);
 
 $container->set('cacheControlForStorage', fn () => function (StorageCacheControl $config): string {
-    if ($config->source === CacheControl::SOURCE_CACHE) {
-        return 'private, max-age=15552000';
-    }
-
     return \sprintf('private, max-age=%d', $config->maxAge);
 });
 
