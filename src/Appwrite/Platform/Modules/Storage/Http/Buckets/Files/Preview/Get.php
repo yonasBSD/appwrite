@@ -4,6 +4,7 @@ namespace Appwrite\Platform\Modules\Storage\Http\Buckets\Files\Preview;
 
 use Appwrite\Extend\Exception;
 use Appwrite\OpenSSL\OpenSSL;
+use Appwrite\Platform\Modules\Storage\Config\CacheControl;
 use Appwrite\SDK\AuthType;
 use Appwrite\SDK\ContentType;
 use Appwrite\SDK\Method;
@@ -297,17 +298,17 @@ class Get extends Action
         }
 
         $maxAge = 2592000; // 30 days
-        $cacheControl = $cacheControlForStorage([
-            'source' => 'action',
-            'project' => $project,
-            'user' => $user,
-            'bucket' => $bucket,
-            'file' => $file,
-            'fileSecurity' => $fileSecurity,
-            'resourceToken' => $resourceToken,
-            'maxAge' => $maxAge,
-            'isImageTransformation' => true,
-        ]);
+        $cacheControl = $cacheControlForStorage(new CacheControl(
+            source: CacheControl::SOURCE_ACTION,
+            project: $project,
+            user: $user,
+            bucket: $bucket,
+            file: $file,
+            resourceToken: $resourceToken,
+            maxAge: $maxAge,
+            isImageTransformation: true,
+            fileSecurity: $fileSecurity,
+        ));
 
         $response
             ->addHeader('Cache-Control', $cacheControl)

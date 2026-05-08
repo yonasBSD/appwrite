@@ -19,6 +19,7 @@ use Appwrite\Event\Webhook;
 use Appwrite\Extend\Exception;
 use Appwrite\Extend\Exception as AppwriteException;
 use Appwrite\Functions\EventProcessor;
+use Appwrite\Platform\Modules\Storage\Config\CacheControl;
 use Appwrite\SDK\Method;
 use Appwrite\Usage\Context;
 use Appwrite\Utopia\Database\Documents\User;
@@ -706,19 +707,19 @@ Http::init()
                     $cache->save($key, $data);
                 }
 
-                $cacheControl = $cacheControlForStorage([
-                    'route' => $route,
-                    'source' => 'cache',
-                    'project' => $project,
-                    'user' => $user,
-                    'bucket' => $bucket,
-                    'file' => $file,
-                    'fileSecurity' => $fileSecurity,
-                    'resourceToken' => $resourceToken,
-                    'cacheLog' => $cacheLog,
-                    'maxAge' => $timestamp,
-                    'isImageTransformation' => $isImageTransformation,
-                ]);
+                $cacheControl = $cacheControlForStorage(new CacheControl(
+                    source: CacheControl::SOURCE_CACHE,
+                    project: $project,
+                    user: $user,
+                    bucket: $bucket,
+                    file: $file,
+                    resourceToken: $resourceToken,
+                    maxAge: $timestamp,
+                    isImageTransformation: $isImageTransformation,
+                    fileSecurity: $fileSecurity,
+                    cacheLog: $cacheLog,
+                    route: $route,
+                ));
 
                 $response
                     ->addHeader('Cache-Control', $cacheControl)
