@@ -14,28 +14,42 @@ class InsightsCustomServerTest extends Scope
     use ProjectCustom;
     use SideServer;
 
-    public function testCreateRequiresManagerScope(): void
+    public function testReadWithAdvisorScopes(): void
     {
-        // A server key with insights.read + insights.write but NOT
-        // insights.manager must be rejected — Create lives behind
-        // /v1/manager/reports/:reportId/insights and only internal Appwrite
-        // services hold the manager scope.
         $userKey = $this->getNewKey([
             'insights.read',
-            'insights.write',
+            'reports.read',
         ]);
 
-        $rejected = $this->client->call(
+        $listed = $this->client->call(
+            Client::METHOD_GET,
+            '/reports',
+            [
+                'content-type' => 'application/json',
+                'x-appwrite-project' => $this->getProject()['$id'],
+                'x-appwrite-key' => $userKey,
+            ]
+        );
+
+        $this->assertSame(200, $listed['headers']['status-code']);
+
+        $create = $this->client->call(
             Client::METHOD_POST,
-            '/manager/reports/' . ID::unique() . '/insights',
+            '/reports',
             [
                 'content-type' => 'application/json',
                 'x-appwrite-project' => $this->getProject()['$id'],
                 'x-appwrite-key' => $userKey,
             ],
-            $this->sampleInsight()
+            [
+                'reportId' => ID::unique(),
+                'type' => 'audit',
+                'title' => 'Read-only check',
+                'targetType' => 'sites',
+                'target' => 'home',
+            ]
         );
 
-        $this->assertSame(401, $rejected['headers']['status-code']);
+        $this->assertSame(404, $create['headers']['status-code']);
     }
 }

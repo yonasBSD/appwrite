@@ -65,6 +65,13 @@ class Report extends Model
                 'example' => ['performance', 'accessibility'],
                 'array' => true,
             ])
+            ->addRule('insights', [
+                'type' => Response::MODEL_INSIGHT,
+                'description' => 'Insights nested under this report.',
+                'default' => [],
+                'example' => [],
+                'array' => true,
+            ])
             ->addRule('analyzedAt', [
                 'type' => self::TYPE_DATETIME,
                 'description' => 'Time the report was analyzed in ISO 8601 format.',

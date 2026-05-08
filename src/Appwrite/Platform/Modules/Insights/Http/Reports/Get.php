@@ -32,7 +32,7 @@ class Get extends Action
             ->label('scope', 'reports.read')
             ->label('resourceType', RESOURCE_TYPE_REPORTS)
             ->label('sdk', new Method(
-                namespace: 'insights',
+                namespace: 'advisor',
                 group: 'reports',
                 name: 'getReport',
                 description: <<<EOT

@@ -179,9 +179,7 @@ trait ProjectCustom
                     'templates.write',
                     'insights.read',
                     'insights.write',
-                    'insights.manager',
                     'reports.read',
-                    'reports.write',
                 ],
             ]);
 

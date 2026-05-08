@@ -32,7 +32,7 @@ class Get extends Action
             ->label('scope', 'insights.read')
             ->label('resourceType', RESOURCE_TYPE_INSIGHTS)
             ->label('sdk', new Method(
-                namespace: 'insights',
+                namespace: 'advisor',
                 group: 'insights',
                 name: 'get',
                 description: <<<EOT

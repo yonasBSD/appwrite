@@ -368,21 +368,13 @@ return [
         'category' => 'Other',
     ],
     'insights.write' => [
-        'description' => 'Access to update, dismiss, and delete insights.',
-        'category' => 'Other',
-    ],
-    'insights.manager' => [
-        'description' => 'Internal-only: ingest insights produced by Appwrite analyzers (edge, executor, …). Not granted to user roles.',
+        'description' => 'Access to ingest analyzer reports and insights.',
         'category' => 'Other',
     ],
 
     // Reports
     'reports.read' => [
         'description' => 'Access to read analyzer reports and their insights.',
-        'category' => 'Other',
-    ],
-    'reports.write' => [
-        'description' => 'Access to create, update, and delete analyzer reports.',
         'category' => 'Other',
     ],
 ];

@@ -1,6 +1,12 @@
 <?php
 
 use Appwrite\Platform\Modules\Compute\Specification;
+use Appwrite\Platform\Modules\Insights\Enums\InsightCTAMethod;
+use Appwrite\Platform\Modules\Insights\Enums\InsightCTAService;
+use Appwrite\Platform\Modules\Insights\Enums\InsightSeverity;
+use Appwrite\Platform\Modules\Insights\Enums\InsightStatus;
+use Appwrite\Platform\Modules\Insights\Enums\InsightType;
+use Appwrite\Platform\Modules\Insights\Enums\ReportType;
 use Utopia\System\System;
 
 const APP_NAME = 'Appwrite';
@@ -428,15 +434,15 @@ const RESOURCE_TYPE_INSIGHTS = 'insights';
 const RESOURCE_TYPE_REPORTS = 'reports';
 
 // Insight types — engine-specific so the CTA action can reference the right public API.
-const INSIGHT_TYPE_DATABASE_INDEX = 'databaseIndex';         // legacy databases.createIndex
-const INSIGHT_TYPE_TABLES_DB_INDEX = 'tablesDBIndex';        // tablesDB.createIndex
-const INSIGHT_TYPE_DOCUMENTS_DB_INDEX = 'documentsDBIndex';  // documentsDB.createIndex
-const INSIGHT_TYPE_VECTORS_DB_INDEX = 'vectorsDBIndex';      // vectorsDB.createIndex
-const INSIGHT_TYPE_DATABASE_PERFORMANCE = 'databasePerformance';
-const INSIGHT_TYPE_SITE_PERFORMANCE = 'sitePerformance';
-const INSIGHT_TYPE_SITE_ACCESSIBILITY = 'siteAccessibility';
-const INSIGHT_TYPE_SITE_SEO = 'siteSeo';
-const INSIGHT_TYPE_FUNCTION_PERFORMANCE = 'functionPerformance';
+const INSIGHT_TYPE_DATABASE_INDEX = InsightType::DATABASE_INDEX->value;         // legacy databases.createIndex
+const INSIGHT_TYPE_TABLES_DB_INDEX = InsightType::TABLES_DB_INDEX->value;        // tablesDB.createIndex
+const INSIGHT_TYPE_DOCUMENTS_DB_INDEX = InsightType::DOCUMENTS_DB_INDEX->value;  // documentsDB.createIndex
+const INSIGHT_TYPE_VECTORS_DB_INDEX = InsightType::VECTORS_DB_INDEX->value;      // vectorsDB.createIndex
+const INSIGHT_TYPE_DATABASE_PERFORMANCE = InsightType::DATABASE_PERFORMANCE->value;
+const INSIGHT_TYPE_SITE_PERFORMANCE = InsightType::SITE_PERFORMANCE->value;
+const INSIGHT_TYPE_SITE_ACCESSIBILITY = InsightType::SITE_ACCESSIBILITY->value;
+const INSIGHT_TYPE_SITE_SEO = InsightType::SITE_SEO->value;
+const INSIGHT_TYPE_FUNCTION_PERFORMANCE = InsightType::FUNCTION_PERFORMANCE->value;
 
 const INSIGHT_TYPES = [
     INSIGHT_TYPE_DATABASE_INDEX,
@@ -452,18 +458,18 @@ const INSIGHT_TYPES = [
 
 // Public API services (SDK namespaces) that an insight CTA's `service` can reference.
 // Analyzers must pick the one matching the engine the resource lives in.
-const INSIGHT_CTA_SERVICE_DATABASES = 'databases';      // legacy
-const INSIGHT_CTA_SERVICE_TABLES_DB = 'tablesDB';
-const INSIGHT_CTA_SERVICE_DOCUMENTS_DB = 'documentsDB';
-const INSIGHT_CTA_SERVICE_VECTORS_DB = 'vectorsDB';
+const INSIGHT_CTA_SERVICE_DATABASES = InsightCTAService::DATABASES->value;      // legacy
+const INSIGHT_CTA_SERVICE_TABLES_DB = InsightCTAService::TABLES_DB->value;
+const INSIGHT_CTA_SERVICE_DOCUMENTS_DB = InsightCTAService::DOCUMENTS_DB->value;
+const INSIGHT_CTA_SERVICE_VECTORS_DB = InsightCTAService::VECTORS_DB->value;
 
 // Public API method names that an insight CTA's `method` can reference for index suggestions.
-const INSIGHT_CTA_METHOD_CREATE_INDEX = 'createIndex';
+const INSIGHT_CTA_METHOD_CREATE_INDEX = InsightCTAMethod::CREATE_INDEX->value;
 
 // Insight severities
-const INSIGHT_SEVERITY_INFO = 'info';
-const INSIGHT_SEVERITY_WARNING = 'warning';
-const INSIGHT_SEVERITY_CRITICAL = 'critical';
+const INSIGHT_SEVERITY_INFO = InsightSeverity::INFO->value;
+const INSIGHT_SEVERITY_WARNING = InsightSeverity::WARNING->value;
+const INSIGHT_SEVERITY_CRITICAL = InsightSeverity::CRITICAL->value;
 
 const INSIGHT_SEVERITIES = [
     INSIGHT_SEVERITY_INFO,
@@ -472,8 +478,8 @@ const INSIGHT_SEVERITIES = [
 ];
 
 // Insight statuses
-const INSIGHT_STATUS_ACTIVE = 'active';
-const INSIGHT_STATUS_DISMISSED = 'dismissed';
+const INSIGHT_STATUS_ACTIVE = InsightStatus::ACTIVE->value;
+const INSIGHT_STATUS_DISMISSED = InsightStatus::DISMISSED->value;
 
 const INSIGHT_STATUSES = [
     INSIGHT_STATUS_ACTIVE,
@@ -481,9 +487,9 @@ const INSIGHT_STATUSES = [
 ];
 
 // Report types
-const REPORT_TYPE_LIGHTHOUSE = 'lighthouse';
-const REPORT_TYPE_AUDIT = 'audit';
-const REPORT_TYPE_DATABASE_ANALYZER = 'databaseAnalyzer';
+const REPORT_TYPE_LIGHTHOUSE = ReportType::LIGHTHOUSE->value;
+const REPORT_TYPE_AUDIT = ReportType::AUDIT->value;
+const REPORT_TYPE_DATABASE_ANALYZER = ReportType::DATABASE_ANALYZER->value;
 
 const REPORT_TYPES = [
     REPORT_TYPE_LIGHTHOUSE,

@@ -309,10 +309,10 @@ return [
         'icon' => '/images/services/messaging.png',
         'platforms' => ['client', 'server', 'console'],
     ],
-    'insights' => [
-        'key' => 'insights',
-        'name' => 'Insights',
-        'subtitle' => 'The Insights service surfaces actionable reports about your project resources, with CTA descriptors for one-click remediation in the console.',
+    'advisor' => [
+        'key' => 'advisor',
+        'name' => 'Advisor',
+        'subtitle' => 'The Advisor service surfaces actionable reports about your project resources, with CTA descriptors for one-click remediation in the console.',
         'description' => '/docs/services/insights.md',
         'controller' => '', // Uses modules
         'sdk' => true,

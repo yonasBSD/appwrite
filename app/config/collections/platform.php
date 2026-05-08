@@ -2057,6 +2057,20 @@ $platformCollections = [
                 'filters' => [],
             ],
             [
+                // Virtual attribute — insights live in the `insights` collection
+                // back-referenced by `reportInternalId`. The subQuery filter joins
+                // them at read time.
+                '$id' => ID::custom('insights'),
+                'type' => Database::VAR_STRING,
+                'format' => '',
+                'size' => 65535,
+                'signed' => true,
+                'required' => false,
+                'default' => null,
+                'array' => false,
+                'filters' => ['subQueryReportInsights'],
+            ],
+            [
                 '$id' => ID::custom('analyzedAt'),
                 'type' => Database::VAR_DATETIME,
                 'format' => '',
