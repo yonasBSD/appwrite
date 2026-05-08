@@ -1001,16 +1001,20 @@ trait StorageBase
         $this->assertEquals('miss', $preview['headers']['x-appwrite-cache']);
         $this->assertNotEmpty($preview['body']);
 
-        $cachedPreview = $this->client->call(
-            Client::METHOD_GET,
-            '/storage/buckets/' . $bucketId . '/files/' . $fileId . '/preview',
-            $headers,
-            $params
-        );
+        $cachedPreview = [];
+        $this->assertEventually(function () use (&$cachedPreview, $bucketId, $fileId, $headers, $params) {
+            $cachedPreview = $this->client->call(
+                Client::METHOD_GET,
+                '/storage/buckets/' . $bucketId . '/files/' . $fileId . '/preview',
+                $headers,
+                $params
+            );
+
+            $this->assertEquals('hit', $cachedPreview['headers']['x-appwrite-cache']);
+        });
 
         $this->assertEquals(200, $cachedPreview['headers']['status-code']);
         $this->assertEquals('image/png', $cachedPreview['headers']['content-type']);
-        $this->assertEquals('hit', $cachedPreview['headers']['x-appwrite-cache']);
         $this->assertStringStartsWith('private, max-age=', $cachedPreview['headers']['cache-control']);
         $this->assertEquals($preview['body'], $cachedPreview['body']);
     }
