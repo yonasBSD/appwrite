@@ -21,7 +21,7 @@ use Utopia\Validator\WhiteList;
  * User-facing Update endpoint.
  *
  * Limited to user-controlled state: dismissal (status), and severity overrides.
- * Analyzer-controlled fields (title, summary, payload, ctas, analyzedAt) flow
+ * Analyzer-controlled fields (title, summary, ctas, analyzedAt) flow
  * through the manager-only Create endpoint — analyzers re-ingest by deleting
  * the stale insight and submitting a fresh one.
  */

@@ -18,7 +18,6 @@ use Utopia\Database\Validator\Datetime as DatetimeValidator;
 use Utopia\Database\Validator\UID;
 use Utopia\Platform\Action;
 use Utopia\Platform\Scope\HTTP;
-use Utopia\Validator\JSON;
 use Utopia\Validator\Nullable;
 use Utopia\Validator\Text;
 use Utopia\Validator\WhiteList;
@@ -74,7 +73,7 @@ class Create extends Action
             ))
             ->param('reportId', '', fn (Database $dbForPlatform) => new UID($dbForPlatform->getAdapter()->getMaxUIDLength()), 'Parent report ID.', false, ['dbForPlatform'])
             ->param('insightId', '', fn (Database $dbForPlatform) => new CustomId(false, $dbForPlatform->getAdapter()->getMaxUIDLength()), 'Insight ID. Choose a custom ID or generate a random ID with `ID.unique()`. Valid chars are a-z, A-Z, 0-9, period, hyphen, and underscore. Can\'t start with a special char. Max length is 36 chars.', false, ['dbForPlatform'])
-            ->param('type', '', new WhiteList(INSIGHT_TYPES, true), 'Insight type. Determines the analyzer that owns this insight and the shape of `payload`.')
+            ->param('type', '', new WhiteList(INSIGHT_TYPES, true), 'Insight type. Determines the analyzer that owns this insight.')
             ->param('severity', INSIGHT_SEVERITY_INFO, new WhiteList(INSIGHT_SEVERITIES, true), 'Insight severity. One of `info`, `warning`, `critical`.', true)
             ->param('resourceType', '', new Text(64), 'Plural resource type the insight is about, e.g. `databases`, `sites`, `functions`.')
             ->param('resourceId', '', new Text(36), 'ID of the resource the insight is about.')
@@ -84,7 +83,6 @@ class Create extends Action
             ->param('parentResourceInternalId', '', new Text(36), 'Internal ID of the parent resource.', true)
             ->param('title', '', new Text(256), 'Short, human-readable title.')
             ->param('summary', '', new Text(4096, 0), 'Markdown summary describing the insight.', true)
-            ->param('payload', null, new Nullable(new JSON()), 'Type-specific structured payload.', true)
             ->param('ctas', [], new CTAsValidator(), 'Array of call-to-action descriptors. Each must contain `label`, `service`, `method`, and an optional `params` object.', true)
             ->param('analyzedAt', null, new Nullable(new DatetimeValidator()), 'Time the insight was analyzed in ISO 8601 format. Defaults to now.', true)
             ->inject('response')
@@ -107,7 +105,6 @@ class Create extends Action
         string $parentResourceInternalId,
         string $title,
         string $summary,
-        ?array $payload,
         array $ctas,
         ?string $analyzedAt,
         Response $response,
@@ -154,7 +151,6 @@ class Create extends Action
                 'parentResourceInternalId' => $parentResourceInternalId,
                 'title' => $title,
                 'summary' => $summary,
-                'payload' => $payload,
                 'analyzedAt' => $analyzedAt,
                 'dismissedAt' => null,
                 'dismissedBy' => '',

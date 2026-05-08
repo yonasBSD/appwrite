@@ -180,7 +180,6 @@ trait InsightsBase
             'parentResourceId' => 'orders',
             'title' => 'Missing index on collection orders',
             'summary' => 'Queries against `orders.status` are scanning the full collection.',
-            'payload' => ['databaseId' => 'main', 'engine' => $engine],
             'ctas' => [$this->sampleCTA($engine)],
         ];
     }
@@ -701,7 +700,6 @@ trait InsightsBase
         $this->assertSame($original['parentResourceId'], $updated['body']['parentResourceId']);
         $this->assertSame($original['reportId'], $updated['body']['reportId']);
         $this->assertSame($original['ctas'], $updated['body']['ctas']);
-        $this->assertSame($original['payload'], $updated['body']['payload']);
 
         return $data;
     }

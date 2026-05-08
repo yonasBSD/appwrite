@@ -107,12 +107,6 @@ class Insight extends Model
                 'default' => '',
                 'example' => 'Queries against `orders.status` are scanning the full collection.',
             ])
-            ->addRule('payload', [
-                'type' => self::TYPE_JSON,
-                'description' => 'Type-specific structured payload for the insight.',
-                'default' => new \stdClass(),
-                'example' => ['databaseId' => 'main', 'collectionId' => 'orders'],
-            ])
             ->addRule('ctas', [
                 'type' => Response::MODEL_INSIGHT_CTA,
                 'description' => 'List of call-to-action buttons attached to this insight.',

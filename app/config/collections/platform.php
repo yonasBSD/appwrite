@@ -2271,17 +2271,6 @@ $platformCollections = [
                 'filters' => [],
             ],
             [
-                '$id' => ID::custom('payload'),
-                'type' => Database::VAR_STRING,
-                'format' => '',
-                'size' => 65535,
-                'signed' => true,
-                'required' => false,
-                'default' => null,
-                'array' => false,
-                'filters' => ['json'],
-            ],
-            [
                 // Virtual attribute — CTAs live in the `insightCTAs` collection
                 // back-referenced by `insightInternalId`. The subQuery filter
                 // joins them in at read time, so consumers still see them
