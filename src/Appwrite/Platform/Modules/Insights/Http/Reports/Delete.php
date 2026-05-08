@@ -20,7 +20,7 @@ class Delete extends Action
 {
     use HTTP;
 
-    public static function getName()
+    public static function getName(): string
     {
         return 'deleteReport';
     }
@@ -72,7 +72,7 @@ class Delete extends Action
         Database $dbForPlatform,
         DeleteEvent $queueForDeletes,
         Event $queueForEvents
-    ) {
+    ): void {
         $report = $dbForPlatform->getDocument('reports', $reportId);
 
         if ($report->isEmpty() || $report->getAttribute('projectInternalId') !== $project->getSequence()) {
