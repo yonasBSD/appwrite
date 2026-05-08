@@ -19,6 +19,8 @@ use Appwrite\Event\Webhook;
 use Appwrite\Extend\Exception;
 use Appwrite\Extend\Exception as AppwriteException;
 use Appwrite\Functions\EventProcessor;
+use Appwrite\Platform\Modules\Storage\Config\CacheControl;
+use Appwrite\Platform\Modules\Storage\Config\StorageCacheControl;
 use Appwrite\SDK\Method;
 use Appwrite\Usage\Context;
 use Appwrite\Utopia\Database\Documents\User;
@@ -501,7 +503,8 @@ Http::init()
     ->inject('telemetry')
     ->inject('platform')
     ->inject('authorization')
-    ->action(function (Http $utopia, Request $request, Response $response, Document $project, User $user, Event $queueForEvents, Messaging $queueForMessaging, AuditContext $auditContext, Delete $queueForDeletes, EventDatabase $queueForDatabase, Context $usage, Func $queueForFunctions, Mail $queueForMails, Database $dbForProject, callable $timelimit, Document $resourceToken, string $mode, ?Key $apiKey, array $plan, Document $devKey, Telemetry $telemetry, array $platform, Authorization $authorization) {
+    ->inject('cacheControlForStorage')
+    ->action(function (Http $utopia, Request $request, Response $response, Document $project, User $user, Event $queueForEvents, Messaging $queueForMessaging, AuditContext $auditContext, Delete $queueForDeletes, EventDatabase $queueForDatabase, Context $usage, Func $queueForFunctions, Mail $queueForMails, Database $dbForProject, callable $timelimit, Document $resourceToken, string $mode, ?Key $apiKey, array $plan, Document $devKey, Telemetry $telemetry, array $platform, Authorization $authorization, callable $cacheControlForStorage) {
 
         $response->setUser($user);
         $request->setUser($user);
@@ -639,6 +642,7 @@ Http::init()
             $data = $cache->load($key, $timestamp);
 
             if (! empty($data) && ! $cacheLog->isEmpty()) {
+                $cacheControl = \sprintf('private, max-age=%d', $timestamp);
                 $parts = explode('/', $cacheLog->getAttribute('resourceType', ''));
                 $type = $parts[0];
 
@@ -691,6 +695,21 @@ Http::init()
                             ])));
                         }
                     }
+
+                    if ($isImageTransformation) {
+                        $cacheControl = $cacheControlForStorage(new StorageCacheControl(
+                            source: CacheControl::SOURCE_CACHE,
+                            user: $user,
+                            maxAge: $timestamp,
+                            project: $project,
+                            bucket: $bucket,
+                            file: $file,
+                            resourceToken: $resourceToken,
+                            fileSecurity: $fileSecurity,
+                            cacheLog: $cacheLog,
+                            route: $route,
+                        ));
+                    }
                 }
 
                 $accessedAt = $cacheLog->getAttribute('accessedAt', '');
@@ -703,7 +722,7 @@ Http::init()
                 }
 
                 $response
-                    ->addHeader('Cache-Control', sprintf('private, max-age=%d', $timestamp))
+                    ->addHeader('Cache-Control', $cacheControl)
                     ->addHeader('X-Appwrite-Cache', 'hit')
                     ->setContentType($cacheLog->getAttribute('mimeType'));
                 $storageCacheOperationsCounter->add(1, ['result' => 'hit']);
