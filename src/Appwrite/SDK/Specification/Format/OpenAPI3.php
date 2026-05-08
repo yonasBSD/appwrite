@@ -756,19 +756,13 @@ class OpenAPI3 extends Format
                 }
 
                 $pathAliases = [$name, ...($param['aliases'] ?? [])];
+                $pathAliasMap = \array_flip($pathAliases);
                 $isPathParam = false;
-                foreach ($pathAliases as $pathAlias) {
-                    $pathNeedle = ':' . $pathAlias;
-                    $offset = 0;
 
-                    while (false !== ($position = \strpos($url, $pathNeedle, $offset))) {
-                        $nextChar = $url[$position + \strlen($pathNeedle)] ?? '';
-                        if ($nextChar === '' || $nextChar === '/') {
-                            $isPathParam = true;
-                            break 2;
-                        }
-
-                        $offset = $position + 1;
+                foreach (\explode('/', $url) as $segment) {
+                    if ($segment !== '' && $segment[0] === ':' && isset($pathAliasMap[\substr($segment, 1)])) {
+                        $isPathParam = true;
+                        break;
                     }
                 }
 
