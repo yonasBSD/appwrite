@@ -95,12 +95,13 @@ class Create extends Action
             ->inject('timelimit')
             ->inject('usage')
             ->inject('plan')
+            ->inject('platform')
             ->inject('proofForPassword')
             ->inject('proofForToken')
             ->callback($this->action(...));
     }
 
-    public function action(string $teamId, string $email, string $userId, string $phone, array $roles, string $url, string $name, Response $response, Document $project, User $user, Database $dbForProject, Authorization $authorization, Locale $locale, MailPublisher $publisherForMails, MessagingPublisher $publisherForMessaging, Event $queueForEvents, callable $timelimit, Context $usage, array $plan, Password $proofForPassword, Token $proofForToken)
+    public function action(string $teamId, string $email, string $userId, string $phone, array $roles, string $url, string $name, Response $response, Document $project, User $user, Database $dbForProject, Authorization $authorization, Locale $locale, MailPublisher $publisherForMails, MessagingPublisher $publisherForMessaging, Event $queueForEvents, callable $timelimit, Context $usage, array $plan, array $platform, Password $proofForPassword, Token $proofForToken)
     {
         $isAppUser = $user->isApp($authorization->getRoles());
         $isPrivilegedUser = $user->isPrivileged($authorization->getRoles());
@@ -417,6 +418,7 @@ class Create extends Action
                     preview: $preview,
                     smtp: $smtpConfig,
                     variables: $emailVariables,
+                    platform: $platform,
                 ));
             } elseif (! empty($phone)) {
                 if (empty(System::getEnv('_APP_SMS_PROVIDER'))) {
