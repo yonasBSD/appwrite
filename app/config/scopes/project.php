@@ -368,7 +368,7 @@ return [
         'category' => 'Other',
     ],
     'insights.write' => [
-        'description' => 'Access to ingest analyzer reports and insights.',
+        'description' => 'Reserved for advisor ingestion outside CE. No public CE write endpoints currently use this scope.',
         'category' => 'Other',
     ],
 
