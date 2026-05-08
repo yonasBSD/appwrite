@@ -191,7 +191,7 @@ $http->on(Constant::EVENT_AFTER_RELOAD, function ($server) {
     Console::success('Reload completed...');
 });
 
-$container->set('bus', fn ($register) => $register->get('bus')->setResolver($swoole->context()->get(...)), ['register']);
+$container->set('bus', fn ($register) => $register->get('bus')->setResolver(fn (string $name) => $swoole->context()->get($name)), ['register']);
 
 include __DIR__ . '/controllers/general.php';
 
