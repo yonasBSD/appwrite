@@ -1015,7 +1015,7 @@ trait StorageBase
 
         $this->assertEquals(200, $cachedPreview['headers']['status-code']);
         $this->assertEquals('image/png', $cachedPreview['headers']['content-type']);
-        $this->assertStringStartsWith('private, max-age=', $cachedPreview['headers']['cache-control']);
+        $this->assertEquals('private, max-age=15552000', $cachedPreview['headers']['cache-control']);
         $this->assertEquals($preview['body'], $cachedPreview['body']);
     }
 
