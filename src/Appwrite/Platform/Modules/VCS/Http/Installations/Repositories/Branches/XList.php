@@ -7,6 +7,7 @@ use Appwrite\Platform\Action;
 use Appwrite\SDK\AuthType;
 use Appwrite\SDK\Method;
 use Appwrite\SDK\Response as SDKResponse;
+use Appwrite\Utopia\Database\Validator\Queries\Branches;
 use Appwrite\Utopia\Response;
 use Utopia\Database\Database;
 use Utopia\Database\Document;
@@ -14,7 +15,6 @@ use Utopia\Database\Exception\Query as QueryException;
 use Utopia\Database\Query;
 use Utopia\Platform\Scope\HTTP;
 use Utopia\System\System;
-use Utopia\Validator\ArrayList;
 use Utopia\Validator\Text;
 use Utopia\VCS\Adapter\Git\GitHub;
 use Utopia\VCS\Exception\RepositoryNotFound;
@@ -53,7 +53,7 @@ class XList extends Action
             ->param('installationId', '', new Text(256), 'Installation Id')
             ->param('providerRepositoryId', '', new Text(256), 'Repository Id')
             ->param('search', '', new Text(256), 'Search term to filter your list results. Max length: 256 chars.', true)
-            ->param('queries', [], new ArrayList(new Text(APP_LIMIT_ARRAY_ELEMENT_SIZE), APP_LIMIT_ARRAY_PARAMS_SIZE), 'Array of query strings generated using the Query class provided by the SDK. [Learn more about queries](https://appwrite.io/docs/queries). Only supported methods are limit, offset, cursorAfter, and cursorBefore', true)
+            ->param('queries', [], new Branches(), 'Array of query strings generated using the Query class provided by the SDK. [Learn more about queries](https://appwrite.io/docs/queries). Only supported methods are limit, offset, cursorAfter, and cursorBefore', true)
             ->inject('gitHub')
             ->inject('response')
             ->inject('dbForPlatform')
@@ -73,19 +73,6 @@ class XList extends Action
             $queries = Query::parseQueries($queries);
         } catch (QueryException $e) {
             throw new Exception(Exception::GENERAL_QUERY_INVALID, $e->getMessage());
-        }
-
-        $allowedQueryMethods = [
-            Query::TYPE_LIMIT,
-            Query::TYPE_OFFSET,
-            Query::TYPE_CURSOR_AFTER,
-            Query::TYPE_CURSOR_BEFORE,
-        ];
-
-        foreach ($queries as $query) {
-            if (!\in_array($query->getMethod(), $allowedQueryMethods, true)) {
-                throw new Exception(Exception::GENERAL_QUERY_INVALID, 'Only limit, offset, cursorAfter, and cursorBefore queries are supported.');
-            }
         }
 
         $installation = $dbForPlatform->getDocument('installations', $installationId);
@@ -116,24 +103,17 @@ class XList extends Action
         }
 
         $total = \count($branches);
+        [
+            'limit' => $limit,
+            'offset' => $offset,
+            'cursor' => $cursor,
+            'cursorDirection' => $cursorDirection,
+        ] = Query::groupByType($queries);
 
-        $limitQuery = \current(\array_filter($queries, fn (Query $query) => $query->getMethod() === Query::TYPE_LIMIT));
-        $offsetQuery = \current(\array_filter($queries, fn (Query $query) => $query->getMethod() === Query::TYPE_OFFSET));
-        $cursorQuery = \current(\array_filter($queries, fn (Query $query) => \in_array($query->getMethod(), [Query::TYPE_CURSOR_AFTER, Query::TYPE_CURSOR_BEFORE], true)));
+        $limit ??= APP_LIMIT_LIST_DEFAULT;
+        $offset ??= 0;
 
-        $limit = $limitQuery instanceof Query ? $limitQuery->getValue() : APP_LIMIT_LIST_DEFAULT;
-        $offset = $offsetQuery instanceof Query ? $offsetQuery->getValue() : 0;
-
-        if (!\is_int($limit) || $limit < 0) {
-            throw new Exception(Exception::GENERAL_QUERY_INVALID, 'Invalid limit query.');
-        }
-
-        if (!\is_int($offset) || $offset < 0) {
-            throw new Exception(Exception::GENERAL_QUERY_INVALID, 'Invalid offset query.');
-        }
-
-        if ($cursorQuery instanceof Query) {
-            $cursor = $cursorQuery->getValue();
+        if ($cursor !== null) {
             if (!\is_string($cursor) || $cursor === '') {
                 throw new Exception(Exception::GENERAL_QUERY_INVALID, 'Invalid cursor query.');
             }
@@ -143,9 +123,9 @@ class XList extends Action
                 throw new Exception(Exception::GENERAL_CURSOR_NOT_FOUND, "Branch '{$cursor}' for the 'cursor' value not found.");
             }
 
-            $offset += $cursorQuery->getMethod() === Query::TYPE_CURSOR_AFTER ? $cursorIndex + 1 : 0;
+            $offset += $cursorDirection === Database::CURSOR_AFTER ? $cursorIndex + 1 : 0;
 
-            if ($cursorQuery->getMethod() === Query::TYPE_CURSOR_BEFORE) {
+            if ($cursorDirection === Database::CURSOR_BEFORE) {
                 $start = \max(0, $cursorIndex - $limit);
                 $branches = \array_slice($branches, $start, $cursorIndex - $start);
             } else {
