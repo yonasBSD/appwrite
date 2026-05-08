@@ -755,7 +755,16 @@ class OpenAPI3 extends Format
                     $node['schema']['default'] = $param['default'];
                 }
 
-                if (false !== \strpos($url, ':' . $name)) { // Param is in URL path
+                $pathAliases = [$name, ...($param['aliases'] ?? [])];
+                $isPathParam = false;
+                foreach ($pathAliases as $pathAlias) {
+                    if (false !== \strpos($url, ':' . $pathAlias)) {
+                        $isPathParam = true;
+                        break;
+                    }
+                }
+
+                if ($isPathParam) { // Param is in URL path (directly or through alias)
                     $node['in'] = 'path';
                     $temp['parameters'][] = $node;
                 } elseif ($route->getMethod() == 'GET') { // Param is in query
@@ -796,7 +805,9 @@ class OpenAPI3 extends Format
                     }
                 }
 
-                $url = \str_replace(':' . $name, '{' . $name . '}', $url);
+                foreach ($pathAliases as $pathAlias) {
+                    $url = \str_replace(':' . $pathAlias, '{' . $name . '}', $url);
+                }
             }
 
             if (!empty($bodyRequired)) {

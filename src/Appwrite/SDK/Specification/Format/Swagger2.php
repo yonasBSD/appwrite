@@ -722,7 +722,16 @@ class Swagger2 extends Format
                     $node['default'] = $param['default'];
                 }
 
-                if (\str_contains($url, ':' . $name)) { // Param is in URL path
+                $pathAliases = [$name, ...($param['aliases'] ?? [])];
+                $isPathParam = false;
+                foreach ($pathAliases as $pathAlias) {
+                    if (\str_contains($url, ':' . $pathAlias)) {
+                        $isPathParam = true;
+                        break;
+                    }
+                }
+
+                if ($isPathParam) { // Param is in URL path (directly or through alias)
                     $node['in'] = 'path';
                     $temp['parameters'][] = $node;
                 } elseif ($route->getMethod() == 'GET') { // Param is in query
@@ -767,7 +776,9 @@ class Swagger2 extends Format
                     }
                 }
 
-                $url = \str_replace(':' . $name, '{' . $name . '}', $url);
+                foreach ($pathAliases as $pathAlias) {
+                    $url = \str_replace(':' . $pathAlias, '{' . $name . '}', $url);
+                }
             }
 
             if (!empty($bodyRequired)) {
