@@ -552,6 +552,20 @@ class VCSConsoleClientTest extends Scope
         $this->assertCount(1, $repositoryBranches['body']['branches']);
         $this->assertEquals($repositoryBranches['body']['branches'][0]['name'], 'test');
 
+        $repositoryBranches = $this->client->call(Client::METHOD_GET, '/vcs/github/installations/' . $installationId . '/providerRepositories/' . $this->providerRepositoryId . '/branches', array_merge([
+            'x-appwrite-project' => $this->getProject()['$id'],
+        ], $this->getHeaders()), [
+            'queries' => [
+                Query::limit(1)->toString(),
+                Query::cursorBefore(new \Utopia\Database\Document(['$id' => 'test']))->toString(),
+            ],
+        ]);
+
+        $this->assertEquals(200, $repositoryBranches['headers']['status-code']);
+        $this->assertEquals($repositoryBranches['body']['total'], 2);
+        $this->assertCount(1, $repositoryBranches['body']['branches']);
+        $this->assertEquals($repositoryBranches['body']['branches'][0]['name'], 'main');
+
         /**
          * Test for FAILURE
          */

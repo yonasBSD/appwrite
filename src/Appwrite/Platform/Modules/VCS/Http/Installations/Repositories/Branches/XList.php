@@ -146,9 +146,8 @@ class XList extends Action
             $offset += $cursorQuery->getMethod() === Query::TYPE_CURSOR_AFTER ? $cursorIndex + 1 : 0;
 
             if ($cursorQuery->getMethod() === Query::TYPE_CURSOR_BEFORE) {
-                $length = $limit === 0 ? 0 : $limit;
-                $start = \max(0, $cursorIndex - $length);
-                $branches = \array_slice($branches, $start, $length);
+                $start = \max(0, $cursorIndex - $limit);
+                $branches = \array_slice($branches, $start, $cursorIndex - $start);
             } else {
                 $branches = \array_slice($branches, $offset, $limit);
             }
