@@ -293,6 +293,7 @@ class Migrations extends Action
                 $this->getDatabasesDB,
                 Config::getParam('collections', [])['databases']['collections'],
                 OnDuplicate::tryFrom($options['onDuplicate'] ?? '') ?? OnDuplicate::Fail,
+                fn () => (string) $this->project->getAttribute('database', ''),
             ),
             DestinationCSV::getName() => new DestinationCSV(
                 $this->deviceForFiles,
