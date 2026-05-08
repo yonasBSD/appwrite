@@ -758,7 +758,7 @@ class OpenAPI3 extends Format
                 $pathAliases = [$name, ...($param['aliases'] ?? [])];
                 $isPathParam = false;
                 foreach ($pathAliases as $pathAlias) {
-                    if (\preg_match('/:' . \preg_quote($pathAlias, '/') . '(?=\/|$)/', $url)) {
+                    if (false !== \strpos($url, ':' . $pathAlias)) {
                         $isPathParam = true;
                         break;
                     }
@@ -806,11 +806,7 @@ class OpenAPI3 extends Format
                 }
 
                 foreach ($pathAliases as $pathAlias) {
-                    $url = (string)\preg_replace(
-                        '/:' . \preg_quote($pathAlias, '/') . '(?=\/|$)/',
-                        '{' . $name . '}',
-                        $url
-                    );
+                    $url = \str_replace(':' . $pathAlias, '{' . $name . '}', $url);
                 }
             }
 

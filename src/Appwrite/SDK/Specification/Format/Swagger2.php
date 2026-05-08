@@ -725,7 +725,7 @@ class Swagger2 extends Format
                 $pathAliases = [$name, ...($param['aliases'] ?? [])];
                 $isPathParam = false;
                 foreach ($pathAliases as $pathAlias) {
-                    if (\preg_match('/:' . \preg_quote($pathAlias, '/') . '(?=\/|$)/', $url)) {
+                    if (\str_contains($url, ':' . $pathAlias)) {
                         $isPathParam = true;
                         break;
                     }
@@ -777,11 +777,7 @@ class Swagger2 extends Format
                 }
 
                 foreach ($pathAliases as $pathAlias) {
-                    $url = (string)\preg_replace(
-                        '/:' . \preg_quote($pathAlias, '/') . '(?=\/|$)/',
-                        '{' . $name . '}',
-                        $url
-                    );
+                    $url = \str_replace(':' . $pathAlias, '{' . $name . '}', $url);
                 }
             }
 
