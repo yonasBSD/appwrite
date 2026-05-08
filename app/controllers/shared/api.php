@@ -707,19 +707,22 @@ Http::init()
                     $cache->save($key, $data);
                 }
 
-                $cacheControl = $cacheControlForStorage(new CacheControl(
-                    source: CacheControl::SOURCE_CACHE,
-                    project: $project,
-                    user: $user,
-                    bucket: $bucket,
-                    file: $file,
-                    resourceToken: $resourceToken,
-                    maxAge: $timestamp,
-                    isImageTransformation: $isImageTransformation,
-                    fileSecurity: $fileSecurity,
-                    cacheLog: $cacheLog,
-                    route: $route,
-                ));
+                $cacheControl = \sprintf('private, max-age=%d', $timestamp);
+                if ($isImageTransformation) {
+                    $cacheControl = $cacheControlForStorage(new CacheControl(
+                        source: CacheControl::SOURCE_CACHE,
+                        project: $project,
+                        user: $user,
+                        bucket: $bucket,
+                        file: $file,
+                        resourceToken: $resourceToken,
+                        maxAge: $timestamp,
+                        isImageTransformation: $isImageTransformation,
+                        fileSecurity: $fileSecurity,
+                        cacheLog: $cacheLog,
+                        route: $route,
+                    ));
+                }
 
                 $response
                     ->addHeader('Cache-Control', $cacheControl)
