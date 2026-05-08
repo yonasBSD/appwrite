@@ -998,7 +998,7 @@ trait StorageBase
         $this->assertEquals(200, $preview['headers']['status-code']);
         $this->assertEquals('image/png', $preview['headers']['content-type']);
         $this->assertEquals('private, max-age=2592000', $preview['headers']['cache-control']);
-        $this->assertArrayNotHasKey('x-appwrite-cache', $preview['headers']);
+        $this->assertEquals('miss', $preview['headers']['x-appwrite-cache']);
         $this->assertNotEmpty($preview['body']);
 
         $cachedPreview = $this->client->call(
