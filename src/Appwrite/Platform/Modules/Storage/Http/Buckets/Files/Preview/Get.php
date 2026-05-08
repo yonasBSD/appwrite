@@ -307,7 +307,6 @@ class Get extends Action
             bucket: $bucket,
             file: $file,
             resourceToken: $resourceToken,
-            isImageTransformation: true,
             fileSecurity: $fileSecurity,
         ));
 

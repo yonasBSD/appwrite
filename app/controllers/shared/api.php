@@ -705,7 +705,6 @@ Http::init()
                             bucket: $bucket,
                             file: $file,
                             resourceToken: $resourceToken,
-                            isImageTransformation: $isImageTransformation,
                             fileSecurity: $fileSecurity,
                             cacheLog: $cacheLog,
                             route: $route,

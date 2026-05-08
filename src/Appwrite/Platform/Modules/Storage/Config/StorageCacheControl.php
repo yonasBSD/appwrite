@@ -16,7 +16,6 @@ final class StorageCacheControl extends CacheControl
         public readonly Document $bucket,
         public readonly Document $file,
         public readonly Document $resourceToken,
-        public readonly bool $isImageTransformation,
         public readonly bool $fileSecurity,
         public readonly ?Document $cacheLog = null,
         ?Route $route = null,
