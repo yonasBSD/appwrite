@@ -758,9 +758,17 @@ class OpenAPI3 extends Format
                 $pathAliases = [$name, ...($param['aliases'] ?? [])];
                 $isPathParam = false;
                 foreach ($pathAliases as $pathAlias) {
-                    if (false !== \strpos($url, ':' . $pathAlias)) {
-                        $isPathParam = true;
-                        break;
+                    $pathNeedle = ':' . $pathAlias;
+                    $offset = 0;
+
+                    while (false !== ($position = \strpos($url, $pathNeedle, $offset))) {
+                        $nextChar = $url[$position + \strlen($pathNeedle)] ?? '';
+                        if ($nextChar === '' || $nextChar === '/') {
+                            $isPathParam = true;
+                            break 2;
+                        }
+
+                        $offset = $position + 1;
                     }
                 }
 
