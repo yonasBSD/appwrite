@@ -216,9 +216,30 @@ class Deletes extends Action
                 $this->deleteExpiredTransactions($project, $getProjectDB);
                 $this->deleteOldDeployments($queueForDeletes, $project, $getProjectDB);
                 break;
+            case DELETE_TYPE_REPORT:
+                $this->deleteReport($dbForPlatform, $project, $document);
+                break;
             default:
                 throw new \Exception('No delete operation for type: ' . \strval($type));
         }
+    }
+
+    private function deleteReport(Database $dbForPlatform, Document $project, Document $report): void
+    {
+        $projectInternalId = $project->getSequence();
+        $reportInternalId = $report->getSequence();
+
+        $this->deleteByGroup('insights', [
+            Query::equal('projectInternalId', [$projectInternalId]),
+            Query::equal('reportInternalId', [$reportInternalId]),
+            Query::orderAsc(),
+        ], $dbForPlatform, function (Document $insight) use ($dbForPlatform, $projectInternalId) {
+            $this->deleteByGroup('insightCTAs', [
+                Query::equal('projectInternalId', [$projectInternalId]),
+                Query::equal('insightInternalId', [$insight->getSequence()]),
+                Query::orderAsc(),
+            ], $dbForPlatform);
+        });
     }
 
     private function cleanDatabase(

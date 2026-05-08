@@ -368,7 +368,7 @@ return [
         'category' => 'Other',
     ],
     'insights.write' => [
-        'description' => 'Reserved for advisor ingestion outside CE. No public CE write endpoints currently use this scope.',
+        'description' => 'Access to delete advisor reports. Also reserved for advisor ingestion outside CE.',
         'category' => 'Other',
     ],
 
