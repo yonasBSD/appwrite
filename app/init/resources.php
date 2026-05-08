@@ -9,7 +9,7 @@ use Appwrite\Event\Publisher\Migration as MigrationPublisher;
 use Appwrite\Event\Publisher\Screenshot as ScreenshotPublisher;
 use Appwrite\Event\Publisher\StatsResources as StatsResourcesPublisher;
 use Appwrite\Event\Publisher\Usage as UsagePublisher;
-use Appwrite\Platform\Modules\Storage\Config\CacheControl;
+use Appwrite\Platform\Modules\Storage\Config\StorageCacheControl;
 use Appwrite\Utopia\Database\Documents\User;
 use Executor\Executor;
 use Utopia\Abuse\Adapters\TimeLimit\Redis as TimeLimitRedis;
@@ -204,7 +204,7 @@ $container->set('cache', function (Group $pools, Telemetry $telemetry) {
     return $cache;
 }, ['pools', 'telemetry']);
 
-$container->set('cacheControlForStorage', fn () => function (CacheControl $config): string {
+$container->set('cacheControlForStorage', fn () => function (StorageCacheControl $config): string {
     return \sprintf('private, max-age=%d', $config->maxAge);
 });
 

@@ -20,6 +20,7 @@ use Appwrite\Extend\Exception;
 use Appwrite\Extend\Exception as AppwriteException;
 use Appwrite\Functions\EventProcessor;
 use Appwrite\Platform\Modules\Storage\Config\CacheControl;
+use Appwrite\Platform\Modules\Storage\Config\StorageCacheControl;
 use Appwrite\SDK\Method;
 use Appwrite\Usage\Context;
 use Appwrite\Utopia\Database\Documents\User;
@@ -641,9 +642,7 @@ Http::init()
             $data = $cache->load($key, $timestamp);
 
             if (! empty($data) && ! $cacheLog->isEmpty()) {
-                $bucket = new Document();
-                $file = new Document();
-                $fileSecurity = null;
+                $storageCacheControl = null;
                 $parts = explode('/', $cacheLog->getAttribute('resourceType', ''));
                 $type = $parts[0];
 
@@ -696,6 +695,22 @@ Http::init()
                             ])));
                         }
                     }
+
+                    if ($isImageTransformation) {
+                        $storageCacheControl = new StorageCacheControl(
+                            source: CacheControl::SOURCE_CACHE,
+                            user: $user,
+                            maxAge: $timestamp,
+                            project: $project,
+                            bucket: $bucket,
+                            file: $file,
+                            resourceToken: $resourceToken,
+                            isImageTransformation: $isImageTransformation,
+                            fileSecurity: $fileSecurity,
+                            cacheLog: $cacheLog,
+                            route: $route,
+                        );
+                    }
                 }
 
                 $accessedAt = $cacheLog->getAttribute('accessedAt', '');
@@ -708,20 +723,8 @@ Http::init()
                 }
 
                 $cacheControl = \sprintf('private, max-age=%d', $timestamp);
-                if ($isImageTransformation) {
-                    $cacheControl = $cacheControlForStorage(new CacheControl(
-                        source: CacheControl::SOURCE_CACHE,
-                        project: $project,
-                        user: $user,
-                        bucket: $bucket,
-                        file: $file,
-                        resourceToken: $resourceToken,
-                        maxAge: $timestamp,
-                        isImageTransformation: $isImageTransformation,
-                        fileSecurity: $fileSecurity,
-                        cacheLog: $cacheLog,
-                        route: $route,
-                    ));
+                if ($storageCacheControl !== null) {
+                    $cacheControl = $cacheControlForStorage($storageCacheControl);
                 }
 
                 $response

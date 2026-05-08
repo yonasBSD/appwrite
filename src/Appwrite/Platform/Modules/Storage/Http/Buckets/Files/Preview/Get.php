@@ -5,6 +5,7 @@ namespace Appwrite\Platform\Modules\Storage\Http\Buckets\Files\Preview;
 use Appwrite\Extend\Exception;
 use Appwrite\OpenSSL\OpenSSL;
 use Appwrite\Platform\Modules\Storage\Config\CacheControl;
+use Appwrite\Platform\Modules\Storage\Config\StorageCacheControl;
 use Appwrite\SDK\AuthType;
 use Appwrite\SDK\ContentType;
 use Appwrite\SDK\Method;
@@ -298,14 +299,14 @@ class Get extends Action
         }
 
         $maxAge = 2592000; // 30 days
-        $cacheControl = $cacheControlForStorage(new CacheControl(
+        $cacheControl = $cacheControlForStorage(new StorageCacheControl(
             source: CacheControl::SOURCE_ACTION,
-            project: $project,
             user: $user,
+            maxAge: $maxAge,
+            project: $project,
             bucket: $bucket,
             file: $file,
             resourceToken: $resourceToken,
-            maxAge: $maxAge,
             isImageTransformation: true,
             fileSecurity: $fileSecurity,
         ));
