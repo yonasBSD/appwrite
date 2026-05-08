@@ -94,6 +94,7 @@ class Get extends Action
             ->inject('project')
             ->inject('authorization')
             ->inject('user')
+            ->inject('cacheControlForResponse')
             ->callback($this->action(...));
     }
 
@@ -120,7 +121,8 @@ class Get extends Action
         Device $deviceForLocal,
         Document $project,
         Authorization $authorization,
-        User $user
+        User $user,
+        callable $cacheControlForResponse
     ) {
 
         if (!\extension_loaded('imagick')) {
@@ -294,8 +296,22 @@ class Get extends Action
             }
         }
 
+        $maxAge = 2592000; // 30 days
+        $cacheControl = $cacheControlForResponse([
+            'route' => $request->getRoute(),
+            'source' => 'action',
+            'project' => $project,
+            'user' => $user,
+            'bucket' => $bucket,
+            'file' => $file,
+            'fileSecurity' => $fileSecurity,
+            'resourceToken' => $resourceToken,
+            'maxAge' => $maxAge,
+            'isImageTransformation' => true,
+        ]);
+
         $response
-            ->addHeader('Cache-Control', 'private, max-age=2592000') // 30 days
+            ->addHeader('Cache-Control', $cacheControl ?? "private, max-age={$maxAge}")
             ->setContentType($contentType)
             ->file($data);
 

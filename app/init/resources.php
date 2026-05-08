@@ -203,6 +203,10 @@ $container->set('cache', function (Group $pools, Telemetry $telemetry) {
     return $cache;
 }, ['pools', 'telemetry']);
 
+$container->set('cacheControlForResponse', fn () => function (array $context): ?string {
+    return null;
+});
+
 $container->set('redis', function () {
     $host = System::getEnv('_APP_REDIS_HOST', 'localhost');
     $port = System::getEnv('_APP_REDIS_PORT', 6379);

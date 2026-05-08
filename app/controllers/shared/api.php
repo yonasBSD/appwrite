@@ -501,7 +501,8 @@ Http::init()
     ->inject('telemetry')
     ->inject('platform')
     ->inject('authorization')
-    ->action(function (Http $utopia, Request $request, Response $response, Document $project, User $user, Event $queueForEvents, Messaging $queueForMessaging, AuditContext $auditContext, Delete $queueForDeletes, EventDatabase $queueForDatabase, Context $usage, Func $queueForFunctions, Mail $queueForMails, Database $dbForProject, callable $timelimit, Document $resourceToken, string $mode, ?Key $apiKey, array $plan, Document $devKey, Telemetry $telemetry, array $platform, Authorization $authorization) {
+    ->inject('cacheControlForResponse')
+    ->action(function (Http $utopia, Request $request, Response $response, Document $project, User $user, Event $queueForEvents, Messaging $queueForMessaging, AuditContext $auditContext, Delete $queueForDeletes, EventDatabase $queueForDatabase, Context $usage, Func $queueForFunctions, Mail $queueForMails, Database $dbForProject, callable $timelimit, Document $resourceToken, string $mode, ?Key $apiKey, array $plan, Document $devKey, Telemetry $telemetry, array $platform, Authorization $authorization, callable $cacheControlForResponse) {
 
         $response->setUser($user);
         $request->setUser($user);
@@ -639,6 +640,9 @@ Http::init()
             $data = $cache->load($key, $timestamp);
 
             if (! empty($data) && ! $cacheLog->isEmpty()) {
+                $bucket = new Document();
+                $file = new Document();
+                $fileSecurity = null;
                 $parts = explode('/', $cacheLog->getAttribute('resourceType', ''));
                 $type = $parts[0];
 
@@ -702,8 +706,22 @@ Http::init()
                     $cache->save($key, $data);
                 }
 
+                $cacheControl = $cacheControlForResponse([
+                    'route' => $route,
+                    'source' => 'cache',
+                    'project' => $project,
+                    'user' => $user,
+                    'bucket' => $bucket,
+                    'file' => $file,
+                    'fileSecurity' => $fileSecurity,
+                    'resourceToken' => $resourceToken,
+                    'cacheLog' => $cacheLog,
+                    'maxAge' => $timestamp,
+                    'isImageTransformation' => $isImageTransformation,
+                ]);
+
                 $response
-                    ->addHeader('Cache-Control', sprintf('private, max-age=%d', $timestamp))
+                    ->addHeader('Cache-Control', $cacheControl ?? sprintf('private, max-age=%d', $timestamp))
                     ->addHeader('X-Appwrite-Cache', 'hit')
                     ->setContentType($cacheLog->getAttribute('mimeType'));
                 $storageCacheOperationsCounter->add(1, ['result' => 'hit']);
