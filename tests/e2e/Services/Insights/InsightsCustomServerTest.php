@@ -16,6 +16,8 @@ class InsightsCustomServerTest extends Scope
 
     public function testReadWithAdvisorScopes(): void
     {
+        $projectId = $this->getProject()['$id'];
+
         $userKey = $this->getNewKey([
             'insights.read',
             'reports.read',
@@ -26,7 +28,7 @@ class InsightsCustomServerTest extends Scope
             '/reports',
             [
                 'content-type' => 'application/json',
-                'x-appwrite-project' => $this->getProject()['$id'],
+                'x-appwrite-project' => $projectId,
                 'x-appwrite-key' => $userKey,
             ]
         );
@@ -38,7 +40,7 @@ class InsightsCustomServerTest extends Scope
             '/reports',
             [
                 'content-type' => 'application/json',
-                'x-appwrite-project' => $this->getProject()['$id'],
+                'x-appwrite-project' => $projectId,
                 'x-appwrite-key' => $userKey,
             ],
             [
