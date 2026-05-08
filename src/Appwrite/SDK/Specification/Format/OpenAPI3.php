@@ -807,22 +807,14 @@ class OpenAPI3 extends Format
                     }
                 }
 
-                foreach ($pathAliases as $pathAlias) {
-                    $pathNeedle = ':' . $pathAlias;
-                    $replacement = '{' . $name . '}';
-                    $offset = 0;
-
-                    while (false !== ($position = \strpos($url, $pathNeedle, $offset))) {
-                        $nextChar = $url[$position + \strlen($pathNeedle)] ?? '';
-                        if ($nextChar === '' || $nextChar === '/') {
-                            $url = \substr($url, 0, $position) . $replacement . \substr($url, $position + \strlen($pathNeedle));
-                            $offset = $position + \strlen($replacement);
-                            continue;
-                        }
-
-                        $offset = $position + 1;
+                $segments = \explode('/', $url);
+                foreach ($segments as &$segment) {
+                    if ($segment !== '' && $segment[0] === ':' && isset($pathAliasMap[\substr($segment, 1)])) {
+                        $segment = '{' . $name . '}';
                     }
                 }
+                unset($segment);
+                $url = \implode('/', $segments);
             }
 
             if (!empty($bodyRequired)) {
