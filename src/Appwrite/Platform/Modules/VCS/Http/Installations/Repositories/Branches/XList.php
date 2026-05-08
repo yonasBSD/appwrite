@@ -106,17 +106,17 @@ class XList extends Action
         [
             'limit' => $limit,
             'offset' => $offset,
-            'cursor' => $cursor,
-            'cursorDirection' => $cursorDirection,
         ] = Query::groupByType($queries);
+        $cursorQuery = \current(Query::getCursorQueries($queries, false));
 
         $limit ??= APP_LIMIT_LIST_DEFAULT;
         $offset ??= 0;
 
-        if ($cursor !== null) {
-            if (!\is_string($cursor) || $cursor === '') {
-                throw new Exception(Exception::GENERAL_QUERY_INVALID, 'Invalid cursor query.');
-            }
+        if ($cursorQuery instanceof Query) {
+            $cursor = $cursorQuery->getValue();
+            $cursorDirection = $cursorQuery->getMethod() === Query::TYPE_CURSOR_AFTER
+                ? Database::CURSOR_AFTER
+                : Database::CURSOR_BEFORE;
 
             $cursorIndex = \array_search($cursor, $branches, true);
             if ($cursorIndex === false) {
