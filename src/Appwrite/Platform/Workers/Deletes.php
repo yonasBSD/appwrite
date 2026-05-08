@@ -232,12 +232,10 @@ class Deletes extends Action
         $this->deleteByGroup('insights', [
             Query::equal('projectInternalId', [$projectInternalId]),
             Query::equal('reportInternalId', [$reportInternalId]),
-            Query::orderAsc(),
         ], $dbForPlatform, function (Document $insight) use ($dbForPlatform, $projectInternalId) {
             $this->deleteByGroup('insightCTAs', [
                 Query::equal('projectInternalId', [$projectInternalId]),
                 Query::equal('insightInternalId', [$insight->getSequence()]),
-                Query::orderAsc(),
             ], $dbForPlatform);
         });
     }
