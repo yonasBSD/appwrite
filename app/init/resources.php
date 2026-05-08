@@ -203,8 +203,10 @@ $container->set('cache', function (Group $pools, Telemetry $telemetry) {
     return $cache;
 }, ['pools', 'telemetry']);
 
-$container->set('cacheControlForResponse', fn () => function (array $context): ?string {
-    return null;
+$container->set('cacheControlForStorage', fn () => function (array $context): string {
+    $maxAge = $context['maxAge'] ?? 0;
+
+    return \sprintf('private, max-age=%d', \is_int($maxAge) ? $maxAge : 0);
 });
 
 $container->set('redis', function () {
