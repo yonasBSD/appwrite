@@ -642,7 +642,7 @@ Http::init()
             $data = $cache->load($key, $timestamp);
 
             if (! empty($data) && ! $cacheLog->isEmpty()) {
-                $storageCacheControl = null;
+                $cacheControl = \sprintf('private, max-age=%d', $timestamp);
                 $parts = explode('/', $cacheLog->getAttribute('resourceType', ''));
                 $type = $parts[0];
 
@@ -697,7 +697,7 @@ Http::init()
                     }
 
                     if ($isImageTransformation) {
-                        $storageCacheControl = new StorageCacheControl(
+                        $cacheControl = $cacheControlForStorage(new StorageCacheControl(
                             source: CacheControl::SOURCE_CACHE,
                             user: $user,
                             maxAge: $timestamp,
@@ -709,7 +709,7 @@ Http::init()
                             fileSecurity: $fileSecurity,
                             cacheLog: $cacheLog,
                             route: $route,
-                        );
+                        ));
                     }
                 }
 
@@ -720,11 +720,6 @@ Http::init()
                     ])));
                     // Refresh the filesystem file's mtime so TTL-based expiry in cache->load() stays valid
                     $cache->save($key, $data);
-                }
-
-                $cacheControl = \sprintf('private, max-age=%d', $timestamp);
-                if ($storageCacheControl !== null) {
-                    $cacheControl = $cacheControlForStorage($storageCacheControl);
                 }
 
                 $response
