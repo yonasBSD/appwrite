@@ -298,7 +298,6 @@ class Get extends Action
 
         $maxAge = 2592000; // 30 days
         $cacheControl = $cacheControlForStorage([
-            'route' => $request->getRoute(),
             'source' => 'action',
             'project' => $project,
             'user' => $user,
