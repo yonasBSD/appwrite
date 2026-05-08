@@ -2,8 +2,12 @@
 
 namespace Appwrite\Platform\Tasks;
 
-use Appwrite\Event\Messaging;
+use Appwrite\Event\Event;
+use Appwrite\Event\Message\Messaging as MessagingMessage;
+use Appwrite\Event\Publisher\Messaging as MessagingPublisher;
 use Utopia\Database\Database;
+use Utopia\Queue\Queue;
+use Utopia\System\System;
 
 class ScheduleMessages extends ScheduleBase
 {
@@ -40,15 +44,18 @@ class ScheduleMessages extends ScheduleBase
             }
 
             \go(function () use ($schedule, $scheduledAt, $dbForPlatform) {
-                $queueForMessaging = new Messaging($this->publisherMessaging);
-
                 $this->updateProjectAccess($schedule['project'], $dbForPlatform);
 
-                $queueForMessaging
-                    ->setType(MESSAGE_SEND_TYPE_EXTERNAL)
-                    ->setMessageId($schedule['resourceId'])
-                    ->setProject($schedule['project'])
-                    ->trigger();
+                $publisherForMessaging = new MessagingPublisher(
+                    $this->publisherMessaging,
+                    new Queue(System::getEnv('_APP_MESSAGING_QUEUE_NAME', Event::MESSAGING_QUEUE_NAME))
+                );
+
+                $publisherForMessaging->enqueue(new MessagingMessage(
+                    type: MESSAGE_SEND_TYPE_EXTERNAL,
+                    project: $schedule['project'],
+                    messageId: $schedule['resourceId'],
+                ));
 
                 $dbForPlatform->deleteDocument(
                     'schedules',
