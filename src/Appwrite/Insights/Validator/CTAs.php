@@ -45,8 +45,13 @@ class CTAs extends Validator
                 return false;
             }
 
-            foreach (['label', 'service', 'method'] as $required) {
+            $maxLengths = ['label' => 256, 'service' => 64, 'method' => 64];
+            foreach ($maxLengths as $required => $maxLength) {
                 if (!isset($entry[$required]) || !\is_string($entry[$required]) || $entry[$required] === '') {
+                    return false;
+                }
+                if (\strlen($entry[$required]) > $maxLength) {
+                    $this->message = "CTA `{$required}` must not exceed {$maxLength} characters.";
                     return false;
                 }
             }
