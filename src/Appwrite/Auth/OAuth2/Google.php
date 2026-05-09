@@ -187,7 +187,7 @@ class Google extends OAuth2
     {
         $secret = $this->getAppSecret();
 
-        return $secret['clientSecret'] ?? '';
+        return $secret['clientSecret'] ?? $this->appSecret;
     }
 
     /**
@@ -201,6 +201,10 @@ class Google extends OAuth2
         try {
             $secret = \json_decode($this->appSecret, true, 512, JSON_THROW_ON_ERROR);
         } catch (\Throwable $th) {
+            return ['clientSecret' => $this->appSecret];
+        }
+
+        if (!\is_array($secret)) {
             return ['clientSecret' => $this->appSecret];
         }
 
