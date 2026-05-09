@@ -2009,9 +2009,9 @@ $platformCollections = [
             ],
             [
                 '$id' => ID::custom('summary'),
-                'type' => Database::VAR_STRING,
+                'type' => Database::VAR_TEXT,
                 'format' => '',
-                'size' => 4096,
+                'size' => 65535,
                 'signed' => true,
                 'required' => false,
                 'default' => '',
@@ -2061,7 +2061,7 @@ $platformCollections = [
                 // back-referenced by `reportInternalId`. The subQuery filter joins
                 // them at read time.
                 '$id' => ID::custom('insights'),
-                'type' => Database::VAR_STRING,
+                'type' => Database::VAR_TEXT,
                 'format' => '',
                 'size' => 65535,
                 'signed' => true,
@@ -2275,9 +2275,9 @@ $platformCollections = [
             ],
             [
                 '$id' => ID::custom('summary'),
-                'type' => Database::VAR_STRING,
+                'type' => Database::VAR_TEXT,
                 'format' => '',
-                'size' => 4096,
+                'size' => 65535,
                 'signed' => true,
                 'required' => false,
                 'default' => '',
@@ -2290,9 +2290,9 @@ $platformCollections = [
                 // joins them in at read time, so consumers still see them
                 // embedded on the insight response.
                 '$id' => ID::custom('ctas'),
-                'type' => Database::VAR_STRING,
+                'type' => Database::VAR_TEXT,
                 'format' => '',
-                'size' => 16384,
+                'size' => 65535,
                 'signed' => true,
                 'required' => false,
                 'default' => null,
@@ -2478,9 +2478,9 @@ $platformCollections = [
             ],
             [
                 '$id' => ID::custom('params'),
-                'type' => Database::VAR_STRING,
+                'type' => Database::VAR_TEXT,
                 'format' => '',
-                'size' => 16384,
+                'size' => 65535,
                 'signed' => true,
                 'required' => false,
                 'default' => null,
