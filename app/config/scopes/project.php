@@ -368,13 +368,17 @@ return [
         'category' => 'Other',
     ],
     'insights.write' => [
-        'description' => 'Access to delete advisor reports. Also reserved for advisor ingestion outside CE.',
+        'description' => 'Reserved for advisor insight ingestion outside CE.',
         'category' => 'Other',
     ],
 
     // Reports
     'reports.read' => [
         'description' => 'Access to read analyzer reports and their insights.',
+        'category' => 'Other',
+    ],
+    'reports.write' => [
+        'description' => 'Access to delete analyzer reports.',
         'category' => 'Other',
     ],
 ];

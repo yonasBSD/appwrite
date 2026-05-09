@@ -32,7 +32,7 @@ class Delete extends Action
             ->setHttpPath('/v1/reports/:reportId')
             ->desc('Delete report')
             ->groups(['api', 'insights'])
-            ->label('scope', 'insights.write')
+            ->label('scope', 'reports.write')
             ->label('event', 'reports.[reportId].delete')
             ->label('resourceType', RESOURCE_TYPE_REPORTS)
             ->label('audits.event', 'report.delete')

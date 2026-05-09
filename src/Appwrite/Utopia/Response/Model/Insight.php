@@ -37,7 +37,7 @@ class Insight extends Model
             ])
             ->addRule('reportId', [
                 'type' => self::TYPE_STRING,
-                'description' => 'Parent report ID, if this insight belongs to a report. Empty for ad-hoc insights.',
+                'description' => 'Parent report ID. Insights always belong to a report.',
                 'default' => '',
                 'example' => '5e5ea5c16897e',
             ])

@@ -180,6 +180,7 @@ trait ProjectCustom
                     'insights.read',
                     'insights.write',
                     'reports.read',
+                    'reports.write',
                 ],
             ]);
 
