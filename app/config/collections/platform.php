@@ -2032,10 +2032,11 @@ $platformCollections = [
             ],
             [
                 // Free-form target identifier (URL for lighthouse, resource ID for db).
+                // Indexed by `_key_project_target` with an explicit prefix length.
                 '$id' => ID::custom('target'),
-                'type' => Database::VAR_STRING,
+                'type' => Database::VAR_TEXT,
                 'format' => '',
-                'size' => 2048,
+                'size' => 65535,
                 'signed' => true,
                 'required' => true,
                 'default' => null,
