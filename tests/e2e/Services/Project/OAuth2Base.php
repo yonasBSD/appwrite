@@ -2568,6 +2568,32 @@ trait OAuth2Base
     // Update Google (clientId + clientSecret + optional prompt)
     // =========================================================================
 
+    /**
+     * Default prompt MUST run before any other Google test that sets a custom
+     * prompt value. The global resetProjectOAuth2() only clears Amazon state,
+     * so Google state leaks across tests in the same class. Running this first
+     * guarantees the stored JSON blob has no pre-existing "prompt" key.
+     */
+    public function testUpdateOAuth2GoogleDefaultPrompt(): void
+    {
+        // When prompt is omitted and nothing is stored, the default is ['consent'].
+        $response = $this->updateOAuth2('google', [
+            'clientId' => 'google-default-client',
+            'clientSecret' => 'google-default-secret',
+            'enabled' => false,
+        ]);
+
+        $this->assertSame(200, $response['headers']['status-code']);
+        $this->assertSame(['consent'], $response['body']['prompt']);
+
+        // Cleanup
+        $this->updateOAuth2('google', [
+            'clientId' => '',
+            'clientSecret' => '',
+            'enabled' => false,
+        ]);
+    }
+
     public function testUpdateOAuth2Google(): void
     {
         $response = $this->updateOAuth2('google', [
@@ -2682,26 +2708,6 @@ trait OAuth2Base
         $this->assertSame('google-enable-client', $get['body']['clientId']);
         $this->assertSame(['select_account'], $get['body']['prompt']);
         $this->assertSame('', $get['body']['clientSecret']);
-
-        // Cleanup
-        $this->updateOAuth2('google', [
-            'clientId' => '',
-            'clientSecret' => '',
-            'enabled' => false,
-        ]);
-    }
-
-    public function testUpdateOAuth2GoogleDefaultPrompt(): void
-    {
-        // When prompt is omitted, the default should be ['consent'].
-        $response = $this->updateOAuth2('google', [
-            'clientId' => 'google-default-client',
-            'clientSecret' => 'google-default-secret',
-            'enabled' => false,
-        ]);
-
-        $this->assertSame(200, $response['headers']['status-code']);
-        $this->assertSame(['consent'], $response['body']['prompt']);
 
         // Cleanup
         $this->updateOAuth2('google', [
