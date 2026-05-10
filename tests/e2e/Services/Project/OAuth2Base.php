@@ -2630,6 +2630,19 @@ trait OAuth2Base
         $this->assertSame('general_argument_invalid', $response['body']['type']);
     }
 
+    public function testUpdateOAuth2GooglePromptEmptyArrayRejected(): void
+    {
+        $response = $this->updateOAuth2('google', [
+            'clientId' => 'whatever',
+            'clientSecret' => 'whatever',
+            'prompt' => [],
+            'enabled' => false,
+        ]);
+
+        $this->assertSame(400, $response['headers']['status-code']);
+        $this->assertSame('general_argument_invalid', $response['body']['type']);
+    }
+
     public function testUpdateOAuth2GooglePromptNoneAloneAccepted(): void
     {
         $response = $this->updateOAuth2('google', [

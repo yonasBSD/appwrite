@@ -198,7 +198,11 @@ class Google extends OAuth2
     protected function getPrompt(): string
     {
         $secret = $this->getAppSecret();
-        $prompt = $secret['prompt'] ?? ['consent'];
+        $prompt = $secret['prompt'] ?? [];
+
+        if (empty($prompt)) {
+            $prompt = ['consent'];
+        }
 
         return \implode(' ', $prompt);
     }

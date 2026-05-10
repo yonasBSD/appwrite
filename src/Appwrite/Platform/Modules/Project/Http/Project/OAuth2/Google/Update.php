@@ -152,8 +152,14 @@ class Update extends Base
         $providerId = static::getProviderId();
         $queueForEvents->setParam('providerId', $providerId);
 
-        if ($prompt !== null && \in_array('none', $prompt) && \count($prompt) > 1) {
-            throw new Exception(Exception::GENERAL_ARGUMENT_INVALID, 'When "none" is used as a prompt value, it must be the only element in the array.');
+        if ($prompt !== null) {
+            if (empty($prompt)) {
+                throw new Exception(Exception::GENERAL_ARGUMENT_INVALID, 'Prompt array cannot be empty.');
+            }
+
+            if (\in_array('none', $prompt) && \count($prompt) > 1) {
+                throw new Exception(Exception::GENERAL_ARGUMENT_INVALID, 'When "none" is used as a prompt value, it must be the only element in the array.');
+            }
         }
 
         $storedRaw = $project->getAttribute('oAuthProviders', [])[$providerId . 'Secret'] ?? '';
