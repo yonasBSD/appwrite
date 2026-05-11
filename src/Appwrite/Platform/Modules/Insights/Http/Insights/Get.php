@@ -35,9 +35,7 @@ class Get extends Action
                 namespace: 'advisor',
                 group: 'insights',
                 name: 'getInsight',
-                description: <<<EOT
-                Get an insight by its unique ID, scoped to its parent report.
-                EOT,
+                description: '/docs/references/advisor/get-insight.md',
                 auth: [AuthType::ADMIN, AuthType::SESSION, AuthType::KEY, AuthType::JWT],
                 responses: [
                     new SDKResponse(

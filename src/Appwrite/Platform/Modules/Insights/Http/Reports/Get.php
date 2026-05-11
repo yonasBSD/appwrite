@@ -35,9 +35,7 @@ class Get extends Action
                 namespace: 'advisor',
                 group: 'reports',
                 name: 'getReport',
-                description: <<<EOT
-                Get a report by its unique ID.
-                EOT,
+                description: '/docs/references/advisor/get-report.md',
                 auth: [AuthType::ADMIN, AuthType::SESSION, AuthType::KEY, AuthType::JWT],
                 responses: [
                     new SDKResponse(

@@ -41,9 +41,7 @@ class XList extends Action
                 namespace: 'advisor',
                 group: 'insights',
                 name: 'listInsights',
-                description: <<<EOT
-                List the insights produced under a single analyzer report. You can use the query params to filter your results further.
-                EOT,
+                description: '/docs/references/advisor/list-insights.md',
                 auth: [AuthType::ADMIN, AuthType::SESSION, AuthType::KEY, AuthType::JWT],
                 responses: [
                     new SDKResponse(

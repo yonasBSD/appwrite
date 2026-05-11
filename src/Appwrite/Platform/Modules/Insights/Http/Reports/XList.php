@@ -40,9 +40,7 @@ class XList extends Action
                 namespace: 'advisor',
                 group: 'reports',
                 name: 'listReports',
-                description: <<<EOT
-                Get a list of all the project's analyzer reports. You can use the query params to filter your results.
-                EOT,
+                description: '/docs/references/advisor/list-reports.md',
                 auth: [AuthType::ADMIN, AuthType::SESSION, AuthType::KEY, AuthType::JWT],
                 responses: [
                     new SDKResponse(

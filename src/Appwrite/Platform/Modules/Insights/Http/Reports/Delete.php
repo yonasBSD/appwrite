@@ -44,9 +44,7 @@ class Delete extends Action
                 namespace: 'advisor',
                 group: 'reports',
                 name: 'deleteReport',
-                description: <<<EOT
-                Delete an analyzer report.
-                EOT,
+                description: '/docs/references/advisor/delete-report.md',
                 auth: [AuthType::ADMIN, AuthType::KEY],
                 responses: [
                     new SDKResponse(
