@@ -445,19 +445,19 @@ jobs:
         ]
         include:
           - service: Databases
-            runner: runs-on=${{ github.run_id }}/runner=4cpu-linux-x64/family=c7/volume=120g
+            runner: runs-on=${{ github.run_id }}/runner=4cpu-linux-x64/family=c7/volume=120g/spot=false
             paratest_processes: 3
             timeout_minutes: 30
           - service: Sites
-            runner: runs-on=${{ github.run_id }}/runner=4cpu-linux-x64/family=c7/volume=120g
+            runner: runs-on=${{ github.run_id }}/runner=4cpu-linux-x64/family=c7/volume=120g/spot=false
           - service: Functions
-            runner: runs-on=${{ github.run_id }}/runner=4cpu-linux-x64/family=c7/volume=120g
+            runner: runs-on=${{ github.run_id }}/runner=4cpu-linux-x64/family=c7/volume=120g/spot=false
           - service: Avatars
-            runner: runs-on=${{ github.run_id }}/runner=4cpu-linux-x64/family=c7/volume=120g
+            runner: runs-on=${{ github.run_id }}/runner=4cpu-linux-x64/family=c7/volume=120g/spot=false
           - service: Realtime
-            runner: runs-on=${{ github.run_id }}/runner=4cpu-linux-x64/family=c7/volume=120g
+            runner: runs-on=${{ github.run_id }}/runner=4cpu-linux-x64/family=c7/volume=120g/spot=false
           - service: TablesDB
-            runner: runs-on=${{ github.run_id }}/runner=4cpu-linux-x64/family=c7/volume=120g
+            runner: runs-on=${{ github.run_id }}/runner=4cpu-linux-x64/family=c7/volume=120g/spot=false
             paratest_processes: 3
             timeout_minutes: 30
           - service: Migrations
