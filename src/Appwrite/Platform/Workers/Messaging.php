@@ -162,17 +162,13 @@ class Messaging extends Action
         }
 
         if (\count($userIds) > 0) {
-            $users = $dbForProject->find('users', [
-                Query::equal('$id', $userIds),
+            $targets = $dbForProject->find('targets', [
+                Query::equal('userId', $userIds),
+                Query::equal('providerType', [$providerType]),
                 Query::limit(\count($userIds)),
             ]);
-            foreach ($users as $user) {
-                $targets = \array_filter($user->getAttribute('targets'), function (Document $target) use ($providerType) {
-                    return $target->getAttribute('providerType') === $providerType;
-                });
 
-                \array_push($allTargets, ...$targets);
-            }
+            \array_push($allTargets, ...$targets);
         }
 
         if (\count($targetIds) > 0) {
