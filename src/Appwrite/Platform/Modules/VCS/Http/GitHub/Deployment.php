@@ -96,7 +96,7 @@ trait Deployment
                 $resource = $authorization->skip(fn () => $dbForProject->getDocument($resourceCollection, $resourceId));
                 $resourceInternalId = $resource->getSequence();
 
-                if (!$this->isResourceBuildable($resource, $logBase, $providerCommitMessage)) {
+                if (!$this->isResourceBuildable($logBase, $providerCommitMessage)) {
                     Span::add("{$logBase}.build.skipped", 'true');
                     continue;
                 }
@@ -568,9 +568,9 @@ trait Deployment
         return System::getEnv('_APP_BUILDS_QUEUE_NAME', Event::BUILDS_QUEUE_NAME);
     }
 
-    private function isResourceBuildable(Document $resource, string $logBase, string $providerCommitMessage = ''): bool
+    private function isResourceBuildable(string $logBase, string $providerCommitMessage = ''): bool
     {
-        $commitSkip = new CommitSkipPatterns($resource->getAttribute('providerCommitSkipPatterns', []));
+        $commitSkip = new CommitSkipPatterns();
         if (!$commitSkip->isValid($providerCommitMessage)) {
             Span::add("{$logBase}.build.skipped.reason", 'commitMessage');
             return false;

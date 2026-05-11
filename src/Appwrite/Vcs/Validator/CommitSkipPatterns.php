@@ -6,14 +6,24 @@ use Utopia\Validator;
 
 class CommitSkipPatterns extends Validator
 {
-    public function __construct(private readonly array $patterns)
-    {
-    }
+    private const PATTERNS = [
+        '[skip ci]',
+        '[ci skip]',
+        '[no ci]',
+        '[skip actions]',
+        '[actions skip]',
+        '[skip deploy]',
+        '[deploy skip]',
+        '[no deploy]',
+        'skip-checks: true',
+        'skip appwrite',
+        'appwrite skip',
+    ];
 
     /**
      * Returns false (skip deployment) when the commit message contains any of the
-     * configured patterns as a standalone directive (case-insensitive).
-     * Returns true (proceed) when no patterns are configured or none match.
+     * known skip directives as a standalone directive (case-insensitive).
+     * Returns true (proceed) when none match.
      *
      * Matching rules:
      * - Case-insensitive
@@ -29,15 +39,8 @@ class CommitSkipPatterns extends Validator
             return true;
         }
 
-        foreach ($this->patterns as $pattern) {
-            if (!is_string($pattern)) {
-                continue;
-            }
-
+        foreach (self::PATTERNS as $pattern) {
             $pattern = trim($pattern);
-            if ($pattern === '') {
-                continue;
-            }
 
             // Split on whitespace; each token is regex-quoted. Tokens are rejoined
             // with \s+ (required space) so that "skipappwrite" does NOT match the
