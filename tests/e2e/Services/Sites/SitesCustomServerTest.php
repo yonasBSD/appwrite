@@ -2697,6 +2697,7 @@ class SitesCustomServerTest extends Scope
             \usleep(500000);
         }
         $this->assertNotEmpty($logs['body']['executions'], 'Action execution logs were not available within timeout');
+        $this->assertNotNull($logs['body']['executions'][0]['logs'], 'Action execution logs content was not populated within timeout');
         $this->assertEquals(200, $logs['headers']['status-code']);
         $this->assertStringContainsString($deploymentId, $logs['body']['executions'][0]['deploymentId']);
         $this->assertStringContainsString("GET", $logs['body']['executions'][0]['requestMethod']);
