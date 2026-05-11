@@ -36,10 +36,10 @@ class Create extends Action
     {
         // TODO: use database worker for for creating the v2 schema if not present
         // it is considered that the v2 metadata schema is already created during server start in the http.php
-        return $this->constructDatabaseDSNFromProjectDatabase($this->getDatabaseType(), $project->getAttribute('region'), $project->getAttribute('database'));
+        return self::constructDatabaseDSNFromProjectDatabase($this->getDatabaseType(), $project->getAttribute('region'), $project->getAttribute('database'));
     }
 
-    private function constructDatabaseDSNFromProjectDatabase(string $databasetype, $region, ?string $dsn = null): string
+    public static function constructDatabaseDSNFromProjectDatabase(string $databasetype, $region, ?string $dsn = null): string
     {
         $databases = [];
         $databaseKeys = [];

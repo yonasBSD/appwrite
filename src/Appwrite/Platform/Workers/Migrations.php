@@ -9,6 +9,7 @@ use Appwrite\Event\Message\Usage as UsageMessage;
 use Appwrite\Event\Publisher\Usage as UsagePublisher;
 use Appwrite\Event\Realtime;
 use Appwrite\Extend\Exception;
+use Appwrite\Platform\Modules\Databases\Http\Databases\Create as DatabaseCreate;
 use Appwrite\Template\Template;
 use Appwrite\Usage\Context;
 use Utopia\Compression\Compression;
@@ -284,6 +285,8 @@ class Migrations extends Action
         $options = $migration->getAttribute('options', []);
         $credentials = $migration->getAttribute('credentials');
 
+        $destinationProject = $this->project;
+
         return match ($destination) {
             DestinationAppwrite::getName() => new DestinationAppwrite(
                 $this->project->getId(),
@@ -293,6 +296,11 @@ class Migrations extends Action
                 $this->getDatabasesDB,
                 Config::getParam('collections', [])['databases']['collections'],
                 OnDuplicate::tryFrom($options['onDuplicate'] ?? '') ?? OnDuplicate::Fail,
+                fn (ResourceDatabase $resource): string => DatabaseCreate::constructDatabaseDSNFromProjectDatabase(
+                    $resource->getType() ?: 'legacy',
+                    $destinationProject->getAttribute('region'),
+                    $destinationProject->getAttribute('database'),
+                ),
             ),
             DestinationCSV::getName() => new DestinationCSV(
                 $this->deviceForFiles,
