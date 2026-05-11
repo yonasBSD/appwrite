@@ -174,58 +174,6 @@ class Project extends Model
                 'array' => true,
             ])
         ;
-
-        // Resource: Auth methods
-        $auth = Config::getParam('auth', []);
-        foreach ($auth as $index => $method) {
-            $name = $method['name'] ?? '';
-            $key = $method['key'] ?? '';
-
-            $this
-                ->addRule('auth' . ucfirst($key), [
-                    'type' => self::TYPE_BOOLEAN,
-                    'description' => $name . ' auth method status',
-                    'example' => true,
-                    'default' => true,
-                ])
-            ;
-        }
-
-        // Resource: Services
-        $services = Config::getParam('services', []);
-        foreach ($services as $service) {
-            if (!$service['optional']) {
-                continue;
-            }
-
-            $name = $service['name'] ?? '';
-            $key = $service['key'] ?? '';
-
-            $this
-                ->addRule('serviceStatusFor' . ucfirst($key), [
-                    'type' => self::TYPE_BOOLEAN,
-                    'description' => $name . ' service status',
-                    'example' => true,
-                    'default' => true,
-                ])
-            ;
-        }
-
-        // Resource: Protocols
-        $apis = Config::getParam('protocols', []);
-        foreach ($apis as $api) {
-            $name = $api['name'] ?? '';
-            $key = $api['key'] ?? '';
-
-            $this
-                ->addRule('protocolStatusFor' . ucfirst($key), [
-                    'type' => self::TYPE_BOOLEAN,
-                    'description' => $name . ' protocol status',
-                    'example' => true,
-                    'default' => true,
-                ])
-            ;
-        }
     }
 
     /**
@@ -259,7 +207,6 @@ class Project extends Model
         $this->expandServiceFields($document);
         $this->expandApiFields($document);
         $this->expandAuthFields($document);
-        $this->expandOAuthProviders($document);
 
         return $document;
     }
@@ -270,8 +217,8 @@ class Project extends Model
             return;
         }
 
-        // SMTP
         $smtp = $document->getAttribute('smtp', []);
+        
         $document->setAttribute('smtpEnabled', $smtp['enabled'] ?? false);
         $document->setAttribute('smtpSenderEmail', $smtp['senderEmail'] ?? '');
         $document->setAttribute('smtpSenderName', $smtp['senderName'] ?? '');
@@ -291,16 +238,20 @@ class Project extends Model
         }
 
         $values = $document->getAttribute('services', []);
-        $services = Config::getParam('services', []);
+        $services = [];
 
-        foreach ($services as $service) {
+        foreach (Config::getParam('services', []) as $id => $service) {
             if (!$service['optional']) {
                 continue;
             }
-            $key = $service['key'] ?? '';
-            $value = $values[$key] ?? true;
-            $document->setAttribute('serviceStatusFor' . ucfirst($key), $value);
+
+            $services[] = new Document([
+                '$id' => $id,
+                'enabled' => $values[$service['key']] ?? true,
+            ]);
         }
+        
+        $document->setAttribute('services', $services);
     }
 
     private function expandApiFields(Document $document): void
@@ -310,13 +261,16 @@ class Project extends Model
         }
 
         $values = $document->getAttribute('apis', []);
-        $apis = Config::getParam('protocols', []);
+        $protocols = [];
 
-        foreach ($apis as $api) {
-            $key = $api['key'] ?? '';
-            $value = $values[$key] ?? true;
-            $document->setAttribute('protocolStatusFor' . ucfirst($key), $value);
+        foreach (Config::getParam('protocols', []) as $id => $api) {
+            $protocols[] = new Document([
+                '$id' => $id,
+                'enabled' => $values[$api['key']] ?? true,
+            ]);
         }
+
+        $document->setAttribute('protocols', $protocols);
     }
 
     private function expandAuthFields(Document $document): void
@@ -326,58 +280,15 @@ class Project extends Model
         }
 
         $authValues = $document->getAttribute('auths', []);
-        $auth = Config::getParam('auth', []);
+        $authMethods = [];
 
-        $document->setAttribute('authLimit', $authValues['limit'] ?? 0);
-        $document->setAttribute('authDuration', $authValues['duration'] ?? TOKEN_EXPIRATION_LOGIN_LONG);
-        $document->setAttribute('authSessionsLimit', $authValues['maxSessions'] ?? 0);
-        $document->setAttribute('authPasswordHistory', $authValues['passwordHistory'] ?? 0);
-        $document->setAttribute('authPasswordDictionary', $authValues['passwordDictionary'] ?? false);
-        $document->setAttribute('authPersonalDataCheck', $authValues['personalDataCheck'] ?? false);
-        $document->setAttribute('authDisposableEmails', $authValues['disposableEmails'] ?? false);
-        $document->setAttribute('authCanonicalEmails', $authValues['canonicalEmails'] ?? false);
-        $document->setAttribute('authFreeEmails', $authValues['freeEmails'] ?? false);
-        $document->setAttribute('authMockNumbers', $authValues['mockNumbers'] ?? []);
-        $document->setAttribute('authSessionAlerts', $authValues['sessionAlerts'] ?? false);
-        $document->setAttribute('authMembershipsUserName', $authValues['membershipsUserName'] ?? false);
-        $document->setAttribute('authMembershipsUserEmail', $authValues['membershipsUserEmail'] ?? false);
-        $document->setAttribute('authMembershipsMfa', $authValues['membershipsMfa'] ?? false);
-        $document->setAttribute('authMembershipsUserId', $authValues['membershipsUserId'] ?? false);
-        $document->setAttribute('authMembershipsUserPhone', $authValues['membershipsUserPhone'] ?? false);
-        $document->setAttribute('authInvalidateSessions', $authValues['invalidateSessions'] ?? false);
-
-        foreach ($auth as $method) {
-            $key = $method['key'];
-            $value = $authValues[$key] ?? true;
-            $document->setAttribute('auth' . ucfirst($key), $value);
-        }
-    }
-
-    private function expandOAuthProviders(Document $document): void
-    {
-        if (!$document->isSet('oAuthProviders')) {
-            return;
-        }
-
-        $providers = Config::getParam('oAuthProviders', []);
-        $providerValues = $document->getAttribute('oAuthProviders', []);
-        $projectProviders = [];
-
-        foreach ($providers as $key => $provider) {
-            if (!$provider['enabled']) {
-                // Disabled by Appwrite configuration, exclude from response
-                continue;
-            }
-
-            $projectProviders[] = new Document([
-                'key' => $key,
-                'name' => $provider['name'] ?? '',
-                'appId' => $providerValues[$key . 'Appid'] ?? '',
-                'secret' => '', // Write-only: never expose the stored value
-                'enabled' => $providerValues[$key . 'Enabled'] ?? false,
+        foreach (Config::getParam('auth', []) as $id => $method) {
+            $authMethods[] = new Document([
+                '$id' => $id,
+                'enabled' => $authValues[$method['key']] ?? true
             ]);
         }
-
-        $document->setAttribute('oAuthProviders', $projectProviders);
+        
+        $document->setAttribute('authMethods', $authMethods);
     }
 }
