@@ -10,14 +10,18 @@ class CommitSkipPatterns extends Validator
         '[skip ci]',
         '[ci skip]',
         '[no ci]',
+        '[skip action]',
+        '[action skip]',
+        '[no action]',
         '[skip actions]',
         '[actions skip]',
+        '[no actions]',
         '[skip deploy]',
         '[deploy skip]',
         '[no deploy]',
-        'skip-checks: true',
         '[skip appwrite]',
         '[appwrite skip]',
+        '[no appwrite]',
     ];
 
     /**
@@ -30,8 +34,8 @@ class CommitSkipPatterns extends Validator
      * - The directive must be surrounded by whitespace or string boundaries, so
      *   "prefix[skip deploy]suffix" does NOT accidentally skip
      * - Internal whitespace in the pattern is normalised: tokens are split on \s+
-     *   and rejoined with \s* in the regex, so "[skip   deploy]" matches
-     *   "[skip deploy]" and "skip-checks: true" matches "skip-checks:true"
+     *   and rejoined with \s+ in the regex, so "[skip   deploy]" matches
+     *   "[skip deploy]".
      */
     public function isValid($value): bool
     {
@@ -44,16 +48,14 @@ class CommitSkipPatterns extends Validator
 
             // Split on whitespace; each token is regex-quoted. Tokens are rejoined
             // with \s+ (required space) so that "skipappwrite" does NOT match the
-            // pattern "skip appwrite". The only exception: when the preceding token
-            // ends with ":" (git trailer style), \s* is used so that
-            // "skip-checks:true" still matches the pattern "skip-checks: true".
+            // pattern "skip appwrite".
             $tokens = preg_split('/\s+/', $pattern);
             $regexParts = [];
             $count = count($tokens);
             for ($i = 0; $i < $count; $i++) {
                 $regexParts[] = preg_quote($tokens[$i], '~');
                 if ($i < $count - 1) {
-                    $regexParts[] = str_ends_with($tokens[$i], ':') ? '\s*' : '\s+';
+                    $regexParts[] = '\s+';
                 }
             }
             $regexBody = implode('', $regexParts);

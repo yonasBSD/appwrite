@@ -14,14 +14,18 @@ class CommitSkipPatternsTest extends TestCase
         $this->assertFalse($validator->isValid('[skip ci] update changelog'));
         $this->assertFalse($validator->isValid('[ci skip] update changelog'));
         $this->assertFalse($validator->isValid('[no ci] update changelog'));
+        $this->assertFalse($validator->isValid('[skip action] update changelog'));
+        $this->assertFalse($validator->isValid('[action skip] update changelog'));
+        $this->assertFalse($validator->isValid('[no action] update changelog'));
         $this->assertFalse($validator->isValid('[skip actions] update changelog'));
         $this->assertFalse($validator->isValid('[actions skip] update changelog'));
+        $this->assertFalse($validator->isValid('[no actions] update changelog'));
         $this->assertFalse($validator->isValid('[skip deploy] update changelog'));
         $this->assertFalse($validator->isValid('[deploy skip] update changelog'));
         $this->assertFalse($validator->isValid('[no deploy] update changelog'));
-        $this->assertFalse($validator->isValid('skip-checks:true'));
         $this->assertFalse($validator->isValid('[skip appwrite] update changelog'));
         $this->assertFalse($validator->isValid('[appwrite skip] update changelog'));
+        $this->assertFalse($validator->isValid('[no appwrite] update changelog'));
     }
 
     public function testKnownSkipDirectivesAreCaseInsensitive(): void
@@ -32,6 +36,7 @@ class CommitSkipPatternsTest extends TestCase
         $this->assertFalse($validator->isValid('[Skip Deploy] update changelog'));
         $this->assertFalse($validator->isValid('[SKIP APPWRITE] update changelog'));
         $this->assertFalse($validator->isValid('[Appwrite Skip] update changelog'));
+        $this->assertFalse($validator->isValid('[No Actions] update changelog'));
     }
 
     public function testMessageWithoutKnownDirectiveProceeds(): void
@@ -42,6 +47,7 @@ class CommitSkipPatternsTest extends TestCase
         $this->assertTrue($validator->isValid('feat: add new feature'));
         $this->assertTrue($validator->isValid('skip deploy without brackets'));
         $this->assertTrue($validator->isValid('deploy this please'));
+        $this->assertTrue($validator->isValid('skip-checks:true'));
     }
 
     public function testDirectiveMustBeStandalone(): void
@@ -68,7 +74,7 @@ class CommitSkipPatternsTest extends TestCase
         $validator = new CommitSkipPatterns();
 
         $this->assertFalse($validator->isValid('[skip   deploy] docs only'));
-        $this->assertFalse($validator->isValid('skip-checks:    true'));
+        $this->assertFalse($validator->isValid('[no   actions] docs only'));
     }
 
     public function testNonStringCommitMessageProceeds(): void
