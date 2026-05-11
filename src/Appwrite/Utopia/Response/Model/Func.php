@@ -182,6 +182,13 @@ class Func extends Model
                 'default' => false,
                 'example' => false,
             ])
+            ->addRule('providerCommitSkipPatterns', [
+                'type' => self::TYPE_STRING,
+                'description' => 'Commit message patterns that skip automatic deployments',
+                'default' => [],
+                'example' => ['[skip deploy]'],
+                'array' => true,
+            ])
             ->addRule('buildSpecification', [
                 'type' => self::TYPE_STRING,
                 'description' => 'Machine specification for deployment builds.',
