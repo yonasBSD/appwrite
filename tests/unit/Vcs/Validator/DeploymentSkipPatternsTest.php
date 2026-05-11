@@ -2,14 +2,14 @@
 
 namespace Tests\Unit\Vcs\Validator;
 
-use Appwrite\Vcs\Validator\CommitSkipPatterns;
+use Appwrite\Vcs\Validator\DeploymentSkipPatterns;
 use PHPUnit\Framework\TestCase;
 
-class CommitSkipPatternsTest extends TestCase
+class DeploymentSkipPatternsTest extends TestCase
 {
     public function testKnownSkipDirectivesSkip(): void
     {
-        $validator = new CommitSkipPatterns();
+        $validator = new DeploymentSkipPatterns();
 
         $this->assertFalse($validator->isValid('[skip ci] update changelog'));
         $this->assertFalse($validator->isValid('[ci skip] update changelog'));
@@ -30,7 +30,7 @@ class CommitSkipPatternsTest extends TestCase
 
     public function testKnownSkipDirectivesAreCaseInsensitive(): void
     {
-        $validator = new CommitSkipPatterns();
+        $validator = new DeploymentSkipPatterns();
 
         $this->assertFalse($validator->isValid('[SKIP CI] update changelog'));
         $this->assertFalse($validator->isValid('[Skip Deploy] update changelog'));
@@ -41,7 +41,7 @@ class CommitSkipPatternsTest extends TestCase
 
     public function testMessageWithoutKnownDirectiveProceeds(): void
     {
-        $validator = new CommitSkipPatterns();
+        $validator = new DeploymentSkipPatterns();
 
         $this->assertTrue($validator->isValid('fix: real bug fix'));
         $this->assertTrue($validator->isValid('feat: add new feature'));
@@ -50,36 +50,28 @@ class CommitSkipPatternsTest extends TestCase
         $this->assertTrue($validator->isValid('skip-checks:true'));
     }
 
-    public function testDirectiveMustBeStandalone(): void
+    public function testDirectiveCanAppearAnywhere(): void
     {
-        $validator = new CommitSkipPatterns();
+        $validator = new DeploymentSkipPatterns();
 
         $this->assertFalse($validator->isValid('docs: update readme [skip deploy]'));
-        $this->assertTrue($validator->isValid('docs: update readme[skip deploy]'));
-        $this->assertTrue($validator->isValid('prefix[skip deploy]suffix'));
+        $this->assertFalse($validator->isValid('docs: update readme[skip deploy]'));
+        $this->assertFalse($validator->isValid('prefix[skip deploy]suffix'));
         $this->assertTrue($validator->isValid('refactor: skip appwrite cache seeding'));
         $this->assertTrue($validator->isValid('fix: appwrite skip quota check in tests'));
     }
 
     public function testMultilineCommitMessageSkips(): void
     {
-        $validator = new CommitSkipPatterns();
+        $validator = new DeploymentSkipPatterns();
         $message = "feat: add new stuff\n\nMore detail here.\n\n[skip deploy]";
 
         $this->assertFalse($validator->isValid($message));
     }
 
-    public function testWhitespaceInsideDirectiveIsNormalized(): void
-    {
-        $validator = new CommitSkipPatterns();
-
-        $this->assertFalse($validator->isValid('[skip   deploy] docs only'));
-        $this->assertFalse($validator->isValid('[no   actions] docs only'));
-    }
-
     public function testNonStringCommitMessageProceeds(): void
     {
-        $validator = new CommitSkipPatterns();
+        $validator = new DeploymentSkipPatterns();
 
         $this->assertTrue($validator->isValid(null));
         $this->assertTrue($validator->isValid([]));

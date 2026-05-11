@@ -8,7 +8,7 @@ use Appwrite\Event\Publisher\Build as BuildPublisher;
 use Appwrite\Extend\Exception;
 use Appwrite\Filter\BranchDomain as BranchDomainFilter;
 use Appwrite\Vcs\Comment;
-use Appwrite\Vcs\Validator\CommitSkipPatterns;
+use Appwrite\Vcs\Validator\DeploymentSkipPatterns;
 use Utopia\Config\Config;
 use Utopia\Console;
 use Utopia\Database\Database;
@@ -96,7 +96,9 @@ trait Deployment
                 $resource = $authorization->skip(fn () => $dbForProject->getDocument($resourceCollection, $resourceId));
                 $resourceInternalId = $resource->getSequence();
 
-                if (!$this->isResourceBuildable($logBase, $providerCommitMessage)) {
+                $commitSkip = new DeploymentSkipPatterns();
+                if (!$commitSkip->isValid($providerCommitMessage)) {
+                    Span::add("{$logBase}.build.skipped.reason", 'commitMessage');
                     Span::add("{$logBase}.build.skipped", 'true');
                     continue;
                 }
@@ -568,14 +570,4 @@ trait Deployment
         return System::getEnv('_APP_BUILDS_QUEUE_NAME', Event::BUILDS_QUEUE_NAME);
     }
 
-    private function isResourceBuildable(string $logBase, string $providerCommitMessage = ''): bool
-    {
-        $commitSkip = new CommitSkipPatterns();
-        if (!$commitSkip->isValid($providerCommitMessage)) {
-            Span::add("{$logBase}.build.skipped.reason", 'commitMessage');
-            return false;
-        }
-
-        return true;
-    }
 }
