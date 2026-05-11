@@ -40,7 +40,7 @@ class XList extends Action
             ->label('sdk', new Method(
                 namespace: 'advisor',
                 group: 'insights',
-                name: 'list',
+                name: 'listInsights',
                 description: <<<EOT
                 List the insights produced under a single analyzer report. You can use the query params to filter your results further.
                 EOT,
