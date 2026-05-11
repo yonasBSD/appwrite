@@ -4541,16 +4541,16 @@
         },
         {
             "name": "utopia-php/migration",
-            "version": "1.10.1",
+            "version": "1.10.2",
             "source": {
                 "type": "git",
                 "url": "https://github.com/utopia-php/migration.git",
-                "reference": "759d6d61b327313cbeeeb4ea0c3e2459164b4827"
+                "reference": "211d01b90ccab9729029151c6c61f543bd755c2e"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/utopia-php/migration/zipball/759d6d61b327313cbeeeb4ea0c3e2459164b4827",
-                "reference": "759d6d61b327313cbeeeb4ea0c3e2459164b4827",
+                "url": "https://api.github.com/repos/utopia-php/migration/zipball/211d01b90ccab9729029151c6c61f543bd755c2e",
+                "reference": "211d01b90ccab9729029151c6c61f543bd755c2e",
                 "shasum": ""
             },
             "require": {
@@ -4576,25 +4576,7 @@
                     "Utopia\\Migration\\": "src/Migration"
                 }
             },
-            "autoload-dev": {
-                "psr-4": {
-                    "Utopia\\Tests\\": "tests/Migration"
-                }
-            },
-            "scripts": {
-                "test": [
-                    "./vendor/bin/phpunit"
-                ],
-                "lint": [
-                    "./vendor/bin/pint --test"
-                ],
-                "format": [
-                    "./vendor/bin/pint"
-                ],
-                "check": [
-                    "./vendor/bin/phpstan analyse --level 3 src tests --memory-limit 2G"
-                ]
-            },
+            "notification-url": "https://packagist.org/downloads/",
             "license": [
                 "MIT"
             ],
@@ -4607,10 +4589,10 @@
                 "utopia"
             ],
             "support": {
-                "source": "https://github.com/utopia-php/migration/tree/1.10.1",
-                "issues": "https://github.com/utopia-php/migration/issues"
+                "issues": "https://github.com/utopia-php/migration/issues",
+                "source": "https://github.com/utopia-php/migration/tree/1.10.2"
             },
-            "time": "2026-05-07T07:23:57+00:00"
+            "time": "2026-05-08T06:25:47+00:00"
         },
         {
             "name": "utopia-php/mongo",
