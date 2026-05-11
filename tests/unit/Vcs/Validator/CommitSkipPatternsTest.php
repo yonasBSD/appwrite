@@ -20,8 +20,8 @@ class CommitSkipPatternsTest extends TestCase
         $this->assertFalse($validator->isValid('[deploy skip] update changelog'));
         $this->assertFalse($validator->isValid('[no deploy] update changelog'));
         $this->assertFalse($validator->isValid('skip-checks:true'));
-        $this->assertFalse($validator->isValid('skip appwrite'));
-        $this->assertFalse($validator->isValid('appwrite skip'));
+        $this->assertFalse($validator->isValid('[skip appwrite] update changelog'));
+        $this->assertFalse($validator->isValid('[appwrite skip] update changelog'));
     }
 
     public function testKnownSkipDirectivesAreCaseInsensitive(): void
@@ -30,8 +30,8 @@ class CommitSkipPatternsTest extends TestCase
 
         $this->assertFalse($validator->isValid('[SKIP CI] update changelog'));
         $this->assertFalse($validator->isValid('[Skip Deploy] update changelog'));
-        $this->assertFalse($validator->isValid('SKIP APPWRITE'));
-        $this->assertFalse($validator->isValid('Appwrite Skip'));
+        $this->assertFalse($validator->isValid('[SKIP APPWRITE] update changelog'));
+        $this->assertFalse($validator->isValid('[Appwrite Skip] update changelog'));
     }
 
     public function testMessageWithoutKnownDirectiveProceeds(): void
@@ -51,8 +51,8 @@ class CommitSkipPatternsTest extends TestCase
         $this->assertFalse($validator->isValid('docs: update readme [skip deploy]'));
         $this->assertTrue($validator->isValid('docs: update readme[skip deploy]'));
         $this->assertTrue($validator->isValid('prefix[skip deploy]suffix'));
-        $this->assertTrue($validator->isValid('skipappwrite'));
-        $this->assertTrue($validator->isValid('appwriteskip'));
+        $this->assertTrue($validator->isValid('refactor: skip appwrite cache seeding'));
+        $this->assertTrue($validator->isValid('fix: appwrite skip quota check in tests'));
     }
 
     public function testMultilineCommitMessageSkips(): void

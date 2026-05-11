@@ -16,8 +16,8 @@ class CommitSkipPatterns extends Validator
         '[deploy skip]',
         '[no deploy]',
         'skip-checks: true',
-        'skip appwrite',
-        'appwrite skip',
+        '[skip appwrite]',
+        '[appwrite skip]',
     ];
 
     /**
