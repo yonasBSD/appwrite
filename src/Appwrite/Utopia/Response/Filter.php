@@ -5,6 +5,11 @@ namespace Appwrite\Utopia\Response;
 abstract class Filter
 {
     /**
+     * @var ?array<mixed> $rawContent
+     */
+    protected ?array $rawContent = null;
+
+    /**
      * Parse the content to another format.
      *
      * @param array $content
@@ -14,6 +19,10 @@ abstract class Filter
      */
     abstract public function parse(array $content, string $model): array;
 
+    public function setRawContent(array $rawContent): void
+    {
+        $this->rawContent = $rawContent;
+    }
 
     /**
      * Handle list

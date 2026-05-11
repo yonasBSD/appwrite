@@ -5,25 +5,33 @@ namespace Appwrite\Utopia\Response\Filters;
 use Appwrite\Utopia\Response;
 use Appwrite\Utopia\Response\Filter;
 use Utopia\Config\Config;
-use Utopia\Database\Document;
 
 // Convert 1.9.5 Data format to 1.9.4 format
 class V26 extends Filter
 {
-    public function __construct(protected Document $project)
-    {
-    }
-
     public function parse(array $content, string $model): array
     {
         return match ($model) {
-            Response::MODEL_PROJECT => $this->parseProject($content),
-            Response::MODEL_PROJECT_LIST => $this->handleList($content, 'projects', fn ($item) => $this->parseProjectItem($item)),
+            Response::MODEL_PROJECT => $this->parseProject($content, $this->rawContent),
+            Response::MODEL_PROJECT_LIST => $this->handleList($content, 'projects', function ($item) {
+                $projectId = $item['$id'] ?? '';
+
+                $rawProjects = $this->rawContent['projects'] ?? [];
+                $rawProject = null;
+                foreach ($rawProjects as $rawItem) {
+                    if ($rawItem['$id'] === $projectId) {
+                        $rawProject = $rawItem;
+                        break;
+                    }
+                }
+
+                return $this->parseProject($item, $rawProject);
+            }),
             default => $content,
         };
     }
 
-    private function parseProjectItem(array $content): array
+    private function parseProject(array $content, array $raw): array
     {
         $this->expandAuthMethods($content);
         $this->expandServices($content);
@@ -31,14 +39,7 @@ class V26 extends Filter
 
         unset($content['authMethods'], $content['services'], $content['protocols']);
 
-        return $content;
-    }
-
-    private function parseProject(array $content): array
-    {
-        $content = $this->parseProjectItem($content);
-
-        $auths = $this->project->getAttribute('auths', []);
+        $auths = $raw['auths'] ?? [];
         $content['authLimit'] = $auths['limit'] ?? 0;
         $content['authDuration'] = $auths['duration'] ?? TOKEN_EXPIRATION_LOGIN_LONG;
         $content['authSessionsLimit'] = $auths['maxSessions'] ?? 0;
@@ -57,20 +58,20 @@ class V26 extends Filter
         $content['authMembershipsUserPhone'] = $auths['membershipsUserPhone'] ?? false;
         $content['authInvalidateSessions'] = $auths['invalidateSessions'] ?? false;
 
-        $content['description'] = $this->project->getAttribute('description', '');
-        $content['logo'] = $this->project->getAttribute('logo', '');
-        $content['url'] = $this->project->getAttribute('url', '');
-        $content['legalName'] = $this->project->getAttribute('legalName', '');
-        $content['legalCountry'] = $this->project->getAttribute('legalCountry', '');
-        $content['legalState'] = $this->project->getAttribute('legalState', '');
-        $content['legalCity'] = $this->project->getAttribute('legalCity', '');
-        $content['legalAddress'] = $this->project->getAttribute('legalAddress', '');
-        $content['legalTaxId'] = $this->project->getAttribute('legalTaxId', '');
+        $content['description'] = $raw['description'] ?? '';
+        $content['logo'] = $raw['logo'] ?? '';
+        $content['url'] = $raw['url'] ?? '';
+        $content['legalName'] = $raw['legalName'] ?? '';
+        $content['legalCountry'] = $raw['legalCountry'] ?? '';
+        $content['legalState'] = $raw['legalState'] ?? '';
+        $content['legalCity'] = $raw['legalCity'] ?? '';
+        $content['legalAddress'] = $raw['legalAddress'] ?? '';
+        $content['legalTaxId'] = $raw['legalTaxId'] ?? '';
 
         $content['oAuthProviders'] = $this->expandOAuthProviders();
-        $content['platforms'] = $this->getDocumentArray($this->project->getAttribute('platforms', []));
-        $content['webhooks'] = $this->getDocumentArray($this->project->getAttribute('webhooks', []));
-        $content['keys'] = $this->getDocumentArray($this->project->getAttribute('keys', []));
+        $content['platforms'] = $raw['platforms'] ?? [];
+        $content['webhooks'] = $raw['webhooks'] ?? [];
+        $content['keys'] = $raw['keys'] ?? [];
 
         return $content;
     }
@@ -120,7 +121,7 @@ class V26 extends Filter
     private function expandOAuthProviders(): array
     {
         $providers = Config::getParam('oAuthProviders', []);
-        $providerValues = $this->project->getAttribute('oAuthProviders', []);
+        $providerValues = $this->rawContent['oAuthProviders'] ?? [];
         $projectProviders = [];
 
         foreach ($providers as $key => $provider) {
@@ -138,18 +139,5 @@ class V26 extends Filter
         }
 
         return $projectProviders;
-    }
-
-    private function getDocumentArray(array $documents): array
-    {
-        $result = [];
-        foreach ($documents as $document) {
-            if ($document instanceof Document) {
-                $result[] = $document->getArrayCopy();
-            } elseif (\is_array($document)) {
-                $result[] = $document;
-            }
-        }
-        return $result;
     }
 }
