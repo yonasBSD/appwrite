@@ -71,7 +71,28 @@ class V26 extends Filter
 
         $content['oAuthProviders'] = $this->expandOAuthProviders($raw);
         $content['platforms'] = $raw->getAttribute('platforms', []);
-        $content['webhooks'] = $raw->getAttribute('webhooks', []);
+
+        $content['webhooks'] = [];
+        foreach ($raw->getAttribute('webhooks', []) as $webhook) {
+
+            $webhook->setAttribute('tls', $webhook->getAttribute('security', true));
+            $webhook->removeAttribute('security');
+
+
+            $webhook->setAttribute('authUsername', $webhook->getAttribute('httpUser', ''));
+            $webhook->removeAttribute('httpUser');
+
+
+            $webhook->setAttribute('authPassword', $webhook->getAttribute('httpPass', ''));
+            $webhook->removeAttribute('httpPass');
+
+
+            $webhook->setAttribute('secret', $webhook->getAttribute('signatureKey', ''));
+            $webhook->removeAttribute('signatureKey');
+
+            $content['webhooks'][] = $webhook;
+        }
+
         $content['keys'] = $raw->getAttribute('keys', []);
 
         return $content;

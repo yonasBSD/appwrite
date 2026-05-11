@@ -944,8 +944,7 @@ Http::init()
         $responseFormat = $request->getHeader('x-appwrite-response-format', System::getEnv('_APP_SYSTEM_RESPONSE_FORMAT', ''));
         if ($responseFormat) {
             if (version_compare($responseFormat, '1.9.5', '<')) {
-                // TODO: Replace with proper dependency injection, likely should be passed from action itself
-                $response->addFilter(new ResponseV26($project));
+                $response->addFilter(new ResponseV26());
             }
             if (version_compare($responseFormat, '1.9.4', '<')) {
                 $response->addFilter(new ResponseV25());

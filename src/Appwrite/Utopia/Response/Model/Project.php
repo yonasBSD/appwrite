@@ -47,7 +47,7 @@ class Project extends Model
             // Resource: Dev Keys
             ->addRule('devKeys', [
                 'type' => Response::MODEL_DEV_KEY,
-                'description' => 'List of dev keys.',
+                'description' => 'Deprecated since 1.9.5: List of dev keys.',
                 'default' => [],
                 'example' => new \stdClass(),
                 'array' => true,
