@@ -164,6 +164,7 @@ class Messaging extends Action
         if (\count($userIds) > 0) {
             $targets = $dbForProject->find('targets', [
                 Query::equal('userId', $userIds),
+                Query::select(['identifier']),
                 Query::equal('providerType', [$providerType]),
                 Query::limit(\count($userIds)),
             ]);
@@ -173,6 +174,7 @@ class Messaging extends Action
 
         if (\count($targetIds) > 0) {
             $targets = $dbForProject->find('targets', [
+                Query::select(['providerId', 'identifier']),
                 Query::equal('$id', $targetIds),
                 Query::equal('providerType', [$providerType]),
                 Query::limit(\count($targetIds)),
