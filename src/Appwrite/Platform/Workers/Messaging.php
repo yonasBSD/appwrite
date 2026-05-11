@@ -161,11 +161,11 @@ class Messaging extends Action
             }
         }
 
-        if (\count($userIds) > 0) {
             $targets = $dbForProject->find('targets', [
                 Query::equal('userId', $userIds),
-                Query::select(['identifier']),
+                Query::select(['providerId', 'identifier']),
                 Query::equal('providerType', [$providerType]),
+                Query::limit(\count($userIds)),
             ]);
 
             \array_push($allTargets, ...$targets);
