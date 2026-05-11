@@ -162,13 +162,21 @@ class Messaging extends Action
         }
 
         if (\count($userIds) > 0) {
-            $targets = $dbForProject->find('targets', [
-                Query::equal('userId', $userIds),
-                Query::select(['providerId', 'identifier']),
-                Query::equal('providerType', [$providerType]),
-            ]);
+            $limit = 100;
+            $offset = 0;
 
-            \array_push($allTargets, ...$targets);
+            do {
+                $targets = $dbForProject->find('targets', [
+                    Query::equal('userId', $userIds),
+                    Query::select(['providerId', 'identifier']),
+                    Query::equal('providerType', [$providerType]),
+                    Query::limit($limit),
+                    Query::offset($offset),
+                ]);
+
+                \array_push($allTargets, ...$targets);
+                $offset += \count($targets);
+            } while (\count($targets) === $limit);
         }
 
         if (\count($targetIds) > 0) {
