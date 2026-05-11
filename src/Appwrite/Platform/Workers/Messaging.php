@@ -162,7 +162,7 @@ class Messaging extends Action
         }
 
         if (\count($userIds) > 0) {
-            $limit = 100;
+            $limit = 1000;
             $offset = 0;
 
             do {
