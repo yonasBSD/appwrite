@@ -2103,7 +2103,7 @@ $platformCollections = [
                 'type' => Database::INDEX_KEY,
                 'attributes' => ['projectInternalId', 'targetType', 'target'],
                 // `projectInternalId` and `targetType` do not need explicit prefix lengths.
-                // Keep a prefix on the free-form `target` string to stay under index limits.
+                // Keep `target` at 700 chars so the combined index stays under legacy 768-byte limits.
                 'lengths' => [null, null, 700],
                 'orders' => [],
             ],

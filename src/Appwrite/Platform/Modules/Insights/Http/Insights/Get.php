@@ -67,14 +67,26 @@ class Get extends Action
             throw new Exception(Exception::REPORT_NOT_FOUND);
         }
 
-        $insight = $report->find('$id', $insightId, 'insights');
+        $insight = $this->getInsightFromReport($report, $insightId);
 
-        if (empty($insight)) {
+        if ($insight === null) {
             throw new Exception(Exception::INSIGHT_NOT_FOUND);
         }
 
-        $insight = $insight instanceof Document ? $insight : new Document($insight);
-
         $response->dynamic($insight, Response::MODEL_INSIGHT);
+    }
+
+    /**
+     * Resolve a nested insight document from a report's subquery payload.
+     */
+    private function getInsightFromReport(Document $report, string $insightId): ?Document
+    {
+        $insight = $report->find('$id', $insightId, 'insights');
+
+        if (empty($insight)) {
+            return null;
+        }
+
+        return $insight instanceof Document ? $insight : new Document($insight);
     }
 }

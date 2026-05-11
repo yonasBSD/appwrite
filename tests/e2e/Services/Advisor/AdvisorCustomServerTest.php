@@ -19,6 +19,7 @@ class AdvisorCustomServerTest extends Scope
         $projectId = $this->getProject()['$id'];
 
         $userKey = $this->getNewKey([
+            // Advisor read APIs are protected by the underlying report/insight resource scopes.
             'insights.read',
             'reports.read',
         ]);
