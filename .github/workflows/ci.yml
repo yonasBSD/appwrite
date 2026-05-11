@@ -427,7 +427,7 @@ jobs:
           FunctionsSchedule,
           GraphQL,
           Health,
-          Insights,
+          Advisor,
           Locale,
           Projects,
           Realtime,

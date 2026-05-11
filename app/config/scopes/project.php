@@ -362,23 +362,21 @@ return [
         'category' => 'Other',
     ],
 
-    // Insights
+    // Advisor
     'insights.read' => [
-        'description' => 'Access to read insights and their CTAs.',
+        'description' => 'Access to read insights under Advisor service.',
         'category' => 'Other',
     ],
     'insights.write' => [
-        'description' => 'Reserved for advisor insight ingestion outside CE.',
+        'description' => 'Reserved for Advisor insight ingestion outside CE.',
         'category' => 'Other',
     ],
-
-    // Reports
     'reports.read' => [
-        'description' => 'Access to read analyzer reports and their insights.',
+        'description' => 'Access to read reports under Advisor service.',
         'category' => 'Other',
     ],
     'reports.write' => [
-        'description' => 'Access to delete analyzer reports.',
+        'description' => 'Access to delete reports under Advisor service.',
         'category' => 'Other',
     ],
 ];

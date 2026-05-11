@@ -2102,7 +2102,7 @@ $platformCollections = [
                 '$id' => ID::custom('_key_project_target'),
                 'type' => Database::INDEX_KEY,
                 'attributes' => ['projectInternalId', 'targetType', 'target'],
-                'lengths' => [0, 0, 700],
+                'lengths' => [null, null, 700],
                 'orders' => [],
             ],
         ],

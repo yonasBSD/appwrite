@@ -34,7 +34,7 @@ class Get extends Action
             ->label('sdk', new Method(
                 namespace: 'advisor',
                 group: 'insights',
-                name: 'get',
+                name: 'getInsight',
                 description: <<<EOT
                 Get an insight by its unique ID, scoped to its parent report.
                 EOT,
@@ -67,15 +67,13 @@ class Get extends Action
             throw new Exception(Exception::REPORT_NOT_FOUND);
         }
 
-        $insight = $dbForPlatform->getDocument('insights', $insightId);
+        $insight = $report->find('$id', $insightId, 'insights');
 
-        if (
-            $insight->isEmpty()
-            || $insight->getAttribute('projectInternalId') !== $project->getSequence()
-            || $insight->getAttribute('reportInternalId') !== $report->getSequence()
-        ) {
+        if (empty($insight)) {
             throw new Exception(Exception::INSIGHT_NOT_FOUND);
         }
+
+        $insight = $insight instanceof Document ? $insight : new Document($insight);
 
         $response->dynamic($insight, Response::MODEL_INSIGHT);
     }

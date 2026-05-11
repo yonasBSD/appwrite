@@ -1,6 +1,6 @@
 <?php
 
-namespace Tests\E2E\Services\Insights;
+namespace Tests\E2E\Services\Advisor;
 
 use Tests\E2E\Client;
 use Tests\E2E\Scopes\ProjectCustom;
@@ -8,9 +8,9 @@ use Tests\E2E\Scopes\Scope;
 use Tests\E2E\Scopes\SideServer;
 use Utopia\Database\Helpers\ID;
 
-class InsightsCustomServerTest extends Scope
+class AdvisorCustomServerTest extends Scope
 {
-    use InsightsBase;
+    use AdvisorBase;
     use ProjectCustom;
     use SideServer;
 

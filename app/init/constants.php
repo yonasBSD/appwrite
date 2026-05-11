@@ -1,12 +1,12 @@
 <?php
 
 use Appwrite\Platform\Modules\Compute\Specification;
-use Appwrite\Platform\Modules\Insights\Enums\InsightCTAMethod;
-use Appwrite\Platform\Modules\Insights\Enums\InsightCTAService;
-use Appwrite\Platform\Modules\Insights\Enums\InsightSeverity;
-use Appwrite\Platform\Modules\Insights\Enums\InsightStatus;
-use Appwrite\Platform\Modules\Insights\Enums\InsightType;
-use Appwrite\Platform\Modules\Insights\Enums\ReportType;
+use Appwrite\Platform\Modules\Insights\Enums\InsightCTAMethod as CTAMethod;
+use Appwrite\Platform\Modules\Insights\Enums\InsightCTAService as CTAService;
+use Appwrite\Platform\Modules\Insights\Enums\InsightSeverity as Severity;
+use Appwrite\Platform\Modules\Insights\Enums\InsightStatus as Status;
+use Appwrite\Platform\Modules\Insights\Enums\InsightType as Type;
+use Appwrite\Platform\Modules\Insights\Enums\ReportType as Report;
 use Utopia\System\System;
 
 const APP_NAME = 'Appwrite';
@@ -435,67 +435,50 @@ const RESOURCE_TYPE_INSIGHTS = 'insights';
 const RESOURCE_TYPE_REPORTS = 'reports';
 
 // Insight types — engine-specific so the CTA action can reference the right public API.
-const INSIGHT_TYPE_DATABASE_INDEX = InsightType::DATABASE_INDEX->value;         // legacy databases.createIndex
-const INSIGHT_TYPE_TABLES_DB_INDEX = InsightType::TABLES_DB_INDEX->value;        // tablesDB.createIndex
-const INSIGHT_TYPE_DOCUMENTS_DB_INDEX = InsightType::DOCUMENTS_DB_INDEX->value;  // documentsDB.createIndex
-const INSIGHT_TYPE_VECTORS_DB_INDEX = InsightType::VECTORS_DB_INDEX->value;      // vectorsDB.createIndex
-const INSIGHT_TYPE_DATABASE_PERFORMANCE = InsightType::DATABASE_PERFORMANCE->value;
-const INSIGHT_TYPE_SITE_PERFORMANCE = InsightType::SITE_PERFORMANCE->value;
-const INSIGHT_TYPE_SITE_ACCESSIBILITY = InsightType::SITE_ACCESSIBILITY->value;
-const INSIGHT_TYPE_SITE_SEO = InsightType::SITE_SEO->value;
-const INSIGHT_TYPE_FUNCTION_PERFORMANCE = InsightType::FUNCTION_PERFORMANCE->value;
-
 const INSIGHT_TYPES = [
-    INSIGHT_TYPE_DATABASE_INDEX,
-    INSIGHT_TYPE_TABLES_DB_INDEX,
-    INSIGHT_TYPE_DOCUMENTS_DB_INDEX,
-    INSIGHT_TYPE_VECTORS_DB_INDEX,
-    INSIGHT_TYPE_DATABASE_PERFORMANCE,
-    INSIGHT_TYPE_SITE_PERFORMANCE,
-    INSIGHT_TYPE_SITE_ACCESSIBILITY,
-    INSIGHT_TYPE_SITE_SEO,
-    INSIGHT_TYPE_FUNCTION_PERFORMANCE,
+    Type::DATABASE_INDEX->value, // legacy databases.createIndex
+    Type::TABLES_DB_INDEX->value, // tablesDB.createIndex
+    Type::DOCUMENTS_DB_INDEX->value, // documentsDB.createIndex
+    Type::VECTORS_DB_INDEX->value, // vectorsDB.createIndex
+    Type::DATABASE_PERFORMANCE->value,
+    Type::SITE_PERFORMANCE->value,
+    Type::SITE_ACCESSIBILITY->value,
+    Type::SITE_SEO->value,
+    Type::FUNCTION_PERFORMANCE->value,
 ];
 
 // Public API services (SDK namespaces) that an insight CTA's `service` can reference.
 // Analyzers must pick the one matching the engine the resource lives in.
-const INSIGHT_CTA_SERVICE_DATABASES = InsightCTAService::DATABASES->value;      // legacy
-const INSIGHT_CTA_SERVICE_TABLES_DB = InsightCTAService::TABLES_DB->value;
-const INSIGHT_CTA_SERVICE_DOCUMENTS_DB = InsightCTAService::DOCUMENTS_DB->value;
-const INSIGHT_CTA_SERVICE_VECTORS_DB = InsightCTAService::VECTORS_DB->value;
+const INSIGHT_CTA_SERVICES = [
+    CTAService::DATABASES->value, // legacy
+    CTAService::TABLES_DB->value,
+    CTAService::DOCUMENTS_DB->value,
+    CTAService::VECTORS_DB->value,
+];
 
 // Public API method names that an insight CTA's `method` can reference for index suggestions.
-const INSIGHT_CTA_METHOD_CREATE_INDEX = InsightCTAMethod::CREATE_INDEX->value;
+const INSIGHT_CTA_METHODS = [
+    CTAMethod::CREATE_INDEX->value,
+];
 
 // Insight severities
-const INSIGHT_SEVERITY_INFO = InsightSeverity::INFO->value;
-const INSIGHT_SEVERITY_WARNING = InsightSeverity::WARNING->value;
-const INSIGHT_SEVERITY_CRITICAL = InsightSeverity::CRITICAL->value;
-
 const INSIGHT_SEVERITIES = [
-    INSIGHT_SEVERITY_INFO,
-    INSIGHT_SEVERITY_WARNING,
-    INSIGHT_SEVERITY_CRITICAL,
+    Severity::INFO->value,
+    Severity::WARNING->value,
+    Severity::CRITICAL->value,
 ];
 
 // Insight statuses
-const INSIGHT_STATUS_ACTIVE = InsightStatus::ACTIVE->value;
-const INSIGHT_STATUS_DISMISSED = InsightStatus::DISMISSED->value;
-
 const INSIGHT_STATUSES = [
-    INSIGHT_STATUS_ACTIVE,
-    INSIGHT_STATUS_DISMISSED,
+    Status::ACTIVE->value,
+    Status::DISMISSED->value,
 ];
 
 // Report types
-const REPORT_TYPE_LIGHTHOUSE = ReportType::LIGHTHOUSE->value;
-const REPORT_TYPE_AUDIT = ReportType::AUDIT->value;
-const REPORT_TYPE_DATABASE_ANALYZER = ReportType::DATABASE_ANALYZER->value;
-
 const REPORT_TYPES = [
-    REPORT_TYPE_LIGHTHOUSE,
-    REPORT_TYPE_AUDIT,
-    REPORT_TYPE_DATABASE_ANALYZER,
+    Report::LIGHTHOUSE->value,
+    Report::AUDIT->value,
+    Report::DATABASE_ANALYZER->value,
 ];
 
 // Resource types for Tokens

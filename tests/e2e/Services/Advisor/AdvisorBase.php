@@ -1,11 +1,11 @@
 <?php
 
-namespace Tests\E2E\Services\Insights;
+namespace Tests\E2E\Services\Advisor;
 
 use Tests\E2E\Client;
 use Utopia\Database\Helpers\ID;
 
-trait InsightsBase
+trait AdvisorBase
 {
     protected function serverHeaders(): array
     {
