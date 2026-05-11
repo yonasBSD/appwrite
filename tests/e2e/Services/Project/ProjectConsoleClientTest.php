@@ -63,6 +63,8 @@ class ProjectConsoleClientTest extends Scope
 
         $this->assertSame(200, $response['headers']['status-code']);
         $this->assertSame($project['body']['$id'], $response['body']['$id']);
+        $this->assertNotEmpty($response['body']['$createdAt']);
+        $this->assertNotEmpty($response['body']['$updatedAt']);
         $this->assertSame('Get Project', $response['body']['name']);
         $this->assertSame($team['body']['$id'], $response['body']['teamId']);
         $this->assertSame('active', $response['body']['status']);
@@ -110,6 +112,7 @@ class ProjectConsoleClientTest extends Scope
         $this->assertIsArray($response['body']['labels']);
         $this->assertIsArray($response['body']['devKeys']);
         $this->assertSame(0, $response['body']['pingCount']);
+        $this->assertSame('', $response['body']['pingedAt']);
 
         // Ensure old flattened fields are not present
         $this->assertArrayNotHasKey('description', $response['body']);
