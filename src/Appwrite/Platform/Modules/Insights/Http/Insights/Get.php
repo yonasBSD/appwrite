@@ -67,7 +67,7 @@ class Get extends Action
             throw new Exception(Exception::REPORT_NOT_FOUND);
         }
 
-        $insight = $this->getInsightFromReport($report, $insightId);
+        $insight = $this->getInsightFromReport($report, $insightId, $dbForPlatform);
 
         if ($insight === null) {
             throw new Exception(Exception::INSIGHT_NOT_FOUND);
@@ -77,16 +77,29 @@ class Get extends Action
     }
 
     /**
-     * Resolve a nested insight document from a report's subquery payload.
+     * Resolve a nested insight scoped to its parent report.
+     *
+     * Fast path: pull from the report's embedded subquery payload (capped at APP_LIMIT_SUBQUERY).
+     * Fall back to a direct lookup so insights past the cap remain reachable.
      */
-    private function getInsightFromReport(Document $report, string $insightId): ?Document
+    private function getInsightFromReport(Document $report, string $insightId, Database $dbForPlatform): ?Document
     {
-        $insight = $report->find('$id', $insightId, 'insights');
+        $embedded = $report->find('$id', $insightId, 'insights');
 
-        if (empty($insight)) {
+        if (!empty($embedded)) {
+            return $embedded instanceof Document ? $embedded : new Document($embedded);
+        }
+
+        $insight = $dbForPlatform->getDocument('insights', $insightId);
+
+        if (
+            $insight->isEmpty()
+            || $insight->getAttribute('projectInternalId') !== $report->getAttribute('projectInternalId')
+            || $insight->getAttribute('reportInternalId') !== $report->getSequence()
+        ) {
             return null;
         }
 
-        return $insight instanceof Document ? $insight : new Document($insight);
+        return $insight;
     }
 }
