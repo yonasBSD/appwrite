@@ -18,7 +18,7 @@ class V26 extends Filter
                 $projectId = $item['$id'] ?? '';
 
                 $rawProjects = $this->rawContent->getAttribute('projects', []);
-                $rawProject = null;
+                $rawProject = new Document();
                 foreach ($rawProjects as $rawItem) {
                     if ($rawItem->getId() === $projectId) {
                         $rawProject = $rawItem;
