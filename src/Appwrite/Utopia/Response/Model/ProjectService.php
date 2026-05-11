@@ -4,6 +4,7 @@ namespace Appwrite\Utopia\Response\Model;
 
 use Appwrite\Utopia\Response;
 use Appwrite\Utopia\Response\Model;
+use Utopia\Config\Config;
 
 class ProjectService extends Model
 {
@@ -11,10 +12,11 @@ class ProjectService extends Model
     {
         $this
         ->addRule('$id', [
-            'type' => self::TYPE_STRING,
+            'type' => self::TYPE_ENUM,
             'description' => 'Service ID.',
             'default' => '',
             'example' => 'sites',
+            'enum' => \array_keys(\array_filter(Config::getParam('services', []), fn ($element) => $element['optional'])),
         ])
         ->addRule('enabled', [
             'type' => self::TYPE_BOOLEAN,

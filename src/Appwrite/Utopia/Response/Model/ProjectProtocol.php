@@ -4,6 +4,7 @@ namespace Appwrite\Utopia\Response\Model;
 
 use Appwrite\Utopia\Response;
 use Appwrite\Utopia\Response\Model;
+use Utopia\Config\Config;
 
 class ProjectProtocol extends Model
 {
@@ -11,10 +12,11 @@ class ProjectProtocol extends Model
     {
         $this
         ->addRule('$id', [
-            'type' => self::TYPE_STRING,
+            'type' => self::TYPE_ENUM,
             'description' => 'Protocol ID.',
             'default' => '',
             'example' => 'graphql',
+            'enum' => \array_keys(Config::getParam('protocols', [])),
         ])
         ->addRule('enabled', [
             'type' => self::TYPE_BOOLEAN,

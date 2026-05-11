@@ -4,6 +4,7 @@ namespace Appwrite\Utopia\Response\Model;
 
 use Appwrite\Utopia\Response;
 use Appwrite\Utopia\Response\Model;
+use Utopia\Config\Config;
 
 class ProjectAuthMethod extends Model
 {
@@ -11,10 +12,11 @@ class ProjectAuthMethod extends Model
     {
         $this
             ->addRule('$id', [
-                'type' => self::TYPE_STRING,
+                'type' => self::TYPE_ENUM,
                 'description' => 'Auth method ID.',
                 'default' => '',
                 'example' => 'email-password',
+                'enum' => \array_keys(Config::getParam('auth', [])),
             ])
             ->addRule('enabled', [
                 'type' => self::TYPE_BOOLEAN,
