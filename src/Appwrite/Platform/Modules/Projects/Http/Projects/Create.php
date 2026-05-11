@@ -28,7 +28,6 @@ use Utopia\Pools\Group;
 use Utopia\System\System;
 use Utopia\Validator;
 use Utopia\Validator\Text;
-use Utopia\Validator\URL;
 use Utopia\Validator\WhiteList;
 
 class Create extends Action

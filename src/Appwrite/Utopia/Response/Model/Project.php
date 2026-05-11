@@ -204,9 +204,9 @@ class Project extends Model
     public function filter(Document $document): Document
     {
         $this->expandSmtpFields($document);
-        $this->expandServiceFields($document);
-        $this->expandApiFields($document);
-        $this->expandAuthFields($document);
+        $this->expandServices($document);
+        $this->expandProtocols($document);
+        $this->expandAuthMethods($document);
 
         return $document;
     }
@@ -218,7 +218,7 @@ class Project extends Model
         }
 
         $smtp = $document->getAttribute('smtp', []);
-        
+
         $document->setAttribute('smtpEnabled', $smtp['enabled'] ?? false);
         $document->setAttribute('smtpSenderEmail', $smtp['senderEmail'] ?? '');
         $document->setAttribute('smtpSenderName', $smtp['senderName'] ?? '');
@@ -231,7 +231,7 @@ class Project extends Model
         $document->setAttribute('smtpSecure', $smtp['secure'] ?? '');
     }
 
-    private function expandServiceFields(Document $document): void
+    private function expandServices(Document $document): void
     {
         if (!$document->isSet('services')) {
             return;
@@ -250,11 +250,11 @@ class Project extends Model
                 'enabled' => $values[$service['key']] ?? true,
             ]);
         }
-        
+
         $document->setAttribute('services', $services);
     }
 
-    private function expandApiFields(Document $document): void
+    private function expandProtocols(Document $document): void
     {
         if (!$document->isSet('apis')) {
             return;
@@ -273,22 +273,22 @@ class Project extends Model
         $document->setAttribute('protocols', $protocols);
     }
 
-    private function expandAuthFields(Document $document): void
+    private function expandAuthMethods(Document $document): void
     {
         if (!$document->isSet('auths')) {
             return;
         }
 
-        $authValues = $document->getAttribute('auths', []);
+        $values = $document->getAttribute('auths', []);
         $authMethods = [];
 
         foreach (Config::getParam('auth', []) as $id => $method) {
             $authMethods[] = new Document([
                 '$id' => $id,
-                'enabled' => $authValues[$method['key']] ?? true
+                'enabled' => $values[$method['key']] ?? true
             ]);
         }
-        
+
         $document->setAttribute('authMethods', $authMethods);
     }
 }
