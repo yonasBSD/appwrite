@@ -166,7 +166,6 @@ class Messaging extends Action
                 Query::equal('userId', $userIds),
                 Query::select(['identifier']),
                 Query::equal('providerType', [$providerType]),
-                Query::limit(\count($userIds)),
             ]);
 
             \array_push($allTargets, ...$targets);
