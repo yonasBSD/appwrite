@@ -12,7 +12,7 @@ use Utopia\Database\Document;
 use Utopia\Platform\Action;
 use Utopia\Platform\Scope\HTTP;
 
-class Delete extends Action
+class Get extends Action
 {
     use HTTP;
 
