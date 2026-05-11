@@ -5,6 +5,7 @@ namespace Appwrite\Utopia\Response\Filters;
 use Appwrite\Utopia\Response;
 use Appwrite\Utopia\Response\Filter;
 use Utopia\Config\Config;
+use Utopia\Database\Document;
 
 // Convert 1.9.5 Data format to 1.9.4 format
 class V26 extends Filter
@@ -16,10 +17,10 @@ class V26 extends Filter
             Response::MODEL_PROJECT_LIST => $this->handleList($content, 'projects', function ($item) {
                 $projectId = $item['$id'] ?? '';
 
-                $rawProjects = $this->rawContent['projects'] ?? [];
+                $rawProjects = $this->rawContent->getAttribute('projects', []);
                 $rawProject = null;
                 foreach ($rawProjects as $rawItem) {
-                    if ($rawItem['$id'] === $projectId) {
+                    if ($rawItem->getId() === $projectId) {
                         $rawProject = $rawItem;
                         break;
                     }
@@ -31,7 +32,7 @@ class V26 extends Filter
         };
     }
 
-    private function parseProject(array $content, array $raw): array
+    private function parseProject(array $content, Document $raw): array
     {
         $this->expandAuthMethods($content);
         $this->expandServices($content);
@@ -39,39 +40,39 @@ class V26 extends Filter
 
         unset($content['authMethods'], $content['services'], $content['protocols']);
 
-        $auths = $raw['auths'] ?? [];
-        $content['authLimit'] = $auths['limit'] ?? 0;
-        $content['authDuration'] = $auths['duration'] ?? TOKEN_EXPIRATION_LOGIN_LONG;
-        $content['authSessionsLimit'] = $auths['maxSessions'] ?? 0;
-        $content['authPasswordHistory'] = $auths['passwordHistory'] ?? 0;
-        $content['authPasswordDictionary'] = $auths['passwordDictionary'] ?? false;
-        $content['authPersonalDataCheck'] = $auths['personalDataCheck'] ?? false;
-        $content['authDisposableEmails'] = $auths['disposableEmails'] ?? false;
-        $content['authCanonicalEmails'] = $auths['canonicalEmails'] ?? false;
-        $content['authFreeEmails'] = $auths['freeEmails'] ?? false;
-        $content['authMockNumbers'] = $auths['mockNumbers'] ?? [];
-        $content['authSessionAlerts'] = $auths['sessionAlerts'] ?? false;
-        $content['authMembershipsUserName'] = $auths['membershipsUserName'] ?? false;
-        $content['authMembershipsUserEmail'] = $auths['membershipsUserEmail'] ?? false;
-        $content['authMembershipsMfa'] = $auths['membershipsMfa'] ?? false;
-        $content['authMembershipsUserId'] = $auths['membershipsUserId'] ?? false;
-        $content['authMembershipsUserPhone'] = $auths['membershipsUserPhone'] ?? false;
-        $content['authInvalidateSessions'] = $auths['invalidateSessions'] ?? false;
+        $auths = $raw->getAttribute('auths', []);
+        $content['authLimit'] = $auths->getAttribute('limit', 0);
+        $content['authDuration'] = $auths->getAttribute('duration', TOKEN_EXPIRATION_LOGIN_LONG);
+        $content['authSessionsLimit'] = $auths->getAttribute('maxSessions', 0);
+        $content['authPasswordHistory'] = $auths->getAttribute('passwordHistory', 0);
+        $content['authPasswordDictionary'] = $auths->getAttribute('passwordDictionary', false);
+        $content['authPersonalDataCheck'] = $auths->getAttribute('personalDataCheck', false);
+        $content['authDisposableEmails'] = $auths->getAttribute('disposableEmails', false);
+        $content['authCanonicalEmails'] = $auths->getAttribute('canonicalEmails', false);
+        $content['authFreeEmails'] = $auths->getAttribute('freeEmails', false);
+        $content['authMockNumbers'] = $auths->getAttribute('mockNumbers', []);
+        $content['authSessionAlerts'] = $auths->getAttribute('sessionAlerts', false);
+        $content['authMembershipsUserName'] = $auths->getAttribute('membershipsUserName', false);
+        $content['authMembershipsUserEmail'] = $auths->getAttribute('membershipsUserEmail', false);
+        $content['authMembershipsMfa'] = $auths->getAttribute('membershipsMfa', false);
+        $content['authMembershipsUserId'] = $auths->getAttribute('membershipsUserId', false);
+        $content['authMembershipsUserPhone'] = $auths->getAttribute('membershipsUserPhone', false);
+        $content['authInvalidateSessions'] = $auths->getAttribute('invalidateSessions', false);
 
-        $content['description'] = $raw['description'] ?? '';
-        $content['logo'] = $raw['logo'] ?? '';
-        $content['url'] = $raw['url'] ?? '';
-        $content['legalName'] = $raw['legalName'] ?? '';
-        $content['legalCountry'] = $raw['legalCountry'] ?? '';
-        $content['legalState'] = $raw['legalState'] ?? '';
-        $content['legalCity'] = $raw['legalCity'] ?? '';
-        $content['legalAddress'] = $raw['legalAddress'] ?? '';
-        $content['legalTaxId'] = $raw['legalTaxId'] ?? '';
+        $content['description'] = $raw->getAttribute('description', '');
+        $content['logo'] = $raw->getAttribute('logo', '');
+        $content['url'] = $raw->getAttribute('url', '');
+        $content['legalName'] = $raw->getAttribute('legalName', '');
+        $content['legalCountry'] = $raw->getAttribute('legalCountry', '');
+        $content['legalState'] = $raw->getAttribute('legalState', '');
+        $content['legalCity'] = $raw->getAttribute('legalCity', '');
+        $content['legalAddress'] = $raw->getAttribute('legalAddress', '');
+        $content['legalTaxId'] = $raw->getAttribute('legalTaxId', '');
 
         $content['oAuthProviders'] = $this->expandOAuthProviders();
-        $content['platforms'] = $raw['platforms'] ?? [];
-        $content['webhooks'] = $raw['webhooks'] ?? [];
-        $content['keys'] = $raw['keys'] ?? [];
+        $content['platforms'] = $raw->getAttribute('platforms', []);
+        $content['webhooks'] = $raw->getAttribute('webhooks', []);
+        $content['keys'] = $raw->getAttribute('keys', []);
 
         return $content;
     }

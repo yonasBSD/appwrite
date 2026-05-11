@@ -438,7 +438,7 @@ class Response extends SwooleResponse
         return isset(self::$models[$key]);
     }
 
-    public function applyFilters(array $data, string $model, array $raw): array
+    public function applyFilters(array $data, string $model, Document $raw): array
     {
         foreach ($this->filters as $filter) {
             $filter->setRawContent($raw);

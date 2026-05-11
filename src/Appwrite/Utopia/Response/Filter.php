@@ -2,12 +2,14 @@
 
 namespace Appwrite\Utopia\Response;
 
+use Utopia\Database\Document;
+
 abstract class Filter
 {
     /**
-     * @var ?array<mixed> $rawContent
+     * @var ?Document $rawContent
      */
-    protected ?array $rawContent = null;
+    protected ?Document $rawContent = null;
 
     /**
      * Parse the content to another format.
@@ -19,7 +21,7 @@ abstract class Filter
      */
     abstract public function parse(array $content, string $model): array;
 
-    public function setRawContent(array $rawContent): void
+    public function setRawContent(Document $rawContent): void
     {
         $this->rawContent = $rawContent;
     }
