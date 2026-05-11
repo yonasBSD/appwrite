@@ -117,6 +117,13 @@ class CommitSkipPatternsTest extends TestCase
         $this->assertTrue($validator->isValid(''));
     }
 
+    public function testNonStringCommitMessageNeverSkips(): void
+    {
+        $validator = new CommitSkipPatterns(['[skip deploy]']);
+        $this->assertTrue($validator->isValid(null));
+        $this->assertTrue($validator->isValid([]));
+    }
+
     public function testBlankPatternsInArrayAreIgnored(): void
     {
         $validator = new CommitSkipPatterns(['', '  ', '[skip deploy]']);

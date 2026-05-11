@@ -26,7 +26,7 @@ class CommitSkipPatterns extends Validator
     public function isValid($value): bool
     {
         if (!is_string($value)) {
-            return false;
+            return true;
         }
 
         foreach ($this->patterns as $pattern) {
