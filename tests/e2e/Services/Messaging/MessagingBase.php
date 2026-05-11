@@ -2527,6 +2527,10 @@ trait MessagingBase
 
     public function testCreatePushNotificationWithUsersRecipients(): void
     {
+        if (empty(System::getEnv('_APP_MESSAGE_PUSH_TEST_DSN'))) {
+            $this->markTestSkipped('Push DSN empty');
+        }
+
         $dsn = new DSN(System::getEnv('_APP_MESSAGE_PUSH_TEST_DSN'));
         $to = $dsn->getParam('to');
         $serviceAccountJSON = $dsn->getParam('serviceAccountJSON');
