@@ -1,6 +1,6 @@
 <?php
 
-namespace Appwrite\Platform\Modules\Insights\Http\Reports;
+namespace Appwrite\Platform\Modules\Advisor\Http\Reports;
 
 use Appwrite\Event\Delete as DeleteEvent;
 use Appwrite\Event\Event;
@@ -31,7 +31,7 @@ class Delete extends Action
             ->setHttpMethod(Action::HTTP_REQUEST_METHOD_DELETE)
             ->setHttpPath('/v1/reports/:reportId')
             ->desc('Delete report')
-            ->groups(['api', 'insights'])
+            ->groups(['api', 'advisor'])
             ->label('scope', 'reports.write')
             ->label('event', 'reports.[reportId].delete')
             ->label('resourceType', RESOURCE_TYPE_REPORTS)

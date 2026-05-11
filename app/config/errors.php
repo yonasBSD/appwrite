@@ -1454,7 +1454,7 @@ return [
         'code' => 400,
     ],
 
-    /** Insights */
+    /** Advisor */
     Exception::INSIGHT_NOT_FOUND => [
         'name' => Exception::INSIGHT_NOT_FOUND,
         'description' => 'Insight with the requested ID could not be found.',

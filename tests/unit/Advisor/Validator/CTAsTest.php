@@ -1,8 +1,8 @@
 <?php
 
-namespace Tests\Unit\Insights\Validator;
+namespace Tests\Unit\Advisor\Validator;
 
-use Appwrite\Insights\Validator\CTAs;
+use Appwrite\Advisor\Validator\CTAs;
 use PHPUnit\Framework\TestCase;
 
 class CTAsTest extends TestCase

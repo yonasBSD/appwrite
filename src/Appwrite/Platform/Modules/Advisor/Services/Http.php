@@ -1,12 +1,12 @@
 <?php
 
-namespace Appwrite\Platform\Modules\Insights\Services;
+namespace Appwrite\Platform\Modules\Advisor\Services;
 
-use Appwrite\Platform\Modules\Insights\Http\Insights\Get as GetInsight;
-use Appwrite\Platform\Modules\Insights\Http\Insights\XList as ListInsights;
-use Appwrite\Platform\Modules\Insights\Http\Reports\Delete as DeleteReport;
-use Appwrite\Platform\Modules\Insights\Http\Reports\Get as GetReport;
-use Appwrite\Platform\Modules\Insights\Http\Reports\XList as ListReports;
+use Appwrite\Platform\Modules\Advisor\Http\Insights\Get as GetInsight;
+use Appwrite\Platform\Modules\Advisor\Http\Insights\XList as ListInsights;
+use Appwrite\Platform\Modules\Advisor\Http\Reports\Delete as DeleteReport;
+use Appwrite\Platform\Modules\Advisor\Http\Reports\Get as GetReport;
+use Appwrite\Platform\Modules\Advisor\Http\Reports\XList as ListReports;
 use Utopia\Platform\Service;
 
 class Http extends Service

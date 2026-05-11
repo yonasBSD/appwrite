@@ -3,13 +3,13 @@
 namespace Appwrite\Platform;
 
 use Appwrite\Platform\Modules\Account;
+use Appwrite\Platform\Modules\Advisor;
 use Appwrite\Platform\Modules\Avatars;
 use Appwrite\Platform\Modules\Console;
 use Appwrite\Platform\Modules\Core;
 use Appwrite\Platform\Modules\Databases;
 use Appwrite\Platform\Modules\Functions;
 use Appwrite\Platform\Modules\Health;
-use Appwrite\Platform\Modules\Insights;
 use Appwrite\Platform\Modules\Migrations;
 use Appwrite\Platform\Modules\Project;
 use Appwrite\Platform\Modules\Projects;
@@ -43,6 +43,6 @@ class Appwrite extends Platform
         $this->addModule(new Webhooks\Module());
         $this->addModule(new Migrations\Module());
         $this->addModule(new Project\Module());
-        $this->addModule(new Insights\Module());
+        $this->addModule(new Advisor\Module());
     }
 }

@@ -406,7 +406,7 @@ class Exception extends \Exception
     public const string TOKEN_EXPIRED = 'token_expired';
     public const string TOKEN_RESOURCE_TYPE_INVALID = 'token_resource_type_invalid';
 
-    /** Insights */
+    /** Advisor */
     public const string INSIGHT_NOT_FOUND = 'insight_not_found';
     public const string INSIGHT_ALREADY_EXISTS = 'insight_already_exists';
 

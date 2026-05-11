@@ -1,6 +1,6 @@
 <?php
 
-namespace Appwrite\Platform\Modules\Insights\Enums;
+namespace Appwrite\Platform\Modules\Advisor\Enums;
 
 enum InsightType: string
 {

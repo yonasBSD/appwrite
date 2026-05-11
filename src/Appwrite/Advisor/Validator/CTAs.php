@@ -1,6 +1,6 @@
 <?php
 
-namespace Appwrite\Insights\Validator;
+namespace Appwrite\Advisor\Validator;
 
 use Utopia\Validator;
 

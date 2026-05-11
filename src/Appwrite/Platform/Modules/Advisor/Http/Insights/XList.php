@@ -1,6 +1,6 @@
 <?php
 
-namespace Appwrite\Platform\Modules\Insights\Http\Insights;
+namespace Appwrite\Platform\Modules\Advisor\Http\Insights;
 
 use Appwrite\Extend\Exception;
 use Appwrite\SDK\AuthType;
@@ -34,7 +34,7 @@ class XList extends Action
             ->setHttpMethod(Action::HTTP_REQUEST_METHOD_GET)
             ->setHttpPath('/v1/reports/:reportId/insights')
             ->desc('List insights')
-            ->groups(['api', 'insights'])
+            ->groups(['api', 'advisor'])
             ->label('scope', 'insights.read')
             ->label('resourceType', RESOURCE_TYPE_INSIGHTS)
             ->label('sdk', new Method(

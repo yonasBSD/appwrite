@@ -1,12 +1,12 @@
 <?php
 
+use Appwrite\Platform\Modules\Advisor\Enums\InsightCTAMethod as AdvisorCTAMethod;
+use Appwrite\Platform\Modules\Advisor\Enums\InsightCTAService as AdvisorCTAService;
+use Appwrite\Platform\Modules\Advisor\Enums\InsightSeverity as AdvisorSeverity;
+use Appwrite\Platform\Modules\Advisor\Enums\InsightStatus as AdvisorStatus;
+use Appwrite\Platform\Modules\Advisor\Enums\InsightType as AdvisorType;
+use Appwrite\Platform\Modules\Advisor\Enums\ReportType as AdvisorReportType;
 use Appwrite\Platform\Modules\Compute\Specification;
-use Appwrite\Platform\Modules\Insights\Enums\InsightCTAMethod as AdvisorCTAMethod;
-use Appwrite\Platform\Modules\Insights\Enums\InsightCTAService as AdvisorCTAService;
-use Appwrite\Platform\Modules\Insights\Enums\InsightSeverity as AdvisorSeverity;
-use Appwrite\Platform\Modules\Insights\Enums\InsightStatus as AdvisorStatus;
-use Appwrite\Platform\Modules\Insights\Enums\InsightType as AdvisorType;
-use Appwrite\Platform\Modules\Insights\Enums\ReportType as AdvisorReportType;
 use Utopia\System\System;
 
 const APP_NAME = 'Appwrite';

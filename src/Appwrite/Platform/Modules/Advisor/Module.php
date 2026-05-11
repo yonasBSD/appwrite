@@ -1,8 +1,8 @@
 <?php
 
-namespace Appwrite\Platform\Modules\Insights;
+namespace Appwrite\Platform\Modules\Advisor;
 
-use Appwrite\Platform\Modules\Insights\Services\Http;
+use Appwrite\Platform\Modules\Advisor\Services\Http;
 use Utopia\Platform;
 
 class Module extends Platform\Module

@@ -1,6 +1,6 @@
 <?php
 
-namespace Appwrite\Platform\Modules\Insights\Http\Reports;
+namespace Appwrite\Platform\Modules\Advisor\Http\Reports;
 
 use Appwrite\Extend\Exception;
 use Appwrite\SDK\AuthType;
@@ -28,7 +28,7 @@ class Get extends Action
             ->setHttpMethod(Action::HTTP_REQUEST_METHOD_GET)
             ->setHttpPath('/v1/reports/:reportId')
             ->desc('Get report')
-            ->groups(['api', 'insights'])
+            ->groups(['api', 'advisor'])
             ->label('scope', 'reports.read')
             ->label('resourceType', RESOURCE_TYPE_REPORTS)
             ->label('sdk', new Method(

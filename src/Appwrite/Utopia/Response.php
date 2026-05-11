@@ -332,7 +332,7 @@ class Response extends SwooleResponse
     public const MODEL_HEALTH_CERTIFICATE = 'healthCertificate';
     public const MODEL_HEALTH_STATUS_LIST = 'healthStatusList';
 
-    // Insights
+    // Advisor
     public const MODEL_INSIGHT = 'insight';
     public const MODEL_INSIGHT_LIST = 'insightList';
     public const MODEL_INSIGHT_CTA = 'insightCTA';
