@@ -2102,6 +2102,8 @@ $platformCollections = [
                 '$id' => ID::custom('_key_project_target'),
                 'type' => Database::INDEX_KEY,
                 'attributes' => ['projectInternalId', 'targetType', 'target'],
+                // `projectInternalId` and `targetType` do not need explicit prefix lengths.
+                // Keep a prefix on the free-form `target` string to stay under index limits.
                 'lengths' => [null, null, 700],
                 'orders' => [],
             ],
