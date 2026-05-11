@@ -12,6 +12,7 @@ class Project extends Model
     public function __construct()
     {
         $this
+            // Basic project information
             ->addRule('$id', [
                 'type' => self::TYPE_STRING,
                 'description' => 'Project ID.',
@@ -36,203 +37,14 @@ class Project extends Model
                 'default' => '',
                 'example' => 'New Project',
             ])
-            ->addRule('description', [
-                'type' => self::TYPE_STRING,
-                'description' => 'Project description.',
-                'default' => '',
-                'example' => 'This is a new project.',
-            ])
             ->addRule('teamId', [
                 'type' => self::TYPE_STRING,
                 'description' => 'Project team ID.',
                 'default' => '',
                 'example' => '1592981250',
             ])
-            ->addRule('logo', [
-                'type' => self::TYPE_STRING,
-                'description' => 'Project logo file ID.',
-                'default' => '',
-                'example' => '5f5c451b403cb',
-            ])
-            ->addRule('url', [
-                'type' => self::TYPE_STRING,
-                'description' => 'Project website URL.',
-                'default' => '',
-                'example' => '5f5c451b403cb',
-            ])
-            ->addRule('legalName', [
-                'type' => self::TYPE_STRING,
-                'description' => 'Company legal name.',
-                'default' => '',
-                'example' => 'Company LTD.',
-            ])
-            ->addRule('legalCountry', [
-                'type' => self::TYPE_STRING,
-                'description' => 'Country code in [ISO 3166-1](http://en.wikipedia.org/wiki/ISO_3166-1) two-character format.',
-                'default' => '',
-                'example' => 'US',
-            ])
-            ->addRule('legalState', [
-                'type' => self::TYPE_STRING,
-                'description' => 'State name.',
-                'default' => '',
-                'example' => 'New York',
-            ])
-            ->addRule('legalCity', [
-                'type' => self::TYPE_STRING,
-                'description' => 'City name.',
-                'default' => '',
-                'example' => 'New York City.',
-            ])
-            ->addRule('legalAddress', [
-                'type' => self::TYPE_STRING,
-                'description' => 'Company Address.',
-                'default' => '',
-                'example' => '620 Eighth Avenue, New York, NY 10018',
-            ])
-            ->addRule('legalTaxId', [
-                'type' => self::TYPE_STRING,
-                'description' => 'Company Tax ID.',
-                'default' => '',
-                'example' => '131102020',
-            ])
-            ->addRule('authDuration', [
-                'type' => self::TYPE_INTEGER,
-                'description' => 'Session duration in seconds.',
-                'default' => TOKEN_EXPIRATION_LOGIN_LONG,
-                'example' => 60,
-            ])
-            ->addRule('authLimit', [
-                'type' => self::TYPE_INTEGER,
-                'description' => 'Max users allowed. 0 is unlimited.',
-                'default' => 0,
-                'example' => 100,
-            ])
-            ->addRule('authSessionsLimit', [
-                'type' => self::TYPE_INTEGER,
-                'description' => 'Max sessions allowed per user. 100 maximum.',
-                'default' => 10,
-                'example' => 10,
-            ])
-            ->addRule('authPasswordHistory', [
-                'type' => self::TYPE_INTEGER,
-                'description' => 'Max allowed passwords in the history list per user. Max passwords limit allowed in history is 20. Use 0 for disabling password history.',
-                'default' => 0,
-                'example' => 5,
-            ])
-            ->addRule('authPasswordDictionary', [
-                'type' => self::TYPE_BOOLEAN,
-                'description' => 'Whether or not to check user\'s password against most commonly used passwords.',
-                'default' => false,
-                'example' => true,
-            ])
-            ->addRule('authPersonalDataCheck', [
-                'type' => self::TYPE_BOOLEAN,
-                'description' => 'Whether or not to check the user password for similarity with their personal data.',
-                'default' => false,
-                'example' => true,
-            ])
-            ->addRule('authDisposableEmails', [
-                'type' => self::TYPE_BOOLEAN,
-                'description' => 'Whether or not to disallow disposable email addresses during signup and email updates.',
-                'default' => false,
-                'example' => true,
-            ])
-            ->addRule('authCanonicalEmails', [
-                'type' => self::TYPE_BOOLEAN,
-                'description' => 'Whether or not to require canonical email addresses during signup and email updates.',
-                'default' => false,
-                'example' => true,
-            ])
-            ->addRule('authFreeEmails', [
-                'type' => self::TYPE_BOOLEAN,
-                'description' => 'Whether or not to disallow free email addresses during signup and email updates.',
-                'default' => false,
-                'example' => true,
-            ])
-            ->addRule('authMockNumbers', [
-                'type' => Response::MODEL_MOCK_NUMBER,
-                'description' => 'An array of mock numbers and their corresponding verification codes (OTPs).',
-                'default' => [],
-                'array' => true,
-                'example' => [new \stdClass()],
-            ])
-            ->addRule('authSessionAlerts', [
-                'type' => self::TYPE_BOOLEAN,
-                'description' => 'Whether or not to send session alert emails to users.',
-                'default' => false,
-                'example' => true,
-            ])
-            ->addRule('authMembershipsUserName', [
-                'type' => self::TYPE_BOOLEAN,
-                'description' => 'Whether or not to show user names in the teams membership response.',
-                'default' => false,
-                'example' => true,
-            ])
-            ->addRule('authMembershipsUserEmail', [
-                'type' => self::TYPE_BOOLEAN,
-                'description' => 'Whether or not to show user emails in the teams membership response.',
-                'default' => false,
-                'example' => true,
-            ])
-            ->addRule('authMembershipsMfa', [
-                'type' => self::TYPE_BOOLEAN,
-                'description' => 'Whether or not to show user MFA status in the teams membership response.',
-                'default' => false,
-                'example' => true,
-            ])
-            ->addRule('authMembershipsUserId', [
-                'type' => self::TYPE_BOOLEAN,
-                'description' => 'Whether or not to show user IDs in the teams membership response.',
-                'default' => false,
-                'example' => true,
-            ])
-            ->addRule('authMembershipsUserPhone', [
-                'type' => self::TYPE_BOOLEAN,
-                'description' => 'Whether or not to show user phone numbers in the teams membership response.',
-                'default' => false,
-                'example' => true,
-            ])
-            ->addRule('authInvalidateSessions', [
-                'type' => self::TYPE_BOOLEAN,
-                'description' => 'Whether or not all existing sessions should be invalidated on password change',
-                'default' => false,
-                'example' => true,
-            ])
-            ->addRule('oAuthProviders', [
-                'type' => Response::MODEL_AUTH_PROVIDER,
-                'description' => 'List of Auth Providers.',
-                'default' => [],
-                'example' => [new \stdClass()],
-                'array' => true,
-            ])
-            ->addRule('platforms', [
-                'type' => [
-                    Response::MODEL_PLATFORM_WEB,
-                    Response::MODEL_PLATFORM_APPLE,
-                    Response::MODEL_PLATFORM_ANDROID,
-                    Response::MODEL_PLATFORM_WINDOWS,
-                    Response::MODEL_PLATFORM_LINUX,
-                ],
-                'description' => 'List of Platforms.',
-                'default' => [],
-                'example' => new \stdClass(),
-                'array' => true,
-            ])
-            ->addRule('webhooks', [
-                'type' => Response::MODEL_WEBHOOK,
-                'description' => 'List of Webhooks.',
-                'default' => [],
-                'example' => new \stdClass(),
-                'array' => true,
-            ])
-            ->addRule('keys', [
-                'type' => Response::MODEL_KEY,
-                'description' => 'List of API Keys.',
-                'default' => [],
-                'example' => new \stdClass(),
-                'array' => true,
-            ])
+
+            // Resource: Dev Keys
             ->addRule('devKeys', [
                 'type' => Response::MODEL_DEV_KEY,
                 'description' => 'List of dev keys.',
@@ -240,6 +52,8 @@ class Project extends Model
                 'example' => new \stdClass(),
                 'array' => true,
             ])
+
+            // Resource: SMTP
             ->addRule('smtpEnabled', [
                 'type' => self::TYPE_BOOLEAN,
                 'description' => 'Status for custom SMTP',
@@ -301,6 +115,8 @@ class Project extends Model
                 'default' => '',
                 'example' => 'tls',
             ])
+
+            // Resource: Ping
             ->addRule('pingCount', [
                 'type' => self::TYPE_INTEGER,
                 'description' => 'Number of times the ping was received for this project.',
@@ -313,6 +129,8 @@ class Project extends Model
                 'default' => '',
                 'example' => self::TYPE_DATETIME_EXAMPLE,
             ])
+
+            // Resource: Labels
             ->addRule('labels', [
                 'type' => self::TYPE_STRING,
                 'description' => 'Labels for the project.',
@@ -320,17 +138,45 @@ class Project extends Model
                 'example' => ['vip'],
                 'array' => true,
             ])
+
+            // Resource: Billing
             ->addRule('status', [
                 'type' => self::TYPE_STRING,
                 'description' => 'Project status.',
                 'default' => 'active',
                 'example' => 'active',
             ])
+
+            // Resource: Auth methods
+            ->addRule('authMethods', [
+                'type' => Response::MODEL_PROJECT_AUTH_METHOD,
+                'description' => 'List of auth methods.',
+                'default' => [],
+                'example' => new \stdClass(),
+                'array' => true,
+            ])
+
+            // Resource: Services
+            ->addRule('services', [
+                'type' => Response::MODEL_PROJECT_SERVICE,
+                'description' => 'List of services.',
+                'default' => [],
+                'example' => new \stdClass(),
+                'array' => true,
+            ])
+
+            // Resource: Protocols
+            ->addRule('protocols', [
+                'type' => Response::MODEL_PROJECT_PROTOCOL,
+                'description' => 'List of protocols.',
+                'default' => [],
+                'example' => new \stdClass(),
+                'array' => true,
+            ])
         ;
 
-        $services = Config::getParam('services', []);
+        // Resource: Auth methods
         $auth = Config::getParam('auth', []);
-
         foreach ($auth as $index => $method) {
             $name = $method['name'] ?? '';
             $key = $method['key'] ?? '';
@@ -345,6 +191,8 @@ class Project extends Model
             ;
         }
 
+        // Resource: Services
+        $services = Config::getParam('services', []);
         foreach ($services as $service) {
             if (!$service['optional']) {
                 continue;
@@ -363,8 +211,8 @@ class Project extends Model
             ;
         }
 
+        // Resource: Protocols
         $apis = Config::getParam('protocols', []);
-
         foreach ($apis as $api) {
             $name = $api['name'] ?? '';
             $key = $api['key'] ?? '';
