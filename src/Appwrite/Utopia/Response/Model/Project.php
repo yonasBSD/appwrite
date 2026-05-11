@@ -233,10 +233,6 @@ class Project extends Model
 
     private function expandServices(Document $document): void
     {
-        if (!$document->isSet('services')) {
-            return;
-        }
-
         $values = $document->getAttribute('services', []);
         $services = [];
 
@@ -256,10 +252,6 @@ class Project extends Model
 
     private function expandProtocols(Document $document): void
     {
-        if (!$document->isSet('apis')) {
-            return;
-        }
-
         $values = $document->getAttribute('apis', []);
         $protocols = [];
 
@@ -275,10 +267,6 @@ class Project extends Model
 
     private function expandAuthMethods(Document $document): void
     {
-        if (!$document->isSet('auths')) {
-            return;
-        }
-
         $values = $document->getAttribute('auths', []);
         $authMethods = [];
 

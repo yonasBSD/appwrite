@@ -14,7 +14,7 @@ class ProjectProtocol extends Model
             'type' => self::TYPE_STRING,
             'description' => 'Protocol ID.',
             'default' => '',
-            'example' => 'email-password',
+            'example' => 'graphql',
         ])
         ->addRule('enabled', [
             'type' => self::TYPE_BOOLEAN,

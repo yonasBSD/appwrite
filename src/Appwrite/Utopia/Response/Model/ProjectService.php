@@ -14,7 +14,7 @@ class ProjectService extends Model
             'type' => self::TYPE_STRING,
             'description' => 'Service ID.',
             'default' => '',
-            'example' => 'email-password',
+            'example' => 'sites',
         ])
         ->addRule('enabled', [
             'type' => self::TYPE_BOOLEAN,
