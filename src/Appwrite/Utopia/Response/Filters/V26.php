@@ -40,7 +40,7 @@ class V26 extends Filter
 
         unset($content['authMethods'], $content['services'], $content['protocols']);
 
-        $auths = $raw->getAttribute('auths', []);
+        $auths = new Document($raw->getAttribute('auths', []));
         $content['authLimit'] = $auths->getAttribute('limit', 0);
         $content['authDuration'] = $auths->getAttribute('duration', TOKEN_EXPIRATION_LOGIN_LONG);
         $content['authSessionsLimit'] = $auths->getAttribute('maxSessions', 0);
@@ -69,7 +69,7 @@ class V26 extends Filter
         $content['legalAddress'] = $raw->getAttribute('legalAddress', '');
         $content['legalTaxId'] = $raw->getAttribute('legalTaxId', '');
 
-        $content['oAuthProviders'] = $this->expandOAuthProviders();
+        $content['oAuthProviders'] = $this->expandOAuthProviders($raw);
         $content['platforms'] = $raw->getAttribute('platforms', []);
         $content['webhooks'] = $raw->getAttribute('webhooks', []);
         $content['keys'] = $raw->getAttribute('keys', []);
@@ -119,10 +119,10 @@ class V26 extends Filter
         }
     }
 
-    private function expandOAuthProviders(): array
+    private function expandOAuthProviders(Document $raw): array
     {
         $providers = Config::getParam('oAuthProviders', []);
-        $providerValues = $this->rawContent['oAuthProviders'] ?? [];
+        $providerValues = $raw->getAttribute('oAuthProviders', []);
         $projectProviders = [];
 
         foreach ($providers as $key => $provider) {
