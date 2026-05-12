@@ -636,8 +636,10 @@ Http::init()
         $storageCacheOperationsCounter = $telemetry->createCounter('storage.cache.operations.load');
         if ($useCache) {
             $route = $utopia->match($request);
+            $roles = $authorization->getRoles();
+            $isAppUser = $user->isApp($roles);
             $isImageTransformation = $route->getPath() === '/v1/storage/buckets/:bucketId/files/:fileId/preview';
-            $isDisabled = isset($plan['imageTransformations']) && $plan['imageTransformations'] === -1 && ! $user->isPrivileged($authorization->getRoles());
+            $isDisabled = isset($plan['imageTransformations']) && $plan['imageTransformations'] === -1 && ! $user->isPrivileged($roles);
 
             $key = $request->cacheIdentifier();
             Span::add('storage.cache.key', $key);
@@ -658,7 +660,7 @@ Http::init()
                     $bucket = $authorization->skip(fn () => $dbForProject->getDocument('buckets', $bucketId));
 
                     $isToken = ! $resourceToken->isEmpty() && $resourceToken->getAttribute('bucketInternalId') === $bucket->getSequence();
-                    $isPrivilegedUser = $user->isPrivileged($authorization->getRoles());
+                    $isPrivilegedUser = $user->isPrivileged($roles);
 
                     if ($bucket->isEmpty() || (! $bucket->getAttribute('enabled') && ! $isAppUser && ! $isPrivilegedUser)) {
                         throw new Exception(Exception::STORAGE_BUCKET_NOT_FOUND);
