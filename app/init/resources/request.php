@@ -9,8 +9,6 @@ use Appwrite\Event\Database as EventDatabase;
 use Appwrite\Event\Delete;
 use Appwrite\Event\Event;
 use Appwrite\Event\Func;
-use Appwrite\Event\Mail;
-use Appwrite\Event\Messaging;
 use Appwrite\Event\Realtime;
 use Appwrite\Event\Webhook;
 use Appwrite\Extend\Exception;
@@ -116,12 +114,6 @@ return function (Container $container): void {
     });
 
     // Per-request queue resources (stateful, accumulate event data during request)
-    $container->set('queueForMessaging', function (Publisher $publisher) {
-        return new Messaging($publisher);
-    }, ['publisher']);
-    $container->set('queueForMails', function (Publisher $publisher) {
-        return new Mail($publisher);
-    }, ['publisher']);
     $container->set('queueForDatabase', function (Publisher $publisher) {
         return new EventDatabase($publisher);
     }, ['publisher']);
