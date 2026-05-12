@@ -2318,9 +2318,10 @@ $platformCollections = [
             ],
             [
                 // Virtual attribute — CTAs live in the `insightCTAs` collection
-                // back-referenced by `insightInternalId`. The subQuery filter
-                // joins them in at read time, so consumers still see them
-                // embedded on the insight response.
+                // back-referenced by `insightInternalId`. The parent report's
+                // `subQueryReportInsights` filter batch-fetches CTAs across all
+                // its insights in one query; single-insight reads stitch them in
+                // at the action layer to avoid a per-document N+1.
                 '$id' => ID::custom('ctas'),
                 'type' => Database::VAR_TEXT,
                 'format' => '',
@@ -2329,7 +2330,7 @@ $platformCollections = [
                 'required' => false,
                 'default' => null,
                 'array' => false,
-                'filters' => ['subQueryInsightCTAs'],
+                'filters' => [],
             ],
             [
                 '$id' => ID::custom('analyzedAt'),

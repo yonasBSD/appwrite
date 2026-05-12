@@ -9,6 +9,7 @@ use Appwrite\SDK\Response as SDKResponse;
 use Appwrite\Utopia\Response;
 use Utopia\Database\Database;
 use Utopia\Database\Document;
+use Utopia\Database\Query;
 use Utopia\Database\Validator\UID;
 use Utopia\Platform\Action;
 use Utopia\Platform\Scope\HTTP;
@@ -78,6 +79,13 @@ class Get extends Action
         ) {
             throw new Exception(Exception::INSIGHT_NOT_FOUND);
         }
+
+        $ctas = $dbForPlatform->find('insightCTAs', [
+            Query::equal('projectInternalId', [$project->getSequence()]),
+            Query::equal('insightInternalId', [$insight->getSequence()]),
+            Query::limit(APP_LIMIT_SUBQUERY),
+        ]);
+        $insight->setAttribute('ctas', $ctas);
 
         $response->dynamic($insight, Response::MODEL_INSIGHT);
     }

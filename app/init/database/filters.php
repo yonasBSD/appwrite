@@ -497,11 +497,39 @@ Database::addFilter(
         return;
     },
     function (mixed $value, Document $document, Database $database) {
-        return $database->getAuthorization()->skip(fn () => $database
-            ->find('insights', [
-                Query::equal('projectInternalId', [$document->getAttribute('projectInternalId')]),
+        return $database->getAuthorization()->skip(function () use ($document, $database) {
+            $projectInternalId = $document->getAttribute('projectInternalId');
+
+            $insights = $database->find('insights', [
+                Query::equal('projectInternalId', [$projectInternalId]),
                 Query::equal('reportInternalId', [$document->getSequence()]),
                 Query::limit(APP_LIMIT_SUBQUERY),
-            ]));
+            ]);
+
+            if (empty($insights)) {
+                return $insights;
+            }
+
+            // Batch-fetch every CTA for the loaded insights in a single query, then
+            // stitch by insightInternalId so we avoid one CTA round-trip per insight.
+            $insightSequences = \array_map(fn (Document $insight) => $insight->getSequence(), $insights);
+
+            $ctas = $database->find('insightCTAs', [
+                Query::equal('projectInternalId', [$projectInternalId]),
+                Query::equal('insightInternalId', $insightSequences),
+                Query::limit(APP_LIMIT_SUBQUERY),
+            ]);
+
+            $ctasByInsight = [];
+            foreach ($ctas as $cta) {
+                $ctasByInsight[$cta->getAttribute('insightInternalId')][] = $cta;
+            }
+
+            foreach ($insights as $insight) {
+                $insight->setAttribute('ctas', $ctasByInsight[$insight->getSequence()] ?? []);
+            }
+
+            return $insights;
+        });
     }
 );
