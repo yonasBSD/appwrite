@@ -2,6 +2,7 @@
 
 namespace Appwrite\Utopia\Response\Filters;
 
+use Appwrite\Network\Platform;
 use Appwrite\Utopia\Response;
 use Appwrite\Utopia\Response\Filter;
 use Utopia\Config\Config;
@@ -70,32 +71,93 @@ class V26 extends Filter
         $content['legalTaxId'] = $raw->getAttribute('legalTaxId', '');
 
         $content['oAuthProviders'] = $this->expandOAuthProviders($raw);
-        $content['platforms'] = $raw->getAttribute('platforms', []);
+
+        $content['platforms'] = [];
+        foreach ($raw->getAttribute('platforms', []) as $platform) {
+            $content['platforms'][] = $this->parsePlatform($platform);
+        }
 
         $content['webhooks'] = [];
         foreach ($raw->getAttribute('webhooks', []) as $webhook) {
-
-            $webhook->setAttribute('tls', $webhook->getAttribute('security', true));
-            $webhook->removeAttribute('security');
-
-
-            $webhook->setAttribute('authUsername', $webhook->getAttribute('httpUser', ''));
-            $webhook->removeAttribute('httpUser');
-
-
-            $webhook->setAttribute('authPassword', $webhook->getAttribute('httpPass', ''));
-            $webhook->removeAttribute('httpPass');
-
-
-            $webhook->setAttribute('secret', $webhook->getAttribute('signatureKey', ''));
-            $webhook->removeAttribute('signatureKey');
-
-            $content['webhooks'][] = $webhook;
+            $content['webhooks'][] = $this->parseWebhook($webhook);
         }
 
-        $content['keys'] = $raw->getAttribute('keys', []);
+        $content['keys'] = [];
+        foreach ($raw->getAttribute('keys', []) as $key) {
+            $content['keys'][] = $this->parseKey($key);
+        }
 
         return $content;
+    }
+
+    private function parsePlatform(Document $platform): array
+    {
+        $type = $platform->getAttribute('type', '');
+        $key = $platform->getAttribute('key', '');
+
+        $result = [
+            '$id' => $platform->getAttribute('$id', ''),
+            '$createdAt' => $platform->getAttribute('$createdAt', ''),
+            '$updatedAt' => $platform->getAttribute('$updatedAt', ''),
+            'name' => $platform->getAttribute('name', ''),
+            'type' => $type,
+        ];
+
+        switch ($type) {
+            case Platform::TYPE_ANDROID:
+                $result['applicationId'] = $key;
+                break;
+            case Platform::TYPE_APPLE:
+                $result['bundleIdentifier'] = $key;
+                break;
+            case Platform::TYPE_LINUX:
+                $result['packageName'] = $key;
+                break;
+            case Platform::TYPE_WINDOWS:
+                $result['packageIdentifierName'] = $key;
+                break;
+            default:
+                // Web and backwards-compatibility types are mapped to web
+                $result['hostname'] = $platform->getAttribute('hostname', '');
+                $result['key'] = $key;
+                break;
+        }
+
+        return $result;
+    }
+
+    private function parseWebhook(Document $webhook): array
+    {
+        return [
+            '$id' => $webhook->getAttribute('$id', ''),
+            '$createdAt' => $webhook->getAttribute('$createdAt', ''),
+            '$updatedAt' => $webhook->getAttribute('$updatedAt', ''),
+            'name' => $webhook->getAttribute('name', ''),
+            'url' => $webhook->getAttribute('url', ''),
+            'events' => $webhook->getAttribute('events', []),
+            'tls' => $webhook->getAttribute('security', true),
+            'authUsername' => $webhook->getAttribute('httpUser', ''),
+            'authPassword' => $webhook->getAttribute('httpPass', ''),
+            'secret' => $webhook->getAttribute('signatureKey', ''),
+            'enabled' => $webhook->getAttribute('enabled', true),
+            'logs' => $webhook->getAttribute('logs', ''),
+            'attempts' => $webhook->getAttribute('attempts', 0),
+        ];
+    }
+
+    private function parseKey(Document $key): array
+    {
+        return [
+            '$id' => $key->getAttribute('$id', ''),
+            '$createdAt' => $key->getAttribute('$createdAt', ''),
+            '$updatedAt' => $key->getAttribute('$updatedAt', ''),
+            'name' => $key->getAttribute('name', ''),
+            'expire' => $key->getAttribute('expire', ''),
+            'scopes' => $key->getAttribute('scopes', []),
+            'secret' => $key->getAttribute('secret', ''),
+            'accessedAt' => $key->getAttribute('accessedAt', ''),
+            'sdks' => $key->getAttribute('sdks', []),
+        ];
     }
 
     private function expandAuthMethods(array &$content): void
