@@ -757,7 +757,7 @@ abstract class Format
                     case 'updateAuthMethod':
                         switch ($param) {
                             case 'methodId':
-                                return 'ProjetAuthMethodId';
+                                return 'ProjectAuthMethodId';
                         }
                         break;
                     case 'getPolicy':
