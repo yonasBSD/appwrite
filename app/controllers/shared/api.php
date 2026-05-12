@@ -483,6 +483,86 @@ Http::init()
     ->inject('response')
     ->inject('project')
     ->inject('user')
+    ->inject('timelimit')
+    ->inject('devKey')
+    ->inject('authorization')
+    ->action(function (Http $utopia, Request $request, Response $response, Document $project, User $user, callable $timelimit, Document $devKey, Authorization $authorization) {
+        $response->setUser($user);
+        $request->setUser($user);
+
+        if (System::getEnv('_APP_OPTIONS_ABUSE', 'enabled') === 'disabled') {
+            return;
+        }
+
+        $roles = $authorization->getRoles();
+        if ($user->isApp($roles) || $user->isPrivileged($roles) || ! $devKey->isEmpty()) {
+            return;
+        }
+
+        $route = $utopia->getRoute();
+        if ($route === null) {
+            throw new AppwriteException(AppwriteException::GENERAL_ROUTE_NOT_FOUND);
+        }
+
+        $abuseKeyLabel = $route->getLabel('abuse-key', 'url:{url},ip:{ip}');
+        $abuseKeyLabel = (! is_array($abuseKeyLabel)) ? [$abuseKeyLabel] : $abuseKeyLabel;
+        $closestLimit = null;
+
+        foreach ($abuseKeyLabel as $abuseKey) {
+            $start = $request->getContentRangeStart();
+            $end = $request->getContentRangeEnd();
+            $timeLimit = $timelimit($abuseKey, $route->getLabel('abuse-limit', 0), $route->getLabel('abuse-time', 3600));
+            $timeLimit
+                ->setParam('{projectId}', $project->getId())
+                ->setParam('{userId}', $user->getId())
+                ->setParam('{userAgent}', $request->getUserAgent(''))
+                ->setParam('{ip}', $request->getIP())
+                ->setParam('{url}', $request->getHostname() . $route->getPath())
+                ->setParam('{method}', $request->getMethod())
+                ->setParam('{chunkId}', (int) ($start / ($end + 1 - $start)));
+
+            foreach ($request->getParams() as $key => $value) {
+                if (! empty($value)) {
+                    $timeLimit->setParam('{param-' . $key . '}', (\is_array($value)) ? \json_encode($value) : $value);
+                }
+            }
+
+            $abuse = new Abuse($timeLimit);
+            $isRateLimited = false;
+
+            try {
+                $remaining = $timeLimit->remaining();
+                $limit = $timeLimit->limit();
+                $time = $timeLimit->time() + $route->getLabel('abuse-time', 3600);
+
+                if ($limit && ($remaining < $closestLimit || is_null($closestLimit))) {
+                    $closestLimit = $remaining;
+                    $response
+                        ->addHeader('X-RateLimit-Limit', $limit)
+                        ->addHeader('X-RateLimit-Remaining', $remaining)
+                        ->addHeader('X-RateLimit-Reset', $time);
+                }
+
+                $isRateLimited = $abuse->check();
+            } catch (\Throwable $th) {
+                \error_log((string) $th);
+
+                continue;
+            }
+
+            if ($isRateLimited) {
+                throw new Exception(Exception::GENERAL_RATE_LIMIT_EXCEEDED);
+            }
+        }
+    });
+
+Http::init()
+    ->groups(['api'])
+    ->inject('utopia')
+    ->inject('request')
+    ->inject('response')
+    ->inject('project')
+    ->inject('user')
     ->inject('queueForEvents')
     ->inject('auditContext')
     ->inject('queueForDeletes')
@@ -490,17 +570,15 @@ Http::init()
     ->inject('usage')
     ->inject('queueForFunctions')
     ->inject('dbForProject')
-    ->inject('timelimit')
     ->inject('resourceToken')
     ->inject('mode')
     ->inject('apiKey')
     ->inject('plan')
-    ->inject('devKey')
     ->inject('telemetry')
     ->inject('platform')
     ->inject('authorization')
     ->inject('cacheControlForStorage')
-    ->action(function (Http $utopia, Request $request, Response $response, Document $project, User $user, Event $queueForEvents, AuditContext $auditContext, Delete $queueForDeletes, EventDatabase $queueForDatabase, Context $usage, Func $queueForFunctions, Database $dbForProject, callable $timelimit, Document $resourceToken, string $mode, ?Key $apiKey, array $plan, Document $devKey, Telemetry $telemetry, array $platform, Authorization $authorization, callable $cacheControlForStorage) {
+    ->action(function (Http $utopia, Request $request, Response $response, Document $project, User $user, Event $queueForEvents, AuditContext $auditContext, Delete $queueForDeletes, EventDatabase $queueForDatabase, Context $usage, Func $queueForFunctions, Database $dbForProject, Document $resourceToken, string $mode, ?Key $apiKey, array $plan, Telemetry $telemetry, array $platform, Authorization $authorization, callable $cacheControlForStorage) {
 
         $response->setUser($user);
         $request->setUser($user);
@@ -516,83 +594,6 @@ Http::init()
             str_contains($path, '/vectorsdb') => DATABASE_TYPE_VECTORSDB,
             default => '',
         };
-
-        /*
-        * Abuse Check
-        */
-
-        $abuseKeyLabel = $route->getLabel('abuse-key', 'url:{url},ip:{ip}');
-        $timeLimitArray = [];
-
-        $abuseKeyLabel = (! is_array($abuseKeyLabel)) ? [$abuseKeyLabel] : $abuseKeyLabel;
-
-        foreach ($abuseKeyLabel as $abuseKey) {
-            $start = $request->getContentRangeStart();
-            $end = $request->getContentRangeEnd();
-            $timeLimit = $timelimit($abuseKey, $route->getLabel('abuse-limit', 0), $route->getLabel('abuse-time', 3600));
-            $timeLimit
-                ->setParam('{projectId}', $project->getId())
-                ->setParam('{userId}', $user->getId())
-                ->setParam('{userAgent}', $request->getUserAgent(''))
-                ->setParam('{ip}', $request->getIP())
-                ->setParam('{url}', $request->getHostname() . $route->getPath())
-                ->setParam('{method}', $request->getMethod())
-                ->setParam('{chunkId}', (int) ($start / ($end + 1 - $start)));
-            $timeLimitArray[] = $timeLimit;
-        }
-
-        $closestLimit = null;
-
-        $roles = $authorization->getRoles();
-        $isPrivilegedUser = $user->isPrivileged($roles);
-        $isAppUser = $user->isApp($roles);
-        $enabled = System::getEnv('_APP_OPTIONS_ABUSE', 'enabled') !== 'disabled';
-        $shouldCheckAbuse = $enabled
-            && ! $isAppUser
-            && ! $isPrivilegedUser
-            && $devKey->isEmpty();
-
-        foreach ($timeLimitArray as $timeLimit) {
-            foreach ($request->getParams() as $key => $value) { // Set request params as potential abuse keys
-                if (! empty($value)) {
-                    $timeLimit->setParam('{param-' . $key . '}', (\is_array($value)) ? \json_encode($value) : $value);
-                }
-            }
-
-            $abuse = new Abuse($timeLimit);
-
-            $isRateLimited = false;
-
-            try {
-                $remaining = $timeLimit->remaining();
-
-                $limit = $timeLimit->limit();
-                $time = $timeLimit->time() + $route->getLabel('abuse-time', 3600);
-
-                if ($limit && ($remaining < $closestLimit || is_null($closestLimit))) {
-                    $closestLimit = $remaining;
-                    $response
-                        ->addHeader('X-RateLimit-Limit', $limit)
-                        ->addHeader('X-RateLimit-Remaining', $remaining)
-                        ->addHeader('X-RateLimit-Reset', $time);
-                }
-
-                if ($shouldCheckAbuse) {
-                    $isRateLimited = $abuse->check();
-                }
-            } catch (\Throwable $th) {
-                \error_log((string) $th);
-
-                continue;
-            }
-
-            if (
-                $shouldCheckAbuse       // Abuse is enabled and caller is not privileged/app/dev
-                && $isRateLimited       // Route is rate-limited
-            ) {
-                throw new Exception(Exception::GENERAL_RATE_LIMIT_EXCEEDED);
-            }
-        }
 
         /**
          *  TODO: (@loks0n)
