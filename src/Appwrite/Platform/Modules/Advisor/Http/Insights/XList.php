@@ -67,7 +67,11 @@ class XList extends Action
         Document $project,
         Database $dbForPlatform
     ) {
-        $report = $dbForPlatform->getDocument('reports', $reportId);
+        // Skip the insights subquery — we're about to fetch a filtered, paginated slice ourselves.
+        $report = $dbForPlatform->skipFilters(
+            fn () => $dbForPlatform->getDocument('reports', $reportId),
+            ['subQueryReportInsights'],
+        );
 
         if ($report->isEmpty() || $report->getAttribute('projectInternalId') !== $project->getSequence()) {
             throw new Exception(Exception::REPORT_NOT_FOUND);

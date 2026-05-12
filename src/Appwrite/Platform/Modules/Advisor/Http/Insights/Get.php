@@ -59,45 +59,26 @@ class Get extends Action
         Document $project,
         Database $dbForPlatform
     ) {
-        $report = $dbForPlatform->getDocument('reports', $reportId);
+        // Skip the insights/CTA subqueries — we only need ownership metadata.
+        $report = $dbForPlatform->skipFilters(
+            fn () => $dbForPlatform->getDocument('reports', $reportId),
+            ['subQueryReportInsights'],
+        );
 
         if ($report->isEmpty() || $report->getAttribute('projectInternalId') !== $project->getSequence()) {
             throw new Exception(Exception::REPORT_NOT_FOUND);
-        }
-
-        $insight = $this->getInsightFromReport($report, $insightId, $dbForPlatform);
-
-        if ($insight === null) {
-            throw new Exception(Exception::INSIGHT_NOT_FOUND);
-        }
-
-        $response->dynamic($insight, Response::MODEL_INSIGHT);
-    }
-
-    /**
-     * Resolve a nested insight scoped to its parent report.
-     *
-     * Fast path: pull from the report's embedded subquery payload (capped at APP_LIMIT_SUBQUERY).
-     * Fall back to a direct lookup so insights past the cap remain reachable.
-     */
-    private function getInsightFromReport(Document $report, string $insightId, Database $dbForPlatform): ?Document
-    {
-        $embedded = $report->find('$id', $insightId, 'insights');
-
-        if (!empty($embedded)) {
-            return $embedded instanceof Document ? $embedded : new Document($embedded);
         }
 
         $insight = $dbForPlatform->getDocument('insights', $insightId);
 
         if (
             $insight->isEmpty()
-            || $insight->getAttribute('projectInternalId') !== $report->getAttribute('projectInternalId')
+            || $insight->getAttribute('projectInternalId') !== $project->getSequence()
             || $insight->getAttribute('reportInternalId') !== $report->getSequence()
         ) {
-            return null;
+            throw new Exception(Exception::INSIGHT_NOT_FOUND);
         }
 
-        return $insight;
+        $response->dynamic($insight, Response::MODEL_INSIGHT);
     }
 }
