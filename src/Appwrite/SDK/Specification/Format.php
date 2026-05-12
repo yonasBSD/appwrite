@@ -757,34 +757,67 @@ abstract class Format
                     case 'updateAuthMethod':
                         switch ($param) {
                             case 'methodId':
-                                return 'AuthMethod';
+                                return 'ProjetAuthMethodId';
                         }
                         break;
                     case 'getPolicy':
                         switch ($param) {
                             case 'policyId':
-                                return 'ProjectPolicy';
+                                return 'ProjectPolicyId';
                         }
                         break;
                     case 'getOAuth2Provider':
                         switch ($param) {
                             case 'providerId':
-                                return 'OAuthProvider';
+                                return 'ProjectOAuthProviderId';
                         }
                         break;
                     case 'getEmailTemplate':
                     case 'updateEmailTemplate':
                         switch ($param) {
                             case 'templateId':
-                                return 'EmailTemplateType';
+                                return 'ProjectEmailTemplateId';
                             case 'locale':
-                                return 'EmailTemplateLocale';
+                                return 'ProjectEmailTemplateLocale';
                         }
                         break;
                     case 'getUsage':
                         switch ($param) {
                             case 'period':
                                 return 'ProjectUsageRange';
+                        }
+                        break;
+                    case 'updateProtocol':
+                        switch ($param) {
+                            case 'protocolId':
+                                return 'ProjectProtocolId';
+                        }
+                        break;
+                    case 'updateService':
+                        switch ($param) {
+                            case 'serviceId':
+                                return 'ProjectServiceId';
+                        }
+                        break;
+                    case 'updateSMTP':
+                    case 'createSMTPTest':
+                        switch ($param) {
+                            case 'secure':
+                                return 'ProjectSMTPSecure';
+                        }
+                        break;
+                    case 'updateOAuth2Google':
+                        switch ($param) {
+                            case 'prompt':
+                                return 'ProjectOAuth2GooglePrompt';
+                        }
+                        break;
+                    case 'createKey':
+                    case 'createEphemeralKey':
+                    case 'updateKey':
+                        switch ($param) {
+                            case 'scopes':
+                                return 'ProjectKeyScopes';
                         }
                         break;
                 }
@@ -1024,7 +1057,7 @@ abstract class Format
         if ($enumSDKName) {
             return $enumSDKName;
         }
-        
+
         if ($param === 'type' && \str_starts_with($model, 'platform') && $model !== 'platformList') {
             return 'PlatformType';
         }
