@@ -34,6 +34,7 @@ use Utopia\Auth\Proofs\Token;
 use Utopia\Auth\Store;
 use Utopia\Cache\Cache;
 use Utopia\Config\Config;
+use Utopia\Console;
 use Utopia\Database\Adapter\Pool as DatabasePool;
 use Utopia\Database\Database;
 use Utopia\Database\DateTime as DatabaseDateTime;
@@ -48,6 +49,7 @@ use Utopia\Locale\Locale;
 use Utopia\Logger\Log;
 use Utopia\Pools\Group;
 use Utopia\Queue\Publisher;
+use Utopia\Registry\Registry;
 use Utopia\Storage\Device;
 use Utopia\System\System;
 use Utopia\Telemetry\Adapter as Telemetry;
@@ -69,6 +71,49 @@ return function (Container $container): void {
     $container->set('logger', function ($register) {
         return $register->get('logger');
     }, ['register']);
+
+    $container->set('logError', function (Registry $register, Request $request, Document $project, Authorization $authorization) {
+        return function (Throwable $error, string $namespace, string $action, ?array $extras = null) use ($register, $request, $project, $authorization) {
+            $logger = $register->get('logger');
+
+            if (!$logger) {
+                return;
+            }
+
+            $log = new Log();
+            $log->setNamespace($namespace);
+            $log->setServer(System::getEnv('_APP_LOGGING_SERVICE_IDENTIFIER', \gethostname()));
+            $log->setVersion(System::getEnv('_APP_VERSION', 'UNKNOWN'));
+            $log->setType(Log::TYPE_ERROR);
+            $log->setMessage($error->getMessage());
+            $log->setAction($action);
+
+            $log->addTag('code', $error->getCode());
+            $log->addTag('verboseType', \get_class($error));
+            $log->addTag('projectId', $project->getId());
+            $log->addTag('method', $request->getMethod());
+            $log->addTag('url', $request->getURI());
+
+            $log->addExtra('file', $error->getFile());
+            $log->addExtra('line', $error->getLine());
+            $log->addExtra('trace', $error->getTraceAsString());
+            $log->addExtra('roles', $authorization->getRoles());
+
+            foreach (($extras ?? []) as $key => $value) {
+                $log->addExtra($key, $value);
+            }
+
+            $isProduction = System::getEnv('_APP_ENV', 'development') === 'production';
+            $log->setEnvironment($isProduction ? Log::ENVIRONMENT_PRODUCTION : Log::ENVIRONMENT_STAGING);
+
+            try {
+                $responseCode = $logger->addLog($log);
+                Console::info('Error log pushed with status code: ' . $responseCode);
+            } catch (Throwable $th) {
+                Console::error('Error pushing log: ' . $th->getMessage());
+            }
+        };
+    }, ['register', 'request', 'project', 'authorization']);
 
     $container->set('authorization', function () {
         return new Authorization();
