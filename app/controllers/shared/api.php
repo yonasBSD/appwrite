@@ -546,6 +546,11 @@ Http::init()
         $roles = $authorization->getRoles();
         $isPrivilegedUser = $user->isPrivileged($roles);
         $isAppUser = $user->isApp($roles);
+        $enabled = System::getEnv('_APP_OPTIONS_ABUSE', 'enabled') !== 'disabled';
+        $shouldCheckAbuse = $enabled
+            && ! $isAppUser
+            && ! $isPrivilegedUser
+            && $devKey->isEmpty();
 
         foreach ($timeLimitArray as $timeLimit) {
             foreach ($request->getParams() as $key => $value) { // Set request params as potential abuse keys
@@ -556,11 +561,6 @@ Http::init()
 
             $abuse = new Abuse($timeLimit);
 
-            $enabled = System::getEnv('_APP_OPTIONS_ABUSE', 'enabled') !== 'disabled';
-            $shouldCheckAbuse = $enabled
-                && ! $isAppUser
-                && ! $isPrivilegedUser
-                && $devKey->isEmpty();
             $isRateLimited = false;
 
             try {
@@ -585,7 +585,7 @@ Http::init()
             }
 
             if (
-                $shouldCheckAbuse       // Abuse is enabled and the user is rate-limited
+                $shouldCheckAbuse       // Abuse is enabled and caller is not privileged/app/dev
                 && $isRateLimited       // Route is rate-limited
             ) {
                 throw new Exception(Exception::GENERAL_RATE_LIMIT_EXCEEDED);
