@@ -5,6 +5,7 @@ namespace Appwrite\Utopia\Database\Validator\Queries;
 class Reports extends Base
 {
     public const ALLOWED_ATTRIBUTES = [
+        'appId',
         'type',
         'targetType',
         'target',

@@ -28,6 +28,12 @@ class Report extends Model
                 'default' => '',
                 'example' => self::TYPE_DATETIME_EXAMPLE,
             ])
+            ->addRule('appId', [
+                'type' => self::TYPE_STRING,
+                'description' => 'ID of the third-party app that submitted the report.',
+                'default' => '',
+                'example' => '5e5ea5c16897e',
+            ])
             ->addRule('type', [
                 'type' => self::TYPE_STRING,
                 'description' => 'Analyzer that produced this report. e.g. lighthouse, audit, databaseAnalyzer.',
