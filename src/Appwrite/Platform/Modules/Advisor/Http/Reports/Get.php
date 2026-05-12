@@ -92,7 +92,7 @@ class Get extends Action
             }
         }
 
-        $report->setAttribute('insights', $insights ?? []);
+        $report->setAttribute('insights', $insights);
 
         $response->dynamic($report, Response::MODEL_REPORT);
     }
