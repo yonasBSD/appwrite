@@ -5,6 +5,7 @@ namespace Appwrite\Platform\Modules\Advisor\Http\Reports;
 use Appwrite\Event\Delete as DeleteEvent;
 use Appwrite\Event\Event;
 use Appwrite\Extend\Exception;
+use Appwrite\Platform\Action;
 use Appwrite\SDK\AuthType;
 use Appwrite\SDK\ContentType;
 use Appwrite\SDK\Method;
@@ -13,7 +14,6 @@ use Appwrite\Utopia\Response;
 use Utopia\Database\Database;
 use Utopia\Database\Document;
 use Utopia\Database\Validator\UID;
-use Utopia\Platform\Action;
 use Utopia\Platform\Scope\HTTP;
 
 class Delete extends Action
@@ -71,7 +71,10 @@ class Delete extends Action
         DeleteEvent $queueForDeletes,
         Event $queueForEvents
     ): void {
-        $report = $dbForPlatform->getDocument('reports', $reportId);
+        $report = $dbForPlatform->skipFilters(
+            fn () => $dbForPlatform->getDocument('reports', $reportId),
+            ['subQueryReportInsights'],
+        );
 
         if ($report->isEmpty() || $report->getAttribute('projectInternalId') !== $project->getSequence()) {
             throw new Exception(Exception::REPORT_NOT_FOUND);

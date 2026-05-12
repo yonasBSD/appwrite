@@ -3,6 +3,7 @@
 namespace Appwrite\Platform\Modules\Advisor\Http\Reports;
 
 use Appwrite\Extend\Exception;
+use Appwrite\Platform\Action;
 use Appwrite\SDK\AuthType;
 use Appwrite\SDK\Method;
 use Appwrite\SDK\Response as SDKResponse;
@@ -14,7 +15,6 @@ use Utopia\Database\Exception\Order as OrderException;
 use Utopia\Database\Exception\Query as QueryException;
 use Utopia\Database\Query;
 use Utopia\Database\Validator\Query\Cursor;
-use Utopia\Platform\Action;
 use Utopia\Platform\Scope\HTTP;
 use Utopia\Validator\Boolean;
 
@@ -82,7 +82,10 @@ class XList extends Action
             }
 
             $reportId = $cursor->getValue();
-            $cursorDocument = $dbForPlatform->getDocument('reports', $reportId);
+            $cursorDocument = $dbForPlatform->skipFilters(
+                fn () => $dbForPlatform->getDocument('reports', $reportId),
+                ['subQueryReportInsights'],
+            );
 
             if ($cursorDocument->isEmpty() || $cursorDocument->getAttribute('projectInternalId') !== $project->getSequence()) {
                 throw new Exception(Exception::GENERAL_CURSOR_NOT_FOUND, "Report '{$reportId}' for the 'cursor' value not found.");
@@ -94,10 +97,51 @@ class XList extends Action
         $filterQueries = Query::groupByType($queries)['filters'];
 
         try {
-            $reports = $dbForPlatform->find('reports', $queries);
+            $reports = $dbForPlatform->skipFilters(
+                fn () => $dbForPlatform->find('reports', $queries),
+                ['subQueryReportInsights'],
+            );
             $total = $includeTotal ? $dbForPlatform->count('reports', $filterQueries, APP_LIMIT_COUNT) : 0;
         } catch (OrderException $e) {
             throw new Exception(Exception::DATABASE_QUERY_ORDER_NULL, "The order attribute '{$e->getAttribute()}' had a null value. Cursor pagination requires all documents order attribute values are non-null.");
+        }
+
+        if (!empty($reports)) {
+            $reportSequences = \array_map(fn (Document $r) => $r->getSequence(), $reports);
+
+            $insights = $dbForPlatform->find('insights', [
+                Query::equal('projectInternalId', [$project->getSequence()]),
+                Query::equal('reportInternalId', $reportSequences),
+                Query::limit(APP_LIMIT_SUBQUERY),
+            ]);
+
+            if (!empty($insights)) {
+                $insightSequences = \array_map(fn (Document $i) => $i->getSequence(), $insights);
+
+                $ctas = $dbForPlatform->find('insightCTAs', [
+                    Query::equal('projectInternalId', [$project->getSequence()]),
+                    Query::equal('insightInternalId', $insightSequences),
+                    Query::limit(APP_LIMIT_SUBQUERY),
+                ]);
+
+                $ctasByInsight = [];
+                foreach ($ctas as $cta) {
+                    $ctasByInsight[$cta->getAttribute('insightInternalId')][] = $cta;
+                }
+
+                foreach ($insights as $insight) {
+                    $insight->setAttribute('ctas', $ctasByInsight[$insight->getSequence()] ?? []);
+                }
+            }
+
+            $insightsByReport = [];
+            foreach ($insights as $insight) {
+                $insightsByReport[$insight->getAttribute('reportInternalId')][] = $insight;
+            }
+
+            foreach ($reports as $report) {
+                $report->setAttribute('insights', $insightsByReport[$report->getSequence()] ?? []);
+            }
         }
 
         $response->dynamic(new Document([

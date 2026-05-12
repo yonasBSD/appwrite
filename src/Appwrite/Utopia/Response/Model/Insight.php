@@ -28,13 +28,6 @@ class Insight extends Model
                 'default' => '',
                 'example' => self::TYPE_DATETIME_EXAMPLE,
             ])
-            ->addRule('$permissions', [
-                'type' => self::TYPE_STRING,
-                'description' => 'Insight permissions. [Learn more about permissions](https://appwrite.io/docs/permissions).',
-                'default' => [],
-                'example' => ['read("any")'],
-                'array' => true,
-            ])
             ->addRule('reportId', [
                 'type' => self::TYPE_STRING,
                 'description' => 'Parent report ID. Insights always belong to a report.',
@@ -71,12 +64,6 @@ class Insight extends Model
                 'default' => '',
                 'example' => 'main',
             ])
-            ->addRule('resourceInternalId', [
-                'type' => self::TYPE_STRING,
-                'description' => 'Internal ID of the resource the insight is about.',
-                'default' => '',
-                'example' => '5e5ea5c16897e',
-            ])
             ->addRule('parentResourceType', [
                 'type' => self::TYPE_STRING,
                 'description' => 'Plural noun for the parent resource that contains the insight\'s resource, e.g. an insight about a column index on a table → resourceType=indexes, parentResourceType=tables. Empty when the resource has no parent.',
@@ -88,12 +75,6 @@ class Insight extends Model
                 'description' => 'ID of the parent resource. Empty when the resource has no parent.',
                 'default' => '',
                 'example' => 'orders',
-            ])
-            ->addRule('parentResourceInternalId', [
-                'type' => self::TYPE_STRING,
-                'description' => 'Internal ID of the parent resource. Empty when the resource has no parent.',
-                'default' => '',
-                'example' => '5e5ea5c16897e',
             ])
             ->addRule('title', [
                 'type' => self::TYPE_STRING,

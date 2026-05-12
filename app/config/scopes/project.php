@@ -365,18 +365,18 @@ return [
     // Advisor
     'insights.read' => [
         'description' => 'Access to read insights under Advisor service.',
-        'category' => 'Other',
+        'category' => 'Advisor',
     ],
     'insights.write' => [
         'description' => 'Reserved for Advisor insight ingestion outside CE.',
-        'category' => 'Other',
+        'category' => 'Advisor',
     ],
     'reports.read' => [
         'description' => 'Access to read reports under Advisor service.',
-        'category' => 'Other',
+        'category' => 'Advisor',
     ],
     'reports.write' => [
         'description' => 'Access to delete reports under Advisor service.',
-        'category' => 'Other',
+        'category' => 'Advisor',
     ],
 ];

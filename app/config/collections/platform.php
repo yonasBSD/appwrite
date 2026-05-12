@@ -2007,7 +2007,6 @@ $platformCollections = [
                 'filters' => [],
             ],
             [
-                // Analyzer that produced the report. Possible values: lighthouse, audit, databaseAnalyzer
                 '$id' => ID::custom('type'),
                 'type' => Database::VAR_STRING,
                 'format' => '',
@@ -2189,7 +2188,6 @@ $platformCollections = [
                 'filters' => [],
             ],
             [
-                // Possible values: databaseIndex, databasePerformance, sitePerformance, siteAccessibility, siteSeo, functionPerformance
                 '$id' => ID::custom('type'),
                 'type' => Database::VAR_STRING,
                 'format' => '',
@@ -2201,7 +2199,6 @@ $platformCollections = [
                 'filters' => [],
             ],
             [
-                // Possible values: info, warning, critical
                 '$id' => ID::custom('severity'),
                 'type' => Database::VAR_STRING,
                 'format' => '',
@@ -2213,7 +2210,6 @@ $platformCollections = [
                 'filters' => [],
             ],
             [
-                // Possible values: active, dismissed
                 '$id' => ID::custom('status'),
                 'type' => Database::VAR_STRING,
                 'format' => '',
@@ -2225,7 +2221,6 @@ $platformCollections = [
                 'filters' => [],
             ],
             [
-                // Possible values: databases, collections, sites, functions
                 '$id' => ID::custom('resourceType'),
                 'type' => Database::VAR_STRING,
                 'format' => '',
@@ -2417,11 +2412,11 @@ $platformCollections = [
                 'orders' => [],
             ],
             [
-                '$id' => ID::custom('_key_dismissedAt'),
+                '$id' => ID::custom('_key_project_dismissedAt'),
                 'type' => Database::INDEX_KEY,
-                'attributes' => ['dismissedAt'],
+                'attributes' => ['projectInternalId', 'dismissedAt'],
                 'lengths' => [],
-                'orders' => [Database::ORDER_DESC],
+                'orders' => [Database::ORDER_ASC, Database::ORDER_DESC],
             ],
         ],
     ],

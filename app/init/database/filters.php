@@ -477,21 +477,6 @@ Database::addFilter(
 );
 
 Database::addFilter(
-    'subQueryInsightCTAs',
-    function (mixed $value) {
-        return;
-    },
-    function (mixed $value, Document $document, Database $database) {
-        return $database->getAuthorization()->skip(fn () => $database
-            ->find('insightCTAs', [
-                Query::equal('projectInternalId', [$document->getAttribute('projectInternalId')]),
-                Query::equal('insightInternalId', [$document->getSequence()]),
-                Query::limit(APP_LIMIT_SUBQUERY),
-            ]));
-    }
-);
-
-Database::addFilter(
     'subQueryReportInsights',
     function (mixed $value) {
         return;

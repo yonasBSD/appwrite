@@ -229,15 +229,25 @@ class Deletes extends Action
         $projectInternalId = $project->getSequence();
         $reportInternalId = $report->getSequence();
 
+        $insights = $dbForPlatform->find('insights', [
+            Query::equal('projectInternalId', [$projectInternalId]),
+            Query::equal('reportInternalId', [$reportInternalId]),
+            Query::limit(APP_LIMIT_SUBQUERY),
+        ]);
+
+        if (!empty($insights)) {
+            $insightSequences = \array_map(fn (Document $i) => $i->getSequence(), $insights);
+
+            $this->deleteByGroup('insightCTAs', [
+                Query::equal('projectInternalId', [$projectInternalId]),
+                Query::equal('insightInternalId', $insightSequences),
+            ], $dbForPlatform);
+        }
+
         $this->deleteByGroup('insights', [
             Query::equal('projectInternalId', [$projectInternalId]),
             Query::equal('reportInternalId', [$reportInternalId]),
-        ], $dbForPlatform, function (Document $insight) use ($dbForPlatform, $projectInternalId) {
-            $this->deleteByGroup('insightCTAs', [
-                Query::equal('projectInternalId', [$projectInternalId]),
-                Query::equal('insightInternalId', [$insight->getSequence()]),
-            ], $dbForPlatform);
-        });
+        ], $dbForPlatform);
     }
 
     private function cleanDatabase(
@@ -733,6 +743,36 @@ class Deletes extends Action
             ], $dbForPlatform);
         } catch (Throwable $th) {
             Console::error('Failed to delete schedules: ' . $th->getMessage());
+        }
+
+        // Delete Advisor CTAs
+        try {
+            $this->deleteByGroup('insightCTAs', [
+                Query::equal('projectInternalId', [$projectInternalId]),
+                Query::orderAsc()
+            ], $dbForPlatform);
+        } catch (Throwable $th) {
+            Console::error('Failed to delete insight CTAs: ' . $th->getMessage());
+        }
+
+        // Delete Advisor insights
+        try {
+            $this->deleteByGroup('insights', [
+                Query::equal('projectInternalId', [$projectInternalId]),
+                Query::orderAsc()
+            ], $dbForPlatform);
+        } catch (Throwable $th) {
+            Console::error('Failed to delete insights: ' . $th->getMessage());
+        }
+
+        // Delete Advisor reports
+        try {
+            $this->deleteByGroup('reports', [
+                Query::equal('projectInternalId', [$projectInternalId]),
+                Query::orderAsc()
+            ], $dbForPlatform);
+        } catch (Throwable $th) {
+            Console::error('Failed to delete reports: ' . $th->getMessage());
         }
 
         /**
