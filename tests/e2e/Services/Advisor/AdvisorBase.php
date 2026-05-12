@@ -70,7 +70,7 @@ trait AdvisorBase
         $this->assertSame('report_not_found', $missing['body']['type']);
     }
 
-    public function testReportsAreReadOnly(): void
+    public function testReportsCreateAndUpdateNotExposed(): void
     {
         $create = $this->client->call(Client::METHOD_POST, '/reports', $this->serverHeaders(), [
             'reportId' => ID::unique(),
@@ -85,20 +85,24 @@ trait AdvisorBase
             'title' => 'Read-only check',
         ]);
         $this->assertSame(404, $update['headers']['status-code']);
-
-        $delete = $this->client->call(Client::METHOD_DELETE, '/reports/' . ID::unique(), $this->serverHeaders());
-        $this->assertSame(404, $delete['headers']['status-code']);
     }
 
-    public function testInsightsAreReadOnly(): void
+    public function testDeleteReportMissing(): void
     {
-        $createManager = $this->client->call(
+        $delete = $this->client->call(Client::METHOD_DELETE, '/reports/' . ID::unique(), $this->serverHeaders());
+        $this->assertSame(404, $delete['headers']['status-code']);
+        $this->assertSame('report_not_found', $delete['body']['type']);
+    }
+
+    public function testInsightsCreateUpdateDeleteNotExposed(): void
+    {
+        $create = $this->client->call(
             Client::METHOD_POST,
-            '/manager/reports/' . ID::unique() . '/insights',
+            '/reports/' . ID::unique() . '/insights',
             $this->serverHeaders(),
             []
         );
-        $this->assertSame(404, $createManager['headers']['status-code']);
+        $this->assertSame(404, $create['headers']['status-code']);
 
         $update = $this->client->call(
             Client::METHOD_PATCH,
