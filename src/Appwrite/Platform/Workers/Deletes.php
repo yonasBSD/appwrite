@@ -229,25 +229,15 @@ class Deletes extends Action
         $projectInternalId = $project->getSequence();
         $reportInternalId = $report->getSequence();
 
-        $insights = $dbForPlatform->find('insights', [
-            Query::equal('projectInternalId', [$projectInternalId]),
-            Query::equal('reportInternalId', [$reportInternalId]),
-            Query::limit(APP_LIMIT_SUBQUERY),
-        ]);
-
-        if (!empty($insights)) {
-            $insightSequences = \array_map(fn (Document $i) => $i->getSequence(), $insights);
-
-            $this->deleteByGroup('insightCTAs', [
-                Query::equal('projectInternalId', [$projectInternalId]),
-                Query::equal('insightInternalId', $insightSequences),
-            ], $dbForPlatform);
-        }
-
         $this->deleteByGroup('insights', [
             Query::equal('projectInternalId', [$projectInternalId]),
             Query::equal('reportInternalId', [$reportInternalId]),
-        ], $dbForPlatform);
+        ], $dbForPlatform, function (Document $insight) use ($dbForPlatform, $projectInternalId) {
+            $this->deleteByGroup('insightCTAs', [
+                Query::equal('projectInternalId', [$projectInternalId]),
+                Query::equal('insightInternalId', [$insight->getSequence()]),
+            ], $dbForPlatform);
+        });
     }
 
     private function cleanDatabase(

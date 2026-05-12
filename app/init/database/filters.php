@@ -502,7 +502,7 @@ Database::addFilter(
             $ctas = $database->find('insightCTAs', [
                 Query::equal('projectInternalId', [$projectInternalId]),
                 Query::equal('insightInternalId', $insightSequences),
-                Query::limit(APP_LIMIT_SUBQUERY),
+                Query::limit(\count($insightSequences) * \Appwrite\Advisor\Validator\CTAs::MAX_COUNT_DEFAULT),
             ]);
 
             $ctasByInsight = [];

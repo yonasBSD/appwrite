@@ -121,7 +121,7 @@ class XList extends Action
                 $ctas = $dbForPlatform->find('insightCTAs', [
                     Query::equal('projectInternalId', [$project->getSequence()]),
                     Query::equal('insightInternalId', $insightSequences),
-                    Query::limit(APP_LIMIT_SUBQUERY),
+                    Query::limit(\count($insightSequences) * \Appwrite\Advisor\Validator\CTAs::MAX_COUNT_DEFAULT),
                 ]);
 
                 $ctasByInsight = [];

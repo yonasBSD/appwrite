@@ -169,6 +169,50 @@ class CTAsTest extends TestCase
         ]]));
     }
 
+    public function testRejectsUnknownService(): void
+    {
+        $validator = new CTAs();
+
+        $this->assertFalse($validator->isValid([[
+            'label' => 'Create missing index',
+            'service' => 'nonExistentService',
+            'method' => 'createIndex',
+        ]]));
+        $this->assertStringContainsString('service', $validator->getDescription());
+    }
+
+    public function testRejectsUnknownMethod(): void
+    {
+        $validator = new CTAs();
+
+        $this->assertFalse($validator->isValid([[
+            'label' => 'Create missing index',
+            'service' => 'tablesDB',
+            'method' => 'nonExistentMethod',
+        ]]));
+        $this->assertStringContainsString('method', $validator->getDescription());
+    }
+
+    public function testAcceptsCustomAllowedLists(): void
+    {
+        $validator = new CTAs(
+            allowedServices: ['custom'],
+            allowedMethods: ['doThing'],
+        );
+
+        $this->assertTrue($validator->isValid([[
+            'label' => 'Custom action',
+            'service' => 'custom',
+            'method' => 'doThing',
+        ]]));
+
+        $this->assertFalse($validator->isValid([[
+            'label' => 'Custom action',
+            'service' => 'tablesDB',
+            'method' => 'doThing',
+        ]]));
+    }
+
     public function testDefaultMaxCountIsSixteen(): void
     {
         $validator = new CTAs();
