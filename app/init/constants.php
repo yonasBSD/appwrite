@@ -1,11 +1,11 @@
 <?php
 
-use Appwrite\Platform\Modules\Advisor\Enums\InsightCTAMethod as AdvisorCTAMethod;
-use Appwrite\Platform\Modules\Advisor\Enums\InsightCTAService as AdvisorCTAService;
-use Appwrite\Platform\Modules\Advisor\Enums\InsightSeverity as AdvisorSeverity;
-use Appwrite\Platform\Modules\Advisor\Enums\InsightStatus as AdvisorStatus;
-use Appwrite\Platform\Modules\Advisor\Enums\InsightType as AdvisorType;
-use Appwrite\Platform\Modules\Advisor\Enums\ReportType as AdvisorReportType;
+use Appwrite\Platform\Modules\Advisor\Enums\InsightCTAMethod;
+use Appwrite\Platform\Modules\Advisor\Enums\InsightCTAService;
+use Appwrite\Platform\Modules\Advisor\Enums\InsightSeverity;
+use Appwrite\Platform\Modules\Advisor\Enums\InsightStatus;
+use Appwrite\Platform\Modules\Advisor\Enums\InsightType;
+use Appwrite\Platform\Modules\Advisor\Enums\ReportType;
 use Appwrite\Platform\Modules\Compute\Specification;
 use Utopia\System\System;
 
@@ -436,49 +436,49 @@ const RESOURCE_TYPE_REPORTS = 'reports';
 
 // Insight types — engine-specific so the CTA action can reference the right public API.
 const ADVISOR_INSIGHT_TYPES = [
-    AdvisorType::DATABASE_INDEX->value, // legacy databases.createIndex
-    AdvisorType::TABLES_DB_INDEX->value, // tablesDB.createIndex
-    AdvisorType::DOCUMENTS_DB_INDEX->value, // documentsDB.createIndex
-    AdvisorType::VECTORS_DB_INDEX->value, // vectorsDB.createIndex
-    AdvisorType::DATABASE_PERFORMANCE->value,
-    AdvisorType::SITE_PERFORMANCE->value,
-    AdvisorType::SITE_ACCESSIBILITY->value,
-    AdvisorType::SITE_SEO->value,
-    AdvisorType::FUNCTION_PERFORMANCE->value,
+    InsightType::DATABASE_INDEX->value, // legacy databases.createIndex
+    InsightType::TABLES_DB_INDEX->value, // tablesDB.createIndex
+    InsightType::DOCUMENTS_DB_INDEX->value, // documentsDB.createIndex
+    InsightType::VECTORS_DB_INDEX->value, // vectorsDB.createIndex
+    InsightType::DATABASE_PERFORMANCE->value,
+    InsightType::SITE_PERFORMANCE->value,
+    InsightType::SITE_ACCESSIBILITY->value,
+    InsightType::SITE_SEO->value,
+    InsightType::FUNCTION_PERFORMANCE->value,
 ];
 
 // Public API services (SDK namespaces) that an insight CTA's `service` can reference.
 // Analyzers must pick the one matching the engine the resource lives in.
 const ADVISOR_CTA_SERVICES = [
-    AdvisorCTAService::DATABASES->value, // legacy
-    AdvisorCTAService::TABLES_DB->value,
-    AdvisorCTAService::DOCUMENTS_DB->value,
-    AdvisorCTAService::VECTORS_DB->value,
+    InsightCTAService::DATABASES->value, // legacy
+    InsightCTAService::TABLES_DB->value,
+    InsightCTAService::DOCUMENTS_DB->value,
+    InsightCTAService::VECTORS_DB->value,
 ];
 
 // Public API method names that an insight CTA's `method` can reference for index suggestions.
 const ADVISOR_CTA_METHODS = [
-    AdvisorCTAMethod::CREATE_INDEX->value,
+    InsightCTAMethod::CREATE_INDEX->value,
 ];
 
 // Insight severities
 const ADVISOR_SEVERITIES = [
-    AdvisorSeverity::INFO->value,
-    AdvisorSeverity::WARNING->value,
-    AdvisorSeverity::CRITICAL->value,
+    InsightSeverity::INFO->value,
+    InsightSeverity::WARNING->value,
+    InsightSeverity::CRITICAL->value,
 ];
 
 // Insight statuses
 const ADVISOR_STATUSES = [
-    AdvisorStatus::ACTIVE->value,
-    AdvisorStatus::DISMISSED->value,
+    InsightStatus::ACTIVE->value,
+    InsightStatus::DISMISSED->value,
 ];
 
 // Report types
 const ADVISOR_REPORT_TYPES = [
-    AdvisorReportType::LIGHTHOUSE->value,
-    AdvisorReportType::AUDIT->value,
-    AdvisorReportType::DATABASE_ANALYZER->value,
+    ReportType::LIGHTHOUSE->value,
+    ReportType::AUDIT->value,
+    ReportType::DATABASE_ANALYZER->value,
 ];
 
 // Resource types for Tokens
