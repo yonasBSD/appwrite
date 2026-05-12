@@ -63,4 +63,33 @@ class FormatTest extends TestCase
         $this->assertSame('HealthCheckStatus', $this->format->getResponseEnumName('healthStatus', 'status'));
         $this->assertNull($this->format->getResponseEnumName('key', 'name'));
     }
+
+    public function testPlatformListIdUsesSharedPlatformTypeEnum(): void
+    {
+        $this->assertSame('PlatformType', $this->format->getResponseEnumName('platformList', '$id'));
+        $this->assertNull($this->format->getResponseEnumName('platformList', 'name'));
+        $this->assertNull($this->format->getResponseEnumName('other', '$id'));
+    }
+
+    public function testEnumSDKNameOverrideTakesPrecedence(): void
+    {
+        $this->assertSame('AuthMethodId', $this->format->getResponseEnumName('projectAuthMethod', 'method', 'AuthMethodId'));
+
+        // Override wins even on models that have their own mapping.
+        $this->assertSame('CustomName', $this->format->getResponseEnumName('platformAndroid', 'type', 'CustomName'));
+        $this->assertSame('CustomName', $this->format->getResponseEnumName('healthStatus', 'status', 'CustomName'));
+
+        // Override produces an enum name for params that otherwise wouldn't get one.
+        $this->assertSame('AuthMethodId', $this->format->getResponseEnumName('key', 'name', 'AuthMethodId'));
+    }
+
+    public function testEnumSDKNameEmptyOrNullFallsThroughToDefaults(): void
+    {
+        $this->assertNull($this->format->getResponseEnumName('key', 'name', null));
+        $this->assertNull($this->format->getResponseEnumName('key', 'name', ''));
+
+        // Falsy override should not block the existing platform mapping.
+        $this->assertSame('PlatformType', $this->format->getResponseEnumName('platformWeb', 'type', null));
+        $this->assertSame('PlatformType', $this->format->getResponseEnumName('platformWeb', 'type', ''));
+    }
 }

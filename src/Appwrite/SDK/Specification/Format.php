@@ -1019,8 +1019,12 @@ abstract class Format
         return self::REQUEST_PARAMETER_OVERRIDES;
     }
 
-    public function getResponseEnumName(string $model, string $param): ?string
+    public function getResponseEnumName(string $model, string $param, ?string $enumSDKName = null): ?string
     {
+        if ($enumSDKName) {
+            return $enumSDKName;
+        }
+        
         if ($param === 'type' && \str_starts_with($model, 'platform') && $model !== 'platformList') {
             return 'PlatformType';
         }
