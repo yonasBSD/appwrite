@@ -2380,14 +2380,14 @@ $platformCollections = [
                 '$id' => ID::custom('_key_project_resource'),
                 'type' => Database::INDEX_KEY,
                 'attributes' => ['projectInternalId', 'resourceType', 'resourceId', '$sequence'],
-                'lengths' => [null, null, 700, null],
+                'lengths' => [],
                 'orders' => [],
             ],
             [
                 '$id' => ID::custom('_key_project_parent_resource'),
                 'type' => Database::INDEX_KEY,
                 'attributes' => ['projectInternalId', 'parentResourceType', 'parentResourceId', '$sequence'],
-                'lengths' => [null, null, 700, null],
+                'lengths' => [],
                 'orders' => [],
             ],
             [
