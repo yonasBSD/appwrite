@@ -490,14 +490,11 @@ Http::init()
         $response->setUser($user);
         $request->setUser($user);
 
-        if (System::getEnv('_APP_OPTIONS_ABUSE', 'enabled') === 'disabled') {
-            return;
-        }
-
         $roles = $authorization->getRoles();
-        if ($user->isApp($roles) || $user->isPrivileged($roles) || ! $devKey->isEmpty()) {
-            return;
-        }
+        $shouldCheckAbuse = System::getEnv('_APP_OPTIONS_ABUSE', 'enabled') !== 'disabled'
+            && ! $user->isApp($roles)
+            && ! $user->isPrivileged($roles)
+            && $devKey->isEmpty();
 
         $route = $utopia->getRoute();
         if ($route === null) {
@@ -509,28 +506,28 @@ Http::init()
         $closestLimit = null;
 
         foreach ($abuseKeyLabel as $abuseKey) {
-            $start = $request->getContentRangeStart();
-            $end = $request->getContentRangeEnd();
-            $timeLimit = $timelimit($abuseKey, $route->getLabel('abuse-limit', 0), $route->getLabel('abuse-time', 3600));
-            $timeLimit
-                ->setParam('{projectId}', $project->getId())
-                ->setParam('{userId}', $user->getId())
-                ->setParam('{userAgent}', $request->getUserAgent(''))
-                ->setParam('{ip}', $request->getIP())
-                ->setParam('{url}', $request->getHostname() . $route->getPath())
-                ->setParam('{method}', $request->getMethod())
-                ->setParam('{chunkId}', (int) ($start / ($end + 1 - $start)));
-
-            foreach ($request->getParams() as $key => $value) {
-                if (! empty($value)) {
-                    $timeLimit->setParam('{param-' . $key . '}', (\is_array($value)) ? \json_encode($value) : $value);
-                }
-            }
-
-            $abuse = new Abuse($timeLimit);
             $isRateLimited = false;
 
             try {
+                $start = $request->getContentRangeStart();
+                $end = $request->getContentRangeEnd();
+                $timeLimit = $timelimit($abuseKey, $route->getLabel('abuse-limit', 0), $route->getLabel('abuse-time', 3600));
+                $timeLimit
+                    ->setParam('{projectId}', $project->getId())
+                    ->setParam('{userId}', $user->getId())
+                    ->setParam('{userAgent}', $request->getUserAgent(''))
+                    ->setParam('{ip}', $request->getIP())
+                    ->setParam('{url}', $request->getHostname() . $route->getPath())
+                    ->setParam('{method}', $request->getMethod())
+                    ->setParam('{chunkId}', (int) ($start / ($end + 1 - $start)));
+
+                foreach ($request->getParams() as $key => $value) {
+                    if (! empty($value)) {
+                        $timeLimit->setParam('{param-' . $key . '}', (\is_array($value)) ? \json_encode($value) : $value);
+                    }
+                }
+
+                $abuse = new Abuse($timeLimit);
                 $remaining = $timeLimit->remaining();
                 $limit = $timeLimit->limit();
                 $time = $timeLimit->time() + $route->getLabel('abuse-time', 3600);
@@ -543,7 +540,9 @@ Http::init()
                         ->addHeader('X-RateLimit-Reset', $time);
                 }
 
-                $isRateLimited = $abuse->check();
+                if ($shouldCheckAbuse) {
+                    $isRateLimited = $abuse->check();
+                }
             } catch (\Throwable $th) {
                 \error_log((string) $th);
 
