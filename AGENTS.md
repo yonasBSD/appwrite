@@ -115,6 +115,31 @@ Common injections: `$response`, `$request`, `$dbForProject`, `$dbForPlatform`, `
 - Never hardcode credentials -- use environment variables.
 - Code changes may require container restart. No central log location -- check relevant containers.
 
+## Tracing with Utopia Span
+
+Use `Utopia\Telemetry\Span::add($key, $value)` to attach attributes to the active span. Key naming rules:
+
+- Keys are **snake_case**, with **dots** separating namespaces.
+- A dot signals a **child relationship** -- the right side is a property of the left. `project.id` is "the id of the project", `storage.bucket.id` is "the id of the bucket within storage".
+- Do **not** use a dot when no child relationship exists. Use snake_case instead. `inbound_bytes` (not `inbound.bytes`), `subscription_count` (not `subscription.count`).
+- Top-level keys must always live under a subsystem namespace -- `function.id`, not bare `functionId`; `realtime.connection.id`, not `connectionId`.
+- Never use camelCase in any segment. `projectId` -> `project.id`, `subscriptionMode` -> `subscription.mode`, `domainVerification` -> `domain_verification`.
+
+```php
+// correct
+Span::add('project.id', $project->getId());
+Span::add('function.id', $function->getId());
+Span::add('storage.file.size_bytes', $size);
+Span::add('realtime.inbound_bytes', $bytes);
+
+// incorrect
+Span::add('projectId', $project->getId());           // camelCase, no namespace
+Span::add('realtime.connectionId', $connection);     // camelCase segment
+Span::add('inbound.bytes', $bytes);                  // bytes is not a child of inbound
+```
+
+**Never** call `Span::init`, `Span::error`, or `Span::finish` (or `Span::current()->finish()`) inside HTTP actions, queue workers, bus listeners, or scheduled tasks. The span lifecycle is owned by the entry-point harness (`app/http.php`, `app/realtime.php`, the queue Server, `Bus::dispatch`). Handlers must only call `Span::add(...)` to attach attributes to the surrounding span. To export selectively (e.g. trace a specific project/function), filter in the exporter sampler in `app/init/span.php`, not by opening an inline span.
+
 ## Patch release process
 
 For bumping patch versions (e.g., `1.9.0` -> `1.9.1`), follow the checklist in `.claude/skills/patch-release-checklist/SKILL.md`. It covers the 4 files that must be updated, console image bumps, CHANGES.md updates, and common pitfalls to avoid.
