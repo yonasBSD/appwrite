@@ -942,10 +942,10 @@ $server->onOpen(function (int $connection, SwooleRequest $request) use ($server,
         Span::add('realtime.subscription_count', $subscriptionCount);
         Span::add('realtime.outbound_bytes', $outboundBytes);
         if (!empty($project?->getId())) {
-            Span::add('realtime.project.id', $project->getId());
+            Span::add('project.id', $project->getId());
         }
         if (!empty($logUser?->getId())) {
-            Span::add('realtime.user.id', $logUser->getId());
+            Span::add('user.id', $logUser->getId());
         }
         Span::current()?->finish();
     }
@@ -1358,8 +1358,8 @@ $server->onMessage(function (int $connection, string $message) use ($server, $re
         Span::add('realtime.subscriptions_removed', $subscriptionsRemoved);
         Span::add('realtime.subscribe.subscriptions_count', $subscriptionsRequested);
         Span::add('realtime.outbound_bytes', $outboundBytes);
-        Span::add('realtime.project.id', $project?->getId() ?? $projectId);
-        Span::add('realtime.user.id', $realtime->connections[$connection]['userId'] ?? null);
+        Span::add('project.id', $project?->getId() ?? $projectId);
+        Span::add('user.id', $realtime->connections[$connection]['userId'] ?? null);
         Span::add('realtime.message_type', $messageType);
         Span::current()?->finish();
     }
@@ -1411,10 +1411,10 @@ $server->onClose(function (int $connection) use ($realtime, $stats, $register) {
 
         Span::add('realtime.success', $success);
         if (!empty($projectId)) {
-            Span::add('realtime.project.id', $projectId);
+            Span::add('project.id', $projectId);
         }
         if (!empty($userId)) {
-            Span::add('realtime.user.id', $userId);
+            Span::add('user.id', $userId);
         }
         Span::add('realtime.subscriptions_before_close', $subscriptionsBeforeClose);
         Span::current()?->finish();

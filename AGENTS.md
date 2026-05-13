@@ -121,6 +121,8 @@ In handlers, only call `Span::add($key, $value)`. **Never** call `Span::init`, `
 
 Keys are `snake_case` with dots only for child relationships: `project.id` (id of project), `storage.bucket.id`. No dot otherwise: `inbound_bytes`, not `inbound.bytes`. No camelCase, no bare top-level keys (`function.id`, not `functionId`).
 
+Cross-cutting identifiers (`project.id`, `function.id`, `user.id`) live at the top level, not under a subsystem (no `realtime.project.id`). The trace sampler and downstream filters look them up by the canonical key.
+
 ## Patch release process
 
 For bumping patch versions (e.g., `1.9.0` -> `1.9.1`), follow the checklist in `.claude/skills/patch-release-checklist/SKILL.md`. It covers the 4 files that must be updated, console image bumps, CHANGES.md updates, and common pitfalls to avoid.
