@@ -9,16 +9,13 @@ class Env
      */
     protected $vars = [];
 
-    /**
-     * @var string $data
-     */
     public function __construct(string $data)
     {
         $data = explode("\n", $data);
 
         foreach ($data as &$row) {
             $row = explode('=', $row, 2);
-            $key = (isset($row[0])) ? trim($row[0]) : null;
+            $key = trim($row[0]);
             $value = (isset($row[1])) ? (function (string $v): string {
                 $v = trim($v);
                 if (

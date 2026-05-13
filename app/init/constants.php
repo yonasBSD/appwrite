@@ -1,6 +1,13 @@
 <?php
 
+use Appwrite\Platform\Modules\Advisor\Enums\InsightCTAMethod;
+use Appwrite\Platform\Modules\Advisor\Enums\InsightCTAService;
+use Appwrite\Platform\Modules\Advisor\Enums\InsightSeverity;
+use Appwrite\Platform\Modules\Advisor\Enums\InsightStatus;
+use Appwrite\Platform\Modules\Advisor\Enums\InsightType;
+use Appwrite\Platform\Modules\Advisor\Enums\ReportType;
 use Appwrite\Platform\Modules\Compute\Specification;
+use Utopia\System\System;
 
 const APP_NAME = 'Appwrite';
 const APP_DOMAIN = 'appwrite.io';
@@ -24,9 +31,6 @@ const APP_MODE_ADMIN = 'admin';
 const APP_PAGING_LIMIT = 12;
 const APP_LIMIT_COUNT = 5000;
 const APP_LIMIT_USERS = 10_000;
-const APP_LIMIT_USER_PASSWORD_HISTORY = 20;
-const APP_LIMIT_USER_SESSIONS_MAX = 100;
-const APP_LIMIT_USER_SESSIONS_DEFAULT = 10;
 const APP_LIMIT_ANTIVIRUS = 20_000_000; //20MB
 const APP_LIMIT_ENCRYPTION = 20_000_000; //20MB
 const APP_LIMIT_COMPRESSION = 20_000_000; //20MB
@@ -41,20 +45,20 @@ const APP_LIMIT_LIST_DEFAULT = 25; // Default maximum number of items to return 
 const APP_LIMIT_DATABASE_BATCH = 100; // Default maximum batch size for database operations
 const APP_LIMIT_DATABASE_TRANSACTION = 100; // Default maximum operations per transaction
 const APP_KEY_ACCESS = 24 * 60 * 60; // 24 hours
-const APP_CONSOLE_KEY_TTL = 120; // 2 minutes
 const APP_USER_ACCESS = 24 * 60 * 60; // 24 hours
 const APP_PROJECT_ACCESS = 24 * 60 * 60; // 24 hours
 const APP_RESOURCE_TOKEN_ACCESS = 24 * 60 * 60; // 24 hours
 const APP_FILE_ACCESS = 24 * 60 * 60; // 24 hours
 const APP_CACHE_UPDATE = 24 * 60 * 60; // 24 hours
-const APP_CACHE_BUSTER = 4321;
-const APP_VERSION_STABLE = '1.9.0';
+const APP_CACHE_BUSTER = 4326;
+const APP_VERSION_STABLE = '1.9.5';
 const APP_DATABASE_ATTRIBUTE_EMAIL = 'email';
 const APP_DATABASE_ATTRIBUTE_ENUM = 'enum';
 const APP_DATABASE_ATTRIBUTE_IP = 'ip';
 const APP_DATABASE_ATTRIBUTE_DATETIME = 'datetime';
 const APP_DATABASE_ATTRIBUTE_URL = 'url';
 const APP_DATABASE_ATTRIBUTE_INT_RANGE = 'intRange';
+const APP_DATABASE_ATTRIBUTE_BIGINT_RANGE = 'bigintRange';
 const APP_DATABASE_ATTRIBUTE_FLOAT_RANGE = 'floatRange';
 const APP_DATABASE_ATTRIBUTE_POINT = 'point';
 const APP_DATABASE_ATTRIBUTE_LINE = 'line';
@@ -98,6 +102,7 @@ const APP_COMPUTE_DEPLOYMENT_MAX_RETENTION = 100 * 365; // 100 years
 const APP_SDK_PLATFORM_SERVER = 'server';
 const APP_SDK_PLATFORM_CLIENT = 'client';
 const APP_SDK_PLATFORM_CONSOLE = 'console';
+const APP_SDK_PLATFORM_STATIC = 'static';
 const APP_VCS_GITHUB_USERNAME = 'Appwrite';
 const APP_VCS_GITHUB_EMAIL = 'team@appwrite.io';
 const APP_VCS_GITHUB_URL = 'https://github.com/TeamAppwrite';
@@ -156,9 +161,12 @@ const SESSION_PROVIDER_SERVER = 'server';
 /**
  * Activity associated with user or the app.
  */
-const ACTIVITY_TYPE_APP = 'app';
 const ACTIVITY_TYPE_USER = 'user';
+const ACTIVITY_TYPE_ADMIN = 'admin';
 const ACTIVITY_TYPE_GUEST = 'guest';
+const ACTIVITY_TYPE_KEY_PROJECT = 'keyProject';
+const ACTIVITY_TYPE_KEY_ACCOUNT = 'keyAccount';
+const ACTIVITY_TYPE_KEY_ORGANIZATION = 'keyOrganization';
 
 /**
  * MFA
@@ -187,7 +195,7 @@ const BUILD_TYPE_RETRY = 'retry';
 
 // Deletion Types
 
-const ENABLE_EXECUTIONS_LIMIT_ON_ROUTE = false;
+\define('ENABLE_EXECUTIONS_LIMIT_ON_ROUTE', System::getEnv('_APP_EXECUTIONS_LIMIT_ON_ROUTE', 'disabled') === 'enabled');
 
 const DELETE_TYPE_DATABASES = 'databases';
 const DELETE_TYPE_DOCUMENT = 'document';
@@ -220,6 +228,7 @@ const DELETE_TYPE_EXPIRED_TARGETS = 'invalid_targets';
 const DELETE_TYPE_SESSION_TARGETS = 'session_targets';
 const DELETE_TYPE_CSV_EXPORTS = 'csv_exports';
 const DELETE_TYPE_MAINTENANCE = 'maintenance';
+const DELETE_TYPE_REPORT = 'report';
 
 // Rule statuses
 const RULE_STATUS_CREATED = 'created'; // This is also the status when domain DNS verification fails.
@@ -243,6 +252,7 @@ const APP_AUTH_TYPE_KEY = 'Key';
 const APP_AUTH_TYPE_ADMIN = 'Admin';
 // Response related
 const MAX_OUTPUT_CHUNK_SIZE = 10 * 1024 * 1024; // 10MB
+const APP_LIMIT_UPLOAD_CHUNK_SIZE = 5 * 1024 * 1024; // 5MB
 const APP_FUNCTION_LOG_LENGTH_LIMIT = 1000000;
 const APP_FUNCTION_ERROR_LENGTH_LIMIT = 1000000;
 // Function headers
@@ -254,11 +264,9 @@ const MESSAGE_TYPE_SMS = 'sms';
 const MESSAGE_TYPE_PUSH = 'push';
 // API key types
 const API_KEY_STANDARD = 'standard';
-const API_KEY_DYNAMIC = 'dynamic';
+const API_KEY_EPHEMERAL = 'ephemeral';
 const API_KEY_ORGANIZATION = 'organization';
 const API_KEY_ACCOUNT = 'account';
-// API key source identifiers
-const KEY_SOURCE_MIGRATION = 'migration';
 // Usage metrics
 const METRIC_TEAMS = 'teams';
 const METRIC_USERS = 'users';
@@ -291,6 +299,45 @@ const METRIC_DATABASES_OPERATIONS_READS  = 'databases.operations.reads';
 const METRIC_DATABASE_ID_OPERATIONS_READS = '{databaseInternalId}.databases.operations.reads';
 const METRIC_DATABASES_OPERATIONS_WRITES  = 'databases.operations.writes';
 const METRIC_DATABASE_ID_OPERATIONS_WRITES = '{databaseInternalId}.databases.operations.writes';
+
+// documentsdb
+const METRIC_DATABASES_DOCUMENTSDB = 'documentsdb.databases';
+const METRIC_COLLECTIONS_DOCUMENTSDB = 'documentsdb.collections';
+const METRIC_DATABASES_STORAGE_DOCUMENTSDB = 'documentsdb.databases.storage';
+const METRIC_DATABASE_ID_COLLECTIONS_DOCUMENTSDB = 'documentsdb.{databaseInternalId}.collections';
+const METRIC_DATABASE_ID_STORAGE_DOCUMENTSDB = 'documentsdb.{databaseInternalId}.databases.storage';
+const METRIC_DOCUMENTS_DOCUMENTSDB = 'documentsdb.documents';
+const METRIC_DATABASE_ID_DOCUMENTS_DOCUMENTSDB = 'documentsdb.{databaseInternalId}.documents';
+const METRIC_DATABASE_ID_COLLECTION_ID_DOCUMENTS_DOCUMENTSDB = 'documentsdb.{databaseInternalId}.{collectionInternalId}.documents';
+const METRIC_DATABASE_ID_COLLECTION_ID_STORAGE_DOCUMENTSDB = 'documentsdb.{databaseInternalId}.{collectionInternalId}.databases.storage';
+const METRIC_DATABASES_OPERATIONS_READS_DOCUMENTSDB  = 'documentsdb.databases.operations.reads';
+const METRIC_DATABASE_ID_OPERATIONS_READS_DOCUMENTSDB = 'documentsdb.{databaseInternalId}.databases.operations.reads';
+const METRIC_DATABASES_OPERATIONS_WRITES_DOCUMENTSDB  = 'documentsdb.databases.operations.writes';
+const METRIC_DATABASE_ID_OPERATIONS_WRITES_DOCUMENTSDB = 'documentsdb.{databaseInternalId}.databases.operations.writes';
+
+// vectorsdb
+const METRIC_DATABASES_VECTORSDB = 'vectorsdb.databases';
+const METRIC_COLLECTIONS_VECTORSDB = 'vectorsdb.collections';
+const METRIC_DATABASES_STORAGE_VECTORSDB = 'vectorsdb.databases.storage';
+const METRIC_DATABASE_ID_COLLECTIONS_VECTORSDB = 'vectorsdb.{databaseInternalId}.collections';
+const METRIC_DATABASE_ID_STORAGE_VECTORSDB = 'vectorsdb.{databaseInternalId}.databases.storage';
+const METRIC_DOCUMENTS_VECTORSDB = 'vectorsdb.documents';
+const METRIC_DATABASE_ID_DOCUMENTS_VECTORSDB = 'vectorsdb.{databaseInternalId}.documents';
+const METRIC_DATABASE_ID_COLLECTION_ID_DOCUMENTS_VECTORSDB = 'vectorsdb.{databaseInternalId}.{collectionInternalId}.documents';
+const METRIC_DATABASE_ID_COLLECTION_ID_STORAGE_VECTORSDB = 'vectorsdb.{databaseInternalId}.{collectionInternalId}.databases.storage';
+const METRIC_DATABASES_OPERATIONS_READS_VECTORSDB  = 'vectorsdb.databases.operations.reads';
+const METRIC_DATABASE_ID_OPERATIONS_READS_VECTORSDB = 'vectorsdb.{databaseInternalId}.databases.operations.reads';
+const METRIC_DATABASES_OPERATIONS_WRITES_VECTORSDB  = 'vectorsdb.databases.operations.writes';
+const METRIC_DATABASE_ID_OPERATIONS_WRITES_VECTORSDB = 'vectorsdb.{databaseInternalId}.databases.operations.writes';
+const METRIC_EMBEDDINGS_TEXT = 'embeddings.text';
+const METRIC_EMBEDDINGS_MODEL_TEXT = 'embeddings.text.{embeddingModel}';
+const METRIC_EMBEDDINGS_TEXT_TOTAL_ERROR = 'embeddings.text.totalErrors';
+const METRIC_EMBEDDINGS_MODEL_TEXT_TOTAL_ERROR = 'embeddings.text.{embeddingModel}.totalErrors';
+const METRIC_EMBEDDINGS_TEXT_TOTAL_DURATION = 'embeddings.text.totalDuration';
+const METRIC_EMBEDDINGS_MODEL_TEXT_TOTAL_DURATION = 'embeddings.text.{embeddingModel}.totalDuration';
+const METRIC_EMBEDDINGS_TEXT_TOTAL_TOKENS = 'embeddings.text.totalTokens';
+const METRIC_EMBEDDINGS_MODEL_TEXT_TOTAL_TOKENS = 'embeddings.text.{embeddingModel}.totalTokens';
+
 const METRIC_BUCKETS = 'buckets';
 const METRIC_FILES  = 'files';
 const METRIC_FILES_STORAGE  = 'files.storage';
@@ -383,6 +430,56 @@ const RESOURCE_TYPE_SUBSCRIBERS = 'subscribers';
 const RESOURCE_TYPE_MESSAGES = 'messages';
 const RESOURCE_TYPE_EXECUTIONS = 'executions';
 const RESOURCE_TYPE_VCS = 'vcs';
+const RESOURCE_TYPE_EMBEDDINGS_TEXT = 'embeddingsText';
+const RESOURCE_TYPE_INSIGHTS = 'insights';
+const RESOURCE_TYPE_REPORTS = 'reports';
+
+// Insight types — engine-specific so the CTA action can reference the right public API.
+const ADVISOR_INSIGHT_TYPES = [
+    InsightType::DATABASE_INDEX->value, // legacy databases.createIndex
+    InsightType::TABLES_DB_INDEX->value, // tablesDB.createIndex
+    InsightType::DOCUMENTS_DB_INDEX->value, // documentsDB.createIndex
+    InsightType::VECTORS_DB_INDEX->value, // vectorsDB.createIndex
+    InsightType::DATABASE_PERFORMANCE->value,
+    InsightType::SITE_PERFORMANCE->value,
+    InsightType::SITE_ACCESSIBILITY->value,
+    InsightType::SITE_SEO->value,
+    InsightType::FUNCTION_PERFORMANCE->value,
+];
+
+// Public API services (SDK namespaces) that an insight CTA's `service` can reference.
+// Analyzers must pick the one matching the engine the resource lives in.
+const ADVISOR_CTA_SERVICES = [
+    InsightCTAService::DATABASES->value, // legacy
+    InsightCTAService::TABLES_DB->value,
+    InsightCTAService::DOCUMENTS_DB->value,
+    InsightCTAService::VECTORS_DB->value,
+];
+
+// Public API method names that an insight CTA's `method` can reference for index suggestions.
+const ADVISOR_CTA_METHODS = [
+    InsightCTAMethod::CREATE_INDEX->value,
+];
+
+// Insight severities
+const ADVISOR_SEVERITIES = [
+    InsightSeverity::INFO->value,
+    InsightSeverity::WARNING->value,
+    InsightSeverity::CRITICAL->value,
+];
+
+// Insight statuses
+const ADVISOR_STATUSES = [
+    InsightStatus::ACTIVE->value,
+    InsightStatus::DISMISSED->value,
+];
+
+// Report types
+const ADVISOR_REPORT_TYPES = [
+    ReportType::LIGHTHOUSE->value,
+    ReportType::AUDIT->value,
+    ReportType::DATABASE_ANALYZER->value,
+];
 
 // Resource types for Tokens
 const TOKENS_RESOURCE_TYPE_FILES = 'files';
@@ -404,3 +501,16 @@ const CACHE_RECONNECT_RETRY_DELAY = 1000;
 
 // Project status
 const PROJECT_STATUS_ACTIVE = 'active';
+
+// Database types
+const DATABASE_TYPE_LEGACY = 'legacy';
+const DATABASE_TYPE_TABLESDB = 'tablesdb';
+const DATABASE_TYPE_DOCUMENTSDB = 'documentsdb';
+const DATABASE_TYPE_VECTORSDB = 'vectorsdb';
+
+// CSV import/export allowed database types
+const CSV_ALLOWED_DATABASE_TYPES = [
+    DATABASE_TYPE_LEGACY,
+    DATABASE_TYPE_TABLESDB,
+    DATABASE_TYPE_VECTORSDB
+];

@@ -28,6 +28,8 @@ class Status extends Action
 
     public function action(string $installId, Response $response, State $state): void
     {
+        $state->clearStaleLockIfNeeded();
+
         $installId = $state->sanitizeInstallId($installId);
         if ($installId === '') {
             $response->setStatusCode(Response::STATUS_CODE_BAD_REQUEST);
@@ -43,7 +45,7 @@ class Status extends Action
         }
 
         $data = $state->readProgressFile($installId);
-        if (is_array($data) && isset($data['payload']) && is_array($data['payload'])) {
+        if (isset($data['payload']) && is_array($data['payload'])) {
             unset(
                 $data['payload']['opensslKey'],
                 $data['payload']['assistantOpenAIKey'],
@@ -52,7 +54,7 @@ class Status extends Action
             );
         }
         // Strip sensitive data from step details
-        if (is_array($data) && isset($data['details']) && is_array($data['details'])) {
+        if (isset($data['details']) && is_array($data['details'])) {
             foreach ($data['details'] as $stepKey => &$stepDetails) {
                 if (is_array($stepDetails)) {
                     unset($stepDetails['sessionSecret'], $stepDetails['trace']);

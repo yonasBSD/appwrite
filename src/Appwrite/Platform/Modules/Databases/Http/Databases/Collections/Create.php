@@ -84,12 +84,13 @@ class Create extends Action
             ->param('indexes', [], new ArrayList(new JSON(), APP_LIMIT_ARRAY_PARAMS_SIZE), 'Array of index definitions to create. Each index should contain: key (string), type (string: key, fulltext, unique, spatial), attributes (array of attribute keys), orders (array of ASC/DESC, optional), and lengths (array of integers, optional).', true)
             ->inject('response')
             ->inject('dbForProject')
+            ->inject('getDatabasesDB')
             ->inject('queueForEvents')
             ->inject('authorization')
             ->callback($this->action(...));
     }
 
-    public function action(string $databaseId, string $collectionId, string $name, ?array $permissions, bool $documentSecurity, bool $enabled, array $attributes, array $indexes, UtopiaResponse $response, Database $dbForProject, Event $queueForEvents, Authorization $authorization): void
+    public function action(string $databaseId, string $collectionId, string $name, ?array $permissions, bool $documentSecurity, bool $enabled, array $attributes, array $indexes, UtopiaResponse $response, Database $dbForProject, callable $getDatabasesDB, Event $queueForEvents, Authorization $authorization): void
     {
         $database = $authorization->skip(fn () => $dbForProject->getDocument('databases', $databaseId));
 
@@ -121,12 +122,18 @@ class Create extends Action
             throw new Exception(Exception::DATABASE_NOT_FOUND, params: [$databaseId]);
         }
 
+        /**
+         * @var Database $dbForDatabases
+         */
+        $dbForDatabases = $getDatabasesDB($database);
+
         $collectionKey = 'database_' . $database->getSequence() . '_collection_' . $collection->getSequence();
         $databaseKey = 'database_' . $database->getSequence();
 
         $attributesValidator = new AttributesValidator(
             APP_LIMIT_ARRAY_PARAMS_SIZE,
-            $dbForProject->getAdapter()->getSupportForSpatialAttributes()
+            $dbForDatabases->getAdapter()->getSupportForSpatialAttributes(),
+            $dbForDatabases->getAdapter()->getSupportForAttributes()
         );
 
         if (!$attributesValidator->isValid($attributes)) {
@@ -155,7 +162,7 @@ class Create extends Action
         }
 
         // Validate indexes
-        $indexesValidator = new IndexesValidator($dbForProject->getLimitForIndexes());
+        $indexesValidator = new IndexesValidator($dbForDatabases->getLimitForIndexes());
         if (!$indexesValidator->isValid($indexes)) {
             $dbForProject->deleteDocument($databaseKey, $collection->getId());
             throw new Exception(Exception::GENERAL_ARGUMENT_INVALID, $indexesValidator->getDescription());
@@ -178,21 +185,23 @@ class Create extends Action
         $indexValidator = new IndexValidator(
             $collectionAttributes,
             [],
-            $dbForProject->getAdapter()->getMaxIndexLength(),
-            $dbForProject->getAdapter()->getInternalIndexesKeys(),
-            $dbForProject->getAdapter()->getSupportForIndexArray(),
-            $dbForProject->getAdapter()->getSupportForSpatialIndexNull(),
-            $dbForProject->getAdapter()->getSupportForSpatialIndexOrder(),
-            $dbForProject->getAdapter()->getSupportForVectors(),
-            $dbForProject->getAdapter()->getSupportForAttributes(),
-            $dbForProject->getAdapter()->getSupportForMultipleFulltextIndexes(),
-            $dbForProject->getAdapter()->getSupportForIdenticalIndexes(),
-            $dbForProject->getAdapter()->getSupportForObjectIndexes(),
-            $dbForProject->getAdapter()->getSupportForTrigramIndex(),
-            $dbForProject->getAdapter()->getSupportForSpatialAttributes(),
-            $dbForProject->getAdapter()->getSupportForIndex(),
-            $dbForProject->getAdapter()->getSupportForUniqueIndex(),
-            $dbForProject->getAdapter()->getSupportForFulltextIndex(),
+            $dbForDatabases->getAdapter()->getMaxIndexLength(),
+            $dbForDatabases->getAdapter()->getInternalIndexesKeys(),
+            $dbForDatabases->getAdapter()->getSupportForIndexArray(),
+            $dbForDatabases->getAdapter()->getSupportForSpatialIndexNull(),
+            $dbForDatabases->getAdapter()->getSupportForSpatialIndexOrder(),
+            $dbForDatabases->getAdapter()->getSupportForVectors(),
+            $dbForDatabases->getAdapter()->getSupportForAttributes(),
+            $dbForDatabases->getAdapter()->getSupportForMultipleFulltextIndexes(),
+            $dbForDatabases->getAdapter()->getSupportForIdenticalIndexes(),
+            $dbForDatabases->getAdapter()->getSupportForObjectIndexes(),
+            $dbForDatabases->getAdapter()->getSupportForTrigramIndex(),
+            $dbForDatabases->getAdapter()->getSupportForSpatialAttributes(),
+            $dbForDatabases->getAdapter()->getSupportForIndex(),
+            $dbForDatabases->getAdapter()->getSupportForUniqueIndex(),
+            $dbForDatabases->getAdapter()->getSupportForFulltextIndex(),
+            $dbForDatabases->getAdapter()->getSupportForTTLIndexes(),
+            $dbForDatabases->getAdapter()->getSupportForObject(),
         );
 
         foreach ($collectionIndexes as $indexDoc) {
@@ -203,7 +212,7 @@ class Create extends Action
         }
 
         try {
-            $dbForProject->createCollection(
+            $dbForDatabases->createCollection(
                 id: $collectionKey,
                 attributes: $collectionAttributes,
                 indexes: $collectionIndexes,
@@ -281,13 +290,15 @@ class Create extends Action
         }
 
         if (isset($attribute['min']) || isset($attribute['max'])) {
-            $format = $type === Database::VAR_INTEGER
-                ? APP_DATABASE_ATTRIBUTE_INT_RANGE
-                : APP_DATABASE_ATTRIBUTE_FLOAT_RANGE;
+            $format = match($type) {
+                Database::VAR_INTEGER => APP_DATABASE_ATTRIBUTE_INT_RANGE,
+                Database::VAR_BIGINT => APP_DATABASE_ATTRIBUTE_BIGINT_RANGE,
+                default => APP_DATABASE_ATTRIBUTE_FLOAT_RANGE,
+            };
 
             $formatOptions = [
-                'min' => $attribute['min'] ?? ($type === Database::VAR_INTEGER ? \PHP_INT_MIN : -\PHP_FLOAT_MAX),
-                'max' => $attribute['max'] ?? ($type === Database::VAR_INTEGER ? \PHP_INT_MAX : \PHP_FLOAT_MAX),
+                'min' => $attribute['min'] ?? ($type === Database::VAR_INTEGER || $type === Database::VAR_BIGINT ? \PHP_INT_MIN : -\PHP_FLOAT_MAX),
+                'max' => $attribute['max'] ?? ($type === Database::VAR_INTEGER || $type === Database::VAR_BIGINT ? \PHP_INT_MAX : \PHP_FLOAT_MAX),
             ];
         }
 
