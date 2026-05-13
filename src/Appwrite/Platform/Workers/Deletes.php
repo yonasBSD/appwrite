@@ -232,12 +232,7 @@ class Deletes extends Action
         $this->deleteByGroup('insights', [
             Query::equal('projectInternalId', [$projectInternalId]),
             Query::equal('reportInternalId', [$reportInternalId]),
-        ], $dbForPlatform, function (Document $insight) use ($dbForPlatform, $projectInternalId) {
-            $this->deleteByGroup('insightCTAs', [
-                Query::equal('projectInternalId', [$projectInternalId]),
-                Query::equal('insightInternalId', [$insight->getSequence()]),
-            ], $dbForPlatform);
-        });
+        ], $dbForPlatform);
     }
 
     private function cleanDatabase(
@@ -733,16 +728,6 @@ class Deletes extends Action
             ], $dbForPlatform);
         } catch (Throwable $th) {
             Console::error('Failed to delete schedules: ' . $th->getMessage());
-        }
-
-        // Delete Advisor CTAs
-        try {
-            $this->deleteByGroup('insightCTAs', [
-                Query::equal('projectInternalId', [$projectInternalId]),
-                Query::orderAsc()
-            ], $dbForPlatform);
-        } catch (Throwable $th) {
-            Console::error('Failed to delete insight CTAs: ' . $th->getMessage());
         }
 
         // Delete Advisor insights

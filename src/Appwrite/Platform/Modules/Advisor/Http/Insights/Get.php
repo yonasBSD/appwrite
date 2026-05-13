@@ -10,7 +10,6 @@ use Appwrite\SDK\Response as SDKResponse;
 use Appwrite\Utopia\Response;
 use Utopia\Database\Database;
 use Utopia\Database\Document;
-use Utopia\Database\Query;
 use Utopia\Database\Validator\UID;
 use Utopia\Platform\Scope\HTTP;
 
@@ -60,7 +59,7 @@ class Get extends Action
         Document $project,
         Database $dbForPlatform
     ) {
-        // Skip the insights/CTA subqueries — we only need ownership metadata.
+        // Skip the insights subquery — we only need ownership metadata.
         $report = $dbForPlatform->skipFilters(
             fn () => $dbForPlatform->getDocument('reports', $reportId),
             ['subQueryReportInsights'],
@@ -79,13 +78,6 @@ class Get extends Action
         ) {
             throw new Exception(Exception::INSIGHT_NOT_FOUND);
         }
-
-        $ctas = $dbForPlatform->find('insightCTAs', [
-            Query::equal('projectInternalId', [$project->getSequence()]),
-            Query::equal('insightInternalId', [$insight->getSequence()]),
-            Query::limit(APP_LIMIT_SUBQUERY),
-        ]);
-        $insight->setAttribute('ctas', $ctas);
 
         $response->dynamic($insight, Response::MODEL_INSIGHT);
     }

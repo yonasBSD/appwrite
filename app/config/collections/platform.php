@@ -2106,33 +2106,17 @@ $platformCollections = [
         ],
         'indexes' => [
             [
-                '$id' => ID::custom('_key_project'),
+                '$id' => ID::custom('_key_project_app_type'),
                 'type' => Database::INDEX_KEY,
-                'attributes' => ['projectInternalId'],
-                'lengths' => [],
-                'orders' => [],
-            ],
-            [
-                '$id' => ID::custom('_key_project_type'),
-                'type' => Database::INDEX_KEY,
-                'attributes' => ['projectInternalId', 'type'],
-                'lengths' => [],
-                'orders' => [],
-            ],
-            [
-                '$id' => ID::custom('_key_project_app'),
-                'type' => Database::INDEX_KEY,
-                'attributes' => ['projectInternalId', 'appInternalId'],
+                'attributes' => ['projectInternalId', 'appInternalId', 'type'],
                 'lengths' => [],
                 'orders' => [],
             ],
             [
                 '$id' => ID::custom('_key_project_target'),
                 'type' => Database::INDEX_KEY,
-                'attributes' => ['projectInternalId', 'targetType', 'target'],
-                // `projectInternalId` and `targetType` do not need explicit prefix lengths.
-                // Keep `target` at 700 chars so the combined index stays under legacy 768-byte limits.
-                'lengths' => [null, null, 700],
+                'attributes' => ['projectInternalId', 'appInternalId', 'targetType', 'target'],
+                'lengths' => [null, null, null, 700],
                 'orders' => [],
             ],
         ],
@@ -2254,9 +2238,6 @@ $platformCollections = [
                 'filters' => [],
             ],
             [
-                // Plural noun for the parent (containing) resource. Optional.
-                // e.g. an insight about a column index → resourceType=indexes,
-                // parentResourceType=tables. Mirrors the file-in-bucket pointer.
                 '$id' => ID::custom('parentResourceType'),
                 'type' => Database::VAR_STRING,
                 'format' => '',
@@ -2312,11 +2293,6 @@ $platformCollections = [
                 'filters' => [],
             ],
             [
-                // Virtual attribute — CTAs live in the `insightCTAs` collection
-                // back-referenced by `insightInternalId`. The parent report's
-                // `subQueryReportInsights` filter batch-fetches CTAs across all
-                // its insights in one query; single-insight reads stitch them in
-                // at the action layer to avoid a per-document N+1.
                 '$id' => ID::custom('ctas'),
                 'type' => Database::VAR_TEXT,
                 'format' => '',
@@ -2325,7 +2301,7 @@ $platformCollections = [
                 'required' => false,
                 'default' => null,
                 'array' => false,
-                'filters' => [],
+                'filters' => ['json'],
             ],
             [
                 '$id' => ID::custom('analyzedAt'),
@@ -2363,13 +2339,6 @@ $platformCollections = [
         ],
         'indexes' => [
             [
-                '$id' => ID::custom('_key_project'),
-                'type' => Database::INDEX_KEY,
-                'attributes' => ['projectInternalId'],
-                'lengths' => [],
-                'orders' => [],
-            ],
-            [
                 '$id' => ID::custom('_key_project_report'),
                 'type' => Database::INDEX_KEY,
                 'attributes' => ['projectInternalId', 'reportInternalId'],
@@ -2379,14 +2348,14 @@ $platformCollections = [
             [
                 '$id' => ID::custom('_key_project_resource'),
                 'type' => Database::INDEX_KEY,
-                'attributes' => ['projectInternalId', 'resourceType', 'resourceId', '$sequence'],
+                'attributes' => ['projectInternalId', 'resourceType', 'resourceId'],
                 'lengths' => [],
                 'orders' => [],
             ],
             [
                 '$id' => ID::custom('_key_project_parent_resource'),
                 'type' => Database::INDEX_KEY,
-                'attributes' => ['projectInternalId', 'parentResourceType', 'parentResourceId', '$sequence'],
+                'attributes' => ['projectInternalId', 'parentResourceType', 'parentResourceId'],
                 'lengths' => [],
                 'orders' => [],
             ],
@@ -2421,119 +2390,6 @@ $platformCollections = [
         ],
     ],
 
-    'insightCTAs' => [
-        '$collection' => ID::custom(Database::METADATA),
-        '$id' => ID::custom('insightCTAs'),
-        'name' => 'Insight CTAs',
-        'attributes' => [
-            [
-                '$id' => ID::custom('projectInternalId'),
-                'type' => Database::VAR_ID,
-                'format' => '',
-                'size' => 0,
-                'signed' => true,
-                'required' => true,
-                'default' => null,
-                'array' => false,
-                'filters' => [],
-            ],
-            [
-                '$id' => ID::custom('projectId'),
-                'type' => Database::VAR_STRING,
-                'format' => '',
-                'size' => Database::LENGTH_KEY,
-                'signed' => true,
-                'required' => true,
-                'default' => null,
-                'array' => false,
-                'filters' => [],
-            ],
-            [
-                '$id' => ID::custom('insightInternalId'),
-                'type' => Database::VAR_ID,
-                'format' => '',
-                'size' => 0,
-                'signed' => true,
-                'required' => true,
-                'default' => null,
-                'array' => false,
-                'filters' => [],
-            ],
-            [
-                '$id' => ID::custom('insightId'),
-                'type' => Database::VAR_STRING,
-                'format' => '',
-                'size' => Database::LENGTH_KEY,
-                'signed' => true,
-                'required' => true,
-                'default' => null,
-                'array' => false,
-                'filters' => [],
-            ],
-            [
-                '$id' => ID::custom('label'),
-                'type' => Database::VAR_STRING,
-                'format' => '',
-                'size' => 256,
-                'signed' => true,
-                'required' => true,
-                'default' => null,
-                'array' => false,
-                'filters' => [],
-            ],
-            [
-                // SDK namespace (databases / tablesDB / documentsDB / vectorsDB / …).
-                '$id' => ID::custom('service'),
-                'type' => Database::VAR_STRING,
-                'format' => '',
-                'size' => 64,
-                'signed' => true,
-                'required' => true,
-                'default' => null,
-                'array' => false,
-                'filters' => [],
-            ],
-            [
-                '$id' => ID::custom('method'),
-                'type' => Database::VAR_STRING,
-                'format' => '',
-                'size' => 64,
-                'signed' => true,
-                'required' => true,
-                'default' => null,
-                'array' => false,
-                'filters' => [],
-            ],
-            [
-                '$id' => ID::custom('params'),
-                'type' => Database::VAR_TEXT,
-                'format' => '',
-                'size' => 65535,
-                'signed' => true,
-                'required' => false,
-                'default' => null,
-                'array' => false,
-                'filters' => ['json'],
-            ],
-        ],
-        'indexes' => [
-            [
-                '$id' => ID::custom('_key_project'),
-                'type' => Database::INDEX_KEY,
-                'attributes' => ['projectInternalId'],
-                'lengths' => [],
-                'orders' => [],
-            ],
-            [
-                // Primary lookup — fetch all CTAs of an insight (subQuery filter).
-                '$id' => ID::custom('_key_project_insight'),
-                'type' => Database::INDEX_KEY,
-                'attributes' => ['projectInternalId', 'insightInternalId'],
-                'lengths' => [],
-                'orders' => [],
-            ],
-        ],
-    ],
 ];
 
 // Organization API keys subquery

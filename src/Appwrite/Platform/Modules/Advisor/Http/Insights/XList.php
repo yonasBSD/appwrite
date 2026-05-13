@@ -118,25 +118,6 @@ class XList extends Action
             throw new Exception(Exception::DATABASE_QUERY_ORDER_NULL, "The order attribute '{$e->getAttribute()}' had a null value. Cursor pagination requires all documents order attribute values are non-null.");
         }
 
-        if (!empty($insights)) {
-            $insightSequences = \array_map(fn (Document $insight) => $insight->getSequence(), $insights);
-
-            $ctas = $dbForPlatform->find('insightCTAs', [
-                Query::equal('projectInternalId', [$project->getSequence()]),
-                Query::equal('insightInternalId', $insightSequences),
-                Query::limit(\count($insightSequences) * \Appwrite\Advisor\Validator\CTAs::MAX_COUNT_DEFAULT),
-            ]);
-
-            $ctasByInsight = [];
-            foreach ($ctas as $cta) {
-                $ctasByInsight[$cta->getAttribute('insightInternalId')][] = $cta;
-            }
-
-            foreach ($insights as $insight) {
-                $insight->setAttribute('ctas', $ctasByInsight[$insight->getSequence()] ?? []);
-            }
-        }
-
         $response->dynamic(new Document([
             'insights' => $insights,
             'total' => $total,

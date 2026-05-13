@@ -73,25 +73,6 @@ class Get extends Action
             Query::limit(APP_LIMIT_SUBQUERY),
         ]);
 
-        if (!empty($insights)) {
-            $insightSequences = \array_map(fn (Document $i) => $i->getSequence(), $insights);
-
-            $ctas = $dbForPlatform->find('insightCTAs', [
-                Query::equal('projectInternalId', [$project->getSequence()]),
-                Query::equal('insightInternalId', $insightSequences),
-                Query::limit(\count($insightSequences) * \Appwrite\Advisor\Validator\CTAs::MAX_COUNT_DEFAULT),
-            ]);
-
-            $ctasByInsight = [];
-            foreach ($ctas as $cta) {
-                $ctasByInsight[$cta->getAttribute('insightInternalId')][] = $cta;
-            }
-
-            foreach ($insights as $insight) {
-                $insight->setAttribute('ctas', $ctasByInsight[$insight->getSequence()] ?? []);
-            }
-        }
-
         $report->setAttribute('insights', $insights);
 
         $response->dynamic($report, Response::MODEL_REPORT);
