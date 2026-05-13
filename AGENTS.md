@@ -117,28 +117,9 @@ Common injections: `$response`, `$request`, `$dbForProject`, `$dbForPlatform`, `
 
 ## Tracing with Utopia Span
 
-Use `Utopia\Telemetry\Span::add($key, $value)` to attach attributes to the active span. Key naming rules:
+In handlers, only call `Span::add($key, $value)`. **Never** call `Span::init`, `Span::error`, or `Span::finish` -- lifecycle is owned by the entry-point harness (`app/http.php`, `app/worker.php`, `app/realtime.php`, `Bus::dispatch`). For selective export, filter in the sampler in `app/init/span.php`.
 
-- Keys are **snake_case**, with **dots** separating namespaces.
-- A dot signals a **child relationship** -- the right side is a property of the left. `project.id` is "the id of the project", `storage.bucket.id` is "the id of the bucket within storage".
-- Do **not** use a dot when no child relationship exists. Use snake_case instead. `inbound_bytes` (not `inbound.bytes`), `subscription_count` (not `subscription.count`).
-- Top-level keys must always live under a subsystem namespace -- `function.id`, not bare `functionId`; `realtime.connection.id`, not `connectionId`.
-- Never use camelCase in any segment. `projectId` -> `project.id`, `subscriptionMode` -> `subscription.mode`, `domainVerification` -> `domain_verification`.
-
-```php
-// correct
-Span::add('project.id', $project->getId());
-Span::add('function.id', $function->getId());
-Span::add('storage.file.size_bytes', $size);
-Span::add('realtime.inbound_bytes', $bytes);
-
-// incorrect
-Span::add('projectId', $project->getId());           // camelCase, no namespace
-Span::add('realtime.connectionId', $connection);     // camelCase segment
-Span::add('inbound.bytes', $bytes);                  // bytes is not a child of inbound
-```
-
-**Never** call `Span::init`, `Span::error`, or `Span::finish` (or `Span::current()->finish()`) inside HTTP actions, queue workers, bus listeners, or scheduled tasks. The span lifecycle is owned by the entry-point harness (`app/http.php`, `app/realtime.php`, the queue Server, `Bus::dispatch`). Handlers must only call `Span::add(...)` to attach attributes to the surrounding span. To export selectively (e.g. trace a specific project/function), filter in the exporter sampler in `app/init/span.php`, not by opening an inline span.
+Keys are `snake_case` with dots only for child relationships: `project.id` (id of project), `storage.bucket.id`. No dot otherwise: `inbound_bytes`, not `inbound.bytes`. No camelCase, no bare top-level keys (`function.id`, not `functionId`).
 
 ## Patch release process
 
