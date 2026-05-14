@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "1e872a2f418f0c7c27d03067be96c063",
+    "content-hash": "7af25432b0da6ed519c0e6d3c97dfa28",
     "packages": [
         {
             "name": "adhocore/jwt",
@@ -69,16 +69,16 @@
         },
         {
             "name": "appwrite/appwrite",
-            "version": "23.1.1",
+            "version": "23.1.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/appwrite/sdk-for-php.git",
-                "reference": "fd7c0f0bf5ddf334533534b20ed967cfb400f6ea"
+                "reference": "2f275921f10ceb7cff99f2d463f7328b296234fa"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/appwrite/sdk-for-php/zipball/fd7c0f0bf5ddf334533534b20ed967cfb400f6ea",
-                "reference": "fd7c0f0bf5ddf334533534b20ed967cfb400f6ea",
+                "url": "https://api.github.com/repos/appwrite/sdk-for-php/zipball/2f275921f10ceb7cff99f2d463f7328b296234fa",
+                "reference": "2f275921f10ceb7cff99f2d463f7328b296234fa",
                 "shasum": ""
             },
             "require": {
@@ -104,10 +104,10 @@
             "support": {
                 "email": "team@appwrite.io",
                 "issues": "https://github.com/appwrite/sdk-for-php/issues",
-                "source": "https://github.com/appwrite/sdk-for-php/tree/23.1.1",
+                "source": "https://github.com/appwrite/sdk-for-php/tree/23.1.0",
                 "url": "https://appwrite.io/support"
             },
-            "time": "2026-05-12T11:03:36+00:00"
+            "time": "2026-05-08T13:44:58+00:00"
         },
         {
             "name": "appwrite/php-clamav",
@@ -3510,22 +3510,23 @@
         },
         {
             "name": "utopia-php/audit",
-            "version": "2.2.3",
+            "version": "2.3.2",
             "source": {
                 "type": "git",
                 "url": "https://github.com/utopia-php/audit.git",
-                "reference": "95e9961fa286d2fdb6bf3eaa198f21d51bf58d9c"
+                "reference": "e7b4049fc2ee9be34bcc18771fa593db3b0e9fe3"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/utopia-php/audit/zipball/95e9961fa286d2fdb6bf3eaa198f21d51bf58d9c",
-                "reference": "95e9961fa286d2fdb6bf3eaa198f21d51bf58d9c",
+                "url": "https://api.github.com/repos/utopia-php/audit/zipball/e7b4049fc2ee9be34bcc18771fa593db3b0e9fe3",
+                "reference": "e7b4049fc2ee9be34bcc18771fa593db3b0e9fe3",
                 "shasum": ""
             },
             "require": {
-                "php": ">=8.0",
+                "php": ">=8.4",
                 "utopia-php/database": "5.*",
                 "utopia-php/fetch": "^1.1",
+                "utopia-php/query": "0.1.*",
                 "utopia-php/validators": "0.2.*"
             },
             "require-dev": {
@@ -3553,9 +3554,9 @@
             ],
             "support": {
                 "issues": "https://github.com/utopia-php/audit/issues",
-                "source": "https://github.com/utopia-php/audit/tree/2.2.3"
+                "source": "https://github.com/utopia-php/audit/tree/2.3.2"
             },
-            "time": "2026-05-08T10:38:23+00:00"
+            "time": "2026-05-14T04:00:37+00:00"
         },
         {
             "name": "utopia-php/auth",
@@ -4554,16 +4555,16 @@
         },
         {
             "name": "utopia-php/messaging",
-            "version": "0.22.1",
+            "version": "0.22.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/utopia-php/messaging.git",
-                "reference": "85e5d222a3e03aafe082eb185b94ffb63fbfeace"
+                "reference": "a6ac04fd204fb6a16bf8c75a84d0b9fc10aa5030"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/utopia-php/messaging/zipball/85e5d222a3e03aafe082eb185b94ffb63fbfeace",
-                "reference": "85e5d222a3e03aafe082eb185b94ffb63fbfeace",
+                "url": "https://api.github.com/repos/utopia-php/messaging/zipball/a6ac04fd204fb6a16bf8c75a84d0b9fc10aa5030",
+                "reference": "a6ac04fd204fb6a16bf8c75a84d0b9fc10aa5030",
                 "shasum": ""
             },
             "require": {
@@ -4599,9 +4600,9 @@
             ],
             "support": {
                 "issues": "https://github.com/utopia-php/messaging/issues",
-                "source": "https://github.com/utopia-php/messaging/tree/0.22.1"
+                "source": "https://github.com/utopia-php/messaging/tree/0.22.0"
             },
-            "time": "2026-05-04T08:53:34+00:00"
+            "time": "2026-04-02T04:09:19+00:00"
         },
         {
             "name": "utopia-php/migration",
@@ -4875,6 +4876,52 @@
                 "source": "https://github.com/utopia-php/preloader/tree/0.2.4"
             },
             "time": "2020-10-24T07:04:59+00:00"
+        },
+        {
+            "name": "utopia-php/query",
+            "version": "0.1.1",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/utopia-php/query.git",
+                "reference": "964a10ed3185490505f4c0062f2eb7b89287fb27"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/utopia-php/query/zipball/964a10ed3185490505f4c0062f2eb7b89287fb27",
+                "reference": "964a10ed3185490505f4c0062f2eb7b89287fb27",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=8.4"
+            },
+            "require-dev": {
+                "laravel/pint": "*",
+                "phpstan/phpstan": "*",
+                "phpunit/phpunit": "^12.0"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Utopia\\Query\\": "src/Query"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "description": "A simple library providing a query abstraction for filtering, ordering, and pagination",
+            "keywords": [
+                "framework",
+                "php",
+                "query",
+                "upf",
+                "utopia"
+            ],
+            "support": {
+                "issues": "https://github.com/utopia-php/query/issues",
+                "source": "https://github.com/utopia-php/query/tree/0.1.1"
+            },
+            "time": "2026-03-03T09:05:14+00:00"
         },
         {
             "name": "utopia-php/queue",
@@ -6694,16 +6741,16 @@
         },
         {
             "name": "phpunit/phpunit",
-            "version": "12.5.25",
+            "version": "12.5.24",
             "source": {
                 "type": "git",
                 "url": "https://github.com/sebastianbergmann/phpunit.git",
-                "reference": "792c2980442dfce319226b88fa845b8b6de3b333"
+                "reference": "d75dd30597caa80e72fad2ef7904601a30ef1046"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/sebastianbergmann/phpunit/zipball/792c2980442dfce319226b88fa845b8b6de3b333",
-                "reference": "792c2980442dfce319226b88fa845b8b6de3b333",
+                "url": "https://api.github.com/repos/sebastianbergmann/phpunit/zipball/d75dd30597caa80e72fad2ef7904601a30ef1046",
+                "reference": "d75dd30597caa80e72fad2ef7904601a30ef1046",
                 "shasum": ""
             },
             "require": {
@@ -6772,7 +6819,7 @@
             "support": {
                 "issues": "https://github.com/sebastianbergmann/phpunit/issues",
                 "security": "https://github.com/sebastianbergmann/phpunit/security/policy",
-                "source": "https://github.com/sebastianbergmann/phpunit/tree/12.5.25"
+                "source": "https://github.com/sebastianbergmann/phpunit/tree/12.5.24"
             },
             "funding": [
                 {
@@ -6780,7 +6827,7 @@
                     "type": "other"
                 }
             ],
-            "time": "2026-05-13T03:56:57+00:00"
+            "time": "2026-05-01T04:21:04+00:00"
         },
         {
             "name": "sebastian/cli-parser",
