@@ -427,6 +427,7 @@ jobs:
           FunctionsSchedule,
           GraphQL,
           Health,
+          Advisor,
           Locale,
           Projects,
           Realtime,
@@ -449,6 +450,7 @@ jobs:
             paratest_processes: 3
             timeout_minutes: 30
           - service: TablesDB
+            runner: runs-on=${{ github.run_id }}/runner=8cpu-linux-x64/volume=120g/spot=false
             paratest_processes: 3
             timeout_minutes: 30
           - service: Migrations
