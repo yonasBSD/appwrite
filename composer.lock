@@ -3510,16 +3510,16 @@
         },
         {
             "name": "utopia-php/audit",
-            "version": "2.3.1",
+            "version": "2.3.2",
             "source": {
                 "type": "git",
                 "url": "https://github.com/utopia-php/audit.git",
-                "reference": "56b0250c01397145e431f838ab76ca764b45bd77"
+                "reference": "e7b4049fc2ee9be34bcc18771fa593db3b0e9fe3"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/utopia-php/audit/zipball/56b0250c01397145e431f838ab76ca764b45bd77",
-                "reference": "56b0250c01397145e431f838ab76ca764b45bd77",
+                "url": "https://api.github.com/repos/utopia-php/audit/zipball/e7b4049fc2ee9be34bcc18771fa593db3b0e9fe3",
+                "reference": "e7b4049fc2ee9be34bcc18771fa593db3b0e9fe3",
                 "shasum": ""
             },
             "require": {
@@ -3554,9 +3554,9 @@
             ],
             "support": {
                 "issues": "https://github.com/utopia-php/audit/issues",
-                "source": "https://github.com/utopia-php/audit/tree/2.3.1"
+                "source": "https://github.com/utopia-php/audit/tree/2.3.2"
             },
-            "time": "2026-05-08T10:14:04+00:00"
+            "time": "2026-05-14T04:00:37+00:00"
         },
         {
             "name": "utopia-php/auth",
