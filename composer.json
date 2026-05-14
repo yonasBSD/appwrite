@@ -74,7 +74,7 @@
         "utopia-php/locale": "0.8.*",
         "utopia-php/logger": "0.8.*",
         "utopia-php/messaging": "0.22.*",
-        "utopia-php/migration": "dev-feat-platform-db-access as 1.10.999",
+        "utopia-php/migration": "1.*",
         "utopia-php/platform": "^1.0@RC",
         "utopia-php/pools": "1.*",
         "utopia-php/span": "1.1.*",

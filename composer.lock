@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "7af25432b0da6ed519c0e6d3c97dfa28",
+    "content-hash": "9377e1b56bca8dbaf213ee3572ca15c0",
     "packages": [
         {
             "name": "adhocore/jwt",
@@ -4606,16 +4606,16 @@
         },
         {
             "name": "utopia-php/migration",
-            "version": "dev-feat-platform-db-access",
+            "version": "1.12.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/utopia-php/migration.git",
-                "reference": "d7b51752dcf2b3cac632ec5847988191ecef9095"
+                "reference": "3ee6e12af256726bddc3a0402c94535132abecc6"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/utopia-php/migration/zipball/d7b51752dcf2b3cac632ec5847988191ecef9095",
-                "reference": "d7b51752dcf2b3cac632ec5847988191ecef9095",
+                "url": "https://api.github.com/repos/utopia-php/migration/zipball/3ee6e12af256726bddc3a0402c94535132abecc6",
+                "reference": "3ee6e12af256726bddc3a0402c94535132abecc6",
                 "shasum": ""
             },
             "require": {
@@ -4655,9 +4655,9 @@
             ],
             "support": {
                 "issues": "https://github.com/utopia-php/migration/issues",
-                "source": "https://github.com/utopia-php/migration/tree/feat-platform-db-access"
+                "source": "https://github.com/utopia-php/migration/tree/1.12.0"
             },
-            "time": "2026-05-14T05:08:15+00:00"
+            "time": "2026-05-14T07:30:09+00:00"
         },
         {
             "name": "utopia-php/mongo",
@@ -8564,18 +8564,10 @@
             "time": "2024-11-07T12:36:22+00:00"
         }
     ],
-    "aliases": [
-        {
-            "package": "utopia-php/migration",
-            "version": "dev-feat-platform-db-access",
-            "alias": "1.10.999",
-            "alias_normalized": "1.10.999.0"
-        }
-    ],
+    "aliases": [],
     "minimum-stability": "dev",
     "stability-flags": {
         "utopia-php/http": 5,
-        "utopia-php/migration": 20,
         "utopia-php/platform": 5
     },
     "prefer-stable": true,
