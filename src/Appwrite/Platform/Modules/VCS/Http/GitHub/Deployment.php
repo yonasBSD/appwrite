@@ -97,7 +97,7 @@ trait Deployment
                 $resourceInternalId = $resource->getSequence();
 
                 $commitSkip = new DeploymentSkipPatterns();
-                if (!$commitSkip->isValid($providerCommitMessage)) {
+                if ($commitSkip->isValid($providerCommitMessage)) {
                     Span::add("{$logBase}.build.skipped.reason", 'commitMessage');
                     Span::add("{$logBase}.build.skipped", 'true');
                     continue;

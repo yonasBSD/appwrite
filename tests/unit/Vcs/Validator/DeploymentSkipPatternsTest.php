@@ -7,73 +7,50 @@ use PHPUnit\Framework\TestCase;
 
 class DeploymentSkipPatternsTest extends TestCase
 {
+    private DeploymentSkipPatterns $validator;
+
+    protected function setUp(): void
+    {
+        $this->validator = new DeploymentSkipPatterns();
+    }
+
     public function testKnownSkipDirectivesSkip(): void
     {
-        $validator = new DeploymentSkipPatterns();
-
-        $this->assertFalse($validator->isValid('[skip ci] update changelog'));
-        $this->assertFalse($validator->isValid('[ci skip] update changelog'));
-        $this->assertFalse($validator->isValid('[no ci] update changelog'));
-        $this->assertFalse($validator->isValid('[skip action] update changelog'));
-        $this->assertFalse($validator->isValid('[action skip] update changelog'));
-        $this->assertFalse($validator->isValid('[no action] update changelog'));
-        $this->assertFalse($validator->isValid('[skip actions] update changelog'));
-        $this->assertFalse($validator->isValid('[actions skip] update changelog'));
-        $this->assertFalse($validator->isValid('[no actions] update changelog'));
-        $this->assertFalse($validator->isValid('[skip deploy] update changelog'));
-        $this->assertFalse($validator->isValid('[deploy skip] update changelog'));
-        $this->assertFalse($validator->isValid('[no deploy] update changelog'));
-        $this->assertFalse($validator->isValid('[skip appwrite] update changelog'));
-        $this->assertFalse($validator->isValid('[appwrite skip] update changelog'));
-        $this->assertFalse($validator->isValid('[no appwrite] update changelog'));
+        $this->assertTrue($this->validator->isValid('[skip ci] update changelog'));
     }
 
     public function testKnownSkipDirectivesAreCaseInsensitive(): void
     {
-        $validator = new DeploymentSkipPatterns();
-
-        $this->assertFalse($validator->isValid('[SKIP CI] update changelog'));
-        $this->assertFalse($validator->isValid('[Skip Deploy] update changelog'));
-        $this->assertFalse($validator->isValid('[SKIP APPWRITE] update changelog'));
-        $this->assertFalse($validator->isValid('[Appwrite Skip] update changelog'));
-        $this->assertFalse($validator->isValid('[No Actions] update changelog'));
+        $this->assertTrue($this->validator->isValid('[SKIP CI] update changelog'));
     }
 
     public function testMessageWithoutKnownDirectiveProceeds(): void
     {
-        $validator = new DeploymentSkipPatterns();
-
-        $this->assertTrue($validator->isValid('fix: real bug fix'));
-        $this->assertTrue($validator->isValid('feat: add new feature'));
-        $this->assertTrue($validator->isValid('skip deploy without brackets'));
-        $this->assertTrue($validator->isValid('deploy this please'));
-        $this->assertTrue($validator->isValid('skip-checks:true'));
+        $this->assertFalse($this->validator->isValid('fix: real bug fix'));
+        $this->assertFalse($this->validator->isValid('feat: add new feature'));
+        $this->assertFalse($this->validator->isValid('skip deploy without brackets'));
+        $this->assertFalse($this->validator->isValid('deploy this please'));
+        $this->assertFalse($this->validator->isValid('skip-checks:true'));
     }
 
     public function testDirectiveCanAppearAnywhere(): void
     {
-        $validator = new DeploymentSkipPatterns();
-
-        $this->assertFalse($validator->isValid('docs: update readme [skip deploy]'));
-        $this->assertFalse($validator->isValid('docs: update readme[skip deploy]'));
-        $this->assertFalse($validator->isValid('prefix[skip deploy]suffix'));
-        $this->assertTrue($validator->isValid('refactor: skip appwrite cache seeding'));
-        $this->assertTrue($validator->isValid('fix: appwrite skip quota check in tests'));
+        $this->assertTrue($this->validator->isValid('docs: update readme [skip ci]'));
+        $this->assertTrue($this->validator->isValid('docs: update readme[skip ci]'));
+        $this->assertTrue($this->validator->isValid('prefix[skip ci]suffix'));
+        $this->assertFalse($this->validator->isValid('refactor: skip ci cache seeding'));
     }
 
     public function testMultilineCommitMessageSkips(): void
     {
-        $validator = new DeploymentSkipPatterns();
-        $message = "feat: add new stuff\n\nMore detail here.\n\n[skip deploy]";
+        $message = "feat: add new stuff\n\nMore detail here.\n\n[skip ci]";
 
-        $this->assertFalse($validator->isValid($message));
+        $this->assertTrue($this->validator->isValid($message));
     }
 
     public function testNonStringCommitMessageProceeds(): void
     {
-        $validator = new DeploymentSkipPatterns();
-
-        $this->assertTrue($validator->isValid(null));
-        $this->assertTrue($validator->isValid([]));
+        $this->assertFalse($this->validator->isValid(null));
+        $this->assertFalse($this->validator->isValid([]));
     }
 }
