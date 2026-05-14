@@ -2468,16 +2468,21 @@ trait MigrationsBase
      */
     public function testAppwriteMigrationPlatform(): void
     {
-        $consoleSessionHeaders = [
+        $sourceHeaders = [
             'content-type' => 'application/json',
-            'x-appwrite-project' => 'console',
-            'origin' => 'http://localhost',
-            'cookie' => 'a_session_console=' . $this->getRoot()['session'],
+            'x-appwrite-project' => $this->getProject()['$id'],
+            'x-appwrite-key' => $this->getProject()['apiKey'],
+        ];
+
+        $destinationHeaders = [
+            'content-type' => 'application/json',
+            'x-appwrite-project' => $this->getDestinationProject()['$id'],
+            'x-appwrite-key' => $this->getDestinationProject()['apiKey'],
         ];
 
         // Create platform on source project
-        $response = $this->client->call(Client::METHOD_POST, '/projects/' . $this->getProject()['$id'] . '/platforms', $consoleSessionHeaders, [
-            'type' => 'web',
+        $response = $this->client->call(Client::METHOD_POST, '/project/platforms/web', $sourceHeaders, [
+            'platformId' => ID::unique(),
             'name' => 'Test Platform',
             'hostname' => 'localhost',
         ]);
@@ -2506,8 +2511,8 @@ trait MigrationsBase
         $this->assertEquals(0, $result['statusCounters'][Resource::TYPE_PLATFORM]['processing']);
         $this->assertEquals(0, $result['statusCounters'][Resource::TYPE_PLATFORM]['warning']);
 
-        // Verify platform on destination project using console session
-        $response = $this->client->call(Client::METHOD_GET, '/projects/' . $this->getDestinationProject()['$id'] . '/platforms', $consoleSessionHeaders);
+        // Verify platform on destination project using the project's API key
+        $response = $this->client->call(Client::METHOD_GET, '/project/platforms', $destinationHeaders);
 
         $this->assertEquals(200, $response['headers']['status-code']);
         $this->assertNotEmpty($response['body']);
@@ -2528,11 +2533,11 @@ trait MigrationsBase
         $this->assertEquals('Test Platform', $foundPlatform['name']);
         $this->assertEquals('localhost', $foundPlatform['hostname']);
 
-        // Cleanup on destination using console session
-        $this->client->call(Client::METHOD_DELETE, '/projects/' . $this->getDestinationProject()['$id'] . '/platforms/' . $foundPlatform['$id'], $consoleSessionHeaders);
+        // Cleanup on destination
+        $this->client->call(Client::METHOD_DELETE, '/project/platforms/' . $foundPlatform['$id'], $destinationHeaders);
 
-        // Cleanup on source using console session
-        $this->client->call(Client::METHOD_DELETE, '/projects/' . $this->getProject()['$id'] . '/platforms/' . $platform['$id'], $consoleSessionHeaders);
+        // Cleanup on source
+        $this->client->call(Client::METHOD_DELETE, '/project/platforms/' . $platform['$id'], $sourceHeaders);
     }
 
     /**
