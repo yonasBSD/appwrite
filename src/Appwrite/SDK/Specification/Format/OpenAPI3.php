@@ -292,7 +292,7 @@ class OpenAPI3 extends Format
                 }
 
                 if (!(\is_array($model)) && $model->isNone()) {
-                    if ($produces === ContentType::TEXT->value && $response->getCode() !== 204) {
+                    if ($produces === ContentType::TEXT->value && !\in_array($response->getCode(), [204, 301, 302, 308], true)) {
                         $temp['responses'][(string)$response->getCode()] = [
                             'description' => 'Text',
                             'content' => [
