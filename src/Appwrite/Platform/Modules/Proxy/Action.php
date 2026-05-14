@@ -47,7 +47,6 @@ class Action extends PlatformAction
             $existingRule = $dbForPlatform->findOne('rules', [
                 Query::equal('domain', [$rule->getAttribute('domain', '')]),
             ]);
-
             if (!$existingRule->isEmpty()) {
                 return $existingRule;
             }
@@ -55,30 +54,24 @@ class Action extends PlatformAction
             return $dbForPlatform->getDocument('rules', $rule->getId());
         });
 
-        if ($existingRule->isEmpty()) {
-            return false;
-        }
-
-        if ($existingRule->getAttribute('domain', '') !== $rule->getAttribute('domain', '')) {
+        if (
+            $existingRule->isEmpty() ||
+            $existingRule->getAttribute('domain', '') !== $rule->getAttribute('domain', '')
+        ) {
             return false;
         }
 
         $projectId = $existingRule->getAttribute('projectId', '');
-
         if (empty($projectId)) {
             return false;
         }
 
-        $project = $authorization->skip(
-            fn () => $dbForPlatform->getDocument('projects', $projectId)
-        );
-
+        $project = $authorization->skip(fn () => $dbForPlatform->getDocument('projects', $projectId));
         if (!$project->isEmpty()) {
             return false;
         }
 
         $authorization->skip(fn () => $dbForPlatform->deleteDocument('rules', $existingRule->getId()));
-
         return true;
     }
 
