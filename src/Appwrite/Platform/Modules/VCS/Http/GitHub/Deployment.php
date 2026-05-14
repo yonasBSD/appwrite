@@ -96,9 +96,9 @@ trait Deployment
                 $resource = $authorization->skip(fn () => $dbForProject->getDocument($resourceCollection, $resourceId));
                 $resourceInternalId = $resource->getSequence();
 
-                $commitSkip = new Contains(VCS_DEPLOYMENT_SKIP_PATTERNS);
-                if ($commitSkip->isValid($providerCommitMessage)) {
-                    Span::add("{$logBase}.build.skipped.reason", 'commitMessage');
+                $validator = new Contains(VCS_DEPLOYMENT_SKIP_PATTERNS);
+                if ($validator->isValid($providerCommitMessage)) {
+                    Span::add("{$logBase}.build.skipped.reason", $validator->getDescription());
                     Span::add("{$logBase}.build.skipped", 'true');
                     continue;
                 }
