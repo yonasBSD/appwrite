@@ -514,3 +514,8 @@ const CSV_ALLOWED_DATABASE_TYPES = [
     DATABASE_TYPE_TABLESDB,
     DATABASE_TYPE_VECTORSDB
 ];
+
+// VCS deployment skip patterns
+const VCS_DEPLOYMENT_SKIP_PATTERNS = [
+    '[skip ci]',
+];

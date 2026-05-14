@@ -8,8 +8,8 @@ use Appwrite\Event\Publisher\Build as BuildPublisher;
 use Appwrite\Extend\Exception;
 use Appwrite\Filter\BranchDomain as BranchDomainFilter;
 use Appwrite\Vcs\Comment;
-use Appwrite\Vcs\Validator\DeploymentSkipPatterns;
 use Utopia\Config\Config;
+use Utopia\Validator\Contains;
 use Utopia\Console;
 use Utopia\Database\Database;
 use Utopia\Database\Document;
@@ -96,7 +96,7 @@ trait Deployment
                 $resource = $authorization->skip(fn () => $dbForProject->getDocument($resourceCollection, $resourceId));
                 $resourceInternalId = $resource->getSequence();
 
-                $commitSkip = new DeploymentSkipPatterns();
+                $commitSkip = new Contains(VCS_DEPLOYMENT_SKIP_PATTERNS);
                 if ($commitSkip->isValid($providerCommitMessage)) {
                     Span::add("{$logBase}.build.skipped.reason", 'commitMessage');
                     Span::add("{$logBase}.build.skipped", 'true');
