@@ -1,8 +1,8 @@
 <?php
 
 use Appwrite\Event\Database as EventDatabase;
-use Appwrite\Event\Delete;
 use Appwrite\Event\Event;
+use Appwrite\Event\Publisher\Delete as DeletePublisher;
 use Appwrite\Event\Publisher\Func as FunctionPublisher;
 use Appwrite\Event\Realtime;
 use Appwrite\Event\Webhook;
@@ -332,10 +332,6 @@ return function (Container $container): void {
         return new EventDatabase($publisher);
     }, ['publisher']);
 
-    $container->set('queueForDeletes', function (Publisher $publisher) {
-        return new Delete($publisher);
-    }, ['publisher']);
-
     $container->set('queueForEvents', function (Publisher $publisher) {
         return new Event($publisher);
     }, ['publisher']);
@@ -347,6 +343,10 @@ return function (Container $container): void {
     $container->set('publisherForFunctions', fn (Publisher $publisher) => new FunctionPublisher(
         $publisher,
         new Queue(System::getEnv('_APP_FUNCTIONS_QUEUE_NAME', Event::FUNCTIONS_QUEUE_NAME), 'utopia-queue', Event::FUNCTIONS_QUEUE_TTL)
+    ), ['publisher']);
+    $container->set('publisherForDeletes', fn (Publisher $publisher) => new DeletePublisher(
+        $publisher,
+        new Queue(System::getEnv('_APP_DELETE_QUEUE_NAME', Event::DELETE_QUEUE_NAME))
     ), ['publisher']);
 
     $container->set('queueForRealtime', function () {
