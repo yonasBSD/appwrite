@@ -8,7 +8,6 @@ use Appwrite\Event\Context\Audit as AuditContext;
 use Appwrite\Event\Database as EventDatabase;
 use Appwrite\Event\Event;
 use Appwrite\Event\Message\Func as FunctionMessage;
-use Appwrite\Event\Publisher\Delete as DeletePublisher;
 use Appwrite\Event\Publisher\Func as FunctionPublisher;
 use Appwrite\Event\Realtime;
 use Appwrite\Event\Webhook;
@@ -117,10 +116,6 @@ return function (Container $context): void {
     $context->set('publisherForFunctions', fn (Publisher $publisher) => new FunctionPublisher(
         $publisher,
         new Queue(System::getEnv('_APP_FUNCTIONS_QUEUE_NAME', Event::FUNCTIONS_QUEUE_NAME), 'utopia-queue', Event::FUNCTIONS_QUEUE_TTL)
-    ), ['publisher']);
-    $context->set('publisherForDeletes', fn (Publisher $publisher) => new DeletePublisher(
-        $publisher,
-        new Queue(System::getEnv('_APP_DELETE_QUEUE_NAME', Event::DELETE_QUEUE_NAME))
     ), ['publisher']);
     $context->set('eventProcessor', fn () => new EventProcessor(), []);
     $context->set('dbForPlatform', function (Group $pools, Cache $cache, Authorization $authorization) {
