@@ -91,7 +91,6 @@ use Appwrite\Platform\Modules\Project\Http\Project\Services\Update as UpdateProj
 use Appwrite\Platform\Modules\Project\Http\Project\SMTP\Tests\Create as CreateSMTPTest;
 use Appwrite\Platform\Modules\Project\Http\Project\SMTP\Update as UpdateSMTP;
 use Appwrite\Platform\Modules\Project\Http\Project\Templates\Email\Get as GetTemplate;
-use Appwrite\Platform\Modules\Project\Http\Project\Templates\Email\GetDefault as DefaultTemplate;
 use Appwrite\Platform\Modules\Project\Http\Project\Templates\Email\Update as UpdateTemplate;
 use Appwrite\Platform\Modules\Project\Http\Project\Templates\Email\XList as ListTemplates;
 use Appwrite\Platform\Modules\Project\Http\Project\Variables\Create as CreateVariable;
@@ -125,7 +124,6 @@ class Http extends Service
         $this->addAction(ListTemplates::getName(), new ListTemplates());
         $this->addAction(GetTemplate::getName(), new GetTemplate());
         $this->addAction(UpdateTemplate::getName(), new UpdateTemplate());
-        $this->addAction(DefaultTemplate::getName(), new DefaultTemplate());
 
         // Variables
         $this->addAction(CreateVariable::getName(), new CreateVariable());

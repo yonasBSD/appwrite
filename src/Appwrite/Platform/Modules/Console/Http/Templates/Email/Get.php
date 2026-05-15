@@ -1,6 +1,6 @@
 <?php
 
-namespace Appwrite\Platform\Modules\Project\Http\Project\Templates\Email;
+namespace Appwrite\Platform\Modules\Console\Http\Templates\Email;
 
 use Appwrite\SDK\AuthType;
 use Appwrite\SDK\Method;
@@ -15,28 +15,28 @@ use Utopia\Platform\Scope\HTTP;
 use Utopia\System\System;
 use Utopia\Validator\WhiteList;
 
-class GetDefault extends Action
+class Get extends Action
 {
     use HTTP;
 
-    public static function getName()
+    public static function getName(): string
     {
-        return 'getDefaultProjectEmailTemplate';
+        return 'getConsoleEmailTemplate';
     }
 
     public function __construct()
     {
         $this->setHttpMethod(Action::HTTP_REQUEST_METHOD_GET)
             ->setHttpPath('/v1/console/templates/email/:templateId')
-            ->desc('Get default project email template')
-            ->groups(['api', 'project'])
-            ->label('scope', 'templates.read')
+            ->desc('Get email template')
+            ->groups(['api', 'projects'])
+            ->label('scope', 'projects.read')
             ->label('sdk', new Method(
                 namespace: 'console',
                 group: 'templates',
                 name: 'getEmailTemplate',
                 description: <<<EOT
-                Get the Appwrite built-in default email template for the specified type and locale. Always returns the unmodified default, ignoring any custom overrides.
+                Get the Appwrite built-in default email template for the specified type and locale. Always returns the unmodified default, ignoring any custom project overrides.
                 EOT,
                 auth: [AuthType::ADMIN, AuthType::KEY],
                 responses: [
