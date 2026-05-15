@@ -89,14 +89,14 @@ class Update extends Action
     ) {
         $locale = $locale ?: System::getEnv('_APP_LOCALE', 'en');
 
-        $templates = $project->getAttribute('templates', []);
-
         // Prevent template update if custom SMTP is not configured
         $smtp = $project->getAttribute('smtp', []);
         if (($smtp['enabled'] ?? false) !== true) {
             throw new Exception(Exception::GENERAL_ARGUMENT_INVALID, 'SMTP must be enabled on the project to configure custom email templates.');
         }
 
+        // Fetch current configuration
+        $templates = $project->getAttribute('templates', []);
         $template = $templates['email.' . $templateId . '-' . $locale] ?? [];
 
         // Apply changes
@@ -120,24 +120,25 @@ class Update extends Action
             }
         }
 
+        // Save configuration
         $templates['email.' . $templateId . '-' . $locale] = $template;
-        $authorization->skip(fn () => $dbForPlatform->updateDocument(
-            'projects',
-            $project->getId(),
-            new Document(['templates' => $templates])
-        ));
+        $updates = new Document([
+            'templates' => $templates,
+        ]);
+
+        $project = $authorization->skip(fn () => $dbForPlatform->updateDocument('projects', $project->getId(), $updates));
 
         $queueForEvents->setParam('templateId', $templateId);
 
         $response->dynamic(new Document([
-            'templateId'   => $templateId,
-            'locale'       => $locale,
-            'subject'      => $template['subject'],
-            'message'      => $template['message'],
-            'senderName'   => $template['senderName'] ?? '',
-            'senderEmail'  => $template['senderEmail'] ?? '',
+            'templateId' => $templateId,
+            'locale' => $locale,
+            'subject' => $template['subject'],
+            'message' => $template['message'],
+            'senderName' => $template['senderName'] ?? '',
+            'senderEmail' => $template['senderEmail'] ?? '',
             'replyToEmail' => $template['replyToEmail'] ?? '',
-            'replyToName'  => $template['replyToName'] ?? '',
+            'replyToName' => $template['replyToName'] ?? '',
         ]), Response::MODEL_EMAIL_TEMPLATE);
     }
 }

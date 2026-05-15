@@ -1197,6 +1197,17 @@ trait TemplatesBase
         $this->assertNotEmpty($response['body']['subject']);
     }
 
+    public function testGetConsoleEmailTemplateNonDefaultLocale(): void
+    {
+        $response = $this->getConsoleEmailTemplate('verification', 'fr');
+
+        $this->assertSame(200, $response['headers']['status-code']);
+        $this->assertSame('verification', $response['body']['templateId']);
+        $this->assertSame('fr', $response['body']['locale']);
+        $this->assertNotEmpty($response['body']['subject']);
+        $this->assertNotEmpty($response['body']['message']);
+    }
+
     public function testGetConsoleEmailTemplateAllTypes(): void
     {
         $types = [
