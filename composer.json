@@ -112,12 +112,6 @@
     "provide": {
         "ext-phpiredis": "*"
     },
-    "repositories": [
-        {
-            "type": "vcs",
-            "url": "https://github.com/utopia-php/lock"
-        }
-    ],
     "config": {
         "platform": {
         },

@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "6bc4a0d273ff6b032b36fe205847d02a",
+    "content-hash": "035685d1335039f13e16d0532c874b21",
     "packages": [
         {
             "name": "adhocore/jwt",
@@ -4532,28 +4532,7 @@
                     "Utopia\\Lock\\": "src/"
                 }
             },
-            "autoload-dev": {
-                "psr-4": {
-                    "Utopia\\Lock\\Tests\\": "tests/"
-                }
-            },
-            "scripts": {
-                "test": [
-                    "vendor/bin/phpunit"
-                ],
-                "lint": [
-                    "vendor/bin/pint --test"
-                ],
-                "format": [
-                    "vendor/bin/pint"
-                ],
-                "format:check": [
-                    "vendor/bin/pint --test"
-                ],
-                "analyze": [
-                    "vendor/bin/phpstan analyse --memory-limit=512M"
-                ]
-            },
+            "notification-url": "https://packagist.org/downloads/",
             "license": [
                 "MIT"
             ],
@@ -4565,8 +4544,8 @@
             ],
             "description": "Mutex, semaphore, file and distributed locks for PHP — one interface, four backends.",
             "support": {
-                "source": "https://github.com/utopia-php/lock/tree/0.2.0",
-                "issues": "https://github.com/utopia-php/lock/issues"
+                "issues": "https://github.com/utopia-php/lock/issues",
+                "source": "https://github.com/utopia-php/lock/tree/0.2.0"
             },
             "time": "2026-04-24T10:47:56+00:00"
         },
