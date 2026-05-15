@@ -11,6 +11,8 @@ use Utopia\Database\Helpers\Permission;
 use Utopia\Database\Helpers\Role;
 use Utopia\Database\Query;
 use Utopia\Database\Validator\Datetime as DatetimeValidator;
+use Utopia\Storage\Storage;
+use Utopia\System\System;
 
 trait StorageBase
 {
@@ -287,7 +289,11 @@ trait StorageBase
         $this->assertEquals('large-file.mp4', $largeFile['body']['name']);
         $this->assertEquals('video/mp4', $largeFile['body']['mimeType']);
         $this->assertEquals($totalSize, $largeFile['body']['sizeOriginal']);
-        $this->assertEquals(md5_file(realpath(__DIR__ . '/../../../resources/disk-a/large-file.mp4')), $largeFile['body']['signature']); // should validate that the file is not encrypted
+        if (System::getEnv('_APP_STORAGE_DEVICE') === Storage::DEVICE_S3 || str_starts_with(System::getEnv('_APP_CONNECTIONS_STORAGE', ''), Storage::DEVICE_S3 . '://')) {
+            $this->assertNotEmpty($largeFile['body']['signature']);
+        } else {
+            $this->assertEquals(md5_file(realpath(__DIR__ . '/../../../resources/disk-a/large-file.mp4')), $largeFile['body']['signature']); // should validate that the file is not encrypted
+        }
 
         /**
          * Failure
@@ -391,7 +397,7 @@ trait StorageBase
             'bucketId' => ID::unique(),
             'name' => 'Test Bucket 2',
             'fileSecurity' => true,
-            'maximumFileSize' => 6000000000, //6GB
+            'maximumFileSize' => (int) System::getEnv('_APP_STORAGE_LIMIT', 0) + 1,
             'allowedFileExtensions' => ["jpg", "png"],
             'permissions' => [
                 Permission::read(Role::any()),

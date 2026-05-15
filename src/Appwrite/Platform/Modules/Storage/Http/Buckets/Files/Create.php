@@ -247,8 +247,25 @@ class Create extends Action
         $metadata = ['content_type' => $deviceForLocal->getFileMimeType($fileTmpName)];
         $completed = false;
 
+        $mergeUploadMetadata = function (array $stored, array $current): array {
+            $merged = \array_merge($stored, $current);
+
+            if (isset($stored['parts']) || isset($current['parts'])) {
+                $parts = $stored['parts'] ?? [];
+                foreach (($current['parts'] ?? []) as $part => $value) {
+                    $parts[(int) $part] = $value;
+                }
+                \ksort($parts);
+
+                $merged['parts'] = $parts;
+                $merged['chunks'] = \count($parts);
+            }
+
+            return $merged;
+        };
+
         try {
-            $lock->withLock(function () use ($bucket, &$chunks, $contentRange, $dbForProject, $fileId, &$metadata, &$completed, $response): void {
+            $lock->withLock(function () use ($bucket, &$chunks, $contentRange, $dbForProject, $deviceForFiles, $fileId, &$metadata, &$completed, $path, $response): void {
                 $file = $dbForProject->getDocument('bucket_' . $bucket->getSequence(), $fileId);
                 if (!$file->isEmpty()) {
                     $chunks = $file->getAttribute('chunksTotal', 1);
@@ -268,6 +285,8 @@ class Create extends Action
                         return;
                     }
                 }
+
+                $deviceForFiles->prepareUpload($path, $metadata['content_type'] ?? '', $chunks, $metadata);
             }, timeout: 120.0);
         } catch (LockContention) {
             $response->addHeader('Retry-After', '5');
@@ -278,219 +297,223 @@ class Create extends Action
             return;
         }
 
-        $chunksUploaded = $deviceForFiles->upload($fileTmpName, $path, $chunk, $chunks, $metadata);
+        $finalizeUpload = function (int $chunksUploaded) use ($authorization, $bucket, &$chunks, $contentRange, $dbForProject, $deviceForFiles, $fileId, $fileName, $fileSize, &$metadata, $mergeUploadMetadata, $path, $permissions, $queueForEvents, $response): void {
+            $file = $dbForProject->getDocument('bucket_' . $bucket->getSequence(), $fileId);
+            $uploaded = 0;
 
-        if (empty($chunksUploaded)) {
-            throw new Exception(Exception::GENERAL_SERVER_ERROR, 'Failed uploading file');
-        }
+            if (!$file->isEmpty()) {
+                $chunks = $file->getAttribute('chunksTotal', 1);
+                $uploaded = $file->getAttribute('chunksUploaded', 0);
+                $metadata = $mergeUploadMetadata($file->getAttribute('metadata', []), $metadata);
+
+                if ($uploaded === $chunks) {
+                    if (empty($contentRange)) {
+                        throw new Exception(Exception::STORAGE_FILE_ALREADY_EXISTS);
+                    }
+
+                    $response
+                        ->setStatusCode(Response::STATUS_CODE_OK)
+                        ->dynamic($file, Response::MODEL_FILE);
+
+                    return;
+                }
+            }
+
+            $chunksUploaded = max($uploaded, $chunksUploaded, (int) ($metadata['chunks'] ?? 0));
+
+            if ($chunksUploaded === $chunks && $uploaded < $chunks) {
+                $deviceForFiles->finalizeUpload($path, $chunks, $metadata);
+
+                if (System::getEnv('_APP_STORAGE_ANTIVIRUS') === 'enabled' && $bucket->getAttribute('antivirus', true) && $fileSize <= APP_LIMIT_ANTIVIRUS && $deviceForFiles->getType() === Storage::DEVICE_LOCAL) {
+                    $antivirus = new Network(
+                        System::getEnv('_APP_STORAGE_ANTIVIRUS_HOST', 'clamav'),
+                        (int) System::getEnv('_APP_STORAGE_ANTIVIRUS_PORT', 3310)
+                    );
+
+                    if (!$antivirus->fileScan($path)) {
+                        $deviceForFiles->delete($path);
+                        throw new Exception(Exception::STORAGE_INVALID_FILE);
+                    }
+                }
+
+                $mimeType = $deviceForFiles->getFileMimeType($path); // Get mime-type before compression and encryption
+                $fileHash = $deviceForFiles->getFileHash($path); // Get file hash before compression and encryption
+                $data = '';
+                $iv = '';
+                $tag = null;
+                // Compression
+                $algorithm = $bucket->getAttribute('compression', Compression::NONE);
+                if ($fileSize <= APP_STORAGE_READ_BUFFER && $algorithm != Compression::NONE) {
+                    $data = $deviceForFiles->read($path);
+                    switch ($algorithm) {
+                        case Compression::ZSTD:
+                            $compressor = new Zstd();
+                            break;
+                        case Compression::GZIP:
+                        default:
+                            $compressor = new GZIP();
+                            break;
+                    }
+                    $data = $compressor->compress($data);
+                } else {
+                    // reset the algorithm to none as we do not compress the file
+                    // if file size exceedes the APP_STORAGE_READ_BUFFER
+                    // regardless the bucket compression algoorithm
+                    $algorithm = Compression::NONE;
+                }
+
+                if ($bucket->getAttribute('encryption', true) && $fileSize <= APP_STORAGE_READ_BUFFER) {
+                    if (empty($data)) {
+                        $data = $deviceForFiles->read($path);
+                    }
+                    $key = System::getEnv('_APP_OPENSSL_KEY_V1');
+                    $iv = OpenSSL::randomPseudoBytes(OpenSSL::cipherIVLength(OpenSSL::CIPHER_AES_128_GCM));
+                    $data = OpenSSL::encrypt($data, OpenSSL::CIPHER_AES_128_GCM, $key, 0, $iv, $tag);
+                }
+
+                if (!empty($data)) {
+                    if (!$deviceForFiles->write($path, $data, $mimeType)) {
+                        throw new Exception(Exception::GENERAL_SERVER_ERROR, 'Failed to save file');
+                    }
+                }
+
+                $sizeActual = $deviceForFiles->getFileSize($path);
+
+                $openSSLVersion = null;
+                $openSSLCipher = null;
+                $openSSLTag = null;
+                $openSSLIV = null;
+
+                if ($bucket->getAttribute('encryption', true) && $fileSize <= APP_STORAGE_READ_BUFFER) {
+                    $openSSLVersion = '1';
+                    $openSSLCipher = OpenSSL::CIPHER_AES_128_GCM;
+                    $openSSLTag = \bin2hex($tag);
+                    $openSSLIV = \bin2hex($iv);
+                }
+
+                if ($file->isEmpty()) {
+                    $doc = new Document([
+                        '$id' => $fileId,
+                        '$permissions' => $permissions,
+                        'bucketId' => $bucket->getId(),
+                        'bucketInternalId' => $bucket->getSequence(),
+                        'name' => $fileName,
+                        'path' => $path,
+                        'signature' => $fileHash,
+                        'mimeType' => $mimeType,
+                        'sizeOriginal' => $fileSize,
+                        'sizeActual' => $sizeActual,
+                        'algorithm' => $algorithm,
+                        'comment' => '',
+                        'chunksTotal' => $chunks,
+                        'chunksUploaded' => $chunksUploaded,
+                        'openSSLVersion' => $openSSLVersion,
+                        'openSSLCipher' => $openSSLCipher,
+                        'openSSLTag' => $openSSLTag,
+                        'openSSLIV' => $openSSLIV,
+                        'search' => implode(' ', [$fileId, $fileName]),
+                        'metadata' => $metadata,
+                    ]);
+
+                    try {
+                        $file = $dbForProject->createDocument('bucket_' . $bucket->getSequence(), $doc);
+                    } catch (DuplicateException) {
+                        throw new Exception(Exception::STORAGE_FILE_ALREADY_EXISTS);
+                    } catch (NotFoundException) {
+                        throw new Exception(Exception::STORAGE_BUCKET_NOT_FOUND);
+                    }
+                } else {
+                    /**
+                     * Skip authorization in updateDocument.
+                     * Without this, the file creation will fail when user doesn't have update permission.
+                     * However as with chunk upload even if we are updating, we are essentially creating a file
+                     * adding it's new chunk so we rely on the create-permission check performed earlier.
+                     */
+                    $file = $authorization->skip(fn () => $dbForProject->updateDocument('bucket_' . $bucket->getSequence(), $fileId, new Document([
+                        '$permissions' => $permissions,
+                        'signature' => $fileHash,
+                        'mimeType' => $mimeType,
+                        'sizeActual' => $sizeActual,
+                        'algorithm' => $algorithm,
+                        'openSSLVersion' => $openSSLVersion,
+                        'openSSLCipher' => $openSSLCipher,
+                        'openSSLTag' => $openSSLTag,
+                        'openSSLIV' => $openSSLIV,
+                        'metadata' => $metadata,
+                        'chunksUploaded' => $chunksUploaded,
+                    ])));
+                }
+
+                // Trigger after create success hook
+                $this->afterCreateSuccess($file);
+            } else {
+                if ($file->isEmpty()) {
+                    $doc = new Document([
+                        '$id' => ID::custom($fileId),
+                        '$permissions' => $permissions,
+                        'bucketId' => $bucket->getId(),
+                        'bucketInternalId' => $bucket->getSequence(),
+                        'name' => $fileName,
+                        'path' => $path,
+                        'signature' => '',
+                        'mimeType' => '',
+                        'sizeOriginal' => $fileSize,
+                        'sizeActual' => 0,
+                        'algorithm' => '',
+                        'comment' => '',
+                        'chunksTotal' => $chunks,
+                        'chunksUploaded' => $chunksUploaded,
+                        'search' => implode(' ', [$fileId, $fileName]),
+                        'metadata' => $metadata,
+                    ]);
+
+                    try {
+                        $file = $dbForProject->createDocument('bucket_' . $bucket->getSequence(), $doc);
+                    } catch (DuplicateException) {
+                        throw new Exception(Exception::STORAGE_FILE_ALREADY_EXISTS);
+                    } catch (NotFoundException) {
+                        throw new Exception(Exception::STORAGE_BUCKET_NOT_FOUND);
+                    }
+                } else {
+                    /**
+                     * Skip authorization in updateDocument.
+                     * Without this, the file creation will fail when user doesn't have update permission.
+                     * However as with chunk upload even if we are updating, we are essentially creating a file
+                     * adding it's new chunk so we rely on the create-permission check performed earlier.
+                     */
+                    try {
+                        $file = $authorization->skip(fn () => $dbForProject->updateDocument('bucket_' . $bucket->getSequence(), $fileId, new Document([
+                            'chunksUploaded' => $chunksUploaded,
+                            'metadata' => $metadata,
+                        ])));
+                    } catch (NotFoundException) {
+                        throw new Exception(Exception::STORAGE_BUCKET_NOT_FOUND);
+                    }
+                }
+            }
+
+            if ($chunksUploaded === $chunks) {
+                $queueForEvents
+                    ->setParam('bucketId', $bucket->getId())
+                    ->setParam('fileId', $file->getId())
+                    ->setContext('bucket', $bucket);
+            }
+
+            $metadata = null; // was causing leaks as it was passed by reference
+
+            $response
+                ->setStatusCode(Response::STATUS_CODE_CREATED)
+                ->dynamic($file, Response::MODEL_FILE);
+        };
 
         try {
-            $lock->withLock(function () use ($authorization, $bucket, &$chunks, $chunksUploaded, $contentRange, $dbForProject, $deviceForFiles, $fileId, $fileName, $fileSize, &$metadata, $path, $permissions, $queueForEvents, $response): void {
-                $file = $dbForProject->getDocument('bucket_' . $bucket->getSequence(), $fileId);
-                $uploaded = 0;
+            $chunksUploaded = $deviceForFiles->uploadChunk($fileTmpName, $path, $chunk, $chunks, $metadata);
 
-                if (!$file->isEmpty()) {
-                    $chunks = $file->getAttribute('chunksTotal', 1);
-                    $uploaded = $file->getAttribute('chunksUploaded', 0);
-                    $metadata = \array_merge($file->getAttribute('metadata', []), $metadata);
+            if (empty($chunksUploaded)) {
+                throw new Exception(Exception::GENERAL_SERVER_ERROR, 'Failed uploading file');
+            }
 
-                    if ($uploaded === $chunks) {
-                        if (empty($contentRange)) {
-                            throw new Exception(Exception::STORAGE_FILE_ALREADY_EXISTS);
-                        }
-
-                        $response
-                            ->setStatusCode(Response::STATUS_CODE_OK)
-                            ->dynamic($file, Response::MODEL_FILE);
-
-                        return;
-                    }
-                }
-
-                $chunksUploaded = max($uploaded, $chunksUploaded);
-
-                if ($chunksUploaded === $chunks && $uploaded < $chunks) {
-                    if (System::getEnv('_APP_STORAGE_ANTIVIRUS') === 'enabled' && $bucket->getAttribute('antivirus', true) && $fileSize <= APP_LIMIT_ANTIVIRUS && $deviceForFiles->getType() === Storage::DEVICE_LOCAL) {
-                        $antivirus = new Network(
-                            System::getEnv('_APP_STORAGE_ANTIVIRUS_HOST', 'clamav'),
-                            (int) System::getEnv('_APP_STORAGE_ANTIVIRUS_PORT', 3310)
-                        );
-
-                        if (!$antivirus->fileScan($path)) {
-                            $deviceForFiles->delete($path);
-                            throw new Exception(Exception::STORAGE_INVALID_FILE);
-                        }
-                    }
-
-                    $mimeType = $deviceForFiles->getFileMimeType($path); // Get mime-type before compression and encryption
-                    $fileHash = $deviceForFiles->getFileHash($path); // Get file hash before compression and encryption
-                    $data = '';
-                    $iv = '';
-                    $tag = null;
-                    // Compression
-                    $algorithm = $bucket->getAttribute('compression', Compression::NONE);
-                    if ($fileSize <= APP_STORAGE_READ_BUFFER && $algorithm != Compression::NONE) {
-                        $data = $deviceForFiles->read($path);
-                        switch ($algorithm) {
-                            case Compression::ZSTD:
-                                $compressor = new Zstd();
-                                break;
-                            case Compression::GZIP:
-                            default:
-                                $compressor = new GZIP();
-                                break;
-                        }
-                        $data = $compressor->compress($data);
-                    } else {
-                        // reset the algorithm to none as we do not compress the file
-                        // if file size exceedes the APP_STORAGE_READ_BUFFER
-                        // regardless the bucket compression algoorithm
-                        $algorithm = Compression::NONE;
-                    }
-
-                    if ($bucket->getAttribute('encryption', true) && $fileSize <= APP_STORAGE_READ_BUFFER) {
-                        if (empty($data)) {
-                            $data = $deviceForFiles->read($path);
-                        }
-                        $key = System::getEnv('_APP_OPENSSL_KEY_V1');
-                        $iv = OpenSSL::randomPseudoBytes(OpenSSL::cipherIVLength(OpenSSL::CIPHER_AES_128_GCM));
-                        $data = OpenSSL::encrypt($data, OpenSSL::CIPHER_AES_128_GCM, $key, 0, $iv, $tag);
-                    }
-
-                    if (!empty($data)) {
-                        if (!$deviceForFiles->write($path, $data, $mimeType)) {
-                            throw new Exception(Exception::GENERAL_SERVER_ERROR, 'Failed to save file');
-                        }
-                    }
-
-                    $sizeActual = $deviceForFiles->getFileSize($path);
-
-                    $openSSLVersion = null;
-                    $openSSLCipher = null;
-                    $openSSLTag = null;
-                    $openSSLIV = null;
-
-                    if ($bucket->getAttribute('encryption', true) && $fileSize <= APP_STORAGE_READ_BUFFER) {
-                        $openSSLVersion = '1';
-                        $openSSLCipher = OpenSSL::CIPHER_AES_128_GCM;
-                        $openSSLTag = \bin2hex($tag);
-                        $openSSLIV = \bin2hex($iv);
-                    }
-
-                    if ($file->isEmpty()) {
-                        $doc = new Document([
-                            '$id' => $fileId,
-                            '$permissions' => $permissions,
-                            'bucketId' => $bucket->getId(),
-                            'bucketInternalId' => $bucket->getSequence(),
-                            'name' => $fileName,
-                            'path' => $path,
-                            'signature' => $fileHash,
-                            'mimeType' => $mimeType,
-                            'sizeOriginal' => $fileSize,
-                            'sizeActual' => $sizeActual,
-                            'algorithm' => $algorithm,
-                            'comment' => '',
-                            'chunksTotal' => $chunks,
-                            'chunksUploaded' => $chunksUploaded,
-                            'openSSLVersion' => $openSSLVersion,
-                            'openSSLCipher' => $openSSLCipher,
-                            'openSSLTag' => $openSSLTag,
-                            'openSSLIV' => $openSSLIV,
-                            'search' => implode(' ', [$fileId, $fileName]),
-                            'metadata' => $metadata,
-                        ]);
-
-                        try {
-                            $file = $dbForProject->createDocument('bucket_' . $bucket->getSequence(), $doc);
-                        } catch (DuplicateException) {
-                            throw new Exception(Exception::STORAGE_FILE_ALREADY_EXISTS);
-                        } catch (NotFoundException) {
-                            throw new Exception(Exception::STORAGE_BUCKET_NOT_FOUND);
-                        }
-                    } else {
-                        /**
-                         * Skip authorization in updateDocument.
-                         * Without this, the file creation will fail when user doesn't have update permission.
-                         * However as with chunk upload even if we are updating, we are essentially creating a file
-                         * adding it's new chunk so we rely on the create-permission check performed earlier.
-                         */
-                        $file = $authorization->skip(fn () => $dbForProject->updateDocument('bucket_' . $bucket->getSequence(), $fileId, new Document([
-                            '$permissions' => $permissions,
-                            'signature' => $fileHash,
-                            'mimeType' => $mimeType,
-                            'sizeActual' => $sizeActual,
-                            'algorithm' => $algorithm,
-                            'openSSLVersion' => $openSSLVersion,
-                            'openSSLCipher' => $openSSLCipher,
-                            'openSSLTag' => $openSSLTag,
-                            'openSSLIV' => $openSSLIV,
-                            'metadata' => $metadata,
-                            'chunksUploaded' => $chunksUploaded,
-                        ])));
-                    }
-
-                    // Trigger after create success hook
-                    $this->afterCreateSuccess($file);
-                } else {
-                    if ($file->isEmpty()) {
-                        $doc = new Document([
-                            '$id' => ID::custom($fileId),
-                            '$permissions' => $permissions,
-                            'bucketId' => $bucket->getId(),
-                            'bucketInternalId' => $bucket->getSequence(),
-                            'name' => $fileName,
-                            'path' => $path,
-                            'signature' => '',
-                            'mimeType' => '',
-                            'sizeOriginal' => $fileSize,
-                            'sizeActual' => 0,
-                            'algorithm' => '',
-                            'comment' => '',
-                            'chunksTotal' => $chunks,
-                            'chunksUploaded' => $chunksUploaded,
-                            'search' => implode(' ', [$fileId, $fileName]),
-                            'metadata' => $metadata,
-                        ]);
-
-                        try {
-                            $file = $dbForProject->createDocument('bucket_' . $bucket->getSequence(), $doc);
-                        } catch (DuplicateException) {
-                            throw new Exception(Exception::STORAGE_FILE_ALREADY_EXISTS);
-                        } catch (NotFoundException) {
-                            throw new Exception(Exception::STORAGE_BUCKET_NOT_FOUND);
-                        }
-                    } else {
-                        /**
-                         * Skip authorization in updateDocument.
-                         * Without this, the file creation will fail when user doesn't have update permission.
-                         * However as with chunk upload even if we are updating, we are essentially creating a file
-                         * adding it's new chunk so we rely on the create-permission check performed earlier.
-                         */
-                        try {
-                            $file = $authorization->skip(fn () => $dbForProject->updateDocument('bucket_' . $bucket->getSequence(), $fileId, new Document([
-                                'chunksUploaded' => $chunksUploaded,
-                                'metadata' => $metadata,
-                            ])));
-                        } catch (NotFoundException) {
-                            throw new Exception(Exception::STORAGE_BUCKET_NOT_FOUND);
-                        }
-                    }
-                }
-
-                if ($chunksUploaded === $chunks) {
-                    $queueForEvents
-                        ->setParam('bucketId', $bucket->getId())
-                        ->setParam('fileId', $file->getId())
-                        ->setContext('bucket', $bucket);
-                }
-
-                $metadata = null; // was causing leaks as it was passed by reference
-
-                $response
-                    ->setStatusCode(Response::STATUS_CODE_CREATED)
-                    ->dynamic($file, Response::MODEL_FILE);
-            }, timeout: 120.0);
+            $lock->withLock(fn () => $finalizeUpload($chunksUploaded), timeout: 120.0);
         } catch (LockContention) {
             $response->addHeader('Retry-After', '5');
             throw new Exception(Exception::GENERAL_RATE_LIMIT_EXCEEDED, 'File upload is busy. Try again.');
