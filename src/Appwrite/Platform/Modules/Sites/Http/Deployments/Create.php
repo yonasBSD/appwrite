@@ -199,7 +199,7 @@ class Create extends Action
         $path = $deviceForSites->getPath($deploymentId . '.' . \pathinfo($fileName, PATHINFO_EXTENSION));
 
         $lockKey = 'sites:deployment:' . $project->getId() . ':' . $siteId . ':' . $deploymentId;
-        $checkLock = new Distributed($redis, $lockKey, ttl: 120);
+        $checkLock = new Distributed($redis, $lockKey, ttl: 600);
         $stateLock = new Distributed($redis, $lockKey, ttl: 600);
 
         $metadata = ['content_type' => $deviceForLocal->getFileMimeType($fileTmpName)];
