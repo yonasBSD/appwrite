@@ -105,6 +105,11 @@ class Get extends Action
 
         foreach ($config['placeholders'] as $param) {
             $escapeHtml = !in_array($param, ['clientInfo', 'body', 'footer', 'description']);
+            if ($templateId === 'magicSession' && $param === 'securityPhrase') {
+                $message->setParam('{{securityPhrase}}', '');
+                continue;
+            }
+
             $message->setParam("{{{$param}}}", $localeObj->getText("emails.{$templateId}.{$param}"), escapeHtml: $escapeHtml);
         }
 
