@@ -265,7 +265,7 @@ class Create extends Action
         };
 
         try {
-            $lock->withLock(function () use ($bucket, &$chunks, $contentRange, $dbForProject, $deviceForFiles, $fileId, &$metadata, &$completed, $path, $response): void {
+            $lock->withLock(function () use ($bucket, &$chunks, $contentRange, $dbForProject, $deviceForFiles, $fileId, $fileName, $fileSize, &$metadata, $path, $permissions, $response, &$completed): void {
                 $file = $dbForProject->getDocument('bucket_' . $bucket->getSequence(), $fileId);
                 if (!$file->isEmpty()) {
                     $chunks = $file->getAttribute('chunksTotal', 1);
@@ -286,7 +286,38 @@ class Create extends Action
                     }
                 }
 
-                $deviceForFiles->prepareUpload($path, $metadata['content_type'] ?? '', $chunks, $metadata);
+                if ($file->isEmpty()) {
+                    $deviceForFiles->prepareUpload($path, $metadata['content_type'] ?? '', $chunks, $metadata);
+
+                    if (!empty($contentRange)) {
+                        $doc = new Document([
+                            '$id' => ID::custom($fileId),
+                            '$permissions' => $permissions,
+                            'bucketId' => $bucket->getId(),
+                            'bucketInternalId' => $bucket->getSequence(),
+                            'name' => $fileName,
+                            'path' => $path,
+                            'signature' => '',
+                            'mimeType' => '',
+                            'sizeOriginal' => $fileSize,
+                            'sizeActual' => 0,
+                            'algorithm' => '',
+                            'comment' => '',
+                            'chunksTotal' => $chunks,
+                            'chunksUploaded' => 0,
+                            'search' => implode(' ', [$fileId, $fileName]),
+                            'metadata' => $metadata,
+                        ]);
+
+                        try {
+                            $dbForProject->createDocument('bucket_' . $bucket->getSequence(), $doc);
+                        } catch (DuplicateException) {
+                            throw new Exception(Exception::STORAGE_FILE_ALREADY_EXISTS);
+                        } catch (NotFoundException) {
+                            throw new Exception(Exception::STORAGE_BUCKET_NOT_FOUND);
+                        }
+                    }
+                }
             }, timeout: 120.0);
         } catch (LockContention) {
             $response->addHeader('Retry-After', '5');
@@ -447,48 +478,19 @@ class Create extends Action
                 // Trigger after create success hook
                 $this->afterCreateSuccess($file);
             } else {
-                if ($file->isEmpty()) {
-                    $doc = new Document([
-                        '$id' => ID::custom($fileId),
-                        '$permissions' => $permissions,
-                        'bucketId' => $bucket->getId(),
-                        'bucketInternalId' => $bucket->getSequence(),
-                        'name' => $fileName,
-                        'path' => $path,
-                        'signature' => '',
-                        'mimeType' => '',
-                        'sizeOriginal' => $fileSize,
-                        'sizeActual' => 0,
-                        'algorithm' => '',
-                        'comment' => '',
-                        'chunksTotal' => $chunks,
+                /**
+                 * Skip authorization in updateDocument.
+                 * Without this, the file creation will fail when user doesn't have update permission.
+                 * However as with chunk upload even if we are updating, we are essentially creating a file
+                 * adding it's new chunk so we rely on the create-permission check performed earlier.
+                 */
+                try {
+                    $file = $authorization->skip(fn () => $dbForProject->updateDocument('bucket_' . $bucket->getSequence(), $fileId, new Document([
                         'chunksUploaded' => $chunksUploaded,
-                        'search' => implode(' ', [$fileId, $fileName]),
                         'metadata' => $metadata,
-                    ]);
-
-                    try {
-                        $file = $dbForProject->createDocument('bucket_' . $bucket->getSequence(), $doc);
-                    } catch (DuplicateException) {
-                        throw new Exception(Exception::STORAGE_FILE_ALREADY_EXISTS);
-                    } catch (NotFoundException) {
-                        throw new Exception(Exception::STORAGE_BUCKET_NOT_FOUND);
-                    }
-                } else {
-                    /**
-                     * Skip authorization in updateDocument.
-                     * Without this, the file creation will fail when user doesn't have update permission.
-                     * However as with chunk upload even if we are updating, we are essentially creating a file
-                     * adding it's new chunk so we rely on the create-permission check performed earlier.
-                     */
-                    try {
-                        $file = $authorization->skip(fn () => $dbForProject->updateDocument('bucket_' . $bucket->getSequence(), $fileId, new Document([
-                            'chunksUploaded' => $chunksUploaded,
-                            'metadata' => $metadata,
-                        ])));
-                    } catch (NotFoundException) {
-                        throw new Exception(Exception::STORAGE_BUCKET_NOT_FOUND);
-                    }
+                    ])));
+                } catch (NotFoundException) {
+                    throw new Exception(Exception::STORAGE_BUCKET_NOT_FOUND);
                 }
             }
 

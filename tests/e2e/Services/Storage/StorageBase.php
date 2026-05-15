@@ -397,7 +397,7 @@ trait StorageBase
             'bucketId' => ID::unique(),
             'name' => 'Test Bucket 2',
             'fileSecurity' => true,
-            'maximumFileSize' => (int) System::getEnv('_APP_STORAGE_LIMIT', 0) + 1,
+            'maximumFileSize' => ((int) System::getEnv('_APP_STORAGE_LIMIT', 0) ?: 6000000000) + 1,
             'allowedFileExtensions' => ["jpg", "png"],
             'permissions' => [
                 Permission::read(Role::any()),
