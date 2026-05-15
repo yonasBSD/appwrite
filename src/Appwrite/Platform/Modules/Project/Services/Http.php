@@ -90,8 +90,8 @@ use Appwrite\Platform\Modules\Project\Http\Project\Protocols\Update as UpdatePro
 use Appwrite\Platform\Modules\Project\Http\Project\Services\Update as UpdateProjectService;
 use Appwrite\Platform\Modules\Project\Http\Project\SMTP\Tests\Create as CreateSMTPTest;
 use Appwrite\Platform\Modules\Project\Http\Project\SMTP\Update as UpdateSMTP;
-use Appwrite\Platform\Modules\Project\Http\Project\Templates\Email\GetDefault as DefaultTemplate;
 use Appwrite\Platform\Modules\Project\Http\Project\Templates\Email\Get as GetTemplate;
+use Appwrite\Platform\Modules\Project\Http\Project\Templates\Email\GetDefault as DefaultTemplate;
 use Appwrite\Platform\Modules\Project\Http\Project\Templates\Email\Update as UpdateTemplate;
 use Appwrite\Platform\Modules\Project\Http\Project\Templates\Email\XList as ListTemplates;
 use Appwrite\Platform\Modules\Project\Http\Project\Variables\Create as CreateVariable;
