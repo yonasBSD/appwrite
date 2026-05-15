@@ -21,7 +21,6 @@ use Utopia\Database\Query;
 use Utopia\Database\Validator\Authorization;
 use Utopia\Database\Validator\UID;
 use Utopia\Http\Adapter\Swoole\Request;
-use Utopia\Lock\Distributed;
 use Utopia\Lock\Exception\Contention as LockContention;
 use Utopia\Platform\Action;
 use Utopia\Platform\Scope\HTTP;
@@ -94,7 +93,7 @@ class Create extends Action
             ->inject('plan')
             ->inject('authorization')
             ->inject('platform')
-            ->inject('redis')
+            ->inject('locks')
             ->callback($this->action(...));
     }
 
@@ -115,7 +114,7 @@ class Create extends Action
         array $plan,
         Authorization $authorization,
         array $platform,
-        \Redis $redis
+        callable $locks
     ) {
         $activate = \strval($activate) === 'true' || \strval($activate) === '1';
 
@@ -199,14 +198,12 @@ class Create extends Action
         $path = $deviceForFunctions->getPath($deploymentId . '.' . \pathinfo($fileName, PATHINFO_EXTENSION));
 
         $lockKey = 'functions:deployment:' . $project->getId() . ':' . $functionId . ':' . $deploymentId;
-        $checkLock = new Distributed($redis, $lockKey, ttl: 600);
-        $stateLock = new Distributed($redis, $lockKey, ttl: 600);
 
         $metadata = ['content_type' => $deviceForLocal->getFileMimeType($fileTmpName)];
         $completed = false;
 
         try {
-            $checkLock->withLock(function () use (&$chunks, $dbForProject, $deploymentId, &$metadata, &$completed, $response): void {
+            $locks($lockKey, 600, function () use (&$chunks, $dbForProject, $deploymentId, &$metadata, &$completed, $response): void {
                 $deployment = $dbForProject->getDocument('deployments', $deploymentId);
 
                 if (!$deployment->isEmpty()) {
@@ -242,7 +239,7 @@ class Create extends Action
         $type = $request->getHeader('x-sdk-language') === 'cli' ? 'cli' : 'manual';
 
         try {
-            $stateLock->withLock(function () use ($activate, &$chunks, $chunksUploaded, $commands, $dbForProject, $deploymentId, $deviceForFunctions, $entrypoint, $fileSize, &$function, $functionId, $path, &$metadata, $platform, $project, $publisherForBuilds, $queueForEvents, $response, $type): void {
+            $locks($lockKey, 600, function () use ($activate, &$chunks, $chunksUploaded, $commands, $dbForProject, $deploymentId, $deviceForFunctions, $entrypoint, $fileSize, &$function, $functionId, $path, &$metadata, $platform, $project, $publisherForBuilds, $queueForEvents, $response, $type): void {
                 $deployment = $dbForProject->getDocument('deployments', $deploymentId);
                 $uploaded = 0;
 

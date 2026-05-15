@@ -29,7 +29,6 @@ use Utopia\Database\Validator\Authorization\Input;
 use Utopia\Database\Validator\Permissions;
 use Utopia\Database\Validator\UID;
 use Utopia\Http\Adapter\Swoole\Request;
-use Utopia\Lock\Distributed;
 use Utopia\Lock\Exception\Contention as LockContention;
 use Utopia\Platform\Action;
 use Utopia\Platform\Scope\HTTP;
@@ -94,7 +93,7 @@ class Create extends Action
             ->inject('deviceForFiles')
             ->inject('deviceForLocal')
             ->inject('authorization')
-            ->inject('redis')
+            ->inject('locks')
             ->callback($this->action(...));
     }
 
@@ -112,7 +111,7 @@ class Create extends Action
         Device $deviceForFiles,
         Device $deviceForLocal,
         Authorization $authorization,
-        \Redis $redis
+        callable $locks
     ) {
         $bucket = $authorization->skip(fn () => $dbForProject->getDocument('buckets', $bucketId));
 
@@ -238,11 +237,7 @@ class Create extends Action
         $path = $deviceForFiles->getPath($fileId . '.' . \pathinfo($fileName, PATHINFO_EXTENSION));
         $path = str_ireplace($deviceForFiles->getRoot(), $deviceForFiles->getRoot() . DIRECTORY_SEPARATOR . $bucket->getId(), $path); // Add bucket id to path after root
 
-        $lock = new Distributed(
-            $redis,
-            'storage:file:' . $project->getId() . ':' . $bucket->getId() . ':' . $fileId,
-            ttl: 600,
-        );
+        $lockKey = 'storage:file:' . $project->getId() . ':' . $bucket->getId() . ':' . $fileId;
 
         $metadata = ['content_type' => $deviceForLocal->getFileMimeType($fileTmpName)];
         $completed = false;
@@ -265,7 +260,7 @@ class Create extends Action
         };
 
         try {
-            $lock->withLock(function () use ($bucket, &$chunks, $contentRange, $dbForProject, $deviceForFiles, $fileId, $fileName, $fileSize, &$metadata, $path, $permissions, $response, &$completed): void {
+            $locks($lockKey, 600, function () use ($bucket, &$chunks, $contentRange, $dbForProject, $deviceForFiles, $fileId, $fileName, $fileSize, &$metadata, $path, $permissions, $response, &$completed): void {
                 $file = $dbForProject->getDocument('bucket_' . $bucket->getSequence(), $fileId);
                 if (!$file->isEmpty()) {
                     $chunks = $file->getAttribute('chunksTotal', 1);
@@ -515,7 +510,7 @@ class Create extends Action
                 throw new Exception(Exception::GENERAL_SERVER_ERROR, 'Failed uploading file');
             }
 
-            $lock->withLock(fn () => $finalizeUpload($chunksUploaded), timeout: 120.0);
+            $locks($lockKey, 600, fn () => $finalizeUpload($chunksUploaded), timeout: 120.0);
         } catch (LockContention) {
             $response->addHeader('Retry-After', '5');
             throw new Exception(Exception::GENERAL_RATE_LIMIT_EXCEEDED, 'File upload is busy. Try again.');
