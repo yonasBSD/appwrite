@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "864ea52ffc77c76363c5b487f49a1c77",
+    "content-hash": "6bc4a0d273ff6b032b36fe205847d02a",
     "packages": [
         {
             "name": "adhocore/jwt",
@@ -4500,16 +4500,16 @@
         },
         {
             "name": "utopia-php/lock",
-            "version": "dev-main",
+            "version": "0.2.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/utopia-php/lock.git",
-                "reference": "22eda789528da4cc71e767c9ad9e9fd4fa2c9467"
+                "reference": "49317c9493d8f747e4299aa24c22862aa5f6e106"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/utopia-php/lock/zipball/22eda789528da4cc71e767c9ad9e9fd4fa2c9467",
-                "reference": "22eda789528da4cc71e767c9ad9e9fd4fa2c9467",
+                "url": "https://api.github.com/repos/utopia-php/lock/zipball/49317c9493d8f747e4299aa24c22862aa5f6e106",
+                "reference": "49317c9493d8f747e4299aa24c22862aa5f6e106",
                 "shasum": ""
             },
             "require": {
@@ -4526,7 +4526,6 @@
                 "ext-redis": "Required for the Distributed lock",
                 "ext-swoole": "Required for the Mutex and Semaphore locks (>=6.0)"
             },
-            "default-branch": true,
             "type": "library",
             "autoload": {
                 "psr-4": {
@@ -4564,12 +4563,12 @@
                     "email": "team@appwrite.io"
                 }
             ],
-            "description": "A simple lock library to coordinate access to shared resources across coroutines, processes and hosts",
+            "description": "Mutex, semaphore, file and distributed locks for PHP — one interface, four backends.",
             "support": {
-                "source": "https://github.com/utopia-php/lock/tree/main",
+                "source": "https://github.com/utopia-php/lock/tree/0.2.0",
                 "issues": "https://github.com/utopia-php/lock/issues"
             },
-            "time": "2026-04-28T10:07:10+00:00"
+            "time": "2026-04-24T10:47:56+00:00"
         },
         {
             "name": "utopia-php/logger",
@@ -8640,8 +8639,7 @@
     "aliases": [],
     "minimum-stability": "dev",
     "stability-flags": {
-        "utopia-php/http": 5,
-        "utopia-php/lock": 20
+        "utopia-php/http": 5
     },
     "prefer-stable": true,
     "prefer-lowest": false,
