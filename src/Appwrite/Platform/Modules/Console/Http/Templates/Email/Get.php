@@ -29,16 +29,16 @@ class Get extends Action
         $this->setHttpMethod(Action::HTTP_REQUEST_METHOD_GET)
             ->setHttpPath('/v1/console/templates/email/:templateId')
             ->desc('Get email template')
-            ->groups(['api', 'projects'])
-            ->label('scope', 'projects.read')
+            ->groups(['api'])
+            ->label('scope', 'public')
             ->label('sdk', new Method(
                 namespace: 'console',
-                group: 'templates',
+                group: null,
                 name: 'getEmailTemplate',
                 description: <<<EOT
                 Get the Appwrite built-in default email template for the specified type and locale. Always returns the unmodified default, ignoring any custom project overrides.
                 EOT,
-                auth: [AuthType::ADMIN, AuthType::KEY],
+                auth: [AuthType::ADMIN],
                 responses: [
                     new SDKResponse(
                         code: Response::STATUS_CODE_OK,
