@@ -205,6 +205,8 @@ class ConsoleConsoleClientTest extends Scope
             $this->assertNotEmpty($scope['description']);
             $this->assertArrayHasKey('deprecated', $scope);
             $this->assertIsBool($scope['deprecated']);
+            $this->assertArrayHasKey('category', $scope);
+            $this->assertIsString($scope['category']);
         }
 
         // A specific scope has the expected description
