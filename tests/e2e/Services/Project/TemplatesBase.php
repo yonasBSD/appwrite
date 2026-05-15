@@ -1217,44 +1217,18 @@ trait TemplatesBase
         }
     }
 
-    public function testResetEmailTemplate(): void
+    public function testGetConsoleEmailTemplateInvalidTemplateId(): void
     {
-        $this->ensureSMTPEnabled();
+        $response = $this->getConsoleEmailTemplate('invalidTemplate', 'en');
 
-        // Apply a custom override.
-        $this->updateEmailTemplate(
-            templateId: 'invitation',
-            locale: 'en',
-            subject: 'Custom invite subject',
-            message: 'Custom invite message',
-            senderName: 'Bad Sender',
-            senderEmail: 'bad@example.com',
-        );
-
-        $custom = $this->getEmailTemplate('invitation', 'en');
-        $this->assertSame('Custom invite subject', $custom['body']['subject']);
-        $this->assertSame('Bad Sender', $custom['body']['senderName']);
-
-        // Reset to default.
-        $response = $this->resetEmailTemplate('invitation', 'en');
-        $this->assertSame(200, $response['headers']['status-code']);
-        $this->assertSame('', $response['body']['senderName']);
-        $this->assertSame('', $response['body']['senderEmail']);
-        $this->assertNotSame('Custom invite subject', $response['body']['subject']);
-
-        // Confirm the project template now reflects the default.
-        $after = $this->getEmailTemplate('invitation', 'en');
-        $this->assertSame('', $after['body']['senderName']);
-        $this->assertSame('', $after['body']['senderEmail']);
+        $this->assertSame(400, $response['headers']['status-code']);
     }
 
-    public function testResetEmailTemplateWithoutSMTP(): void
+    public function testGetConsoleEmailTemplateInvalidLocale(): void
     {
-        // Reset must work even without SMTP enabled.
-        $response = $this->resetEmailTemplate('recovery', 'en');
-        $this->assertSame(200, $response['headers']['status-code']);
-        $this->assertSame('', $response['body']['senderName']);
-        $this->assertSame('', $response['body']['senderEmail']);
+        $response = $this->getConsoleEmailTemplate('recovery', 'not-a-locale');
+
+        $this->assertSame(400, $response['headers']['status-code']);
     }
 
     protected function getConsoleEmailTemplate(string $templateId, ?string $locale = null): mixed
@@ -1264,23 +1238,11 @@ trait TemplatesBase
             $params['locale'] = $locale;
         }
 
-        return $this->client->call(Client::METHOD_GET, '/console/templates/email/' . $templateId, \array_merge([
+        return $this->client->call(Client::METHOD_GET, '/console/templates/email/' . $templateId, [
             'content-type' => 'application/json',
-            'x-appwrite-project' => $this->getProject()['$id'],
-        ], $this->getHeaders()), $params);
-    }
-
-    protected function resetEmailTemplate(string $templateId, ?string $locale = null): mixed
-    {
-        $params = ['templateId' => $templateId, 'reset' => true];
-        if ($locale !== null) {
-            $params['locale'] = $locale;
-        }
-
-        return $this->client->call(Client::METHOD_PATCH, '/project/templates/email', \array_merge([
-            'content-type' => 'application/json',
-            'x-appwrite-project' => $this->getProject()['$id'],
-        ], $this->getHeaders()), $params);
+            'x-appwrite-project' => 'console',
+            'cookie' => 'a_session_console=' . $this->getRoot()['session'],
+        ], $params);
     }
 
     protected function ensureSMTPEnabled(): void

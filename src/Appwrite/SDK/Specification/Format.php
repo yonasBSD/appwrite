@@ -469,9 +469,9 @@ abstract class Format
                     case 'getEmailTemplate':
                         switch ($param) {
                             case 'templateId':
-                                return 'ConsoleEmailTemplateId';
+                                return 'ProjectEmailTemplateId';
                             case 'locale':
-                                return 'ConsoleEmailTemplateLocale';
+                                return 'ProjectEmailTemplateLocale';
                         }
                         break;
                 }
