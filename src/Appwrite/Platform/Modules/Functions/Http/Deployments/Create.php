@@ -2,8 +2,9 @@
 
 namespace Appwrite\Platform\Modules\Functions\Http\Deployments;
 
-use Appwrite\Event\Build;
 use Appwrite\Event\Event;
+use Appwrite\Event\Message\Build as BuildMessage;
+use Appwrite\Event\Publisher\Build as BuildPublisher;
 use Appwrite\Extend\Exception;
 use Appwrite\SDK\AuthType;
 use Appwrite\SDK\ContentType;
@@ -89,9 +90,10 @@ class Create extends Action
             ->inject('project')
             ->inject('deviceForFunctions')
             ->inject('deviceForLocal')
-            ->inject('queueForBuilds')
+            ->inject('publisherForBuilds')
             ->inject('plan')
             ->inject('authorization')
+            ->inject('platform')
             ->inject('redis')
             ->callback($this->action(...));
     }
@@ -109,9 +111,10 @@ class Create extends Action
         Document $project,
         Device $deviceForFunctions,
         Device $deviceForLocal,
-        Build $queueForBuilds,
+        BuildPublisher $publisherForBuilds,
         array $plan,
         Authorization $authorization,
+        array $platform,
         \Redis $redis
     ) {
         $activate = \strval($activate) === 'true' || \strval($activate) === '1';
@@ -239,7 +242,7 @@ class Create extends Action
         $type = $request->getHeader('x-sdk-language') === 'cli' ? 'cli' : 'manual';
 
         try {
-            $stateLock->withLock(function () use ($activate, &$chunks, $chunksUploaded, $commands, $dbForProject, $deploymentId, $deviceForFunctions, $entrypoint, $fileSize, &$function, $functionId, $path, &$metadata, $queueForBuilds, $queueForEvents, $response, $type): void {
+            $stateLock->withLock(function () use ($activate, &$chunks, $chunksUploaded, $commands, $dbForProject, $deploymentId, $deviceForFunctions, $entrypoint, $fileSize, &$function, $functionId, $path, &$metadata, $platform, $project, $publisherForBuilds, $queueForEvents, $response, $type): void {
                 $deployment = $dbForProject->getDocument('deployments', $deploymentId);
                 $uploaded = 0;
 
@@ -315,10 +318,13 @@ class Create extends Action
                     }
 
                     // Start the build
-                    $queueForBuilds
-                        ->setType(BUILD_TYPE_DEPLOYMENT)
-                        ->setResource($function)
-                        ->setDeployment($deployment);
+                    $publisherForBuilds->enqueue(new BuildMessage(
+                        project: $project,
+                        resource: $function,
+                        deployment: $deployment,
+                        type: BUILD_TYPE_DEPLOYMENT,
+                        platform: $platform,
+                    ));
                 } else {
                     if ($deployment->isEmpty()) {
                         $deployment = $dbForProject->createDocument('deployments', new Document([

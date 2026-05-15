@@ -2,12 +2,19 @@
 
 use Appwrite\Event\Event;
 use Appwrite\Event\Publisher\Audit as AuditPublisher;
+use Appwrite\Event\Publisher\Build as BuildPublisher;
 use Appwrite\Event\Publisher\Certificate as CertificatePublisher;
+use Appwrite\Event\Publisher\Database as DatabasePublisher;
+use Appwrite\Event\Publisher\Delete as DeletePublisher;
 use Appwrite\Event\Publisher\Execution as ExecutionPublisher;
+use Appwrite\Event\Publisher\Func as FunctionPublisher;
+use Appwrite\Event\Publisher\Mail as MailPublisher;
+use Appwrite\Event\Publisher\Messaging as MessagingPublisher;
 use Appwrite\Event\Publisher\Migration as MigrationPublisher;
 use Appwrite\Event\Publisher\Screenshot as ScreenshotPublisher;
 use Appwrite\Event\Publisher\StatsResources as StatsResourcesPublisher;
 use Appwrite\Event\Publisher\Usage as UsagePublisher;
+use Appwrite\Platform\Modules\Storage\Config\StorageCacheControl;
 use Appwrite\Utopia\Database\Documents\User;
 use Executor\Executor;
 use Utopia\Abuse\Adapters\TimeLimit\Redis as TimeLimitRedis;
@@ -104,6 +111,10 @@ $container->set('publisherForExecutions', fn (Publisher $publisher) => new Execu
     $publisher,
     new Queue(System::getEnv('_APP_EXECUTIONS_QUEUE_NAME', Event::EXECUTIONS_QUEUE_NAME))
 ), ['publisher']);
+$container->set('publisherForFunctions', fn (Publisher $publisher) => new FunctionPublisher(
+    $publisher,
+    new Queue(System::getEnv('_APP_FUNCTIONS_QUEUE_NAME', Event::FUNCTIONS_QUEUE_NAME), 'utopia-queue', Event::FUNCTIONS_QUEUE_TTL)
+), ['publisher']);
 $container->set('publisherForMigrations', fn (Publisher $publisher) => new MigrationPublisher(
     $publisher,
     new Queue(System::getEnv('_APP_MIGRATIONS_QUEUE_NAME', Event::MIGRATIONS_QUEUE_NAME))
@@ -111,6 +122,26 @@ $container->set('publisherForMigrations', fn (Publisher $publisher) => new Migra
 $container->set('publisherForStatsResources', fn (Publisher $publisher) => new StatsResourcesPublisher(
     $publisher,
     new Queue(System::getEnv('_APP_STATS_RESOURCES_QUEUE_NAME', Event::STATS_RESOURCES_QUEUE_NAME))
+), ['publisher']);
+$container->set('publisherForBuilds', fn (Publisher $publisher) => new BuildPublisher(
+    $publisher,
+    new Queue(System::getEnv('_APP_BUILDS_QUEUE_NAME', Event::BUILDS_QUEUE_NAME))
+), ['publisher']);
+$container->set('publisherForDatabase', fn (Publisher $publisherDatabases) => new DatabasePublisher(
+    $publisherDatabases,
+    new Queue(System::getEnv('_APP_DATABASE_QUEUE_NAME', Event::DATABASE_QUEUE_NAME))
+), ['publisherDatabases']);
+$container->set('publisherForDeletes', fn (Publisher $publisher) => new DeletePublisher(
+    $publisher,
+    new Queue(System::getEnv('_APP_DELETE_QUEUE_NAME', Event::DELETE_QUEUE_NAME))
+), ['publisher']);
+$container->set('publisherForMails', fn (Publisher $publisher) => new MailPublisher(
+    $publisher,
+    new Queue(System::getEnv('_APP_MAILS_QUEUE_NAME', Event::MAILS_QUEUE_NAME))
+), ['publisher']);
+$container->set('publisherForMessaging', fn (Publisher $publisher) => new MessagingPublisher(
+    $publisher,
+    new Queue(System::getEnv('_APP_MESSAGING_QUEUE_NAME', Event::MESSAGING_QUEUE_NAME))
 ), ['publisher']);
 
 /**
@@ -197,6 +228,10 @@ $container->set('cache', function (Group $pools, Telemetry $telemetry) {
 
     return $cache;
 }, ['pools', 'telemetry']);
+
+$container->set('cacheControlForStorage', fn () => function (StorageCacheControl $config): string {
+    return \sprintf('private, max-age=%d', $config->maxAge);
+});
 
 $container->set('redis', function () {
     $host = System::getEnv('_APP_REDIS_HOST', 'localhost');
